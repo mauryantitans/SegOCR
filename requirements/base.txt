@@ -1,0 +1,16 @@
+# Phase 1 — data generation only (no GPU/torch needed)
+# Install: .venv/Scripts/pip install -r requirements/base.txt
+Pillow==10.2.0
+opencv-python==4.9.0.80
+albumentations==1.3.1
+noise==1.2.2
+scipy==1.12.0
+freetype-py==2.4.0
+numpy>=1.24,<2.0
+pyyaml==6.0.1
+tqdm==4.66.0
+matplotlib==3.8.0
+seaborn==0.13.0
+pytest>=7.4
+pytest-cov>=4.1
+ruff>=0.1.6

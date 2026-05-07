@@ -1,0 +1,214 @@
+# SegOCR — default config
+# Source of truth for all hyperparameters across generator, model, training,
+# adaptation, and evaluation. Mirrors Implementation Guide §2.3.
+#
+# Override with: python -m scripts.train_model --config configs/default.yaml --override key=value
+
+# ─── Synthetic data generator ─────────────────────────────────────────────────
+generator:
+  output_dir: "data/generated"
+  image_size: [512, 512]
+  num_images: 100000
+  num_workers: 8
+
+  fonts:
+    root_dir: "data/fonts/google-fonts"
+    cache_path: "data/fonts/font_cache.json"
+    min_size: 16
+    max_size: 128
+    categories:                # relative sampling weights
+      serif: 0.20
+      sans-serif: 0.25
+      monospace: 0.10
+      handwritten: 0.25
+      decorative: 0.10
+      script: 0.10
+
+  text:
+    corpus_path: "data/corpora/wikitext"
+    min_length: 1
+    max_length: 50
+    min_words_per_line: 1
+    max_words_per_line: 10
+    max_lines: 5
+    case_distribution:
+      lower: 0.35
+      upper: 0.25
+      mixed: 0.30
+      title: 0.10
+    rare_char_boost: 2.0       # multiplier for rare-character sampling weight
+
+  character_set:
+    tier: 1                    # 1 = alphanumeric (63 classes), 2 = +punct (78), 3 = +accented (95+)
+
+  layout:
+    modes:                     # 6 modes — Mode 6 (paragraph) added per brainstorming
+      horizontal: 0.30
+      rotated: 0.18
+      curved: 0.18
+      perspective: 0.13
+      deformed: 0.08
+      paragraph: 0.13
+    rotation_range: [-180, 180]
+    curve_types: ["bezier", "sinusoidal", "circular"]
+    perspective_strength: [0.0, 0.30]
+    deformation_strength: [0.0, 0.40]
+    paragraph:
+      lines: [3, 12]
+      line_spacing: [1.1, 1.6]
+      word_spacing: [0.6, 1.4]
+      align: ["left", "justified", "center"]
+    placement:
+      max_retries: 5           # collision-mask retry limit (per-instance)
+      min_separation_px: 2     # min pixels between adjacent placements
+
+  background:
+    tier_distribution:
+      tier1_solid: 0.10
+      tier2_procedural: 0.20
+      tier3_natural: 0.50
+      tier4_adversarial: 0.20
+    natural_image_dirs:
+      - "data/backgrounds/coco/train2017"
+      - "data/backgrounds/dtd/images"
+    preload_buffer_size: 200   # pre-load this many images, cycle and refresh
+
+  compositing:
+    modes:
+      standard: 0.40
+      semi_transparent: 0.10
+      textured_fill: 0.10
+      outline: 0.10
+      shadow: 0.15
+      emboss: 0.15
+    color_strategy:
+      contrast_aware: 0.40
+      random: 0.30
+      low_contrast: 0.30
+
+  degradation:
+    blur:
+      probability: 0.40
+      gaussian_sigma: [0.3, 2.0]
+      motion_kernel: [3, 15]
+      defocus_radius: [1, 5]
+    noise:
+      probability: 0.50
+      gaussian_sigma: [5, 30]
+      salt_pepper_density: [0.01, 0.05]
+    compression:
+      probability: 0.60
+      jpeg_quality: [20, 95]
+    lighting:
+      probability: 0.70
+      gamma_range: [0.5, 2.0]
+      brightness_shift: 0.30
+      contrast_factor: [0.5, 1.5]
+    geometric:
+      probability: 0.20
+      distortion_k1: [-0.30, 0.30]
+    occlusion:
+      probability: 0.15
+      max_patches: 3
+      max_coverage: 0.20
+
+# ─── Model ────────────────────────────────────────────────────────────────────
+model:
+  architecture: "segformer"    # "unet" | "deeplabv3plus" | "segformer" | "mask2former"
+  encoder: "mit_b2"            # "resnet50" | "efficientnet-b4" | "mit_b0/b1/b2/b3/b4"
+  num_classes: 63              # 62 alphanumeric + 1 background
+  input_size: [512, 512]
+
+  heads:
+    semantic: true
+    affinity: true             # inter-character word linkage
+    direction: true            # 2D vector to char centroid; disambiguates rotated symmetric chars
+
+  loss:
+    focal_weight: 0.5
+    focal_gamma: 2.0
+    dice_weight: 0.5
+    affinity_weight: 0.3
+    direction_weight: 0.2
+    background_class_weight: 0.2
+    max_class_weight: 10.0
+
+# ─── Training ─────────────────────────────────────────────────────────────────
+training:
+  optimizer: "adamw"
+  learning_rate: 6.0e-5        # 1e-4 for UNet, 6e-5 for SegFormer
+  weight_decay: 0.01
+  scheduler: "poly"
+  warmup_iters: 1500
+  total_iters: 160000
+  batch_size: 8
+  num_workers: 4
+  eval_interval: 2500
+  save_interval: 5000
+  keep_best_n: 3
+  mixed_precision: true        # torch.cuda.amp
+
+  # Mitigations for the across-epoch instability observed in the pilot
+  ema:
+    enabled: true
+    decay: 0.999
+  checkpoint_averaging:
+    enabled: true
+    top_n: 3                   # average top-3 by val mIoU at end of training
+
+  augmentation:
+    random_flip: 0.5
+    color_jitter:
+      brightness: 0.2
+      contrast: 0.2
+      saturation: 0.2
+      hue: 0.1
+    random_grayscale: 0.1
+
+  wandb:
+    project: "segocr"
+    entity: null
+
+# ─── Domain adaptation ────────────────────────────────────────────────────────
+adaptation:
+  domain_randomization:
+    enabled: true
+    extreme_diversity: true
+
+  style_transfer:
+    method: "cyclegan"         # "cyclegan" | "fda"
+    real_data_dir: "data/benchmarks/icdar2015/train"
+    apply_probability: 0.5
+
+  self_training:
+    enabled: true
+    iterations: 3
+    confidence_threshold: 0.9
+    instance_coverage_threshold: 0.7
+    image_coverage_threshold: 0.5
+    synthetic_ratio: 0.7
+    real_ratio: 0.3
+    unlabeled_real_dir: "data/unlabeled_real"
+
+  dann:
+    enabled: true
+    lambda_max: 1.0
+    lambda_rampup_iters: 10000
+    discriminator_layers: 3
+
+# ─── Evaluation ───────────────────────────────────────────────────────────────
+evaluation:
+  benchmarks:
+    - { name: "icdar2013",   path: "data/benchmarks/icdar2013" }
+    - { name: "icdar2015",   path: "data/benchmarks/icdar2015" }
+    - { name: "totaltext",   path: "data/benchmarks/totaltext" }
+    - { name: "cocotext",    path: "data/benchmarks/cocotext" }
+    - { name: "hard_cases",  path: "data/benchmarks/hard_cases" }
+  metrics:
+    - "miou"                    # primary multi-class metric
+    - "fg_miou"                 # ignoring background — true OCR signal
+    - "binary_miou"             # collapse classes 1..N → 1 — noise-removal byproduct
+    - "char_accuracy"
+    - "word_accuracy"
+    - "cer"                     # character error rate
+    - "ned"                     # normalized edit distance

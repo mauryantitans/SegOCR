@@ -1,0 +1,17 @@
+# Phase 2 — model training (needs CUDA-enabled torch)
+# Install AFTER base.txt and AFTER torch is installed via the cu118 index URL.
+# Install: .venv/Scripts/pip install -r requirements/train.txt
+-r base.txt
+
+segmentation-models-pytorch>=0.3.3
+pycocotools==2.0.7
+editdistance==0.6.2
+nltk==3.8.1
+wandb==0.16.0
+webdataset==0.2.77
+
+# mmsegmentation + mmcv-full are notoriously fragile on Windows.
+# Install manually only when SegFormer is needed (Week 6+):
+#   pip install -U openmim
+#   mim install mmcv-full==1.7.1
+#   pip install mmsegmentation==0.30.0

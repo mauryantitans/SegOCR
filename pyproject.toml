@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "segocr"
+version = "0.1.0"
+description = "SegOCR — character-level semantic segmentation for OCR in adversarial visual conditions"
+authors = [{ name = "Mourya Arnepalli", email = "arnepalli.m@northeastern.edu" }]
+requires-python = ">=3.10"
+license = { text = "MIT" }
+readme = { file = "README.md", content-type = "text/markdown" }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["segocr*"]
+exclude = ["tests*", "data*", "weights*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = [".venv", "build", "dist", "data", "weights"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers"
