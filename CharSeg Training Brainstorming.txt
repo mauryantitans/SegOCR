@@ -1,0 +1,25 @@
+VIDEO : "https://www.youtube.com/watch?v=40eUFiGVeMo"
+PAPER : "https://research.google/blog/introducing-nested-learning-a-new-ml-paradigm-for-continual-learning/"
+
+
+1. Check out the above video, it seems it can solve the problem which i had observed when i tried out inference of all the models weight generated at each epoch.
+
+2. The training code presently has only 2 classes [ background and character pixels ], if we want to get it to do OCR, we need to expand it, also as we only have 2 classes and are trying to see if it's a background or not background, can we treat it as a classification type and try to train some classification models to see if it performs better than the present RCNN or not so good like UNET.
+
+3. I have to also try the other semantic segmentation models (these pixels assign a class to every pixel but will treat all the objects of the same class as one which means these will not be able to be extended to OCR as it will just say character or background) but this can be used for the problem statement that i had initially.
+
+4. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+

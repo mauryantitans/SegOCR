@@ -1,0 +1,79 @@
+ok when placing a character, let's do this, create a placement mask which is a black image of the dataset image size we are going to create, and then place the character but in white color, this gives us our mask and the extract the exact polygon shape we can just find the pixels that have at least one connection with a black pixel, which indirectly means that they are outer most pixels or innermost of the characters with holes. similarly for word level polygons, do the same, this will relieve us of doing some complex tasks of getting the polygons of the characters in our dataset. 
+
+Now here are some things that I need to have first:
+
+1. I believe we should create some images with gradient/solid colors and then place text on them.
+
+2. The text needs to be rotated, curved, it should be of different font's and sizes etc to simulate some real life data scenarios.
+
+3. The text placement will be random.
+
+4. To avoid collision we can have a collision mask( this mask is created for each image during generation and deleted after the image is successfully generated and we then create a new one for the next image) which is updated after each successful text placement, this is like we have a collision mask with all the previous characters/words already present in white color with black background and then  we have the temp mask for that specific characters/word placement instance and we check if there are any overlaps and if they are overlaps we simply try a simple curve or rotation to fix it and even if that doesn't work then we will simply try a different random location and give up trying after 5 failed attempts.
+
+5. We will use the mask to place the characters/text/words on the image, we can also set their color.
+
+6. When i say curved/rotated in case of words, you can treat it like all the characters of the word are in a box and then we are trying to curve/rotate it.
+
+7. Our annotations will have characters and their respective masks, words and their respective group of character masks. I have to remind you that the model needs to be able to detect and segment the characters individually and as a group of characters in case of words.
+
+8. Also we need to find a way to figure out how we will deal cases where characters like "M" and "W" are rotated, i mean if we had a rotated "M" and the annotations say that it's a "M" and not a "W", these are not just limited to alphabets but numbers and many other too, like "9" and "6", a "O" and "0" etc.
+
+9. Right now let's limit ourselves to alphabets and numbers.
+
+10. To recreate real world data we also need to add blurriness, we can do it when we are trying to place the characters, we can get a minimal bounding box for the word/text from  the generated placement mask, and then after placing the text on the image we will simply apply a gaussian blur to that area, and of course we will vary the amount of blurriness randomly, and similarly we will apply the same gaussian blur with the same value to the placement mask's bounding box and then extract the shape of the text so that we can have an accurate polygon shape of it too. (A similar implementation is SynthText repo on Github)
+
+____________________________________________________________________________________________________________________________________________________________
+______________________________________________________This is after having the prototype modularized and tested____________________________________________
+____________________________________________________________________________________________________________________________________________________________
+
+
+11. Since most of our text/characters in the dataset is place randomly and sometimes even rotated (within the same word) and i believe this is making the model work better on test images (taken from the internet) with such type of images and not so good when it comes to images that are like screenshot of a word document with paragraphs and so i believe we should also ensure that the generator generates normal paragraph styled images which can help us extend it to OCR detection.
+
+12. The current prototype was built with this in mind: "I want to be able to remove the text/characters from the image which are acting as noise in my other image processing steps" and so the dataset looks somewhat similar to it, i mean text that is randomly placed (I worked on such images and had the problem i mentioned).
+
+13. The new Generator V6 (built by chatgpt) is doing a good job avoiding collisions and i believe we should compare the binary mask approach that i had used mentioned earlier and see which one required more compute and then select one.
+
+14. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

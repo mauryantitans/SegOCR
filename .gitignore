@@ -1,0 +1,98 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Data — never commit
+data/
+!data/.gitkeep
+*.png
+*.jpg
+*.jpeg
+*.tif
+*.tiff
+*.bmp
+*.webp
+!docs/**/*.png
+!docs/**/*.jpg
+
+# Generated dataset outputs
+generated/
+outputs/
+
+# Model weights
+weights/
+checkpoints/
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+*.onnx
+
+# Experiment tracking
+wandb/
+runs/
+mlruns/
+lightning_logs/
+
+# Logs
+logs/
+*.log
+
+# Cached results
+*.cache
+.cache/
+font_cache.json
+*.npy
+*.npz
+
+# Test artifacts
+test_output/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# OS-specific
+Thumbs.db
+desktop.ini
+
+# Claude Code per-user state (project-shared settings.json is fine; local one is not)
+.claude/settings.local.json

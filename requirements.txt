@@ -1,0 +1,44 @@
+# SegOCR — full requirements per Implementation Guide §2.1
+# Install in stages on Windows; some deps (mmcv-full, mmsegmentation) require CUDA toolkit
+# and can fail to build. See requirements/ subfolder for staged installs.
+
+# ── Core ML ───────────────────────────────────────────────────────────────────
+torch==2.1.0
+torchvision==0.16.0
+# CUDA wheels: pip install torch==2.1.0 torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cu118
+
+# ── Segmentation frameworks ───────────────────────────────────────────────────
+segmentation-models-pytorch>=0.3.3   # UNet, DeepLabv3+
+# mmsegmentation + mmcv-full pinned separately — see requirements/train.txt
+
+# ── Data generation ───────────────────────────────────────────────────────────
+Pillow==10.2.0
+opencv-python==4.9.0.80
+albumentations==1.3.1
+noise==1.2.2
+scipy==1.12.0
+freetype-py==2.4.0
+numpy>=1.24,<2.0
+
+# ── Evaluation ────────────────────────────────────────────────────────────────
+pycocotools==2.0.7
+editdistance==0.6.2
+nltk==3.8.1
+
+# ── Domain adaptation ─────────────────────────────────────────────────────────
+pytorch-fid==0.3.0
+
+# ── Experiment tracking ───────────────────────────────────────────────────────
+wandb==0.16.0
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+pyyaml==6.0.1
+tqdm==4.66.0
+matplotlib==3.8.0
+seaborn==0.13.0
+webdataset==0.2.77
+
+# ── Dev / testing ─────────────────────────────────────────────────────────────
+pytest>=7.4
+pytest-cov>=4.1
+ruff>=0.1.6
