@@ -1,8 +1,8 @@
 from segocr.evaluation.benchmark import run_benchmark
 from segocr.evaluation.metrics import (
     binary_miou,
-    char_accuracy,
     cer,
+    char_accuracy,
     fg_miou,
     miou,
     ned,
