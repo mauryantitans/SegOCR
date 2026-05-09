@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 def run_benchmark(
-    model: "nn.Module",
+    model: nn.Module,
     benchmark_name: str,
     benchmark_path: str | Path,
     metrics: list[str],

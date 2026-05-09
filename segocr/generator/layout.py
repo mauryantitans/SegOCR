@@ -32,7 +32,7 @@ class LayoutEngine:
         char_masks: list[np.ndarray],
         char_metadata: list[dict],
         image_size: tuple[int, int],
-        placement: "PlacementMaskTracker | None" = None,
+        placement: PlacementMaskTracker | None = None,
     ) -> tuple[np.ndarray, np.ndarray, list[dict]]:
         """Apply a randomly-sampled layout mode.
 
