@@ -6,6 +6,11 @@ from segocr.generator.font_manager import FontManager
 from segocr.generator.layout import LayoutEngine
 from segocr.generator.placement import PlacementMaskTracker
 from segocr.generator.renderer import CharacterRenderer
+from segocr.generator.targets import (
+    build_affinity_mask,
+    build_direction_field,
+    build_instance_mask,
+)
 from segocr.generator.text_sampler import TextSampler
 
 __all__ = [
@@ -18,4 +23,7 @@ __all__ = [
     "LayoutEngine",
     "PlacementMaskTracker",
     "TextSampler",
+    "build_affinity_mask",
+    "build_direction_field",
+    "build_instance_mask",
 ]
