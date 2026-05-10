@@ -110,14 +110,25 @@ class GeneratorEngine:
             layout_mode, score_map
         )
         composited, semantic_mask = self.compositor.composite(text_rgba, text_mask, bg)
-        # apply_with_mask propagates blur to the per-class mask so the
-        # ground-truth shape matches the visible ghost the model sees.
-        composited, semantic_mask = self.degradation.apply_with_mask(
-            composited, semantic_mask
-        )
 
+        # Build instance + affinity from the CRISP mask first — metadata
+        # bboxes are tight to the rendered character extents, so they
+        # correctly capture every original pixel.
         instance_mask = build_instance_mask(semantic_mask, metadata)
         affinity_mask = build_affinity_mask(semantic_mask, metadata)
+
+        # Then degrade the image and dilate all three masks together with
+        # the same kernel. This propagates blur consistently — semantic,
+        # instance, and affinity all grow to match the visible ghost.
+        composited, [semantic_mask, instance_mask, affinity_mask] = (
+            self.degradation.apply_with_mask(
+                composited, [semantic_mask, instance_mask, affinity_mask]
+            )
+        )
+
+        # Direction field is built from the (possibly-dilated) instance
+        # mask. New dilated pixels get direction vectors pointing to the
+        # original centroid (which is unchanged by dilation).
         direction_field = build_direction_field(instance_mask, metadata)
 
         if mode == "noise_removal":
