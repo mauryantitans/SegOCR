@@ -110,7 +110,11 @@ class GeneratorEngine:
             layout_mode, score_map
         )
         composited, semantic_mask = self.compositor.composite(text_rgba, text_mask, bg)
-        composited = self.degradation.apply(composited)
+        # apply_with_mask propagates blur to the per-class mask so the
+        # ground-truth shape matches the visible ghost the model sees.
+        composited, semantic_mask = self.degradation.apply_with_mask(
+            composited, semantic_mask
+        )
 
         instance_mask = build_instance_mask(semantic_mask, metadata)
         affinity_mask = build_affinity_mask(semantic_mask, metadata)

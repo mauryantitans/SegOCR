@@ -376,8 +376,8 @@ If you don't have a paid Colab Pro account, you can train N independent models i
 
 | Setup | Per-worker | Wall time | Estimated fg_miou |
 |---|---|---|---|
-| 1 account, free T4 | 20K samples × 18K iters @ 256² | ~3.5hr (with buffer) | ~0.32 |
-| **3-account ensemble, free T4** | 20K × 3 = 60K diverse samples, 18K iters each, ensemble | ~3.5hr parallel (with buffer) | **~0.40–0.46** |
+| 1 account, free T4 | 12K samples × 10K iters @ 512² | ~3.5hr (with buffer) | ~0.30–0.35 |
+| **3-account ensemble, free T4** | 12K × 3 = 36K diverse samples @ 512², 10K iters each, ensemble | ~3.5hr parallel | **~0.40–0.45** |
 | 1 account, Colab Pro A100 | 100K samples × 80K iters @ 512² | ~6hr | ~0.55+ |
 
 The 3-account ensemble doesn't quite match a paid run, but for free GPU it's the best you can do.
@@ -402,7 +402,7 @@ The 3-account ensemble doesn't quite match a paid run, but for free GPU it's the
 
 **What `WORKER_ID` does under the hood:**
 
-- `--index-offset = WORKER_ID * NUM_IMAGES` on `generate_dataset.py` — each worker gets a deterministic, *disjoint* slice of dataset indices (worker 0 generates samples 0..19999, worker 1 generates 20000..39999, etc.).
+- `--index-offset = WORKER_ID * NUM_IMAGES` on `generate_dataset.py` — each worker gets a deterministic, *disjoint* slice of dataset indices (worker 0 generates samples 0..11999, worker 1 generates 12000..23999, etc.).
 - `--seed = WORKER_ID + 1` on `train_model.py` — seeds Python `random`, NumPy, PyTorch (CPU + CUDA), and DataLoader workers so each worker's model lands in a different basin.
 
 **Two important caveats:**
@@ -434,6 +434,16 @@ Caveats that even `--reproducible` can't fix:
 - **Different GPU model** (T4 vs A100) gives different floating-point results — use the same GPU type for bitwise reproducibility.
 - **Mixed precision (AMP)** is non-deterministic for some ops. Disable via `--override training.mixed_precision=false` if strict reproducibility matters more than speed.
 - **The data generator** is already deterministic per-sample: `generate_one(index)` always produces the same image given the same code. So if you fix `--index-offset` and code, the dataset is bit-identical.
+
+### 7.5.2 Mask-aware blur
+
+Gaussian blur in the degradation pipeline causes characters to "spread" in the visible image. To keep the segmentation mask consistent with that visible spread, `DegradationPipeline.apply_with_mask` (used by `engine.generate_one`) propagates the same blur to the per-class mask via dilation:
+
+- Blur is pulled out of the albumentations `Compose` and applied explicitly so we know the kernel size.
+- For each non-background class in the mask, a `cv2.dilate` call with a kernel proportional to half the blur kernel grows the class region to match the visible ghost.
+- z-order (last-write-wins) is preserved on overlap.
+
+All other degradations (noise, JPEG compression, brightness/contrast, gamma, optical distortion) leave the silhouette unchanged and don't need mask updates.
 
 ### 7.6 wandb logging
 
