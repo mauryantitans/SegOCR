@@ -43,6 +43,7 @@ from segocr.generator.degradation import DegradationPipeline
 from segocr.generator.font_manager import FontManager
 from segocr.generator.layout import LayoutEngine
 from segocr.generator.renderer import CharacterRenderer
+from segocr.generator.saliency import compute_placement_score
 from segocr.generator.targets import (
     build_affinity_mask,
     build_direction_field,
@@ -100,9 +101,14 @@ class GeneratorEngine:
         _seed_for_index(index)
 
         layout_mode = self.layout.sample_mode()
-        text_rgba, text_mask, metadata = self._render_text_for_layout(layout_mode)
 
+        # Background first so saliency-based placement can see it.
         bg = self.background.generate(self.image_size)
+        score_map = self._maybe_compute_saliency(bg)
+
+        text_rgba, text_mask, metadata = self._render_text_for_layout(
+            layout_mode, score_map
+        )
         composited, semantic_mask = self.compositor.composite(text_rgba, text_mask, bg)
         composited = self.degradation.apply(composited)
 
@@ -189,7 +195,9 @@ class GeneratorEngine:
     # ── Internal ────────────────────────────────────────────────────────────
 
     def _render_text_for_layout(
-        self, layout_mode: str
+        self,
+        layout_mode: str,
+        placement_score_map: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray, list[dict[str, Any]]]:
         font, _ = self.font_manager.sample_font()
         size = self._sample_font_size_from_font(font)
@@ -201,15 +209,35 @@ class GeneratorEngine:
             rendered_lines = [
                 self.renderer.render_text(line, font, size=size) for line in lines
             ]
-            return self.layout.apply_paragraph(rendered_lines, self.image_size)
+            return self.layout.apply_paragraph(
+                rendered_lines, self.image_size, placement_score_map=placement_score_map
+            )
 
         text = self.text_sampler.sample_text()
         text_rgba, text_mask, metadata = self.renderer.render_text(
             text, font, size=size
         )
         return self.layout.apply_layout(
-            text_rgba, text_mask, metadata, self.image_size, mode=layout_mode
+            text_rgba,
+            text_mask,
+            metadata,
+            self.image_size,
+            mode=layout_mode,
+            placement_score_map=placement_score_map,
         )
+
+    def _maybe_compute_saliency(self, bg: np.ndarray) -> np.ndarray | None:
+        """If layout.placement.realistic_fraction triggers, return a
+        saliency map for ``bg``; otherwise return None for random
+        placement.
+        """
+        placement_cfg = self.config["generator"]["layout"].get("placement", {}) or {}
+        realistic_fraction = float(placement_cfg.get("realistic_fraction", 0.0))
+        if realistic_fraction <= 0.0:
+            return None
+        if random.random() >= realistic_fraction:
+            return None
+        return compute_placement_score(bg)
 
     def _sample_font_size_from_font(self, font) -> int:
         # Fonts come pre-sized from the FontManager — use their existing size

@@ -6,6 +6,7 @@ from segocr.generator.font_manager import FontManager
 from segocr.generator.layout import LayoutEngine
 from segocr.generator.placement import PlacementMaskTracker
 from segocr.generator.renderer import CharacterRenderer
+from segocr.generator.saliency import compute_placement_score, find_best_position
 from segocr.generator.targets import (
     build_affinity_mask,
     build_direction_field,
@@ -26,4 +27,6 @@ __all__ = [
     "build_affinity_mask",
     "build_direction_field",
     "build_instance_mask",
+    "compute_placement_score",
+    "find_best_position",
 ]
