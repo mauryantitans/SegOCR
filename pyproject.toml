@@ -16,6 +16,9 @@ where = ["."]
 include = ["segocr*"]
 exclude = ["tests*", "data*", "weights*"]
 
+[tool.setuptools.package-data]
+"segocr.assets.corpora" = ["*.txt"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"

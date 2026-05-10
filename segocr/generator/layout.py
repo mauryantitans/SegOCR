@@ -61,9 +61,16 @@ class LayoutEngine:
         char_metadata: list[dict[str, Any]],
         image_size: tuple[int, int],
         mode: str | None = None,
+        placement_score_map: np.ndarray | None = None,
     ) -> LayoutResult:
         """Apply a (sampled or explicit) layout mode and place the result on
         an ``image_size`` canvas.
+
+        Args:
+            placement_score_map: optional (H, W) float32 saliency map from
+                ``segocr.generator.saliency.compute_placement_score``. When
+                provided, the canvas-placement step picks the best region
+                instead of a random offset.
 
         For paragraph mode, prefer ``apply_paragraph`` directly — calling
         this with mode='paragraph' falls back to horizontal because we
@@ -92,12 +99,15 @@ class LayoutEngine:
             )
         # horizontal — no transform
 
-        return _place_on_canvas(text_rgba, text_mask, char_metadata, image_size)
+        return _place_on_canvas(
+            text_rgba, text_mask, char_metadata, image_size, placement_score_map
+        )
 
     def apply_paragraph(
         self,
         rendered_lines: list[LayoutResult],
         image_size: tuple[int, int],
+        placement_score_map: np.ndarray | None = None,
     ) -> LayoutResult:
         """Stack pre-rendered lines vertically with sampled line / word
         spacing, then place onto an image-sized canvas.
@@ -163,7 +173,9 @@ class LayoutEngine:
                     }
                 )
 
-        return _place_on_canvas(para_rgba, para_mask, para_metadata, image_size)
+        return _place_on_canvas(
+            para_rgba, para_mask, para_metadata, image_size, placement_score_map
+        )
 
     # ── Mode implementations ────────────────────────────────────────────────
 
@@ -395,9 +407,12 @@ def _place_on_canvas(
     text_mask: np.ndarray,
     char_metadata: list[dict[str, Any]],
     image_size: tuple[int, int],
+    placement_score_map: np.ndarray | None = None,
 ) -> LayoutResult:
-    """Place a transformed text strip onto an image-sized canvas at a
-    random offset, scaling it down first if it exceeds the canvas."""
+    """Place a transformed text strip onto an image-sized canvas, scaling
+    it down first if it exceeds the canvas. If ``placement_score_map`` is
+    provided, the offset is picked via saliency; otherwise random.
+    """
     canvas_h, canvas_w = image_size
     text_h, text_w = text_rgba.shape[:2]
 
@@ -410,10 +425,21 @@ def _place_on_canvas(
         char_metadata = [_scale_metadata(m, scale) for m in char_metadata]
         text_h, text_w = new_h, new_w
 
-    y_max = max(0, canvas_h - text_h)
-    x_max = max(0, canvas_w - text_w)
-    y_offset = random.randint(0, y_max) if y_max > 0 else 0
-    x_offset = random.randint(0, x_max) if x_max > 0 else 0
+    if placement_score_map is not None:
+        from segocr.generator.saliency import find_best_position
+
+        if placement_score_map.shape != (canvas_h, canvas_w):
+            placement_score_map = cv2.resize(
+                placement_score_map, (canvas_w, canvas_h), interpolation=cv2.INTER_LINEAR
+            )
+        y_offset, x_offset = find_best_position(
+            placement_score_map, (text_h, text_w)
+        )
+    else:
+        y_max = max(0, canvas_h - text_h)
+        x_max = max(0, canvas_w - text_w)
+        y_offset = random.randint(0, y_max) if y_max > 0 else 0
+        x_offset = random.randint(0, x_max) if x_max > 0 else 0
 
     canvas_rgba = np.zeros((canvas_h, canvas_w, 4), dtype=np.uint8)
     canvas_mask = np.zeros((canvas_h, canvas_w), dtype=np.uint8)

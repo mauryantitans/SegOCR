@@ -25,7 +25,15 @@ generator:
       script: 0.10
 
   text:
-    corpus_path: "data/corpora/wikitext"
+    # Multi-corpus weighted sampling. ``BUNDLED:<tag>`` references the
+    # mini-corpora that ship with the package; replace with a real path
+    # (Wikitext, Project Gutenberg, etc.) once setup_data.ps1 has run.
+    corpus_paths:
+      - { path: "BUNDLED:signs",    tag: "signs",    weight: 0.30 }
+      - { path: "BUNDLED:receipts", tag: "receipts", weight: 0.20 }
+      - { path: "BUNDLED:names",    tag: "names",    weight: 0.20 }
+      - { path: "BUNDLED:numbers",  tag: "numbers",  weight: 0.15 }
+      - { path: "data/corpora/wikitext", tag: "general", weight: 0.15 }
     min_length: 1
     max_length: 50
     min_words_per_line: 1
@@ -61,6 +69,10 @@ generator:
     placement:
       max_retries: 5           # collision-mask retry limit (per-instance)
       min_separation_px: 2     # min pixels between adjacent placements
+      # Fraction of samples that use saliency-guided placement (low-edge,
+      # low-variance regions). The remainder use uniform-random placement
+      # — preserves diversity for the domain-randomization adaptation phase.
+      realistic_fraction: 0.30
 
   background:
     tier_distribution:

@@ -20,10 +20,25 @@ def test_sample_only_returns_chars_in_charset(text_sampler: TextSampler) -> None
         assert all(c in charset for c in text), f"Off-charset char in {text!r}"
 
 
-def test_no_corpus_falls_back_to_random(text_sampler: TextSampler) -> None:
-    assert text_sampler.corpus == []  # no corpus_path in fixture config
+def test_default_loads_bundled_corpora(text_sampler: TextSampler) -> None:
+    """With no explicit corpus_path or corpus_paths, the four bundled
+    mini-corpora should auto-load."""
+    tags = {tag for tag, _, _ in text_sampler.corpora}
+    assert {"signs", "receipts", "names", "numbers"}.issubset(tags)
+
+
+def test_explicit_empty_corpus_paths_falls_back_to_random(
+    text_sampler_config: dict,
+) -> None:
+    """With corpus_paths explicitly set to a nonexistent path, we get
+    no loaded corpora and the sampler falls back to random generation."""
+    config = {**text_sampler_config, "corpus_paths": [
+        {"path": "/nonexistent/corpus.txt", "tag": "user", "weight": 1.0},
+    ]}
+    sampler = TextSampler(config)
+    assert sampler.corpora == []
     # Should still produce valid text
-    text = text_sampler.sample_text()
+    text = sampler.sample_text()
     assert text
 
 
@@ -111,6 +126,64 @@ def test_length_bounds_respected(text_sampler_config: dict) -> None:
         # Allow off-by-some chars from charset filtering, but the upper
         # bound from random generation must hold.
         assert 1 <= len(text) <= sampler.max_length
+
+
+def test_explicit_bundled_reference_resolves(text_sampler_config: dict) -> None:
+    """``BUNDLED:<tag>`` paths resolve to the package's mini-corpora."""
+    config = {**text_sampler_config, "corpus_paths": [
+        {"path": "BUNDLED:signs", "tag": "signs", "weight": 1.0},
+    ]}
+    sampler = TextSampler(config)
+    assert len(sampler.corpora) == 1
+    tag, sentences, weight = sampler.corpora[0]
+    assert tag == "signs"
+    assert weight == 1.0
+    assert len(sentences) > 50  # bundled signs corpus has 200+ entries
+
+
+def test_corpus_weights_drive_distribution(text_sampler_config: dict) -> None:
+    """A corpus with 99% weight should be sampled from far more often."""
+    config = {**text_sampler_config, "corpus_paths": [
+        {"path": "BUNDLED:signs", "tag": "signs", "weight": 0.99},
+        {"path": "BUNDLED:numbers", "tag": "numbers", "weight": 0.01},
+    ]}
+    sampler = TextSampler(config)
+    counts = {"signs": 0, "numbers": 0}
+    for _ in range(500):
+        tag, _ = sampler._pick_corpus()
+        counts[tag] += 1
+    # signs should overwhelmingly dominate
+    assert counts["signs"] > counts["numbers"] * 5
+
+
+def test_paragraph_words_come_from_corpus(text_sampler_config: dict) -> None:
+    """When corpora are loaded, sample_paragraph should use corpus words
+    (mostly) rather than random character strings."""
+    config = {**text_sampler_config, "corpus_paths": [
+        {"path": "BUNDLED:signs", "tag": "signs", "weight": 1.0},
+    ]}
+    sampler = TextSampler(config)
+    # Build a vocab of corpus words (uppercase since signs.txt is all-caps)
+    _, sentences, _ = sampler.corpora[0]
+    corpus_vocab = set()
+    for line in sentences:
+        for word in line.split():
+            corpus_vocab.add(word.upper())
+
+    # sample 20 paragraphs and check that some word is in the vocab
+    found_corpus_word = False
+    for _ in range(20):
+        lines = sampler.sample_paragraph()
+        for line in lines:
+            for word in line.split():
+                if word.upper() in corpus_vocab:
+                    found_corpus_word = True
+                    break
+            if found_corpus_word:
+                break
+        if found_corpus_word:
+            break
+    assert found_corpus_word, "Paragraphs should occasionally produce corpus words"
 
 
 def test_filter_to_charset_drops_offcharset_chars() -> None:
