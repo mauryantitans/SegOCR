@@ -122,6 +122,72 @@ def test_apply_with_mask_blur_dilates_per_class(
     assert valid_classes <= {7}, f"Unexpected classes in mask: {valid_classes}"
 
 
+def test_apply_with_mask_list_input_dilates_all_consistently(
+    degradation_config: dict,
+) -> None:
+    """When passed a list of masks, all are dilated with the same
+    kernel — semantic, instance, and affinity stay consistent with
+    each other after blur propagates.
+    """
+    config = {**degradation_config, "blur": {"probability": 1.0, "motion_kernel": [9, 9]}}
+    for key in ("noise", "compression", "lighting", "geometric", "occlusion"):
+        if key in config:
+            config[key] = {**config.get(key, {}), "probability": 0.0}
+    degradation = DegradationPipeline(config)
+
+    h, w = 64, 64
+    image = (np.random.rand(h, w, 3) * 255).astype(np.uint8)
+    semantic = np.zeros((h, w), dtype=np.uint8)
+    instance = np.zeros((h, w), dtype=np.uint16)
+    affinity = np.zeros((h, w), dtype=np.uint16)
+    # Two characters of the same class but different instances/words
+    semantic[20:30, 10:20] = 5
+    semantic[20:30, 30:40] = 5
+    instance[20:30, 10:20] = 1
+    instance[20:30, 30:40] = 2
+    affinity[20:30, 10:20] = 1
+    affinity[20:30, 30:40] = 1   # same word
+    sem_count_before = (semantic == 5).sum()
+    inst1_before = (instance == 1).sum()
+    inst2_before = (instance == 2).sum()
+    aff_count_before = (affinity == 1).sum()
+
+    out_image, [out_sem, out_inst, out_aff] = degradation.apply_with_mask(
+        image, [semantic, instance, affinity]
+    )
+
+    # Semantic: class 5 should grow
+    assert (out_sem == 5).sum() > sem_count_before
+    # Instance: each instance ID should grow
+    assert (out_inst == 1).sum() > inst1_before
+    assert (out_inst == 2).sum() > inst2_before
+    # Affinity: word 1 should grow
+    assert (out_aff == 1).sum() > aff_count_before
+    # No stray IDs introduced
+    assert set(np.unique(out_sem).tolist()) <= {0, 5}
+    assert set(np.unique(out_inst).tolist()) <= {0, 1, 2}
+    assert set(np.unique(out_aff).tolist()) <= {0, 1}
+    # All three masks dilated the same amount around instance 1 (left char)
+    assert (out_sem == 5)[15:35, 5:25].sum() > 0
+    assert (out_inst == 1)[15:35, 5:25].sum() > 0
+
+
+def test_apply_with_mask_no_blur_passes_list_through(
+    degradation_config: dict,
+) -> None:
+    """List input with blur prob=0 returns same masks unchanged."""
+    config = {**degradation_config, "blur": {**degradation_config["blur"], "probability": 0.0}}
+    degradation = DegradationPipeline(config)
+    image = (np.random.rand(32, 32, 3) * 255).astype(np.uint8)
+    mask_a = np.zeros((32, 32), dtype=np.uint8)
+    mask_a[10:20, 10:20] = 3
+    mask_b = np.zeros((32, 32), dtype=np.uint16)
+    mask_b[10:20, 10:20] = 7
+    _, [out_a, out_b] = degradation.apply_with_mask(image, [mask_a, mask_b])
+    assert np.array_equal(out_a, mask_a)
+    assert np.array_equal(out_b, mask_b)
+
+
 def test_apply_with_mask_z_order_preserved(degradation_config: dict) -> None:
     """When two adjacent classes' dilations overlap, the higher class
     wins (matching the renderer's z-order convention)."""

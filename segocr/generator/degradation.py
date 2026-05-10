@@ -61,26 +61,43 @@ class DegradationPipeline:
     def apply_with_mask(
         self,
         image: np.ndarray,
-        mask: np.ndarray,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Run all degradations on the image AND propagate blur to the
-        per-class mask via dilation, so the ground-truth shape matches
-        the visible 'ghost' / spread the model sees.
+        mask_or_masks: np.ndarray | list[np.ndarray],
+    ) -> tuple[np.ndarray, np.ndarray] | tuple[np.ndarray, list[np.ndarray]]:
+        """Run all degradations on the image AND propagate blur to one
+        or more class-id masks via dilation, so the ground-truth shape
+        matches the visible 'ghost' / spread the model sees.
+
+        Args:
+            image: (H, W, 3) uint8 RGB.
+            mask_or_masks: a single (H, W) integer mask, OR a list of
+                them (e.g., [semantic, instance, affinity]). All masks
+                are dilated with the SAME kernel so they stay consistent
+                with each other and with the visible image. Each mask
+                is dilated per-unique-id (z-order: highest id wins on
+                overlap), matching the renderer's convention.
 
         Returns:
-            (degraded_image, dilated_mask). When no blur was sampled,
-            the mask is returned unchanged (other transforms don't
-            change the silhouette).
+            (degraded_image, dilated_mask)  if input was a single mask
+            (degraded_image, [dilated, ...]) if input was a list
+
+            When no blur was sampled, masks are returned unchanged.
         """
+        is_list = isinstance(mask_or_masks, list)
+        masks = list(mask_or_masks) if is_list else [mask_or_masks]
+
         image, kernel = self._maybe_blur(image)
         if kernel >= 3:
             # GaussianBlur with kernel K spreads each pixel by ~K/2 in
-            # each direction. Dilate per-class by that amount so the
-            # mask covers the visible ghost.
+            # each direction. Dilate per-id with the same radius across
+            # all masks so semantic/instance/affinity stay consistent.
             radius = max(1, kernel // 2)
-            mask = _dilate_per_class(mask, 2 * radius + 1)
+            dilation_kernel = 2 * radius + 1
+            masks = [_dilate_per_class(m, dilation_kernel) for m in masks]
         image = self._apply_post_blur(image)
-        return image, mask
+
+        if is_list:
+            return image, masks
+        return image, masks[0]
 
     def _apply_post_blur(self, image: np.ndarray) -> np.ndarray:
         """All non-blur degradations: noise, JPEG, lighting, geometric,
