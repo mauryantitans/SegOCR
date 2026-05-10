@@ -376,8 +376,8 @@ If you don't have a paid Colab Pro account, you can train N independent models i
 
 | Setup | Per-worker | Wall time | Estimated fg_miou |
 |---|---|---|---|
-| 1 account, free T4 | 25K samples × 18K iters @ 256² | 4hr | ~0.32 |
-| **3-account ensemble, free T4** | 25K × 3 = 75K diverse samples, 18K iters each, ensemble | 4hr parallel | **~0.42–0.48** |
+| 1 account, free T4 | 20K samples × 18K iters @ 256² | ~3.5hr (with buffer) | ~0.32 |
+| **3-account ensemble, free T4** | 20K × 3 = 60K diverse samples, 18K iters each, ensemble | ~3.5hr parallel (with buffer) | **~0.40–0.46** |
 | 1 account, Colab Pro A100 | 100K samples × 80K iters @ 512² | ~6hr | ~0.55+ |
 
 The 3-account ensemble doesn't quite match a paid run, but for free GPU it's the best you can do.
@@ -402,7 +402,7 @@ The 3-account ensemble doesn't quite match a paid run, but for free GPU it's the
 
 **What `WORKER_ID` does under the hood:**
 
-- `--index-offset = WORKER_ID * NUM_IMAGES` on `generate_dataset.py` — each worker gets a deterministic, *disjoint* slice of dataset indices (worker 0 generates samples 0..24999, worker 1 generates 25000..49999, etc.).
+- `--index-offset = WORKER_ID * NUM_IMAGES` on `generate_dataset.py` — each worker gets a deterministic, *disjoint* slice of dataset indices (worker 0 generates samples 0..19999, worker 1 generates 20000..39999, etc.).
 - `--seed = WORKER_ID + 1` on `train_model.py` — seeds Python `random`, NumPy, PyTorch (CPU + CUDA), and DataLoader workers so each worker's model lands in a different basin.
 
 **Two important caveats:**
