@@ -148,8 +148,17 @@ class GeneratorEngine:
         output_dir: str | Path,
         mode: Literal["ocr", "noise_removal"] = "ocr",
         num_workers: int | None = None,
+        index_offset: int = 0,
     ) -> None:
-        """Generate ``num_images`` samples and write to ``output_dir``."""
+        """Generate ``num_images`` samples and write to ``output_dir``.
+
+        Args:
+            index_offset: starting integer for sample indices and seeds.
+                Useful for multi-worker / multi-account runs where each
+                worker should produce distinct data: worker N runs with
+                ``index_offset = N * num_images``. The deterministic
+                seeding then guarantees disjoint datasets.
+        """
         output_root = Path(output_dir)
         for sub in ("images", "semantic", "instance", "metadata"):
             (output_root / sub).mkdir(parents=True, exist_ok=True)
@@ -158,23 +167,26 @@ class GeneratorEngine:
             num_workers = int(self.config["generator"].get("num_workers", 0))
 
         t0 = time.perf_counter()
+        index_range = range(index_offset, index_offset + num_images)
         if num_workers <= 1:
-            for index in tqdm(range(num_images), desc="generating"):
+            for index in tqdm(index_range, desc="generating"):
                 sample = self.generate_one(index, mode=mode)
                 _save_sample(sample, output_root)
         else:
-            self._generate_parallel(num_images, output_root, mode, num_workers)
+            self._generate_parallel(index_range, output_root, mode, num_workers)
         elapsed = time.perf_counter() - t0
         logger.info(
-            "Generated %d samples in %.1fs (%.1f img/s)",
+            "Generated %d samples (indices %d..%d) in %.1fs (%.1f img/s)",
             num_images,
+            index_offset,
+            index_offset + num_images - 1,
             elapsed,
             num_images / max(1e-3, elapsed),
         )
 
     def _generate_parallel(
         self,
-        num_images: int,
+        index_range: range,
         output_root: Path,
         mode: str,
         num_workers: int,
@@ -186,8 +198,8 @@ class GeneratorEngine:
             initargs=(str(self.config_path), str(output_root), mode),
         ) as pool:
             for _ in tqdm(
-                pool.imap_unordered(_worker_generate, range(num_images), chunksize=4),
-                total=num_images,
+                pool.imap_unordered(_worker_generate, list(index_range), chunksize=4),
+                total=len(index_range),
                 desc="generating",
             ):
                 pass

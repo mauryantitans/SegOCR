@@ -28,6 +28,13 @@ def parse_args() -> argparse.Namespace:
         help="ocr → multi-class masks; noise_removal → binary char/bg",
     )
     p.add_argument(
+        "--index-offset",
+        type=int,
+        default=0,
+        help="Starting index for samples & per-sample seeds. "
+             "Use to give multi-worker / multi-account runs distinct datasets.",
+    )
+    p.add_argument(
         "--override",
         nargs="*",
         default=[],
@@ -50,6 +57,7 @@ def main() -> None:
         num_images=config["generator"]["num_images"],
         output_dir=config["generator"]["output_dir"],
         mode=args.mode,
+        index_offset=args.index_offset,
     )
 
 
