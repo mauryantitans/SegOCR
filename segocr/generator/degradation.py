@@ -27,24 +27,89 @@ logger = logging.getLogger(__name__)
 
 
 class DegradationPipeline:
-    """Image-only degradation pipeline driven by config thresholds."""
+    """Image + (optionally) mask degradation pipeline.
+
+    Blur is the only degradation that meaningfully changes the visible
+    silhouette of text. To keep the segmentation mask consistent with
+    the rendered image after blur, we pull blur OUT of the
+    albumentations Compose and apply it explicitly here, then dilate
+    the per-class mask by an equivalent amount via ``apply_with_mask``.
+
+    All other degradations (noise, JPEG compression, brightness/contrast,
+    gamma, optical distortion, shadow, occlusion) leave the silhouette
+    unchanged and only need to operate on the image.
+    """
 
     def __init__(self, config: dict) -> None:
         self.config = config
-        self.pipeline: A.Compose = self._build_pipeline(config)
+        self.blur_cfg: dict = dict(config.get("blur", {}))
+        self.pipeline: A.Compose = self._build_pipeline_no_blur(config)
         self.shadow_prob: float = float(config.get("lighting", {}).get("probability", 0.0)) * 0.3
         self.occlusion_cfg: dict = dict(config.get("occlusion", {}))
 
     # ── Public API ──────────────────────────────────────────────────────────
 
     def apply(self, image: np.ndarray) -> np.ndarray:
-        """Run the full pipeline on an (H, W, 3) uint8 RGB image."""
-        result = self.pipeline(image=image)["image"]
+        """Run the full pipeline on an (H, W, 3) uint8 RGB image.
+
+        The mask is unchanged. For mask-aware behavior (recommended for
+        the standard generator), use ``apply_with_mask`` instead.
+        """
+        image, _kernel = self._maybe_blur(image)
+        return self._apply_post_blur(image)
+
+    def apply_with_mask(
+        self,
+        image: np.ndarray,
+        mask: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Run all degradations on the image AND propagate blur to the
+        per-class mask via dilation, so the ground-truth shape matches
+        the visible 'ghost' / spread the model sees.
+
+        Returns:
+            (degraded_image, dilated_mask). When no blur was sampled,
+            the mask is returned unchanged (other transforms don't
+            change the silhouette).
+        """
+        image, kernel = self._maybe_blur(image)
+        if kernel >= 3:
+            # GaussianBlur with kernel K spreads each pixel by ~K/2 in
+            # each direction. Dilate per-class by that amount so the
+            # mask covers the visible ghost.
+            radius = max(1, kernel // 2)
+            mask = _dilate_per_class(mask, 2 * radius + 1)
+        image = self._apply_post_blur(image)
+        return image, mask
+
+    def _apply_post_blur(self, image: np.ndarray) -> np.ndarray:
+        """All non-blur degradations: noise, JPEG, lighting, geometric,
+        plus the custom shadow + occlusion."""
+        image = self.pipeline(image=image)["image"]
         if random.random() < self.shadow_prob:
-            result = self._apply_random_shadow(result)
+            image = self._apply_random_shadow(image)
         if random.random() < float(self.occlusion_cfg.get("probability", 0.0)):
-            result = self._apply_random_occlusion(result)
-        return result
+            image = self._apply_random_occlusion(image)
+        return image
+
+    def _maybe_blur(
+        self, image: np.ndarray
+    ) -> tuple[np.ndarray, int]:
+        """Sample a gaussian blur per ``self.blur_cfg``. Returns the
+        possibly-blurred image and the actual odd kernel used (0 if no
+        blur applied).
+        """
+        prob = float(self.blur_cfg.get("probability", 0))
+        if random.random() >= prob:
+            return image, 0
+        k_min, k_max = self.blur_cfg.get("motion_kernel", (3, 7))
+        k_min, k_max = int(k_min), int(k_max)
+        if k_max < 3:
+            return image, 0
+        kernel = random.randint(max(3, k_min), max(3, k_max))
+        if kernel % 2 == 0:
+            kernel += 1
+        return cv2.GaussianBlur(image, (kernel, kernel), 0), kernel
 
     def apply_local_blur(
         self,
@@ -91,27 +156,18 @@ class DegradationPipeline:
 
     # ── Internal — pipeline construction ────────────────────────────────────
 
-    def _build_pipeline(self, config: dict) -> A.Compose:
-        blur_cfg = config.get("blur", {})
+    def _build_pipeline_no_blur(self, config: dict) -> A.Compose:
+        """Build the albumentations Compose for all NON-blur degradations.
+
+        Blur is handled separately by ``_maybe_blur`` so the dilation in
+        ``apply_with_mask`` can match the actually-applied blur kernel.
+        """
         noise_cfg = config.get("noise", {})
         compression_cfg = config.get("compression", {})
         lighting_cfg = config.get("lighting", {})
         geometric_cfg = config.get("geometric", {})
 
         transforms: list = []
-
-        if blur_cfg.get("probability", 0) > 0:
-            blur_max = int(max(*blur_cfg.get("motion_kernel", (3, 15))))
-            blur_max = blur_max + (1 if blur_max % 2 == 0 else 0)
-            transforms.append(
-                A.OneOf(
-                    [
-                        A.GaussianBlur(blur_limit=(3, 7), p=1.0),
-                        A.MotionBlur(blur_limit=(3, blur_max), p=1.0),
-                    ],
-                    p=float(blur_cfg["probability"]),
-                )
-            )
 
         if noise_cfg.get("probability", 0) > 0:
             var_limit = tuple(noise_cfg.get("gaussian_sigma", (5, 30)))
@@ -226,3 +282,39 @@ class DegradationPipeline:
                     thickness=-1,
                 )
         return out
+
+
+# ── Module-level helpers ────────────────────────────────────────────────────
+
+
+def _dilate_per_class(mask: np.ndarray, kernel_size: int) -> np.ndarray:
+    """Dilate each non-background class's region by ``kernel_size`` pixels.
+
+    Used by ``apply_with_mask`` to grow the per-class mask so it covers
+    the visible 'ghost' spread that GaussianBlur produces. Last
+    (highest) class wins on overlap, matching the renderer's z-order
+    convention.
+
+    Args:
+        mask: (H, W) integer class-id mask.
+        kernel_size: odd int; if even, the next-smaller odd value is
+            used (cv2.dilate requires odd kernels).
+
+    Returns:
+        (H, W) dilated class-id mask, same dtype as input.
+    """
+    if kernel_size <= 1:
+        return mask
+    if kernel_size % 2 == 0:
+        kernel_size = max(3, kernel_size - 1)
+    classes = np.unique(mask)
+    classes = classes[classes != 0]
+    if len(classes) == 0:
+        return mask
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    out = np.zeros_like(mask)
+    for cls in classes:
+        binary = (mask == cls).astype(np.uint8)
+        dilated = cv2.dilate(binary, kernel, iterations=1)
+        out[dilated > 0] = cls
+    return out
