@@ -99,6 +99,33 @@ def test_train_resumes_from_checkpoint(
     )
 
 
+def test_train_writes_run_manifest(
+    engine_config_path: Path, tmp_path: Path
+) -> None:
+    """A training run should drop a run_manifest.json in the output dir
+    with seed, config snapshot, hardware info."""
+    import json as _json
+
+    GeneratorEngine(engine_config_path).generate_dataset(
+        num_images=4,
+        output_dir=Path(yaml.safe_load(engine_config_path.read_text())["generator"]["output_dir"]),
+        num_workers=0,
+    )
+    train_config = _build_train_config(engine_config_path, tmp_path, total_iters=2)
+    train(train_config, seed=42)
+
+    manifest_path = tmp_path / "weights" / "run_manifest.json"
+    assert manifest_path.exists(), "run_manifest.json should be written"
+    manifest = _json.loads(manifest_path.read_text())
+
+    assert manifest["seed"] == 42
+    assert "config" in manifest
+    assert "torch_version" in manifest
+    assert "timestamp" in manifest
+    # device key is present even on CPU
+    assert "device" in manifest
+
+
 def test_train_resume_from_missing_path_raises(
     engine_config_path: Path, tmp_path: Path
 ) -> None:

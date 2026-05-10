@@ -33,7 +33,16 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Set torch + numpy + Python random seeds before training. "
              "Use to make multi-worker runs land in different basins of "
-             "the loss landscape so their checkpoints average usefully.",
+             "the loss landscape so their checkpoints average usefully. "
+             "Also seeds DataLoader workers so num_workers > 0 stays "
+             "reproducible.",
+    )
+    p.add_argument(
+        "--reproducible",
+        action="store_true",
+        help="Enable bit-exact GPU determinism (cudnn.deterministic=True, "
+             "benchmark=False). ~10–20%% slower; only enable when you "
+             "specifically need bitwise reproducibility.",
     )
     p.add_argument("--override", nargs="*", default=[])
     return p.parse_args()
@@ -65,7 +74,12 @@ def main() -> None:
         else:
             print(f"No checkpoints found in {args.resume_latest}; starting fresh.")
 
-    train(args.config, resume_from=resume_from)
+    train(
+        args.config,
+        resume_from=resume_from,
+        seed=args.seed,
+        reproducible=args.reproducible,
+    )
 
 
 if __name__ == "__main__":

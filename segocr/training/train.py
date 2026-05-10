@@ -12,10 +12,15 @@ Mitigations for the across-epoch instability seen in the pilot:
 from __future__ import annotations
 
 import contextlib
+import json
 import logging
+import os
+import platform
+import subprocess
 import time
 from pathlib import Path
 
+import numpy as np
 import torch
 from torch.optim.swa_utils import AveragedModel
 from torch.utils.data import DataLoader
@@ -33,6 +38,8 @@ logger = logging.getLogger(__name__)
 def train(
     config_path: str | Path,
     resume_from: str | Path | None = None,
+    seed: int | None = None,
+    reproducible: bool = False,
 ) -> None:
     """Train SegOCR end-to-end.
 
@@ -47,6 +54,11 @@ def train(
             model + EMA + optimizer state and continues from the saved
             iteration. Useful for surviving Colab disconnects when
             checkpoints are persisted to Drive.
+        seed: master seed. When set, also seeds DataLoader workers via
+            worker_init_fn so num_workers > 0 stays reproducible.
+        reproducible: enable bit-exact GPU determinism (cudnn
+            deterministic + benchmark off). ~10–20% slower; use only
+            when you specifically need bitwise reproducibility.
     """
     config = load_config(config_path)
     train_cfg = config["training"]
@@ -54,6 +66,23 @@ def train(
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info("Training on device: %s", device)
+
+    if reproducible:
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        # use_deterministic_algorithms is strictest but errors on ops
+        # without deterministic implementations. Avoid for now.
+        logger.info("Reproducible mode: cudnn.deterministic=True, benchmark=False")
+
+    def _worker_init(worker_id: int) -> None:
+        """Seed each DataLoader worker so num_workers > 0 stays reproducible."""
+        if seed is None:
+            return
+        import random as _random
+        worker_seed = int(seed) + worker_id
+        _random.seed(worker_seed)
+        np.random.seed(worker_seed)
+        torch.manual_seed(worker_seed)
 
     # ── Data ────────────────────────────────────────────────────────────────
     data_dir = Path(config["generator"]["output_dir"])
@@ -68,6 +97,7 @@ def train(
         pin_memory=device.type == "cuda",
         collate_fn=collate_fn,
         drop_last=True,
+        worker_init_fn=_worker_init if seed is not None else None,
     )
     val_loader = DataLoader(
         val_ds,
@@ -76,6 +106,7 @@ def train(
         num_workers=int(train_cfg.get("num_workers", 0)),
         pin_memory=device.type == "cuda",
         collate_fn=collate_fn,
+        worker_init_fn=_worker_init if seed is not None else None,
     )
 
     # ── Model + EMA ─────────────────────────────────────────────────────────
@@ -114,6 +145,15 @@ def train(
     output_dir.mkdir(parents=True, exist_ok=True)
     keep_best_n = int(train_cfg.get("keep_best_n", 3))
     best_checkpoints: list[tuple[float, Path]] = []  # (val_miou, path)
+
+    _write_run_manifest(
+        output_dir=output_dir,
+        config_path=Path(config_path),
+        config=config,
+        seed=seed,
+        reproducible=reproducible,
+        device=device,
+    )
 
     # ── Loop ────────────────────────────────────────────────────────────────
     iteration = 0
@@ -266,6 +306,80 @@ def _track_best(
                     dropped_path.unlink()
         best = best[:keep_n]
     return best
+
+
+def _git_sha() -> str | None:
+    """Return the current git HEAD SHA, or None if not in a git repo."""
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+
+
+def _git_dirty() -> bool:
+    """Return True if the working tree has uncommitted changes."""
+    try:
+        out = subprocess.check_output(
+            ["git", "status", "--porcelain"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+        return bool(out.strip())
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+
+
+def _write_run_manifest(
+    *,
+    output_dir: Path,
+    config_path: Path,
+    config: dict,
+    seed: int | None,
+    reproducible: bool,
+    device: torch.device,
+) -> None:
+    """Write a JSON manifest alongside checkpoints recording everything
+    needed to reproduce the run: git SHA, config snapshot, seed,
+    hardware, library versions.
+
+    Saved to ``output_dir/run_manifest.json``. If a manifest already
+    exists (e.g., resuming), preserves it and writes a new versioned
+    manifest with the current timestamp.
+    """
+    sha = _git_sha()
+    dirty = _git_dirty()
+    cuda_name = (
+        torch.cuda.get_device_name(0) if device.type == "cuda" else None
+    )
+
+    manifest = {
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "git_sha": sha,
+        "git_dirty": dirty,
+        "config_path": str(config_path),
+        "config": config,
+        "seed": seed,
+        "reproducible": reproducible,
+        "device": str(device),
+        "gpu_name": cuda_name,
+        "python_version": platform.python_version(),
+        "torch_version": torch.__version__,
+        "platform": platform.platform(),
+        "env_seed_pythonhashseed": os.environ.get("PYTHONHASHSEED"),
+    }
+    primary = output_dir / "run_manifest.json"
+    if primary.exists():
+        # Preserve the original; append a versioned snapshot.
+        snap = output_dir / f"run_manifest_{int(time.time())}.json"
+        with open(snap, "w", encoding="utf-8") as f:
+            json.dump(manifest, f, indent=2, default=str)
+    else:
+        with open(primary, "w", encoding="utf-8") as f:
+            json.dump(manifest, f, indent=2, default=str)
 
 
 def average_checkpoints(checkpoint_paths: list[Path], output_path: Path) -> None:

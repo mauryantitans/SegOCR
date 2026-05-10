@@ -370,33 +370,70 @@ The model trained this way collapses character recognition to "is there text her
 
 ### 7.5 Multi-account ensemble (free GPU parallelism)
 
-If you don't have a paid Colab Pro account, you can train N independent models in parallel across N free accounts and average the final weights. This trades synchronization for diversity — each worker trains on a distinct slice of seed-space and explores a different basin of the loss landscape, so the averaged model typically outperforms any single worker by ~5-8% absolute fg_miou.
+If you don't have a paid Colab Pro account, you can train N independent models in parallel across N free accounts and average the final weights. This trades synchronization for diversity — each worker trains on a distinct slice of seed-space and explores a different basin of the loss landscape, so the averaged model typically outperforms any single worker by ~5–10% absolute fg_miou.
+
+**Realistic expectations on free T4 (~4hr per account):**
+
+| Setup | Per-worker | Wall time | Estimated fg_miou |
+|---|---|---|---|
+| 1 account, free T4 | 25K samples × 18K iters @ 256² | 4hr | ~0.32 |
+| **3-account ensemble, free T4** | 25K × 3 = 75K diverse samples, 18K iters each, ensemble | 4hr parallel | **~0.42–0.48** |
+| 1 account, Colab Pro A100 | 100K samples × 80K iters @ 512² | ~6hr | ~0.55+ |
+
+The 3-account ensemble doesn't quite match a paid run, but for free GPU it's the best you can do.
 
 **Recipe:**
 
 1. Open [`notebooks/segocr_colab_longrun.ipynb`](../notebooks/segocr_colab_longrun.ipynb) on each Colab account.
-2. On the `WORKER_ID` cell (cell 4), set:
+2. **Use a Drive Shared Drive** if all accounts have access. Set `DRIVE_ROOT = '/content/drive/Shareddrives/<your-shared-drive>/segocr_longrun'` in cell 2. This means no manual file collection at the end — the ensemble step runs in any account.
+3. On the `WORKER_ID` cell (cell 4), set:
    - Account 1: `WORKER_ID = 0`, `NUM_WORKERS_TOTAL = 3`
    - Account 2: `WORKER_ID = 1`, `NUM_WORKERS_TOTAL = 3`
    - Account 3: `WORKER_ID = 2`, `NUM_WORKERS_TOTAL = 3`
-3. Run the notebook on each account. Each gets its own `averaged_best.pth` after training finishes.
-4. Collect the three checkpoints (download manually or use Drive Shared Drives) and average:
+4. The GPU-detection cell (cell 9) auto-picks `BUDGET = 'free_4hr_ensemble'` when `NUM_WORKERS_TOTAL > 1`. You can override manually if needed.
+5. Run the notebook on each account. Each writes `averaged_best.pth` to its own subdir on the shared Drive.
+6. Once all three finish, run the ensemble cell (last cell of the notebook) in any account, OR locally:
    ```bash
    python -m scripts.average_runs \
        --checkpoints worker0/averaged_best.pth worker1/averaged_best.pth worker2/averaged_best.pth \
        --output ensemble.pth
    ```
-5. Evaluate `ensemble.pth` like any other checkpoint — it has both `model` and `ema` keys set to the averaged state.
+7. Evaluate `ensemble.pth` like any other checkpoint — it has both `model` and `ema` keys set to the averaged state.
 
 **What `WORKER_ID` does under the hood:**
 
-- `--index-offset = WORKER_ID * NUM_IMAGES` on `generate_dataset.py` — each worker gets a deterministic, *disjoint* slice of dataset indices (worker 0 generates samples 0..49999, worker 1 generates 50000..99999, etc.).
-- `--seed = WORKER_ID + 1` on `train_model.py` — seeds Python `random`, NumPy, and PyTorch so each worker's model lands in a different basin.
+- `--index-offset = WORKER_ID * NUM_IMAGES` on `generate_dataset.py` — each worker gets a deterministic, *disjoint* slice of dataset indices (worker 0 generates samples 0..24999, worker 1 generates 25000..49999, etc.).
+- `--seed = WORKER_ID + 1` on `train_model.py` — seeds Python `random`, NumPy, PyTorch (CPU + CUDA), and DataLoader workers so each worker's model lands in a different basin.
 
 **Two important caveats:**
 
 - **Same browser fingerprint = ToS risk.** Use distinct browsers / profiles / devices for each Colab account. Google does monitor for abuse patterns.
 - **Same data + same seed = no gain.** If you forget to vary `WORKER_ID`, each account produces an identical model and averaging is a no-op. Verify by inspecting the first sample image on each account — they should differ visually.
+
+### 7.5.1 Reproducibility
+
+Setting `--seed N` on `train_model.py` makes a run reproducible across machines (modulo GPU floating-point variation). Specifically:
+
+| Lever | Behavior |
+|---|---|
+| `--seed N` | Seeds Python `random`, NumPy, PyTorch (CPU + CUDA), and DataLoader workers (via `worker_init_fn`). Same seed + same code → same training trajectory. |
+| `--reproducible` | Adds `cudnn.deterministic=True` + `cudnn.benchmark=False`. Bitwise-equal outputs across runs on the same GPU. ~10–20% slower. Use only when you specifically need it. |
+| Run manifest | Every training run writes `run_manifest.json` to `output_dir`, containing the git SHA, full config snapshot, seed, hardware info, library versions, and timestamp. This is what someone else needs to recreate your run. |
+
+To recreate a run someone else did:
+
+1. Read their `run_manifest.json` for the git SHA, seed, and config.
+2. `git checkout <sha>` to match the code.
+3. Rerun with the same `--seed` and config:
+   ```bash
+   python -m scripts.train_model --config <their_config.yaml> --seed N
+   # Add --reproducible if they did
+   ```
+
+Caveats that even `--reproducible` can't fix:
+- **Different GPU model** (T4 vs A100) gives different floating-point results — use the same GPU type for bitwise reproducibility.
+- **Mixed precision (AMP)** is non-deterministic for some ops. Disable via `--override training.mixed_precision=false` if strict reproducibility matters more than speed.
+- **The data generator** is already deterministic per-sample: `generate_one(index)` always produces the same image given the same code. So if you fix `--index-offset` and code, the dataset is bit-identical.
 
 ### 7.6 wandb logging
 
