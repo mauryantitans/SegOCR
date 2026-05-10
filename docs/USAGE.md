@@ -57,7 +57,7 @@ For a full-scale experiment on Colab:
 
 ```powershell
 # Clone
-git clone https://github.com/MouryaArnepalli/segocr.git
+git clone https://github.com/mauryantitans/SegOCR.git
 cd segocr
 
 # Create + activate venv
@@ -82,7 +82,7 @@ pytest tests/ -q
 ### 2.3 Linux / macOS
 
 ```bash
-git clone https://github.com/MouryaArnepalli/segocr.git
+git clone https://github.com/mauryantitans/SegOCR.git
 cd segocr
 
 python3 -m venv .venv
