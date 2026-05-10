@@ -27,6 +27,14 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Resume from the latest checkpoint_*.pth in this directory, if any.",
     )
+    p.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Set torch + numpy + Python random seeds before training. "
+             "Use to make multi-worker runs land in different basins of "
+             "the loss landscape so their checkpoints average usefully.",
+    )
     p.add_argument("--override", nargs="*", default=[])
     return p.parse_args()
 
@@ -35,6 +43,18 @@ def main() -> None:
     args = parse_args()
     config = load_config(args.config)
     config = apply_overrides(config, args.override)
+
+    if args.seed is not None:
+        import random
+
+        import numpy as np
+        import torch
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+        torch.manual_seed(args.seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(args.seed)
+        print(f"Seeded random / numpy / torch with seed={args.seed}")
 
     resume_from = args.resume
     if resume_from is None and args.resume_latest is not None:

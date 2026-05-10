@@ -368,7 +368,37 @@ The model trained this way collapses character recognition to "is there text her
 # state['model'] before training.
 ```
 
-### 7.5 wandb logging
+### 7.5 Multi-account ensemble (free GPU parallelism)
+
+If you don't have a paid Colab Pro account, you can train N independent models in parallel across N free accounts and average the final weights. This trades synchronization for diversity — each worker trains on a distinct slice of seed-space and explores a different basin of the loss landscape, so the averaged model typically outperforms any single worker by ~5-8% absolute fg_miou.
+
+**Recipe:**
+
+1. Open [`notebooks/segocr_colab_longrun.ipynb`](../notebooks/segocr_colab_longrun.ipynb) on each Colab account.
+2. On the `WORKER_ID` cell (cell 4), set:
+   - Account 1: `WORKER_ID = 0`, `NUM_WORKERS_TOTAL = 3`
+   - Account 2: `WORKER_ID = 1`, `NUM_WORKERS_TOTAL = 3`
+   - Account 3: `WORKER_ID = 2`, `NUM_WORKERS_TOTAL = 3`
+3. Run the notebook on each account. Each gets its own `averaged_best.pth` after training finishes.
+4. Collect the three checkpoints (download manually or use Drive Shared Drives) and average:
+   ```bash
+   python -m scripts.average_runs \
+       --checkpoints worker0/averaged_best.pth worker1/averaged_best.pth worker2/averaged_best.pth \
+       --output ensemble.pth
+   ```
+5. Evaluate `ensemble.pth` like any other checkpoint — it has both `model` and `ema` keys set to the averaged state.
+
+**What `WORKER_ID` does under the hood:**
+
+- `--index-offset = WORKER_ID * NUM_IMAGES` on `generate_dataset.py` — each worker gets a deterministic, *disjoint* slice of dataset indices (worker 0 generates samples 0..49999, worker 1 generates 50000..99999, etc.).
+- `--seed = WORKER_ID + 1` on `train_model.py` — seeds Python `random`, NumPy, and PyTorch so each worker's model lands in a different basin.
+
+**Two important caveats:**
+
+- **Same browser fingerprint = ToS risk.** Use distinct browsers / profiles / devices for each Colab account. Google does monitor for abuse patterns.
+- **Same data + same seed = no gain.** If you forget to vary `WORKER_ID`, each account produces an identical model and averaging is a no-op. Verify by inspecting the first sample image on each account — they should differ visually.
+
+### 7.6 wandb logging
 
 Set `training.wandb.project` and `training.wandb.entity` in the config, then run `wandb login` once. All loss components, learning rate, per-class IoU, and the three mIoU variants will be logged to your W&B project.
 
