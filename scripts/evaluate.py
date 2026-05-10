@@ -11,7 +11,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from segocr.evaluation import run_benchmark
+from segocr.evaluation import run_benchmark  # noqa: F401 — Week 11 entrypoint
 from segocr.utils.config import load_config
 
 
@@ -27,7 +27,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    config = load_config(args.config)
+    _ = load_config(args.config)  # Week 11 will use it; reading verifies path
 
     # TODO Week 11 — load model + checkpoint, iterate benchmarks
     raise NotImplementedError("scripts/evaluate.py — Week 11")

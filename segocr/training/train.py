@@ -30,13 +30,23 @@ from segocr.utils.config import load_config
 logger = logging.getLogger(__name__)
 
 
-def train(config_path: str | Path) -> None:
+def train(
+    config_path: str | Path,
+    resume_from: str | Path | None = None,
+) -> None:
     """Train SegOCR end-to-end.
 
     Reads the YAML config, builds the dataset / model / optimizer /
     scheduler, runs a fixed-iteration training loop with periodic
     evaluation, and saves checkpoints. EMA weights are tracked
     throughout; top-N checkpoint averaging happens at the end.
+
+    Args:
+        config_path: path to the YAML config file.
+        resume_from: optional checkpoint path to resume from. Loads
+            model + EMA + optimizer state and continues from the saved
+            iteration. Useful for surviving Colab disconnects when
+            checkpoints are persisted to Drive.
     """
     config = load_config(config_path)
     train_cfg = config["training"]
@@ -113,7 +123,24 @@ def train(config_path: str | Path) -> None:
     epoch = 0
     t0 = time.perf_counter()
 
-    pbar = tqdm(total=total_iters, desc="train")
+    # ── Optional: resume from checkpoint ────────────────────────────────────
+    if resume_from is not None:
+        resume_path = Path(resume_from)
+        if not resume_path.exists():
+            raise FileNotFoundError(f"resume_from path does not exist: {resume_path}")
+        ckpt = torch.load(resume_path, map_location=device)
+        model.load_state_dict(ckpt["model"])
+        if ema_model is not None and "ema" in ckpt:
+            ema_model.module.load_state_dict(ckpt["ema"])
+        if "optimizer" in ckpt:
+            optimizer.load_state_dict(ckpt["optimizer"])
+        iteration = int(ckpt.get("iteration", 0))
+        # Fast-forward the LR scheduler to match.
+        for _ in range(iteration):
+            scheduler.step()
+        logger.info("Resumed from %s at iteration %d", resume_path, iteration)
+
+    pbar = tqdm(total=total_iters, desc="train", initial=iteration)
     while iteration < total_iters:
         epoch += 1
         for batch in train_loader:
