@@ -6,7 +6,10 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import tempfile
 from pathlib import Path
+
+import yaml
 
 from segocr.training import train
 from segocr.utils.config import apply_overrides, load_config
@@ -74,8 +77,17 @@ def main() -> None:
         else:
             print(f"No checkpoints found in {args.resume_latest}; starting fresh.")
 
+    # If --override was used, persist the overridden config to a temp YAML
+    # so train() (which re-loads from a path) actually sees the overrides.
+    config_path = args.config
+    if args.override:
+        tmp_path = Path(tempfile.mkstemp(suffix="_config.yaml")[1])
+        tmp_path.write_text(yaml.safe_dump(config))
+        config_path = tmp_path
+        print(f"Applied {len(args.override)} override(s); using {config_path}")
+
     train(
-        args.config,
+        config_path,
         resume_from=resume_from,
         seed=args.seed,
         reproducible=args.reproducible,
