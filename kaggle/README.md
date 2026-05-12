@@ -6,33 +6,36 @@ Five Kaggle accounts, each training one worker, ~9 hours per session. Final ense
 
 | Notebook | Where it runs | Purpose |
 |---|---|---|
-| `00_generate_dataset.ipynb` | **CPU** account #1, one time | Generates 50K samples (5 × 10K worker slices, ~18 GB) and publishes as a Kaggle Dataset. **Sized to fit Kaggle's 20 GB `/kaggle/working/` cap.** |
-| `01_train_worker0.ipynb` | **GPU T4** account #1 | Trains worker 0 (`WORKER_ID` hardcoded) |
+| `00a_generate_dataset_a.ipynb` | **CPU** account #1, one time | Generates 40K samples (5 × 8K worker slices, ~14.6 GB, indices `[0, 40000)`); publishes as `segocr-ensemble-a`. Fits Kaggle's 20 GB working-dir cap. |
+| `00b_generate_dataset_b.ipynb` | **CPU** account (any), one time | Generates the matching 40K (indices `[40000, 80000)`); publishes as `segocr-ensemble-b`. Can run in parallel with notebook A on a different account. |
+| `01_train_worker0.ipynb` | **GPU T4** account #1 | Trains worker 0 (`WORKER_ID` hardcoded). Attaches both datasets, symlink-merges them locally. |
 | `02_train_worker1.ipynb` | **GPU T4** account #2 | Trains worker 1 |
 | `03_train_worker2.ipynb` | **GPU T4** account #3 | Trains worker 2 |
 | `04_train_worker3.ipynb` | **GPU T4** account #4 | Trains worker 3 |
 | `05_train_worker4.ipynb` | **GPU T4** account #5 | Trains worker 4 |
 | `_build_train_notebooks.py` | local | Regenerates the 5 trainer notebooks if you edit the template |
-| `_build_generate_notebook.py` | local | Regenerates the generator notebook |
+| `_build_generate_notebook.py` | local | Regenerates both generator notebooks |
 
 ---
 
 ## End-to-end flow
 
-### Phase 1 — Generate the shared dataset (one-time, ~4 hr)
+### Phase 1 — Generate the two shared datasets (one-time, ~1.5–2 hr each)
 
-On **account #1**:
+The dataset is split into **two halves** because Kaggle caps `/kaggle/working/` at 20 GB and a full 80K-sample dataset is ~27 GB. Each half is ~14.6 GB and fits comfortably. The two halves can be generated **on different accounts in parallel** (cutting wall time in half) or one after the other on the same account.
 
-1. Open Kaggle → New Notebook → **File → Import Notebook** → upload `00_generate_dataset.ipynb`.
-2. Settings panel:
-   - Accelerator: **None** (CPU is fine; generator isn't GPU-bound).
-   - Persistence: any.
-3. Click **Save Version → Save & Run All**. This runs server-side so connection issues don't kill it.
-4. Wait ~4 hours.
-5. When the run completes, find the **Output** tab. Click **New Dataset**:
-   - Slug: `segocr-ensemble-50k`
-   - Visibility: **Public** (simplest for cross-account sharing). Or "Shared with specific users" if you want it private.
-6. Note the dataset URL (e.g., `https://www.kaggle.com/datasets/USERNAME/segocr-ensemble-50k`).
+For each part (A and B):
+
+1. Sign in to the chosen Kaggle account.
+2. Open Kaggle → New Notebook → **File → Import Notebook** → upload `00a_generate_dataset_a.ipynb` (or `00b_…`).
+3. Settings panel: Accelerator **None** (CPU is enough).
+4. Click **Save Version → Save & Run All**.
+5. When done, **Output** tab → **New Dataset**:
+   - Part A slug: `segocr-ensemble-a`
+   - Part B slug: `segocr-ensemble-b`
+   - Visibility: **Public** (simplest for cross-account sharing).
+
+After both publish, you'll have two Kaggle Datasets totaling 80K samples (5 worker slices × 16K).
 
 ### Phase 2 — Train 5 workers in parallel (~9 hr each, all running concurrently)
 
@@ -40,7 +43,7 @@ For each account `N` in `0..4`:
 
 1. Sign in to Kaggle account #N.
 2. Open Kaggle → New Notebook → **File → Import Notebook** → upload `0{N+1}_train_worker{N}.ipynb` (e.g., `01_train_worker0.ipynb` on account #1).
-3. **Add Data** (sidebar) → search for `segocr-ensemble-50k` → attach. It mounts at `/kaggle/input/segocr-ensemble-50k/`.
+3. **Add Data** (sidebar) → attach **both** `segocr-ensemble-a` AND `segocr-ensemble-b`. They mount at `/kaggle/input/segocr-ensemble-a/` and `/kaggle/input/segocr-ensemble-b/`. The notebook's worker-config cell symlink-merges them into one local directory (~MB of symlink overhead, not GB).
 4. Settings panel:
    - Accelerator: **GPU T4**
    - Persistence: any
@@ -105,7 +108,7 @@ Then on your laptop, in the repo root:
 To get the headline numbers (per-class IoU, decoded text on val samples, etc.):
 
 - **Locally** if you have a GPU.
-- **On Kaggle** — create a small new notebook on any account, attach the original `segocr-ensemble-50k` dataset AND upload `ensemble.pth` as an additional dataset/file, then copy cells 8–12 from `notebooks/segocr_colab_longrun.ipynb`. Eval is fast (<30 min on T4) so this barely dents your weekly GPU quota.
+- **On Kaggle** — create a small new notebook on any account, attach **both** `segocr-ensemble-a` AND `segocr-ensemble-b` (you'll need the same symlink-merge cell as in the train notebooks), AND upload `ensemble.pth` as an additional dataset/file, then copy cells 8–12 from `notebooks/segocr_colab_longrun.ipynb`. Eval is fast (<30 min on T4) so this barely dents your weekly GPU quota.
 
 ---
 
@@ -113,7 +116,7 @@ To get the headline numbers (per-class IoU, decoded text on val samples, etc.):
 
 All 5 worker notebooks share the same training config — only `WORKER_ID` and the derived `TRAIN_SEED = WORKER_ID + 1` differ. This guarantees:
 
-- **Different data slices** — worker N reads from `/kaggle/input/segocr-ensemble-50k/workerN/`, generated with deterministic per-index seeds. Indices are mathematically disjoint across workers (worker 0 gets indices 0–15999, worker 1 gets 16000–31999, etc.).
+- **Different data slices** — worker N reads from `worker{N}/` in both `segocr-ensemble-a` (indices `[N*8000, N*8000+8000)`) and `segocr-ensemble-b` (indices `[40000+N*8000, 40000+N*8000+8000)`). Indices are mathematically disjoint across workers and between datasets; same code + same indices = same images (verified by `tests/test_multi_account.py`).
 - **Different initialization** — `--seed N+1` seeds Python random, NumPy, PyTorch (CPU + CUDA) and DataLoader workers. Each model lands in a different basin of the loss landscape.
 
 Locked training parameters (in every train notebook):
@@ -130,7 +133,7 @@ Locked training parameters (in every train notebook):
 | Mixed precision | on |
 | EMA | on (decay 0.999) |
 | Top-N checkpoint averaging | on (top 3) |
-| Per-worker samples | 10,000 (sized to fit Kaggle's 20 GB working-dir cap) |
+| Per-worker samples | 16,000 (8K from dataset A + 8K from dataset B, symlink-merged) |
 | `rare_char_boost` | 4.0 |
 | Layout: paragraph mode | disabled (0%) |
 | Text length | max 20 chars, max 3 words |
