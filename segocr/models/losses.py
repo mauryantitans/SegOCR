@@ -85,19 +85,22 @@ class DiceLoss(nn.Module):
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         # logits: (B, C, H, W); targets: (B, H, W) long
+        # Per-class loop avoids materializing a full (B, C, H, W) one-hot tensor,
+        # which at batch=32, C=63, 512² is 2 GiB — enough to OOM a T4 under DataParallel.
         probs = F.softmax(logits, dim=1)
         num_classes = probs.shape[1]
-        targets_oh = F.one_hot(targets, num_classes=num_classes).permute(0, 3, 1, 2).float()
-
         start = 1 if self.ignore_background else 0
-        probs = probs[:, start:]
-        targets_oh = targets_oh[:, start:]
 
-        dims = (0, 2, 3)
-        intersection = (probs * targets_oh).sum(dim=dims)
-        cardinality = probs.sum(dim=dims) + targets_oh.sum(dim=dims)
-        dice = (2.0 * intersection + self.smooth) / (cardinality + self.smooth)
-        return 1.0 - dice.mean()
+        dice_sum = logits.new_zeros(())
+        count = 0
+        for c in range(start, num_classes):
+            prob_c = probs[:, c]
+            target_c = (targets == c).float()
+            intersection = (prob_c * target_c).sum()
+            cardinality = prob_c.sum() + target_c.sum()
+            dice_sum = dice_sum + (2.0 * intersection + self.smooth) / (cardinality + self.smooth)
+            count += 1
+        return 1.0 - dice_sum / max(count, 1)
 
 
 class SegOCRLoss(nn.Module):
