@@ -1,10 +1,40 @@
-"""Build the dataset-generator notebook for Kaggle."""
+"""Build the two dataset-generator notebooks (parts A and B) for Kaggle.
+
+Splitting into two datasets keeps each generation run under the 20 GB
+/kaggle/working/ cap (40K samples × ~365 KB ≈ 14.6 GB per dataset).
+Each training worker attaches BOTH datasets and symlinks them into
+one merged directory at training time.
+
+Index ranges are disjoint so worker N's combined slice is deterministic:
+  Part A → indices [0, 40000)         — worker N: [N*8000, N*8000+8000)
+  Part B → indices [40000, 80000)     — worker N: [40000+N*8000, ...)
+"""
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
 KAGGLE_DIR = Path(__file__).parent
+
+# Per-part config
+PARTS = [
+    {
+        "letter": "a",
+        "filename": "00a_generate_dataset_a.ipynb",
+        "slug": "segocr-ensemble-a",
+        "output_dir_name": "segocr-ensemble-a",
+        "base_offset": 0,           # global index start for this part
+    },
+    {
+        "letter": "b",
+        "filename": "00b_generate_dataset_b.ipynb",
+        "slug": "segocr-ensemble-b",
+        "output_dir_name": "segocr-ensemble-b",
+        "base_offset": 40_000,       # part B starts here so its indices are disjoint from A
+    },
+]
+NUM_WORKERS = 5
+SAMPLES_PER_WORKER = 8_000   # 5 × 8K × 2 parts = 80K total samples
 
 
 def md(src: str) -> dict:
@@ -21,23 +51,31 @@ def code(src: str) -> dict:
     }
 
 
-def build() -> dict:
+def build(part: dict) -> dict:
+    letter = part["letter"]
+    slug = part["slug"]
+    out_name = part["output_dir_name"]
+    base_offset = part["base_offset"]
+    total_in_this_part = NUM_WORKERS * SAMPLES_PER_WORKER
+
     cells = [
         md(
-            "# SegOCR — Generate 5-Worker Ensemble Dataset (Kaggle)\n\n"
-            "Generates 50,000 synthetic samples (5 worker slices × 10K each) "
-            "at 512², sized to fit Kaggle's 20 GB `/kaggle/working/` cap "
-            "(~18 GB total at ~365 KB/sample). Publishes as a Kaggle Dataset "
-            "for the 5 parallel training notebooks.\n\n"
+            f"# SegOCR — Generate Ensemble Dataset Part {letter.upper()} (Kaggle)\n\n"
+            f"Generates **{total_in_this_part:,} synthetic samples** "
+            f"(5 worker slices × {SAMPLES_PER_WORKER:,} each, ~14.6 GB) "
+            f"at 512², for the second half of the 80K-total split.\n\n"
+            f"Part A covers indices `[0, 40000)`. Part B covers `[40000, "
+            "80000)`. Each training worker attaches **both** datasets and "
+            "symlinks them into one merged directory — so worker N ends up "
+            f"training on {2 * SAMPLES_PER_WORKER:,} samples total.\n\n"
             "**Before running:**\n"
-            "1. Settings → Accelerator: **None** (CPU is enough; generation "
-            "is not GPU-bound).\n"
-            "2. Settings → Persistence: **Files only** is fine.\n"
-            "3. Click **Save Version → Save & Run All**.\n\n"
-            "**Wall time:** ~3–4 hours on Kaggle CPU.\n\n"
+            "1. Settings → Accelerator: **None** (CPU is enough).\n"
+            "2. Click **Save Version → Save & Run All**.\n\n"
+            "**Wall time:** ~1.5–2 hours on Kaggle CPU.\n\n"
             "**After it finishes:** click *New Dataset* from the output panel "
-            "and publish as `segocr-ensemble-50k` (Public). The 5 training "
-            "notebooks attach this dataset by that slug."
+            f"and publish as **`{slug}`** (Public). All 5 training notebooks "
+            f"attach this dataset by that slug (plus the matching part-other "
+            "dataset)."
         ),
         md("## 1 / Setup — clone repo + install deps"),
         code(
@@ -49,22 +87,18 @@ def build() -> dict:
             "!pip install -q -e .\n"
             "!pip install -q -r requirements/base.txt"
         ),
-        md("## 2 / Verify font availability + plan"),
+        md("## 2 / Plan + paths"),
         code(
             "import os\n"
-            "NUM_WORKERS = 5\n"
-            "SAMPLES_PER_WORKER = 10_000   # 5 × 10K = 50K total, ~18 GB on disk\n"
-            "                              # (Kaggle's /kaggle/working/ cap is 20 GB)\n"
-            "DATASET_OUTPUT = '/kaggle/working/segocr-ensemble-50k'\n"
+            f"NUM_WORKERS = {NUM_WORKERS}\n"
+            f"SAMPLES_PER_WORKER = {SAMPLES_PER_WORKER}   # 5 × 8K = 40K total per dataset (~14.6 GB)\n"
+            f"BASE_OFFSET = {base_offset}                  # global index start for part {letter.upper()}\n"
+            f"DATASET_OUTPUT = '/kaggle/working/{out_name}'\n"
             "os.makedirs(DATASET_OUTPUT, exist_ok=True)\n"
             "\n"
-            "n_fonts = sum(\n"
-            "    1 for root, _, files in os.walk('/usr/share/fonts')\n"
-            "    for f in files if f.endswith(('.ttf', '.otf'))\n"
-            ")\n"
-            "print(f'System fonts available: {n_fonts}')\n"
-            "print(f'Output: {DATASET_OUTPUT}')\n"
-            "print(f'Plan:   {NUM_WORKERS} slices × {SAMPLES_PER_WORKER} = {NUM_WORKERS * SAMPLES_PER_WORKER} samples total')"
+            f"print(f'Part {letter.upper()}: 5 × {{SAMPLES_PER_WORKER}} = {{NUM_WORKERS * SAMPLES_PER_WORKER}} samples')\n"
+            "print(f'Global index range: [{BASE_OFFSET}, {BASE_OFFSET + NUM_WORKERS * SAMPLES_PER_WORKER})')\n"
+            "print(f'Output: {DATASET_OUTPUT}')"
         ),
         md("## 3 / Build the generator config"),
         code(
@@ -120,14 +154,12 @@ def build() -> dict:
             "print(f'Config: {config_path}')"
         ),
         md(
-            "## 4 / Generate 5 worker slices serially\n\n"
-            "Each slice gets a deterministic, disjoint range of indices "
-            "(worker N uses indices `N * SAMPLES_PER_WORKER .. (N+1) * "
-            "SAMPLES_PER_WORKER - 1`). Same code + same indices = same images, "
-            "always — so any of the 5 training accounts will see exactly the "
-            "data this notebook produces here.\n\n"
-            "Generation runs ~5–10 img/s on Kaggle CPU at 512². Each 10K slice "
-            "takes ~20–35 min. Total: ~2–3 hours."
+            "## 4 / Generate the 5 worker slices for this part\n\n"
+            "Worker N in this part uses indices "
+            "`[BASE_OFFSET + N*SAMPLES_PER_WORKER, "
+            "BASE_OFFSET + (N+1)*SAMPLES_PER_WORKER)`. The deterministic "
+            "per-index seed guarantees the other gen notebook produces "
+            "different images for its disjoint range."
         ),
         code(
             "import time\n"
@@ -136,13 +168,14 @@ def build() -> dict:
             "    if os.path.isdir(f'{output}/images') and len(os.listdir(f'{output}/images')) >= SAMPLES_PER_WORKER:\n"
             "        print(f'[worker {worker_id}] already has {SAMPLES_PER_WORKER} samples — skipping')\n"
             "        continue\n"
-            "    offset = worker_id * SAMPLES_PER_WORKER\n"
-            "    print(f'\\n=== Generating worker {worker_id}: indices {offset}..{offset + SAMPLES_PER_WORKER - 1} ===')\n"
+            "    offset = BASE_OFFSET + worker_id * SAMPLES_PER_WORKER\n"
+            "    end = offset + SAMPLES_PER_WORKER\n"
+            "    print(f'\\n=== Generating worker {worker_id}: indices {offset}..{end - 1} ===')\n"
             "    t0 = time.time()\n"
             "    !python -m scripts.generate_dataset --config {config_path} --num-images {SAMPLES_PER_WORKER} --output {output} --index-offset {offset}\n"
             "    print(f'[worker {worker_id}] done in {(time.time() - t0)/60:.1f} min')\n"
             "\n"
-            "print('\\nAll 5 worker slices generated.')"
+            f"print('\\nPart {letter.upper()} done.')"
         ),
         md("## 5 / Sanity-check output layout"),
         code(
@@ -152,22 +185,19 @@ def build() -> dict:
             "    n_sem  = len(os.listdir(f'{worker_dir}/semantic')) if os.path.isdir(f'{worker_dir}/semantic') else 0\n"
             "    n_inst = len(os.listdir(f'{worker_dir}/instance')) if os.path.isdir(f'{worker_dir}/instance') else 0\n"
             "    n_meta = len(os.listdir(f'{worker_dir}/metadata')) if os.path.isdir(f'{worker_dir}/metadata') else 0\n"
-            "    print(f'worker{worker_id}: {n_imgs} images / {n_sem} semantic / {n_inst} instance / {n_meta} metadata')"
+            "    print(f'worker{worker_id}: {n_imgs} images / {n_sem} semantic / {n_inst} instance / {n_meta} metadata')\n"
+            "\n"
+            "# Total disk usage\n"
+            "!du -sh {DATASET_OUTPUT}"
         ),
         md(
-            "## 6 / Publish as a Kaggle Dataset\n\n"
-            "1. Click **Save Version → Save & Run All** at the top right (if "
-            "you haven't already).\n"
-            "2. When the run completes, the **Output** tab shows the "
-            "`segocr-ensemble-50k/` folder.\n"
-            "3. Click the **New Dataset** button in the Output panel.\n"
-            "4. Slug: `segocr-ensemble-50k`. Visibility: **Public** (simplest "
-            "for cross-account sharing).\n"
-            "5. After publish, copy the dataset URL — each training notebook "
-            "attaches it via *Add Data*.\n\n"
-            "Total dataset size: ~18 GB (under Kaggle's 100 GB per-dataset "
-            "limit). The /kaggle/working/ cap during generation is what "
-            "constrains us, not the dataset hosting size."
+            f"## 6 / Publish as a Kaggle Dataset\n\n"
+            f"1. Click **Save Version → Save & Run All** if you haven't.\n"
+            f"2. **Output** tab → **New Dataset**.\n"
+            f"3. Slug: **`{slug}`**. Visibility: **Public** (simplest "
+            f"for cross-account sharing).\n"
+            f"4. Note the dataset URL — the 5 training notebooks attach "
+            f"this **plus** the other part."
         ),
     ]
 
@@ -187,10 +217,16 @@ def build() -> dict:
 
 
 def main() -> None:
-    nb = build()
-    out_path = KAGGLE_DIR / "00_generate_dataset.ipynb"
-    out_path.write_text(json.dumps(nb, indent=1, ensure_ascii=False), encoding="utf-8")
-    print(f"Wrote {out_path}  ({len(nb['cells'])} cells)")
+    # Clean up the old single-part notebook if present
+    old = KAGGLE_DIR / "00_generate_dataset.ipynb"
+    if old.exists():
+        old.unlink()
+        print(f"Removed {old}")
+    for part in PARTS:
+        nb = build(part)
+        out_path = KAGGLE_DIR / part["filename"]
+        out_path.write_text(json.dumps(nb, indent=1, ensure_ascii=False), encoding="utf-8")
+        print(f"Wrote {out_path}  ({len(nb['cells'])} cells)")
 
 
 if __name__ == "__main__":

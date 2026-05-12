@@ -14,7 +14,10 @@ from pathlib import Path
 
 KAGGLE_DIR = Path(__file__).parent
 NUM_WORKERS = 5
-DATASET_SLUG = "segocr-ensemble-50k"  # the user's published Kaggle Dataset
+# Two halves; each is ~14.6 GB and fits Kaggle's 20 GB /kaggle/working/ cap.
+# Trainer notebooks attach BOTH and symlink-merge them into one local dir.
+DATASET_SLUG_A = "segocr-ensemble-a"   # indices 0..39999
+DATASET_SLUG_B = "segocr-ensemble-b"   # indices 40000..79999
 
 
 def md(src: str) -> dict:
@@ -41,7 +44,11 @@ def build_train_notebook(worker_id: int) -> dict:
             "other four worker notebooks on different accounts in parallel.\n\n"
             "**Before running:**\n"
             f"1. Settings → Accelerator: **GPU T4**.\n"
-            f"2. Add Data (sidebar) → search for `{DATASET_SLUG}` → attach.\n"
+            f"2. Add Data (sidebar) → attach **both** `{DATASET_SLUG_A}` "
+            f"and `{DATASET_SLUG_B}`. They get mounted at "
+            f"`/kaggle/input/{DATASET_SLUG_A}/` and "
+            f"`/kaggle/input/{DATASET_SLUG_B}/`. The cell below "
+            "symlink-merges them into one directory.\n"
             f"3. (Optional, for resume) Add Data → Notebook Output Files → "
             "attach your previous version's output of this notebook.\n"
             "4. Click **Save Version → Save & Run All** (runs server-side, "
@@ -82,20 +89,44 @@ def build_train_notebook(worker_id: int) -> dict:
             f"WORKER_ID = {worker_id}     # hardcoded for this notebook — do not change\n"
             "TRAIN_SEED = WORKER_ID + 1   # different basin per worker\n"
             "\n"
-            "import os\n"
-            f"DATASET_SLUG = '{DATASET_SLUG}'\n"
-            "DATA_DIR = f'/kaggle/input/{DATASET_SLUG}/worker{WORKER_ID}'\n"
+            "import os, shutil\n"
+            f"DATASET_SLUG_A = '{DATASET_SLUG_A}'   # indices 0..39999\n"
+            f"DATASET_SLUG_B = '{DATASET_SLUG_B}'   # indices 40000..79999\n"
+            "DATA_DIR_A = f'/kaggle/input/{DATASET_SLUG_A}/worker{WORKER_ID}'\n"
+            "DATA_DIR_B = f'/kaggle/input/{DATASET_SLUG_B}/worker{WORKER_ID}'\n"
+            "DATA_DIR = '/kaggle/working/segocr_data_merged'\n"
             "WEIGHTS_DIR = '/kaggle/working/weights'\n"
             "os.makedirs(WEIGHTS_DIR, exist_ok=True)\n"
             "\n"
-            "assert os.path.isdir(DATA_DIR), (\n"
-            "    f'Dataset slice not found at {DATA_DIR}. '\n"
-            "    f'Did you attach the {DATASET_SLUG!r} dataset via Add Data?'\n"
-            ")\n"
+            "for slug, path in [(DATASET_SLUG_A, DATA_DIR_A), (DATASET_SLUG_B, DATA_DIR_B)]:\n"
+            "    assert os.path.isdir(path), (\n"
+            "        f'Dataset slice not found at {path}. '\n"
+            "        f'Did you attach the {slug!r} dataset via Add Data?'\n"
+            "    )\n"
+            "\n"
+            "# Symlink the two halves into one merged directory so SegOCRDataset\n"
+            "# sees a single 16K-sample worker slice. Symlinks are ~50 bytes\n"
+            "# each so the working-dir overhead is ~MB, not GB.\n"
+            "if os.path.isdir(DATA_DIR):\n"
+            "    shutil.rmtree(DATA_DIR)\n"
+            "for subdir in ('images', 'semantic', 'instance', 'metadata'):\n"
+            "    os.makedirs(f'{DATA_DIR}/{subdir}', exist_ok=True)\n"
+            "    for src_base in (DATA_DIR_A, DATA_DIR_B):\n"
+            "        src_dir = f'{src_base}/{subdir}'\n"
+            "        if not os.path.isdir(src_dir):\n"
+            "            continue\n"
+            "        for fname in os.listdir(src_dir):\n"
+            "            src = f'{src_dir}/{fname}'\n"
+            "            dst = f'{DATA_DIR}/{subdir}/{fname}'\n"
+            "            if not os.path.exists(dst):\n"
+            "                os.symlink(src, dst)\n"
+            "\n"
+            "n_merged = len(os.listdir(f'{DATA_DIR}/images'))\n"
             "print(f'Worker {WORKER_ID} of 5 (parallel ensemble)')\n"
-            "print(f'Dataset: {DATA_DIR}')\n"
-            "print(f'Weights: {WEIGHTS_DIR}')\n"
-            "print('  Found', len(os.listdir(DATA_DIR + '/images')), 'images.')"
+            "print(f'Dataset A: {DATA_DIR_A}')\n"
+            "print(f'Dataset B: {DATA_DIR_B}')\n"
+            "print(f'Merged:    {DATA_DIR}  ({n_merged} images via symlink)')\n"
+            "print(f'Weights:   {WEIGHTS_DIR}')"
         ),
         md(
             "## 4 / Resume from previous version's output (if attached)\n\n"
