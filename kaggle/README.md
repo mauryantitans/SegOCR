@@ -6,7 +6,7 @@ Five Kaggle accounts, each training one worker, ~9 hours per session. Final ense
 
 | Notebook | Where it runs | Purpose |
 |---|---|---|
-| `00_generate_dataset.ipynb` | **CPU** account #1, one time | Generates 80K samples (5 × 16K worker slices) and publishes as a Kaggle Dataset |
+| `00_generate_dataset.ipynb` | **CPU** account #1, one time | Generates 50K samples (5 × 10K worker slices, ~18 GB) and publishes as a Kaggle Dataset. **Sized to fit Kaggle's 20 GB `/kaggle/working/` cap.** |
 | `01_train_worker0.ipynb` | **GPU T4** account #1 | Trains worker 0 (`WORKER_ID` hardcoded) |
 | `02_train_worker1.ipynb` | **GPU T4** account #2 | Trains worker 1 |
 | `03_train_worker2.ipynb` | **GPU T4** account #3 | Trains worker 2 |
@@ -30,9 +30,9 @@ On **account #1**:
 3. Click **Save Version → Save & Run All**. This runs server-side so connection issues don't kill it.
 4. Wait ~4 hours.
 5. When the run completes, find the **Output** tab. Click **New Dataset**:
-   - Slug: `segocr-ensemble-80k`
+   - Slug: `segocr-ensemble-50k`
    - Visibility: **Public** (simplest for cross-account sharing). Or "Shared with specific users" if you want it private.
-6. Note the dataset URL (e.g., `https://www.kaggle.com/datasets/USERNAME/segocr-ensemble-80k`).
+6. Note the dataset URL (e.g., `https://www.kaggle.com/datasets/USERNAME/segocr-ensemble-50k`).
 
 ### Phase 2 — Train 5 workers in parallel (~9 hr each, all running concurrently)
 
@@ -40,7 +40,7 @@ For each account `N` in `0..4`:
 
 1. Sign in to Kaggle account #N.
 2. Open Kaggle → New Notebook → **File → Import Notebook** → upload `0{N+1}_train_worker{N}.ipynb` (e.g., `01_train_worker0.ipynb` on account #1).
-3. **Add Data** (sidebar) → search for `segocr-ensemble-80k` → attach. It mounts at `/kaggle/input/segocr-ensemble-80k/`.
+3. **Add Data** (sidebar) → search for `segocr-ensemble-50k` → attach. It mounts at `/kaggle/input/segocr-ensemble-50k/`.
 4. Settings panel:
    - Accelerator: **GPU T4**
    - Persistence: any
@@ -105,7 +105,7 @@ Then on your laptop, in the repo root:
 To get the headline numbers (per-class IoU, decoded text on val samples, etc.):
 
 - **Locally** if you have a GPU.
-- **On Kaggle** — create a small new notebook on any account, attach the original `segocr-ensemble-80k` dataset AND upload `ensemble.pth` as an additional dataset/file, then copy cells 8–12 from `notebooks/segocr_colab_longrun.ipynb`. Eval is fast (<30 min on T4) so this barely dents your weekly GPU quota.
+- **On Kaggle** — create a small new notebook on any account, attach the original `segocr-ensemble-50k` dataset AND upload `ensemble.pth` as an additional dataset/file, then copy cells 8–12 from `notebooks/segocr_colab_longrun.ipynb`. Eval is fast (<30 min on T4) so this barely dents your weekly GPU quota.
 
 ---
 
@@ -113,7 +113,7 @@ To get the headline numbers (per-class IoU, decoded text on val samples, etc.):
 
 All 5 worker notebooks share the same training config — only `WORKER_ID` and the derived `TRAIN_SEED = WORKER_ID + 1` differ. This guarantees:
 
-- **Different data slices** — worker N reads from `/kaggle/input/segocr-ensemble-80k/workerN/`, generated with deterministic per-index seeds. Indices are mathematically disjoint across workers (worker 0 gets indices 0–15999, worker 1 gets 16000–31999, etc.).
+- **Different data slices** — worker N reads from `/kaggle/input/segocr-ensemble-50k/workerN/`, generated with deterministic per-index seeds. Indices are mathematically disjoint across workers (worker 0 gets indices 0–15999, worker 1 gets 16000–31999, etc.).
 - **Different initialization** — `--seed N+1` seeds Python random, NumPy, PyTorch (CPU + CUDA) and DataLoader workers. Each model lands in a different basin of the loss landscape.
 
 Locked training parameters (in every train notebook):
@@ -130,7 +130,7 @@ Locked training parameters (in every train notebook):
 | Mixed precision | on |
 | EMA | on (decay 0.999) |
 | Top-N checkpoint averaging | on (top 3) |
-| Per-worker samples | 16,000 |
+| Per-worker samples | 10,000 (sized to fit Kaggle's 20 GB working-dir cap) |
 | `rare_char_boost` | 4.0 |
 | Layout: paragraph mode | disabled (0%) |
 | Text length | max 20 chars, max 3 words |

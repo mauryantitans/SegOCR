@@ -14,7 +14,7 @@ from pathlib import Path
 
 KAGGLE_DIR = Path(__file__).parent
 NUM_WORKERS = 5
-DATASET_SLUG = "segocr-ensemble-80k"  # the user's published Kaggle Dataset
+DATASET_SLUG = "segocr-ensemble-50k"  # the user's published Kaggle Dataset
 
 
 def md(src: str) -> dict:
