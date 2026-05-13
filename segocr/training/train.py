@@ -115,23 +115,10 @@ def train(
     ema_model: AveragedModel | None = None
     if ema_cfg.get("enabled", False):
         ema_decay = float(ema_cfg.get("decay", 0.999))
-        # EMA tracks the raw model (single device) — DataParallel only
-        # affects the forward pass, not the parameter identities.
         ema_model = AveragedModel(
             model,
             avg_fn=_make_ema_avg_fn(ema_decay),
         ).to(device)
-
-    # Multi-GPU: wrap in DataParallel so the forward pass splits the batch
-    # across all visible CUDA devices. Optimizer + EMA continue to operate
-    # on the raw model's parameters (DataParallel doesn't copy them, it
-    # just orchestrates per-device compute).
-    n_gpus = torch.cuda.device_count() if device.type == "cuda" else 0
-    if n_gpus > 1:
-        gpu_names = [torch.cuda.get_device_name(i) for i in range(n_gpus)]
-        logger.info("Detected %d GPUs (%s); wrapping model in DataParallel.",
-                    n_gpus, ", ".join(gpu_names))
-        model = torch.nn.DataParallel(model)
 
     # ── Optimizer + scheduler + criterion ──────────────────────────────────
     optimizer = torch.optim.AdamW(
@@ -182,7 +169,7 @@ def train(
         if not resume_path.exists():
             raise FileNotFoundError(f"resume_from path does not exist: {resume_path}")
         ckpt = torch.load(resume_path, map_location=device)
-        _unwrap_model(model).load_state_dict(ckpt["model"])
+        model.load_state_dict(ckpt["model"])
         if ema_model is not None and "ema" in ckpt:
             ema_model.module.load_state_dict(ckpt["ema"])
         if "optimizer" in ckpt:
@@ -286,16 +273,6 @@ def _make_ema_avg_fn(decay: float):
     return avg_fn
 
 
-def _unwrap_model(m: torch.nn.Module) -> torch.nn.Module:
-    """Return the underlying module if ``m`` is a DataParallel wrapper.
-
-    Used so checkpoint state_dicts don't get the ``module.`` key prefix
-    that DataParallel introduces — keeps weights interoperable between
-    single-GPU and multi-GPU runs.
-    """
-    return m.module if isinstance(m, torch.nn.DataParallel) else m
-
-
 def _save_checkpoint(
     model: torch.nn.Module,
     ema_model: AveragedModel | None,
@@ -305,7 +282,7 @@ def _save_checkpoint(
 ) -> None:
     state = {
         "iteration": iteration,
-        "model": _unwrap_model(model).state_dict(),
+        "model": model.state_dict(),
         "optimizer": optimizer.state_dict(),
     }
     if ema_model is not None:
