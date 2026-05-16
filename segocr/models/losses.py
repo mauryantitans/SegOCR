@@ -85,8 +85,8 @@ class DiceLoss(nn.Module):
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         # logits: (B, C, H, W); targets: (B, H, W) long
-        # Per-class loop avoids materializing a full (B, C, H, W) one-hot tensor,
-        # which at batch=32, C=63, 512² is 2 GiB — enough to OOM a T4 under DataParallel.
+        # Per-class loop avoids materializing a full (B, C, H, W) one-hot tensor;
+        # at C=63 + 512² that one-hot is ~63× the peak per-class tensor.
         probs = F.softmax(logits, dim=1)
         num_classes = probs.shape[1]
         start = 1 if self.ignore_background else 0
