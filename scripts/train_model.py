@@ -70,9 +70,22 @@ def main() -> None:
 
     resume_from = args.resume
     if resume_from is None and args.resume_latest is not None:
-        ckpts = sorted(Path(args.resume_latest).glob("checkpoint_*.pth"))
-        if ckpts:
-            resume_from = ckpts[-1]
+        # Consider both checkpoint_*.pth (subject to top-N filter) and
+        # snapshot_*.pth (always persisted). Pick the one with the highest
+        # iteration number; prefer checkpoint when both exist at that iter
+        # (smaller file — no extra metadata).
+        candidates = list(Path(args.resume_latest).glob("checkpoint_*.pth"))
+        candidates += list(Path(args.resume_latest).glob("snapshot_*.pth"))
+        if candidates:
+            # Sort by (iteration_from_filename, prefer-checkpoint-over-snapshot)
+            def _key(p: Path) -> tuple[int, int]:
+                try:
+                    iter_num = int(p.stem.split("_")[-1])
+                except ValueError:
+                    iter_num = -1
+                return (iter_num, 1 if p.name.startswith("checkpoint_") else 0)
+
+            resume_from = max(candidates, key=_key)
             print(f"Auto-resuming from: {resume_from}")
         else:
             print(f"No checkpoints found in {args.resume_latest}; starting fresh.")
