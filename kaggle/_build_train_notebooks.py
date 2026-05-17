@@ -153,10 +153,17 @@ def build_train_notebook(worker_id: int) -> dict:
         ),
         code(
             "import shutil, glob\n"
+            "# Kaggle mounts notebook outputs at varying depths under /kaggle/input/.\n"
+            "# Examples seen in the wild:\n"
+            "#   /kaggle/input/<dataset-slug>/weights/checkpoint_NNNNNN.pth         (output-as-dataset)\n"
+            "#   /kaggle/input/notebooks/<user>/<slug>/weights/checkpoint_NNNNNN.pth (notebook-output-files)\n"
+            "# Recursive glob covers both. We filter to .pth files under a 'weights' dir.\n"
             "prev_checkpoints = []\n"
-            "for path in glob.glob('/kaggle/input/*/weights/checkpoint_*.pth'):\n"
+            "for path in glob.glob('/kaggle/input/**/weights/checkpoint_*.pth', recursive=True):\n"
             "    prev_checkpoints.append(path)\n"
-            "for path in glob.glob('/kaggle/input/*/weights/averaged_best.pth'):\n"
+            "for path in glob.glob('/kaggle/input/**/weights/snapshot_*.pth', recursive=True):\n"
+            "    prev_checkpoints.append(path)\n"
+            "for path in glob.glob('/kaggle/input/**/weights/averaged_best.pth', recursive=True):\n"
             "    prev_checkpoints.append(path)\n"
             "\n"
             "if prev_checkpoints:\n"
@@ -166,7 +173,12 @@ def build_train_notebook(worker_id: int) -> dict:
             "        shutil.copy(src, dst)\n"
             "        print(f'  {src} -> {dst}')\n"
             "else:\n"
-            "    print('No previous checkpoints attached; starting fresh.')"
+            "    print('No previous checkpoints attached; starting fresh.')\n"
+            "    print('  Searched: /kaggle/input/**/weights/*.pth (recursive)')\n"
+            "    # Help the user diagnose: list what IS under /kaggle/input/\n"
+            "    print('  Available under /kaggle/input/:')\n"
+            "    for d in sorted(glob.glob('/kaggle/input/*/')):\n"
+            "        print(f'    {d}')"
         ),
         md("## 5 / Build the training config\n\nCalibrated for Kaggle T4 + 9 hr session."),
         code(
