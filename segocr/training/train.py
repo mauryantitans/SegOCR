@@ -86,7 +86,15 @@ def train(
 
     # ── Data ────────────────────────────────────────────────────────────────
     data_dir = Path(config["generator"]["output_dir"])
-    train_ds = SegOCRDataset(data_dir, split="train", train_aug=True)
+    style_cfg = (config.get("adaptation", {}) or {}).get("style_transfer", {}) or {}
+    fda_kwargs: dict = {}
+    if style_cfg.get("method") == "fda":
+        fda_kwargs = {
+            "fda_target_dir": style_cfg["real_data_dir"],
+            "fda_probability": float(style_cfg.get("apply_probability", 0.5)),
+            "fda_beta": float(style_cfg.get("fda_beta", 0.01)),
+        }
+    train_ds = SegOCRDataset(data_dir, split="train", train_aug=True, **fda_kwargs)
     val_ds = SegOCRDataset(data_dir, split="val", train_aug=False)
 
     train_loader = DataLoader(

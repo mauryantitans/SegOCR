@@ -191,6 +191,7 @@ adaptation:
     method: "cyclegan"         # "cyclegan" | "fda"
     real_data_dir: "data/benchmarks/icdar2015/train"
     apply_probability: 0.5
+    fda_beta: 0.01             # FDA only: low-freq window, fraction of min(H, W)
 
   self_training:
     enabled: true

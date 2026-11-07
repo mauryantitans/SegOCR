@@ -151,3 +151,28 @@ def test_train_val_split_stable_across_processes(tmp_path: Path) -> None:
         )
         outputs.add(result.stdout)
     assert len(outputs) == 1
+
+
+def test_fda_stylizes_image_but_not_masks(
+    engine_config_path: Path, tmp_path: Path
+) -> None:
+    import cv2
+    import numpy as np
+
+    data_dir = _make_dataset(engine_config_path, tmp_path / "ds", n=4)
+    real_dir = tmp_path / "real"
+    real_dir.mkdir()
+    cv2.imwrite(str(real_dir / "a.jpg"), np.full((64, 64, 3), (0, 0, 255), np.uint8))
+
+    kwargs = {"fda_target_dir": real_dir, "fda_probability": 1.0, "fda_beta": 0.05}
+    # Val / no-aug datasets must never be stylized.
+    assert SegOCRDataset(data_dir, split="train", train_aug=False, **kwargs).fda_target_paths == []
+
+    plain = SegOCRDataset(data_dir, split="train", train_aug=False)
+    fda = SegOCRDataset(data_dir, split="train", train_aug=True, **kwargs)
+    assert fda.fda_target_paths == [real_dir / "a.jpg"]
+    # Disable flip/jitter so the only difference is FDA.
+    fda._apply_augmentations = lambda img, sem, inst: (img, sem, inst)
+    a, b = plain[0], fda[0]
+    assert torch.equal(a["targets"]["semantic"], b["targets"]["semantic"])
+    assert not torch.equal(a["image"], b["image"])

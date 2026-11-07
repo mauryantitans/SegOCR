@@ -13,8 +13,9 @@ Affinity and direction targets are recomputed on the fly from
 (semantic, instance, metadata) — saves ~1MB of disk per sample at the
 cost of ~1ms CPU per __getitem__.
 
-Augmentation pipeline (training only): random horizontal flip, color
-jitter, random grayscale. Mask is flipped consistently with the image;
+Augmentation pipeline (training only): optional Fourier Domain Adaptation
+toward a pool of real images, random horizontal flip, color jitter,
+random grayscale. Mask is flipped consistently with the image;
 no other geometric augmentations (the generator already produces
 diverse layouts).
 """
@@ -30,12 +31,14 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
+from segocr.adaptation.fda import fourier_domain_adaptation
 from segocr.generator.targets import build_affinity_mask, build_direction_field
 
 logger = logging.getLogger(__name__)
 
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
+REAL_IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".bmp")
 
 
 class SegOCRDataset(Dataset):
@@ -50,6 +53,11 @@ class SegOCRDataset(Dataset):
         return_targets: Which targets to compute. ``"all"`` builds
                         semantic + affinity + direction; subset names
                         save CPU when only some heads are trained.
+        fda_target_dir: Optional directory of (unlabeled) real images. When
+                        set, training samples are FDA-stylized toward a
+                        random real image with ``fda_probability``.
+        fda_probability: Per-sample probability of applying FDA.
+        fda_beta:       FDA low-frequency window size (fraction of image).
     """
 
     def __init__(
@@ -59,6 +67,9 @@ class SegOCRDataset(Dataset):
         train_aug: bool = True,
         return_targets: tuple[str, ...] = ("semantic", "affinity", "direction"),
         val_fraction: float = 0.05,
+        fda_target_dir: str | Path | None = None,
+        fda_probability: float = 0.5,
+        fda_beta: float = 0.01,
     ) -> None:
         self.data_dir = Path(data_dir)
         self.split = split
@@ -78,6 +89,18 @@ class SegOCRDataset(Dataset):
         ]
         logger.info("SegOCRDataset[%s]: %d samples", split, len(self.image_paths))
 
+        self.fda_probability = float(fda_probability)
+        self.fda_beta = float(fda_beta)
+        self.fda_target_paths: list[Path] = []
+        if fda_target_dir is not None and self.train_aug:
+            self.fda_target_paths = sorted(
+                p for p in Path(fda_target_dir).rglob("*")
+                if p.suffix.lower() in REAL_IMAGE_SUFFIXES
+            )
+            if not self.fda_target_paths:
+                raise FileNotFoundError(f"No FDA target images found under {fda_target_dir}")
+            logger.info("FDA enabled: %d real target images", len(self.fda_target_paths))
+
     def __len__(self) -> int:
         return len(self.image_paths)
 
@@ -93,6 +116,14 @@ class SegOCRDataset(Dataset):
         with open(self.data_dir / "metadata" / f"{name}.json", encoding="utf-8") as f:
             metadata = json.load(f)
         char_metadata = metadata.get("characters", [])
+
+        if self.train_aug and self.fda_target_paths:
+            rng = np.random.default_rng()
+            if rng.random() < self.fda_probability:
+                target = self._load_image(
+                    self.fda_target_paths[rng.integers(len(self.fda_target_paths))]
+                )
+                image = fourier_domain_adaptation(image, target, beta=self.fda_beta)
 
         if self.train_aug:
             image, semantic, instance = self._apply_augmentations(
