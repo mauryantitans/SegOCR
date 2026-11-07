@@ -14,10 +14,11 @@ Affinity and direction targets are recomputed on the fly from
 cost of ~1ms CPU per __getitem__.
 
 Augmentation pipeline (training only): optional Fourier Domain Adaptation
-toward a pool of real images, random horizontal flip, color jitter,
-random grayscale. Mask is flipped consistently with the image;
-no other geometric augmentations (the generator already produces
-diverse layouts).
+toward a pool of real images, color jitter, random grayscale. No
+geometric augmentations: the generator already produces diverse layouts,
+and a horizontal flip would mirror glyphs (b→d, p→q) while keeping their
+class labels, and desync masks from the metadata used for the affinity /
+direction targets.
 """
 from __future__ import annotations
 
@@ -187,12 +188,6 @@ class SegOCRDataset(Dataset):
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Apply training augmentations consistently to image and masks."""
         rng = np.random.default_rng()
-
-        # Random horizontal flip (image + mask)
-        if rng.random() < 0.5:
-            image = image[:, ::-1].copy()
-            semantic = semantic[:, ::-1].copy()
-            instance = instance[:, ::-1].copy()
 
         # Color jitter (image only)
         if rng.random() < 0.8:

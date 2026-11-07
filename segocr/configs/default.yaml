@@ -169,7 +169,7 @@ training:
     top_n: 3                   # average top-3 by val mIoU at end of training
 
   augmentation:
-    random_flip: 0.5
+    random_flip: 0.0           # must stay 0: mirroring glyphs corrupts char labels
     color_jitter:
       brightness: 0.2
       contrast: 0.2

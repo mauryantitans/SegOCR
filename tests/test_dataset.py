@@ -121,12 +121,23 @@ def test_train_aug_changes_output(
     """Training augmentation should produce different outputs across calls."""
     data_dir = _make_dataset(engine_config_path, tmp_path / "ds", n=4)
     dataset = SegOCRDataset(data_dir, split="train", train_aug=True)
-    sample_a = dataset[0]
-    sample_b = dataset[0]
-    # With augmentation enabled, two calls should usually differ
-    diff = (sample_a["image"] - sample_b["image"]).abs().sum().item()
-    # 'usually' — with small probability they're equal; but high enough N → almost never
-    assert diff > 0
+    first = dataset[0]["image"]
+    # Each call is unaugmented with small probability; 5 calls → ~never all equal
+    assert any(not torch.equal(first, dataset[0]["image"]) for _ in range(5))
+
+
+def test_train_aug_never_changes_targets(
+    engine_config_path: Path, tmp_path: Path
+) -> None:
+    """No geometric aug: a mirrored glyph would keep a now-wrong class label
+    and desync the metadata-derived affinity / direction targets."""
+    data_dir = _make_dataset(engine_config_path, tmp_path / "ds", n=4)
+    plain = SegOCRDataset(data_dir, split="train", train_aug=False)[0]["targets"]
+    aug_ds = SegOCRDataset(data_dir, split="train", train_aug=True)
+    for _ in range(10):
+        targets = aug_ds[0]["targets"]
+        for key in ("semantic", "affinity", "direction"):
+            assert torch.equal(targets[key], plain[key])
 
 
 def test_train_val_split_stable_across_processes(tmp_path: Path) -> None:
