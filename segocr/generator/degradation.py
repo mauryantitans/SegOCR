@@ -102,6 +102,12 @@ class DegradationPipeline:
     def _apply_post_blur(self, image: np.ndarray) -> np.ndarray:
         """All non-blur degradations: noise, JPEG, lighting, geometric,
         plus the custom shadow + occlusion."""
+        # albumentations >= 1.4.x keeps its own RNG and ignores np.random.seed,
+        # which breaks per-index determinism. Re-seed it from the (index-seeded)
+        # global numpy stream. Older versions lack set_random_seed and already
+        # draw from np.random, so they're left untouched.
+        if hasattr(self.pipeline, "set_random_seed"):
+            self.pipeline.set_random_seed(int(np.random.randint(0, 2**31 - 1)))
         image = self.pipeline(image=image)["image"]
         if random.random() < self.shadow_prob:
             image = self._apply_random_shadow(image)
