@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import logging
+import zlib
 from pathlib import Path
 
 import cv2
@@ -118,7 +119,9 @@ class SegOCRDataset(Dataset):
     # ── Internal ────────────────────────────────────────────────────────────
 
     def _in_split(self, stem: str, val_fraction: float) -> bool:
-        bucket = (hash(stem) % 1000) / 1000.0
+        # zlib.crc32, not hash(): str hashing is randomized per process, which
+        # would reshuffle train/val on every run (and leak on --resume).
+        bucket = (zlib.crc32(stem.encode("utf-8")) % 1000) / 1000.0
         is_val = bucket < val_fraction
         return is_val if self.split == "val" else not is_val
 

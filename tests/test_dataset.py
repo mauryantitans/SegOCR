@@ -127,3 +127,27 @@ def test_train_aug_changes_output(
     diff = (sample_a["image"] - sample_b["image"]).abs().sum().item()
     # 'usually' — with small probability they're equal; but high enough N → almost never
     assert diff > 0
+
+
+def test_train_val_split_stable_across_processes(tmp_path: Path) -> None:
+    """The split must not depend on PYTHONHASHSEED, or --resume leaks val."""
+    import os
+    import subprocess
+    import sys
+
+    (tmp_path / "images").mkdir()
+    for i in range(200):
+        (tmp_path / "images" / f"{i:06d}.png").touch()
+    code = (
+        "import sys; from segocr.training.dataset import SegOCRDataset as D; "
+        "print(sorted(p.stem for p in D(sys.argv[1], split='val').image_paths))"
+    )
+    outputs = set()
+    for hash_seed in ("1", "2"):
+        env = {**os.environ, "PYTHONHASHSEED": hash_seed}
+        result = subprocess.run(
+            [sys.executable, "-c", code, str(tmp_path)],
+            env=env, capture_output=True, text=True, check=True,
+        )
+        outputs.add(result.stdout)
+    assert len(outputs) == 1
