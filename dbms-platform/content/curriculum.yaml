@@ -1,0 +1,1294 @@
+# ---------------------------------------------------------------------------
+# DBMS & MySQL — Integrated Curriculum (single source of truth)
+#
+# Hierarchy: Course → Module → Chapter → Lesson (labs, exercises and quizzes
+# live inside lessons) → Module assessment → Projects.
+#
+# Each lesson lists:
+#   id            unique slug; the lesson body lives in content/lessons/<module>/<id>.md
+#   title         display title
+#   level         beginner | intermediate | advanced | professional
+#   minutes       estimated study time
+#   prerequisites lesson ids that should be completed first (soft-gated in the UI)
+#   topics        the outline the lesson must cover (used for planned lessons too)
+#
+# Whether a lesson is authored is derived from the presence of its .md file,
+# so this file never goes stale.
+# ---------------------------------------------------------------------------
+course:
+  id: dbms-mysql
+  title: Database Systems & MySQL — Theory to Production
+  mysqlVersion: "8.4 LTS"
+  description: >
+    An integrated course where every DBMS concept is taught together with its
+    MySQL implementation, its internal working inside InnoDB/the MySQL server,
+    and its use in production engineering.
+
+modules:
+  # =========================================================================
+  - id: m01
+    number: 1
+    title: DBMS Fundamentals & the Relational Model
+    level: beginner
+    description: What a DBMS is, why it beats files, the relational model, keys, integrity, relational algebra/calculus, ACID and CAP — each demonstrated in MySQL.
+    outcomes:
+      - Explain what a DBMS provides over a file system and when that matters.
+      - Describe the three-schema architecture and data independence.
+      - Identify super, candidate, primary, alternate, composite and foreign keys.
+      - Translate relational algebra expressions to SQL and back.
+    chapters:
+      - id: m01-c1
+        title: Data, Databases and DBMS
+        lessons:
+          - id: m01-data-database-dbms
+            title: Data, Databases and the DBMS
+            level: beginner
+            minutes: 35
+            prerequisites: []
+            topics: [data vs information, what a database is, what a DBMS does, advantages of a DBMS, limitations and costs of a DBMS, MySQL as a DBMS]
+          - id: m01-file-systems-vs-dbms
+            title: File Systems vs DBMS
+            level: beginner
+            minutes: 35
+            prerequisites: [m01-data-database-dbms]
+            topics: [redundancy and inconsistency, data isolation, integrity problems, atomicity problems, concurrent access anomalies, security, how a DBMS solves each]
+          - id: m01-database-landscape
+            title: Relational vs Non-Relational Databases, Users and Administrators
+            level: beginner
+            minutes: 40
+            prerequisites: [m01-data-database-dbms]
+            topics: [relational databases, key-value, document, wide-column, graph, time-series, choosing a model, database users, DBA roles, data engineers, application developers]
+      - id: m01-c2
+        title: Architecture and Abstraction
+        lessons:
+          - id: m01-schemas-three-schema-architecture
+            title: Schemas, Instances, Three-Schema Architecture and Data Independence
+            level: beginner
+            minutes: 40
+            prerequisites: [m01-data-database-dbms]
+            topics: [schema vs instance, external/conceptual/internal levels, logical data independence, physical data independence, views as external schemas, information_schema]
+          - id: m01-database-architectures
+            title: Database System Architectures
+            level: beginner
+            minutes: 30
+            prerequisites: [m01-schemas-three-schema-architecture]
+            topics: [centralized, client-server, 1/2/3-tier, distributed, cloud-managed databases, where MySQL fits]
+      - id: m01-c3
+        title: The Relational Model
+        lessons:
+          - id: m01-relational-model
+            title: The Relational Model — Relations, Tuples, Attributes and Domains
+            level: beginner
+            minutes: 40
+            prerequisites: [m01-schemas-three-schema-architecture]
+            topics: [relation, tuple, attribute, domain, degree, cardinality, relation properties, NULL in the relational model, mapping to MySQL tables]
+          - id: m01-keys
+            title: Keys — Super, Candidate, Primary, Alternate, Composite and Foreign
+            level: beginner
+            minutes: 45
+            prerequisites: [m01-relational-model]
+            topics: [superkey, candidate key, primary key, alternate key, composite key, foreign key, surrogate vs natural keys, keys in MySQL DDL]
+          - id: m01-integrity-constraints
+            title: Integrity Constraints — Entity, Referential and Domain Integrity
+            level: beginner
+            minutes: 45
+            prerequisites: [m01-keys]
+            topics: [domain constraints, entity integrity, referential integrity, ON DELETE/ON UPDATE actions, CHECK constraints, how InnoDB enforces foreign keys]
+      - id: m01-c4
+        title: Relational Algebra and Calculus
+        lessons:
+          - id: m01-relational-algebra-basics
+            title: Relational Algebra I — Selection, Projection, Set Operations and Product
+            level: beginner
+            minutes: 50
+            prerequisites: [m01-relational-model]
+            topics: [selection, projection, rename, union, difference, intersection, Cartesian product, closure property, SQL equivalents, bag vs set semantics]
+          - id: m01-relational-algebra-joins
+            title: Relational Algebra II — Joins and Division
+            level: intermediate
+            minutes: 50
+            prerequisites: [m01-relational-algebra-basics]
+            topics: [theta join, equi-join, natural join, outer joins, semi-join, anti-join, division, query trees, algebraic equivalences used by optimizers]
+          - id: m01-relational-calculus
+            title: Relational Calculus and Its Relationship to SQL
+            level: intermediate
+            minutes: 40
+            prerequisites: [m01-relational-algebra-joins]
+            topics: [tuple relational calculus, domain relational calculus, quantifiers, safety, relational completeness, EXISTS as an existential quantifier]
+      - id: m01-c5
+        title: Design and Transactions Preview
+        lessons:
+          - id: m01-design-process
+            title: Conceptual, Logical and Physical Database Design
+            level: beginner
+            minutes: 30
+            prerequisites: [m01-keys]
+            topics: [design lifecycle, conceptual model, logical model, physical model, design deliverables, where each module of this course fits]
+          - id: m01-acid-transactions
+            title: ACID Properties and Transaction Fundamentals
+            level: beginner
+            minutes: 45
+            prerequisites: [m01-integrity-constraints]
+            topics: [transaction definition, atomicity, consistency, isolation, durability, transaction states, a bank transfer in MySQL]
+          - id: m01-cap-theorem
+            title: The CAP Theorem, PACELC and Their Relevance to MySQL
+            level: intermediate
+            minutes: 35
+            prerequisites: [m01-acid-transactions]
+            topics: [consistency vs availability under partition, PACELC, asynchronous vs semi-synchronous replication, Group Replication, ACID vs BASE]
+
+  # =========================================================================
+  - id: m02
+    number: 2
+    title: MySQL Fundamentals & Environment
+    level: beginner
+    description: The MySQL server and tools, SQL language categories, databases and tables, every important data type, NULL semantics, constraints, character sets and storage engines.
+    outcomes:
+      - Install, configure and connect to MySQL 8.4 using the CLI and Workbench.
+      - Create, alter and drop databases and tables safely.
+      - Choose correct data types and explain how MySQL stores them.
+      - Reason about NULL with three-valued logic.
+    chapters:
+      - id: m02-c1
+        title: Getting Started with MySQL
+        lessons:
+          - id: m02-what-is-mysql
+            title: What Is MySQL? Versions, Editions and Architecture Overview
+            level: beginner
+            minutes: 30
+            prerequisites: [m01-data-database-dbms]
+            topics: [MySQL history, Community vs Enterprise, LTS vs Innovation releases, 8.0 vs 8.4 vs 9.x, server layers, storage engine API, forks such as MariaDB and Percona]
+          - id: m02-install-connect
+            title: Installing, Configuring and Connecting to MySQL
+            level: beginner
+            minutes: 40
+            prerequisites: [m02-what-is-mysql]
+            topics: [installation options, Docker, my.cnf option files, system variables, mysql CLI, MySQL Workbench, MySQL Shell, connection parameters, authentication plugins]
+          - id: m02-sql-categories
+            title: SQL Language Categories — DDL, DML, DQL, DCL and TCL
+            level: beginner
+            minutes: 25
+            prerequisites: [m02-install-connect]
+            topics: [DDL, DML, DQL, DCL, TCL, implicit commit, standard SQL vs MySQL dialect]
+      - id: m02-c2
+        title: Databases and Tables
+        lessons:
+          - id: m02-databases
+            title: Creating and Managing Databases
+            level: beginner
+            minutes: 25
+            prerequisites: [m02-sql-categories]
+            topics: [CREATE DATABASE, default charset/collation, USE, SHOW DATABASES, DROP DATABASE, information_schema, data directory layout]
+          - id: m02-tables-ddl
+            title: Creating, Altering and Dropping Tables
+            level: beginner
+            minutes: 45
+            prerequisites: [m02-databases]
+            topics: [CREATE TABLE, column definitions, table options, ALTER TABLE, online DDL algorithms, DROP vs TRUNCATE vs DELETE, RENAME TABLE, SHOW CREATE TABLE]
+      - id: m02-c3
+        title: Data Types
+        lessons:
+          - id: m02-numeric-types
+            title: Numeric Data Types
+            level: beginner
+            minutes: 40
+            prerequisites: [m02-tables-ddl]
+            topics: [TINYINT to BIGINT, UNSIGNED, DECIMAL exact arithmetic, FLOAT/DOUBLE approximation, BIT, BOOLEAN, storage sizes, deprecated display width and ZEROFILL, choosing types]
+          - id: m02-string-types
+            title: String Data Types
+            level: beginner
+            minutes: 40
+            prerequisites: [m02-tables-ddl]
+            topics: [CHAR vs VARCHAR, TEXT family, ENUM, SET, BINARY/VARBINARY, length in characters vs bytes, row size limits, trailing space handling]
+          - id: m02-datetime-types
+            title: Date and Time Data Types
+            level: beginner
+            minutes: 40
+            prerequisites: [m02-tables-ddl]
+            topics: [DATE, TIME, DATETIME, TIMESTAMP, YEAR, fractional seconds, time zones and TIMESTAMP conversion, 2038 problem, automatic initialization]
+          - id: m02-json-binary-types
+            title: JSON and Binary Data Types
+            level: beginner
+            minutes: 35
+            prerequisites: [m02-string-types]
+            topics: [native JSON type and binary storage, JSON validation, BLOB family, storing files vs references, UUID storage as BINARY(16)]
+      - id: m02-c4
+        title: Column Semantics and Table Properties
+        lessons:
+          - id: m02-null-three-valued-logic
+            title: NULL Values and Three-Valued Logic
+            level: beginner
+            minutes: 40
+            prerequisites: [m02-tables-ddl]
+            topics: [meaning of NULL, UNKNOWN truth value, truth tables, IS NULL, null-safe equality, NULL in arithmetic, NULL and constraints]
+          - id: m02-defaults-auto-increment
+            title: DEFAULT Values and AUTO_INCREMENT
+            level: beginner
+            minutes: 35
+            prerequisites: [m02-tables-ddl]
+            topics: [literal and expression defaults, CURRENT_TIMESTAMP defaults, AUTO_INCREMENT behaviour, gaps, persistence since 8.0, innodb_autoinc_lock_mode, LAST_INSERT_ID]
+          - id: m02-constraints-mysql
+            title: Constraints in MySQL
+            level: beginner
+            minutes: 40
+            prerequisites: [m01-integrity-constraints, m02-tables-ddl]
+            topics: [NOT NULL, UNIQUE, PRIMARY KEY, FOREIGN KEY, CHECK (8.0.16+), naming constraints, strict SQL mode, constraint violations and error codes]
+          - id: m02-charsets-collations
+            title: Character Sets and Collations
+            level: beginner
+            minutes: 35
+            prerequisites: [m02-string-types]
+            topics: [utf8mb4 vs utf8mb3, collation rules, case and accent sensitivity, comparison and sorting, collation mismatch errors, index impact]
+          - id: m02-storage-engines
+            title: Storage Engines
+            level: beginner
+            minutes: 30
+            prerequisites: [m02-tables-ddl]
+            topics: [pluggable storage engine architecture, InnoDB, MyISAM, MEMORY, CSV, ARCHIVE, choosing InnoDB, ENGINE clause]
+
+  # =========================================================================
+  - id: m03
+    number: 3
+    title: SQL Fundamentals & Data Manipulation
+    level: beginner
+    description: Retrieving, filtering, sorting, inserting, updating and deleting data; aggregation; conditional logic; and the built-in function library — with execution behaviour and edge cases.
+    outcomes:
+      - Write correct SELECT, INSERT, UPDATE and DELETE statements.
+      - Aggregate with GROUP BY/HAVING and explain NULL handling in aggregates.
+      - Use CASE, COALESCE and type conversion without surprises.
+    chapters:
+      - id: m03-c1
+        title: Retrieving Data
+        lessons:
+          - id: m03-select-basics
+            title: SELECT — Columns, Expressions, Aliases and DISTINCT
+            level: beginner
+            minutes: 40
+            prerequisites: [m02-tables-ddl]
+            topics: [SELECT list, expressions, column aliases, table aliases, DISTINCT, SELECT * pitfalls, logical execution order preview]
+          - id: m03-where-filtering
+            title: Filtering with WHERE — Logical Operators, IN and BETWEEN
+            level: beginner
+            minutes: 40
+            prerequisites: [m03-select-basics, m02-null-three-valued-logic]
+            topics: [comparison operators, AND/OR/NOT precedence, IN and NOT IN, BETWEEN inclusivity, filtering dates, NULL in predicates]
+          - id: m03-pattern-matching
+            title: Pattern Matching with LIKE and REGEXP
+            level: beginner
+            minutes: 35
+            prerequisites: [m03-where-filtering]
+            topics: [LIKE wildcards, ESCAPE, collation effects, REGEXP_LIKE, REGEXP_REPLACE, REGEXP_SUBSTR, ICU regex engine, index usage of patterns]
+          - id: m03-sorting-pagination
+            title: Sorting and Pagination — ORDER BY, LIMIT and OFFSET
+            level: beginner
+            minutes: 35
+            prerequisites: [m03-select-basics]
+            topics: [ORDER BY direction, multiple sort keys, NULL ordering, sorting by expression, LIMIT/OFFSET, deterministic ordering, keyset pagination preview]
+      - id: m03-c2
+        title: Modifying Data
+        lessons:
+          - id: m03-insert
+            title: INSERT — Adding Data
+            level: beginner
+            minutes: 40
+            prerequisites: [m03-select-basics, m02-constraints-mysql]
+            topics: [single and multi-row INSERT, INSERT ... SELECT, INSERT IGNORE, ON DUPLICATE KEY UPDATE, REPLACE, row alias syntax (8.0.19+), errors and warnings]
+          - id: m03-update-delete
+            title: UPDATE and DELETE — Changing and Removing Data Safely
+            level: beginner
+            minutes: 40
+            prerequisites: [m03-where-filtering]
+            topics: [UPDATE with WHERE, multi-table UPDATE, DELETE, multi-table DELETE, ORDER BY/LIMIT in DML, safe-updates mode, soft deletes, TRUNCATE comparison]
+      - id: m03-c3
+        title: Aggregation
+        lessons:
+          - id: m03-aggregate-functions
+            title: Aggregate Functions — COUNT, SUM, AVG, MIN and MAX
+            level: beginner
+            minutes: 50
+            prerequisites: [m03-where-filtering, m02-null-three-valued-logic]
+            topics: [COUNT(*) vs COUNT(column) vs COUNT(DISTINCT), SUM/AVG/MIN/MAX, NULL handling in aggregates, empty input behaviour, integer vs decimal averages, conditional aggregation]
+          - id: m03-group-by-having
+            title: GROUP BY and HAVING
+            level: beginner
+            minutes: 50
+            prerequisites: [m03-aggregate-functions]
+            topics: [grouping semantics, ONLY_FULL_GROUP_BY and functional dependence, HAVING vs WHERE, WITH ROLLUP, GROUPING(), grouping by expressions, ANY_VALUE]
+      - id: m03-c4
+        title: Expressions and Built-in Functions
+        lessons:
+          - id: m03-conditional-expressions
+            title: Conditional Logic — CASE, IF, IFNULL, NULLIF and COALESCE
+            level: beginner
+            minutes: 40
+            prerequisites: [m03-where-filtering]
+            topics: [simple vs searched CASE, CASE result types, IF(), IFNULL, NULLIF, COALESCE, conditional aggregation, portability]
+          - id: m03-string-functions
+            title: String Functions
+            level: beginner
+            minutes: 35
+            prerequisites: [m03-select-basics]
+            topics: [CONCAT and CONCAT_WS, SUBSTRING, LEFT/RIGHT, TRIM, REPLACE, LOCATE/INSTR, UPPER/LOWER, LPAD/RPAD, LENGTH vs CHAR_LENGTH, GROUP_CONCAT]
+          - id: m03-numeric-functions
+            title: Mathematical Functions
+            level: beginner
+            minutes: 30
+            prerequisites: [m03-select-basics, m02-numeric-types]
+            topics: [ROUND vs TRUNCATE, CEIL/FLOOR, MOD and %, integer division DIV, ABS, POWER, SQRT, RAND, division by zero behaviour, DECIMAL precision rules]
+          - id: m03-date-functions
+            title: Date and Time Functions
+            level: beginner
+            minutes: 40
+            prerequisites: [m03-select-basics, m02-datetime-types]
+            topics: [NOW vs SYSDATE vs CURRENT_DATE, DATE_ADD/DATE_SUB/INTERVAL, DATEDIFF, TIMESTAMPDIFF, DATE_FORMAT, EXTRACT, LAST_DAY, time zone conversion, sargable date ranges]
+          - id: m03-type-conversion
+            title: Type Conversion and CAST
+            level: beginner
+            minutes: 35
+            prerequisites: [m03-select-basics]
+            topics: [implicit conversion rules, CAST and CONVERT, string-to-number pitfalls, comparison coercion, conversion and index usage, warnings]
+          - id: m03-null-handling
+            title: NULL Handling in Practice
+            level: beginner
+            minutes: 40
+            prerequisites: [m03-aggregate-functions, m03-conditional-expressions]
+            topics: [NULL in WHERE, joins, aggregates, ORDER BY, DISTINCT and GROUP BY, NOT IN trap, null-safe operators, design guidelines for nullable columns]
+
+  # =========================================================================
+  - id: m04
+    number: 4
+    title: Joins & Advanced SQL Querying
+    level: intermediate
+    description: Joins, subqueries, set operations, CTEs, recursive queries and window functions — plus the difference between logical query order and the physical plan MySQL executes.
+    outcomes:
+      - Choose the correct join type and predict its output, including NULL-extended rows.
+      - Write correlated subqueries, EXISTS/NOT EXISTS and recursive CTEs.
+      - Solve analytical problems with window functions.
+    chapters:
+      - id: m04-c1
+        title: Joins
+        lessons:
+          - id: m04-inner-join
+            title: INNER JOIN
+            level: intermediate
+            minutes: 45
+            prerequisites: [m03-select-basics, m01-keys]
+            topics: [join predicate, inner join semantics, ON vs USING vs NATURAL, join cardinality and row multiplication, nested-loop and hash join preview]
+          - id: m04-outer-joins
+            title: Outer Joins — LEFT, RIGHT and FULL Emulation
+            level: intermediate
+            minutes: 45
+            prerequisites: [m04-inner-join]
+            topics: [LEFT JOIN, RIGHT JOIN, NULL-extended rows, ON vs WHERE in outer joins, finding missing rows, FULL OUTER JOIN emulation with UNION]
+          - id: m04-cross-self-join
+            title: CROSS JOIN and SELF JOIN
+            level: intermediate
+            minutes: 35
+            prerequisites: [m04-inner-join]
+            topics: [Cartesian product, generating combinations, self join for hierarchies, comparing rows within a table, avoiding duplicate pairs]
+          - id: m04-multi-table-joins
+            title: Multi-Table Joins and Join Conditions
+            level: intermediate
+            minutes: 45
+            prerequisites: [m04-outer-joins]
+            topics: [joining many tables, join order, fan-out traps when aggregating, non-equi joins, STRAIGHT_JOIN, reading join plans]
+      - id: m04-c2
+        title: Subqueries
+        lessons:
+          - id: m04-subqueries
+            title: Subqueries — Scalar, Row, Table and Derived Tables
+            level: intermediate
+            minutes: 45
+            prerequisites: [m04-inner-join, m03-group-by-having]
+            topics: [scalar subqueries, row subqueries, derived tables, LATERAL derived tables (8.0.14+), subqueries in SELECT/FROM/WHERE, optimizer transformations]
+          - id: m04-correlated-subqueries
+            title: Correlated Subqueries
+            level: intermediate
+            minutes: 40
+            prerequisites: [m04-subqueries]
+            topics: [correlation, per-row evaluation semantics, decorrelation by the optimizer, top-N per group, rewriting as joins or window functions]
+          - id: m04-exists-in
+            title: EXISTS, NOT EXISTS, IN and NOT IN
+            level: intermediate
+            minutes: 45
+            prerequisites: [m04-correlated-subqueries, m03-null-handling]
+            topics: [semi-join, anti-join, NOT IN with NULLs, EXISTS vs IN vs JOIN, MySQL semi-join strategies, antijoin optimization]
+      - id: m04-c3
+        title: Set Operations and CTEs
+        lessons:
+          - id: m04-set-operations
+            title: UNION, UNION ALL, INTERSECT and EXCEPT
+            level: intermediate
+            minutes: 35
+            prerequisites: [m04-subqueries]
+            topics: [union compatibility, duplicate elimination cost, UNION ALL, INTERSECT and EXCEPT (8.0.31+), ordering and limiting set results]
+          - id: m04-ctes
+            title: Common Table Expressions
+            level: intermediate
+            minutes: 40
+            prerequisites: [m04-subqueries]
+            topics: [WITH clause, multiple CTEs, readability, materialization vs merging, CTE vs derived table vs view]
+          - id: m04-recursive-ctes
+            title: Recursive CTEs
+            level: intermediate
+            minutes: 45
+            prerequisites: [m04-ctes, m04-cross-self-join]
+            topics: [anchor and recursive members, termination, hierarchies, paths, generating series, cte_max_recursion_depth, cycle detection]
+      - id: m04-c4
+        title: Window Functions
+        lessons:
+          - id: m04-window-functions
+            title: Window Functions — OVER, PARTITION BY and Frames
+            level: intermediate
+            minutes: 50
+            prerequisites: [m03-group-by-having]
+            topics: [window vs aggregate, OVER, PARTITION BY, ORDER BY in windows, ROWS vs RANGE frames, named windows, aggregate window functions]
+          - id: m04-ranking-functions
+            title: Ranking — ROW_NUMBER, RANK, DENSE_RANK and NTILE
+            level: intermediate
+            minutes: 40
+            prerequisites: [m04-window-functions]
+            topics: [ROW_NUMBER, RANK, DENSE_RANK, PERCENT_RANK, CUME_DIST, NTILE, ties, top-N per group, deduplication]
+          - id: m04-value-functions
+            title: Value Functions — LEAD, LAG, FIRST_VALUE, LAST_VALUE and NTH_VALUE
+            level: intermediate
+            minutes: 40
+            prerequisites: [m04-window-functions]
+            topics: [LAG and LEAD, period-over-period change, FIRST_VALUE, LAST_VALUE frame trap, NTH_VALUE, sessionization]
+          - id: m04-analytical-queries
+            title: Advanced Analytical Queries
+            level: advanced
+            minutes: 55
+            prerequisites: [m04-ranking-functions, m04-value-functions, m04-ctes]
+            topics: [running totals, moving averages, gaps and islands, cohort retention, funnel analysis, pivoting, comparing solution strategies]
+      - id: m04-c5
+        title: How Queries Are Processed
+        lessons:
+          - id: m04-logical-query-order
+            title: Logical Query Processing Order vs the Physical Plan
+            level: intermediate
+            minutes: 40
+            prerequisites: [m04-multi-table-joins, m03-group-by-having]
+            topics: [logical clause order, why aliases are not visible in WHERE, physical plan vs logical order, EXPLAIN FORMAT=TREE preview, optimizer rewrites]
+
+  # =========================================================================
+  - id: m05
+    number: 5
+    title: Database Design & ER Modeling
+    level: intermediate
+    description: From business requirements to a working MySQL schema — entities, attributes, relationships, cardinality, weak entities, EER and mapping ER diagrams to tables.
+    outcomes:
+      - Elicit requirements and produce an ER diagram.
+      - Map ER constructs to relational tables with correct keys and constraints.
+      - Choose between natural and surrogate keys with justification.
+    chapters:
+      - id: m05-c1
+        title: Conceptual Modeling
+        lessons:
+          - id: m05-requirements-gathering
+            title: Requirements Gathering for Database Design
+            level: intermediate
+            minutes: 35
+            prerequisites: [m01-design-process]
+            topics: [stakeholder interviews, nouns and verbs analysis, business rules, data volume and access patterns, requirements document]
+          - id: m05-entities-attributes
+            title: Entities and Attributes
+            level: intermediate
+            minutes: 40
+            prerequisites: [m05-requirements-gathering]
+            topics: [entity types and sets, simple vs composite, single vs multivalued, derived attributes, key attributes, NULL-able attributes]
+          - id: m05-relationships-cardinality
+            title: Relationships, Cardinality and Participation
+            level: intermediate
+            minutes: 45
+            prerequisites: [m05-entities-attributes]
+            topics: [relationship types, degree, cardinality ratios, total vs partial participation, min-max notation, relationship attributes]
+          - id: m05-relationship-patterns
+            title: One-to-One, One-to-Many, Many-to-Many and Recursive Relationships
+            level: intermediate
+            minutes: 45
+            prerequisites: [m05-relationships-cardinality]
+            topics: [1:1 patterns, 1:N patterns, M:N and junction tables, recursive relationships, ternary relationships]
+          - id: m05-weak-entities-eer
+            title: Weak Entities and Enhanced ER (Specialization/Generalization)
+            level: intermediate
+            minutes: 45
+            prerequisites: [m05-relationship-patterns]
+            topics: [weak entities, identifying relationships, partial keys, specialization, generalization, disjoint/overlapping, total/partial, inheritance mapping strategies]
+          - id: m05-er-notation
+            title: ER Diagram Notations — Chen, Crow's Foot and UML
+            level: intermediate
+            minutes: 30
+            prerequisites: [m05-relationship-patterns]
+            topics: [Chen notation, crow's foot, UML class diagrams, tooling, reading industry diagrams, MySQL Workbench EER diagrams]
+      - id: m05-c2
+        title: From ER to MySQL
+        lessons:
+          - id: m05-er-to-relational
+            title: Converting ER Diagrams to Relational Schemas
+            level: intermediate
+            minutes: 50
+            prerequisites: [m05-weak-entities-eer]
+            topics: [mapping algorithm, strong and weak entities, 1:1/1:N/M:N mapping, multivalued attributes, specialization mapping, generated DDL]
+          - id: m05-key-selection
+            title: Choosing Primary and Foreign Keys
+            level: intermediate
+            minutes: 40
+            prerequisites: [m05-er-to-relational]
+            topics: [natural vs surrogate, AUTO_INCREMENT vs UUID, UUID_TO_BIN with swap flag, composite keys, clustered index implications, FK indexing, ON DELETE policies]
+          - id: m05-design-case-study
+            title: Case Study — From Business Requirements to a MySQL Schema
+            level: intermediate
+            minutes: 60
+            prerequisites: [m05-key-selection]
+            topics: [end-to-end design, requirements, ER diagram, schema, DDL, sample queries, design review checklist]
+
+  # =========================================================================
+  - id: m06
+    number: 6
+    title: Database Normalization
+    level: intermediate
+    description: Functional dependencies, closures and keys, the normal forms from 1NF to 5NF, decomposition properties and principled denormalization.
+    outcomes:
+      - Compute attribute closures and candidate keys.
+      - Decompose relations into 3NF/BCNF with lossless joins.
+      - Decide when denormalization is justified.
+    chapters:
+      - id: m06-c1
+        title: Dependency Theory
+        lessons:
+          - id: m06-anomalies
+            title: Update, Insertion and Deletion Anomalies
+            level: intermediate
+            minutes: 35
+            prerequisites: [m01-keys, m03-update-delete]
+            topics: [redundancy, update anomaly, insertion anomaly, deletion anomaly, demonstration in MySQL]
+          - id: m06-functional-dependencies
+            title: Functional Dependencies and Armstrong's Axioms
+            level: intermediate
+            minutes: 45
+            prerequisites: [m06-anomalies]
+            topics: [FD definition, trivial and non-trivial FDs, Armstrong's axioms, derived rules, checking an FD holds with SQL]
+          - id: m06-closure-keys
+            title: Attribute Closure, Candidate Keys and Canonical Cover
+            level: intermediate
+            minutes: 50
+            prerequisites: [m06-functional-dependencies]
+            topics: [attribute closure algorithm, finding candidate keys, prime and non-prime attributes, minimal/canonical cover, equivalence of FD sets]
+      - id: m06-c2
+        title: Normal Forms
+        lessons:
+          - id: m06-1nf
+            title: First Normal Form
+            level: intermediate
+            minutes: 35
+            prerequisites: [m06-anomalies]
+            topics: [atomic values, repeating groups, comma-separated lists anti-pattern, JSON and 1NF, converting to 1NF in MySQL]
+          - id: m06-2nf
+            title: Second Normal Form
+            level: intermediate
+            minutes: 35
+            prerequisites: [m06-1nf, m06-closure-keys]
+            topics: [partial dependencies, composite keys, decomposition to 2NF, MySQL implementation]
+          - id: m06-3nf
+            title: Third Normal Form
+            level: intermediate
+            minutes: 40
+            prerequisites: [m06-2nf]
+            topics: [transitive dependencies, 3NF definition, 3NF synthesis algorithm, MySQL implementation]
+          - id: m06-bcnf
+            title: Boyce-Codd Normal Form
+            level: advanced
+            minutes: 45
+            prerequisites: [m06-3nf]
+            topics: [BCNF definition, BCNF vs 3NF, BCNF decomposition algorithm, losing dependency preservation, enforcing lost FDs]
+          - id: m06-4nf-5nf
+            title: Fourth and Fifth Normal Forms
+            level: advanced
+            minutes: 45
+            prerequisites: [m06-bcnf]
+            topics: [multivalued dependencies, 4NF, join dependencies, 5NF, practical relevance]
+      - id: m06-c3
+        title: Decomposition and Trade-offs
+        lessons:
+          - id: m06-decomposition-properties
+            title: Lossless Decomposition and Dependency Preservation
+            level: advanced
+            minutes: 45
+            prerequisites: [m06-bcnf]
+            topics: [lossless-join test, spurious tuples, dependency preservation test, chase intuition, verifying with SQL joins]
+          - id: m06-denormalization
+            title: Normalization vs Denormalization — Real-World Trade-offs
+            level: advanced
+            minutes: 45
+            prerequisites: [m06-decomposition-properties, m04-multi-table-joins]
+            topics: [read vs write trade-offs, summary tables, derived columns, keeping denormalized data consistent, OLTP vs OLAP perspectives]
+
+  # =========================================================================
+  - id: m07
+    number: 7
+    title: Indexing & Query Optimization
+    level: advanced
+    description: B+ trees, InnoDB clustered and secondary indexes, index design, EXPLAIN and EXPLAIN ANALYZE, SARGability, optimizing joins, subqueries and aggregations, and diagnosing slow queries.
+    outcomes:
+      - Explain how InnoDB stores and traverses indexes.
+      - Design composite and covering indexes using the leftmost-prefix rule.
+      - Read EXPLAIN / EXPLAIN ANALYZE and fix slow queries with evidence.
+    chapters:
+      - id: m07-c1
+        title: Index Fundamentals
+        lessons:
+          - id: m07-why-indexes
+            title: Why Indexes Exist — The Cost of Finding Data
+            level: advanced
+            minutes: 40
+            prerequisites: [m03-where-filtering, m02-storage-engines]
+            topics: [pages and I/O, full table scan cost, search complexity, index as a sorted access path, read vs write trade-off]
+          - id: m07-btree-bplustree
+            title: B-Trees and B+ Trees
+            level: advanced
+            minutes: 55
+            prerequisites: [m07-why-indexes]
+            topics: [binary search trees vs B-trees, B+ tree structure, fan-out and height, search, insert and split, delete and merge, range scans via leaf links]
+          - id: m07-clustered-secondary
+            title: InnoDB Clustered and Secondary Indexes
+            level: advanced
+            minutes: 50
+            prerequisites: [m07-btree-bplustree]
+            topics: [clustered index, choice of clustering key, secondary index leaf contents, bookmark lookups, primary key size impact, hidden GEN_CLUST_INDEX]
+      - id: m07-c2
+        title: Designing Indexes
+        lessons:
+          - id: m07-composite-indexes
+            title: Unique and Composite Indexes — The Leftmost-Prefix Rule
+            level: advanced
+            minutes: 50
+            prerequisites: [m07-clustered-secondary]
+            topics: [CREATE INDEX, UNIQUE indexes, composite index ordering, leftmost prefix, equality before range, index merge, invisible indexes]
+          - id: m07-covering-prefix-functional
+            title: Covering, Prefix, Functional and Descending Indexes
+            level: advanced
+            minutes: 45
+            prerequisites: [m07-composite-indexes]
+            topics: [covering indexes and Using index, prefix indexes, functional key parts (8.0.13+), descending indexes, multi-valued indexes on JSON]
+          - id: m07-selectivity-statistics
+            title: Selectivity, Cardinality and Index Statistics
+            level: advanced
+            minutes: 45
+            prerequisites: [m07-composite-indexes]
+            topics: [selectivity, cardinality, persistent statistics, ANALYZE TABLE, histograms, when the optimizer ignores an index]
+      - id: m07-c3
+        title: Reading Execution Plans
+        lessons:
+          - id: m07-explain
+            title: EXPLAIN — Reading Query Execution Plans
+            level: advanced
+            minutes: 50
+            prerequisites: [m07-composite-indexes]
+            topics: [EXPLAIN columns, access types, key and key_len, rows and filtered, Extra column, FORMAT=TREE and FORMAT=JSON]
+          - id: m07-explain-analyze
+            title: EXPLAIN ANALYZE — Measuring Actual Execution
+            level: advanced
+            minutes: 45
+            prerequisites: [m07-explain]
+            topics: [iterator-based execution, actual vs estimated rows, loops, timings, misestimates, measuring responsibly]
+          - id: m07-access-paths
+            title: Access Paths — Scans, Ranges, Lookups and Index Condition Pushdown
+            level: advanced
+            minutes: 45
+            prerequisites: [m07-explain]
+            topics: [full table scan, full index scan, range scan, ref and eq_ref, const, index condition pushdown, MRR, skip scan]
+      - id: m07-c4
+        title: Query Optimization
+        lessons:
+          - id: m07-sargable-queries
+            title: SARGable Queries
+            level: advanced
+            minutes: 40
+            prerequisites: [m07-access-paths]
+            topics: [search arguments, functions on indexed columns, implicit conversions, leading wildcards, OR conditions, rewriting predicates]
+          - id: m07-optimizing-joins
+            title: Optimizing Joins
+            level: advanced
+            minutes: 50
+            prerequisites: [m07-access-paths, m04-multi-table-joins]
+            topics: [nested-loop join, hash join (8.0.18+), join order, indexing join columns, BKA, reducing fan-out]
+          - id: m07-optimizing-subqueries
+            title: Optimizing Subqueries and Derived Tables
+            level: advanced
+            minutes: 45
+            prerequisites: [m07-optimizing-joins, m04-exists-in]
+            topics: [semi-join strategies, materialization, derived table merging, condition pushdown into derived tables, rewriting correlated subqueries]
+          - id: m07-optimizing-aggregation-sorting
+            title: Optimizing Aggregation, Sorting and Pagination
+            level: advanced
+            minutes: 45
+            prerequisites: [m07-access-paths, m03-group-by-having]
+            topics: [index-based GROUP BY, loose index scan, filesort, temporary tables, ORDER BY with LIMIT, keyset pagination]
+          - id: m07-optimizer-decisions
+            title: How the MySQL Optimizer Chooses Plans
+            level: advanced
+            minutes: 45
+            prerequisites: [m07-selectivity-statistics, m07-explain-analyze]
+            topics: [cost model, optimizer_trace, optimizer switches, index hints, optimizer hints, plan stability]
+      - id: m07-c5
+        title: Diagnostics and Pitfalls
+        lessons:
+          - id: m07-slow-query-diagnostics
+            title: Slow Query Log, Performance Schema and the sys Schema
+            level: advanced
+            minutes: 45
+            prerequisites: [m07-explain-analyze]
+            topics: [slow query log configuration, mysqldumpslow, performance_schema statement digests, sys schema views, identifying top queries]
+          - id: m07-indexing-mistakes
+            title: Common Indexing Mistakes and When Indexes Hurt
+            level: advanced
+            minutes: 40
+            prerequisites: [m07-covering-prefix-functional, m07-sargable-queries]
+            topics: [over-indexing, redundant and duplicate indexes, write amplification, low-selectivity indexes, wide primary keys, unused index detection]
+
+  # =========================================================================
+  - id: m08
+    number: 8
+    title: Transactions & Concurrency Control
+    level: advanced
+    description: Transactions in practice, isolation levels and read phenomena, locking (record, gap, next-key), MVCC, deadlocks and optimistic vs pessimistic concurrency — demonstrated with real concurrent MySQL sessions.
+    outcomes:
+      - Predict anomalies at each isolation level and choose levels deliberately.
+      - Explain InnoDB MVCC and locking behaviour.
+      - Diagnose and prevent deadlocks.
+    chapters:
+      - id: m08-c1
+        title: Transactions in MySQL
+        lessons:
+          - id: m08-transaction-lifecycle
+            title: Transaction Lifecycle — START TRANSACTION, COMMIT, ROLLBACK and Autocommit
+            level: advanced
+            minutes: 40
+            prerequisites: [m01-acid-transactions, m03-update-delete]
+            topics: [transaction states, autocommit mode, START TRANSACTION options, COMMIT and ROLLBACK, implicit commits, statement atomicity]
+          - id: m08-savepoints
+            title: Savepoints and Partial Rollback
+            level: advanced
+            minutes: 30
+            prerequisites: [m08-transaction-lifecycle]
+            topics: [SAVEPOINT, ROLLBACK TO SAVEPOINT, RELEASE SAVEPOINT, use in batch processing, error handling]
+          - id: m08-acid-in-innodb
+            title: ACID in Practice — How InnoDB Implements Each Property
+            level: advanced
+            minutes: 45
+            prerequisites: [m08-transaction-lifecycle]
+            topics: [atomicity via undo log, consistency via constraints, isolation via MVCC and locks, durability via redo log and fsync, innodb_flush_log_at_trx_commit]
+      - id: m08-c2
+        title: Isolation
+        lessons:
+          - id: m08-read-phenomena
+            title: Read Phenomena — Dirty Reads, Non-Repeatable Reads, Phantoms and Lost Updates
+            level: advanced
+            minutes: 45
+            prerequisites: [m08-transaction-lifecycle]
+            topics: [dirty read, non-repeatable read, phantom read, lost update, write skew, concurrent demonstrations]
+          - id: m08-isolation-levels
+            title: Transaction Isolation Levels
+            level: advanced
+            minutes: 50
+            prerequisites: [m08-read-phenomena]
+            topics: [READ UNCOMMITTED, READ COMMITTED, REPEATABLE READ, SERIALIZABLE, SQL standard vs InnoDB behaviour, setting isolation levels, choosing a level]
+          - id: m08-mvcc
+            title: Multi-Version Concurrency Control (MVCC)
+            level: advanced
+            minutes: 50
+            prerequisites: [m08-isolation-levels]
+            topics: [row versions, hidden columns DB_TRX_ID and DB_ROLL_PTR, read views, consistent vs locking reads, purge, long-running transaction impact]
+      - id: m08-c3
+        title: Locking
+        lessons:
+          - id: m08-locking
+            title: Locking — Shared, Exclusive, Row, Table, Gap and Next-Key Locks
+            level: advanced
+            minutes: 55
+            prerequisites: [m08-mvcc]
+            topics: [S and X locks, intention locks, record locks, gap locks, next-key locks, insert intention locks, metadata locks, FOR UPDATE/FOR SHARE, NOWAIT/SKIP LOCKED, performance_schema.data_locks]
+          - id: m08-deadlocks
+            title: Deadlocks — Detection, Resolution and Prevention
+            level: advanced
+            minutes: 45
+            prerequisites: [m08-locking]
+            topics: [wait-for graph, InnoDB deadlock detection, victim selection, SHOW ENGINE INNODB STATUS, retry logic, lock ordering, lock wait timeouts]
+          - id: m08-optimistic-pessimistic
+            title: Optimistic vs Pessimistic Concurrency Control
+            level: advanced
+            minutes: 40
+            prerequisites: [m08-locking]
+            topics: [pessimistic locking with FOR UPDATE, optimistic version columns, compare-and-set updates, atomic UPDATE patterns, job queues with SKIP LOCKED]
+          - id: m08-transaction-logs
+            title: Transaction Logs — Redo, Undo and Binary Log Overview
+            level: advanced
+            minutes: 40
+            prerequisites: [m08-acid-in-innodb]
+            topics: [write-ahead logging, redo log role, undo log role, binary log role, two-phase commit between binlog and redo, durability settings]
+
+  # =========================================================================
+  - id: m09
+    number: 9
+    title: Views, Stored Programs & Database Objects
+    level: intermediate
+    description: Views, variables, stored procedures and functions, control flow, error handling, cursors, triggers, events and dynamic SQL — and when logic belongs in the database vs the application.
+    outcomes:
+      - Build views and stored programs with proper error handling.
+      - Use triggers and events responsibly.
+      - Decide where business logic should live.
+    chapters:
+      - id: m09-c1
+        title: Views and Variables
+        lessons:
+          - id: m09-views
+            title: Views
+            level: intermediate
+            minutes: 45
+            prerequisites: [m04-multi-table-joins]
+            topics: [CREATE VIEW, MERGE vs TEMPTABLE algorithms, updatable views, WITH CHECK OPTION, security via views, DEFINER and SQL SECURITY, performance]
+          - id: m09-variables
+            title: User-Defined, Local, Session and System Variables
+            level: intermediate
+            minutes: 30
+            prerequisites: [m03-select-basics]
+            topics: [user variables, local variables, session vs global system variables, SET PERSIST, variable scope, deprecated assignment in expressions]
+      - id: m09-c2
+        title: Stored Programs
+        lessons:
+          - id: m09-stored-procedures
+            title: Stored Procedures and Control Flow
+            level: intermediate
+            minutes: 55
+            prerequisites: [m09-variables]
+            topics: [CREATE PROCEDURE, IN/OUT/INOUT parameters, BEGIN...END, IF, CASE, LOOP, WHILE, REPEAT, LEAVE/ITERATE, CALL]
+          - id: m09-stored-functions
+            title: Stored Functions
+            level: intermediate
+            minutes: 35
+            prerequisites: [m09-stored-procedures]
+            topics: [CREATE FUNCTION, DETERMINISTIC and data access characteristics, binary logging implications, functions in queries and their cost]
+          - id: m09-error-handling-cursors
+            title: Error Handling and Cursors
+            level: intermediate
+            minutes: 45
+            prerequisites: [m09-stored-procedures]
+            topics: [DECLARE HANDLER, CONTINUE vs EXIT, SIGNAL and RESIGNAL, GET DIAGNOSTICS, cursors, set-based alternatives]
+          - id: m09-triggers
+            title: Triggers
+            level: intermediate
+            minutes: 40
+            prerequisites: [m09-stored-procedures]
+            topics: [BEFORE/AFTER triggers, NEW and OLD, audit trails, validation, multiple triggers ordering, pitfalls and hidden logic]
+          - id: m09-events
+            title: Events and Scheduled Jobs
+            level: intermediate
+            minutes: 30
+            prerequisites: [m09-stored-procedures]
+            topics: [event scheduler, CREATE EVENT, one-time vs recurring, monitoring events, alternatives such as cron and orchestrators]
+          - id: m09-prepared-dynamic-sql
+            title: Prepared Statements and Dynamic SQL
+            level: intermediate
+            minutes: 35
+            prerequisites: [m09-stored-procedures]
+            topics: [PREPARE, EXECUTE, DEALLOCATE, placeholders, dynamic identifiers, injection risks, server-side vs client-side prepared statements]
+          - id: m09-db-vs-app-logic
+            title: Database Logic vs Application Logic
+            level: advanced
+            minutes: 35
+            prerequisites: [m09-triggers, m09-stored-functions]
+            topics: [testability, deployment and versioning, performance, data integrity guarantees, team ownership, decision framework]
+
+  # =========================================================================
+  - id: m10
+    number: 10
+    title: MySQL Architecture & Internals
+    level: advanced
+    description: The MySQL server from connection to result — parsing, optimization, execution — and InnoDB internals - pages, buffer pool, redo/undo logs, binary log, doublewrite buffer, change buffer, checkpoints and crash recovery.
+    outcomes:
+      - Trace the lifecycle of a query through the server.
+      - Explain InnoDB's on-disk and in-memory structures.
+      - Explain how MySQL achieves durability and recovers from crashes.
+    chapters:
+      - id: m10-c1
+        title: The Server Layer
+        lessons:
+          - id: m10-server-architecture
+            title: MySQL Server Architecture
+            level: advanced
+            minutes: 40
+            prerequisites: [m02-what-is-mysql, m07-explain]
+            topics: [connection layer, SQL layer, storage engine layer, thread model, data dictionary (8.0+), plugins and components]
+          - id: m10-connections-pooling
+            title: Client-Server Communication, Connections and Pooling
+            level: advanced
+            minutes: 40
+            prerequisites: [m10-server-architecture]
+            topics: [client/server protocol, connection lifecycle, thread per connection, max_connections, thread cache, connection pooling, ProxySQL and MySQL Router]
+          - id: m10-query-lifecycle
+            title: The Lifecycle of a Query — Parse, Resolve, Optimize, Execute
+            level: advanced
+            minutes: 50
+            prerequisites: [m10-server-architecture]
+            topics: [lexing and parsing, resolution and privilege checks, query transformations, cost-based optimization, iterator executor, result delivery, removed query cache]
+      - id: m10-c2
+        title: InnoDB Storage
+        lessons:
+          - id: m10-innodb-myisam
+            title: InnoDB vs MyISAM — Storage Engine Architecture
+            level: advanced
+            minutes: 35
+            prerequisites: [m10-server-architecture, m02-storage-engines]
+            topics: [InnoDB architecture diagram, MyISAM design, table-level locking, crash safety, why InnoDB is default]
+          - id: m10-pages-records
+            title: Tablespaces, Pages, Extents and Row Formats
+            level: advanced
+            minutes: 50
+            prerequisites: [m10-innodb-myisam, m07-clustered-secondary]
+            topics: [system and file-per-table tablespaces, 16KB pages, extents and segments, page structure, row formats DYNAMIC/COMPACT, off-page columns, index pages]
+          - id: m10-buffer-pool
+            title: The Buffer Pool
+            level: advanced
+            minutes: 45
+            prerequisites: [m10-pages-records]
+            topics: [buffer pool role, midpoint-insertion LRU, young and old sublists, dirty pages and flushing, sizing, buffer pool instances, warmup dumps]
+      - id: m10-c3
+        title: Logging, Durability and Recovery
+        lessons:
+          - id: m10-redo-undo
+            title: Redo Logs and Undo Logs
+            level: advanced
+            minutes: 50
+            prerequisites: [m10-buffer-pool, m08-mvcc]
+            topics: [write-ahead logging, redo log structure, LSN, innodb_redo_log_capacity, undo tablespaces, rollback segments, purge]
+          - id: m10-binary-log
+            title: The Binary Log
+            level: advanced
+            minutes: 40
+            prerequisites: [m10-redo-undo]
+            topics: [binlog purpose, ROW vs STATEMENT vs MIXED formats, GTIDs, binlog and redo two-phase commit, sync_binlog, binlog retention]
+          - id: m10-doublewrite-change-buffer
+            title: Doublewrite Buffer, Change Buffer and Adaptive Hash Index
+            level: advanced
+            minutes: 40
+            prerequisites: [m10-buffer-pool]
+            topics: [torn pages, doublewrite files, change buffering and its 8.4 default, adaptive hash index, when to disable]
+          - id: m10-crash-recovery
+            title: Checkpoints, Crash Recovery and Durability Mechanisms
+            level: advanced
+            minutes: 45
+            prerequisites: [m10-redo-undo, m10-doublewrite-change-buffer]
+            topics: [fuzzy checkpoints, redo replay, undo rollback of incomplete transactions, durability settings matrix, end-to-end write path]
+
+  # =========================================================================
+  - id: m11
+    number: 11
+    title: Database Security & Administration
+    level: professional
+    description: Accounts, authentication, privileges and roles, SQL injection defence, encrypted connections, backup and recovery, monitoring, replication, high availability and migrations.
+    outcomes:
+      - Apply least-privilege access with roles.
+      - Prevent SQL injection with parameterization.
+      - Design and test a backup and point-in-time recovery plan.
+    chapters:
+      - id: m11-c1
+        title: Access Control
+        lessons:
+          - id: m11-users-authentication
+            title: Database Users and Authentication
+            level: professional
+            minutes: 40
+            prerequisites: [m02-install-connect]
+            topics: [account names user@host, CREATE USER, ALTER USER, caching_sha2_password, password policies, account locking, mysql_native_password removal in 8.4]
+          - id: m11-privileges-roles
+            title: Authorization — GRANT, REVOKE, Privileges and Roles
+            level: professional
+            minutes: 45
+            prerequisites: [m11-users-authentication]
+            topics: [privilege levels, GRANT, REVOKE, roles, default roles, least privilege, application vs migration vs read-only accounts]
+          - id: m11-sql-injection
+            title: SQL Injection and Prepared Statements
+            level: professional
+            minutes: 45
+            prerequisites: [m09-prepared-dynamic-sql]
+            topics: [injection mechanics, classic and blind injection, parameterized queries, ORM pitfalls, dynamic identifiers, defence in depth]
+          - id: m11-secure-connections
+            title: Secure Connections and Data Protection
+            level: professional
+            minutes: 35
+            prerequisites: [m11-users-authentication]
+            topics: [TLS configuration, REQUIRE SSL/X509, certificate verification modes, encryption at rest, secrets management]
+      - id: m11-c2
+        title: Backup and Recovery
+        lessons:
+          - id: m11-backups
+            title: Logical and Physical Backups
+            level: professional
+            minutes: 45
+            prerequisites: [m11-privileges-roles]
+            topics: [logical vs physical, mysqldump options, consistent snapshots with --single-transaction, MySQL Shell dump utilities, physical backup tools, backup verification]
+          - id: m11-restore-pitr
+            title: Restoration and Point-in-Time Recovery
+            level: professional
+            minutes: 45
+            prerequisites: [m11-backups, m10-binary-log]
+            topics: [restore procedures, binlog replay with mysqlbinlog, RPO and RTO, recovery drills]
+      - id: m11-c3
+        title: Operations
+        lessons:
+          - id: m11-monitoring
+            title: Database Monitoring
+            level: professional
+            minutes: 40
+            prerequisites: [m07-slow-query-diagnostics]
+            topics: [key metrics, SHOW GLOBAL STATUS, performance_schema, error log, alerting, monitoring tools]
+          - id: m11-replication-ha
+            title: Replication and High Availability
+            level: professional
+            minutes: 50
+            prerequisites: [m10-binary-log]
+            topics: [source-replica replication, GTID replication, asynchronous vs semi-synchronous, Group Replication and InnoDB Cluster, failover, replication lag, 8.4 terminology]
+          - id: m11-migrations-versioning
+            title: Database Migrations and Version Management
+            level: professional
+            minutes: 40
+            prerequisites: [m02-tables-ddl]
+            topics: [migration tools (Flyway, Liquibase, Alembic), versioned vs repeatable migrations, rollback strategy, review and CI for schema changes]
+
+  # =========================================================================
+  - id: m12
+    number: 12
+    title: Real-World Database Engineering
+    level: professional
+    description: How professionals design, operate and scale MySQL-backed systems - architecture, OLTP vs OLAP, migrations, replicas, partitioning, sharding, caching, HA/DR, large tables, troubleshooting, observability and capacity planning.
+    outcomes:
+      - Design a database architecture for a production web application.
+      - Plan scaling strategies with explicit trade-offs.
+      - Troubleshoot production performance issues methodically.
+    chapters:
+      - id: m12-c1
+        title: Architecture
+        lessons:
+          - id: m12-web-app-architecture
+            title: Database Architecture for Web Applications
+            level: professional
+            minutes: 45
+            prerequisites: [m10-connections-pooling]
+            topics: [application tiers, ORMs vs SQL, connection pooling in backends, transactions in request handlers, N+1 queries, backend integration example]
+          - id: m12-oltp-olap
+            title: OLTP vs OLAP
+            level: professional
+            minutes: 35
+            prerequisites: [m06-denormalization]
+            topics: [workload characteristics, row vs column stores, separating analytics from transactions, HTAP, MySQL HeatWave mention]
+          - id: m12-schema-evolution
+            title: Schema Migrations and Schema Evolution in Production
+            level: professional
+            minutes: 45
+            prerequisites: [m11-migrations-versioning]
+            topics: [online DDL ALGORITHM=INSTANT/INPLACE/COPY, expand-contract pattern, backfills, gh-ost and pt-online-schema-change, metadata locks]
+      - id: m12-c2
+        title: Scaling
+        lessons:
+          - id: m12-read-replicas
+            title: Read Replicas and Read/Write Splitting
+            level: professional
+            minutes: 40
+            prerequisites: [m11-replication-ha]
+            topics: [replica reads, replication lag and read-your-writes, routing, consistency strategies]
+          - id: m12-partitioning
+            title: Partitioning
+            level: professional
+            minutes: 45
+            prerequisites: [m07-access-paths]
+            topics: [RANGE, LIST, HASH, KEY partitioning, partition pruning, partition maintenance, limitations, partitioning vs indexing]
+          - id: m12-sharding
+            title: Sharding
+            level: professional
+            minutes: 45
+            prerequisites: [m12-partitioning, m12-read-replicas]
+            topics: [shard keys, range vs hash vs directory sharding, cross-shard queries, resharding, Vitess, ID generation]
+          - id: m12-caching
+            title: Caching Strategies
+            level: professional
+            minutes: 40
+            prerequisites: [m12-web-app-architecture]
+            topics: [cache-aside, write-through, invalidation, stampedes, Redis, materialized summary tables]
+          - id: m12-large-tables
+            title: Handling Millions of Records
+            level: professional
+            minutes: 45
+            prerequisites: [m07-optimizing-aggregation-sorting]
+            topics: [batching writes and deletes, keyset pagination, archiving, bulk loading, chunked backfills]
+      - id: m12-c3
+        title: Reliability and Operations
+        lessons:
+          - id: m12-ha-dr
+            title: High Availability and Disaster Recovery
+            level: professional
+            minutes: 40
+            prerequisites: [m11-replication-ha, m11-restore-pitr]
+            topics: [availability targets, failover design, multi-region, DR plans, RPO/RTO trade-offs]
+          - id: m12-performance-troubleshooting
+            title: Performance Troubleshooting Methodology
+            level: professional
+            minutes: 50
+            prerequisites: [m07-slow-query-diagnostics, m08-locking]
+            topics: [USE method, workload analysis, lock contention, I/O saturation, case studies, evidence-based tuning]
+          - id: m12-distributed-integrity
+            title: Data Integrity in Distributed Applications
+            level: professional
+            minutes: 45
+            prerequisites: [m08-optimistic-pessimistic]
+            topics: [idempotency keys, transactional outbox, sagas, exactly-once myths, reconciliation jobs]
+          - id: m12-observability-capacity
+            title: Observability, Production Deployment and Capacity Planning
+            level: professional
+            minutes: 40
+            prerequisites: [m11-monitoring]
+            topics: [metrics/logs/traces, SLOs, deployment checklists, growth projections, sizing CPU/memory/storage/IOPS]
+
+  # =========================================================================
+  - id: m13
+    number: 13
+    title: Advanced MySQL & Industry-Oriented Topics
+    level: professional
+    description: JSON, generated columns, full-text and spatial search, anti-patterns, data warehousing, ETL/ELT, analytical optimization, event-driven systems, distributed databases and technology selection.
+    outcomes:
+      - Use MySQL's JSON, generated column, full-text and spatial features appropriately.
+      - Recognise and fix common database anti-patterns.
+      - Compare MySQL with PostgreSQL and other systems for a given workload.
+    chapters:
+      - id: m13-c1
+        title: Advanced MySQL Features
+        lessons:
+          - id: m13-json
+            title: Working with JSON in MySQL
+            level: professional
+            minutes: 45
+            prerequisites: [m02-json-binary-types, m04-ctes]
+            topics: [JSON path syntax, JSON_EXTRACT and ->/->>, JSON_TABLE, JSON modification functions, partial updates, indexing JSON, when not to use JSON]
+          - id: m13-generated-columns
+            title: Generated Columns
+            level: professional
+            minutes: 35
+            prerequisites: [m07-covering-prefix-functional]
+            topics: [VIRTUAL vs STORED, indexing generated columns, functional indexes comparison, constraints on expressions]
+          - id: m13-full-text-search
+            title: Full-Text Search
+            level: professional
+            minutes: 40
+            prerequisites: [m07-why-indexes]
+            topics: [FULLTEXT indexes, natural language mode, boolean mode, query expansion, stopwords and minimum token size, ngram parser, dedicated search engines]
+          - id: m13-spatial
+            title: Spatial Data Fundamentals
+            level: professional
+            minutes: 35
+            prerequisites: [m07-why-indexes]
+            topics: [geometry types, SRIDs, ST_ functions, SPATIAL indexes, distance queries]
+          - id: m13-anti-patterns
+            title: Common Database Anti-Patterns
+            level: professional
+            minutes: 45
+            prerequisites: [m06-denormalization, m07-indexing-mistakes]
+            topics: [EAV, polymorphic associations, comma-separated lists, God tables, FLOAT for money, SELECT * in production, ORM-generated N+1]
+      - id: m13-c2
+        title: Analytics and Data Engineering
+        lessons:
+          - id: m13-data-warehousing
+            title: Data Warehousing Fundamentals
+            level: professional
+            minutes: 45
+            prerequisites: [m12-oltp-olap]
+            topics: [star and snowflake schemas, facts and dimensions, slowly changing dimensions, grain, building a small star schema in MySQL]
+          - id: m13-etl-elt
+            title: ETL and ELT Pipelines
+            level: professional
+            minutes: 40
+            prerequisites: [m13-data-warehousing]
+            topics: [extract/transform/load, ELT with SQL, incremental loads, watermarks, CDC, data quality checks]
+          - id: m13-analytical-optimization
+            title: Analytical Query Optimization
+            level: professional
+            minutes: 40
+            prerequisites: [m13-data-warehousing, m07-optimizing-aggregation-sorting]
+            topics: [summary tables, pre-aggregation, partition pruning for analytics, window function cost, columnar alternatives]
+          - id: m13-event-driven
+            title: Event-Driven Database Considerations
+            level: professional
+            minutes: 35
+            prerequisites: [m10-binary-log, m12-distributed-integrity]
+            topics: [binlog-based CDC with Debezium, outbox, event ordering, schema evolution of events]
+      - id: m13-c3
+        title: The Wider Database Landscape
+        lessons:
+          - id: m13-distributed-databases
+            title: Distributed Database Fundamentals
+            level: professional
+            minutes: 40
+            prerequisites: [m01-cap-theorem, m12-sharding]
+            topics: [replication and partitioning together, consensus, distributed transactions and 2PC, NewSQL systems]
+          - id: m13-mysql-vs-postgresql
+            title: MySQL vs PostgreSQL (and Other Systems)
+            level: professional
+            minutes: 40
+            prerequisites: [m10-innodb-myisam]
+            topics: [architecture differences, MVCC implementations, SQL feature differences, extensions, operational differences, transferable vs MySQL-specific skills]
+          - id: m13-technology-selection
+            title: Database Technology Selection
+            level: professional
+            minutes: 35
+            prerequisites: [m13-mysql-vs-postgresql, m13-distributed-databases]
+            topics: [requirements-driven selection, workload fit, operational maturity, cost, team skills, decision records]
+
+projects:
+  - id: p1-student-management
+    title: Student Management System
+    level: beginner
+    prerequisites: [m03-group-by-having, m04-inner-join]
+    practices: [basic schema design, primary and foreign keys, CRUD operations, joins, aggregations, constraints]
+  - id: p2-library-management
+    title: Library Management System
+    level: intermediate
+    prerequisites: [m05-er-to-relational, m06-3nf, m08-transaction-lifecycle, m09-views]
+    practices: [ER modeling, many-to-many relationships, normalization, transactions, views]
+  - id: p3-ecommerce
+    title: E-commerce Database
+    level: intermediate
+    prerequisites: [m05-design-case-study, m07-composite-indexes, m08-transaction-lifecycle]
+    practices: [complex relationships, order management, inventory, transactions, indexing, query optimization]
+  - id: p4-banking
+    title: Banking and Transaction Management System
+    level: advanced
+    prerequisites: [m08-deadlocks, m08-isolation-levels, m11-privileges-roles]
+    practices: [ACID properties, concurrency, isolation levels, deadlocks, data integrity, security]
+  - id: p5-inventory-warehouse
+    title: Inventory and Warehouse Management System
+    level: advanced
+    prerequisites: [m07-optimizing-aggregation-sorting, m08-optimistic-pessimistic]
+    practices: [database design, stock management, transaction handling, reporting, indexing, performance tuning]
+  - id: p6-university
+    title: University Management Database
+    level: advanced
+    prerequisites: [m06-bcnf, m04-analytical-queries]
+    practices: [complex ER modeling, normalization, advanced SQL, analytical queries, reporting]
+  - id: p7-analytics-reporting
+    title: Analytics and Reporting Database
+    level: professional
+    prerequisites: [m13-data-warehousing, m04-analytical-queries]
+    practices: [OLTP vs OLAP, aggregations, window functions, query optimization, data warehousing, ETL concepts]
+
+exams:
+  - id: exam-foundations
+    title: Cumulative Exam I — Foundations (Modules 1–4)
+    modules: [m01, m02, m03, m04]
+    questions: 30
+  - id: exam-design-performance
+    title: Cumulative Exam II — Design, Performance and Concurrency (Modules 5–8)
+    modules: [m05, m06, m07, m08]
+    questions: 30
+  - id: exam-professional
+    title: Cumulative Exam III — Internals and Professional Practice (Modules 9–13)
+    modules: [m09, m10, m11, m12, m13]
+    questions: 30
