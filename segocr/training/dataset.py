@@ -134,7 +134,11 @@ class SegOCRDataset(Dataset):
         if "semantic" in self.return_targets:
             targets["semantic"] = torch.from_numpy(semantic.astype(np.int64))
         if "affinity" in self.return_targets:
-            affinity = build_affinity_mask(semantic, char_metadata)
+            if metadata.get("pseudo_label"):
+                # Self-training pseudo-labels have no word grouping → ignore (-1).
+                affinity = np.full(semantic.shape, -1, dtype=np.int64)
+            else:
+                affinity = build_affinity_mask(semantic, char_metadata)
             targets["affinity"] = torch.from_numpy(affinity.astype(np.int64))
         if "direction" in self.return_targets:
             direction = build_direction_field(instance, char_metadata)

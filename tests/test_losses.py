@@ -121,3 +121,32 @@ def test_class_weights_background_explicit_value() -> None:
     counts = torch.tensor([100.0, 50.0, 50.0, 50.0])
     weights = class_weights_from_distribution(counts, background_weight=0.05)
     assert weights[0] == pytest.approx(0.05, abs=1e-6)
+
+
+def test_ignored_pixels_contribute_no_loss_or_gradient(loss_config: dict) -> None:
+    from segocr.models.losses import IGNORE_INDEX
+
+    torch.manual_seed(0)
+    loss_fn = SegOCRLoss(loss_config, num_classes=5)
+    logits = torch.randn(1, 5, 8, 8, requires_grad=True)
+    preds = {
+        "semantic": logits,
+        "affinity": torch.randn(1, 1, 8, 8, requires_grad=True),
+        "direction": torch.randn(1, 2, 8, 8, requires_grad=True),
+    }
+    sem = torch.randint(0, 5, (1, 8, 8))
+    sem[:, :, 4:] = IGNORE_INDEX
+    aff = torch.full((1, 8, 8), -1, dtype=torch.long)  # pseudo-label: no affinity GT
+    targets = {"semantic": sem, "affinity": aff, "direction": torch.randn(1, 2, 8, 8)}
+
+    total, terms = loss_fn(preds, targets)
+    total.backward()
+    assert torch.isfinite(total)
+    assert terms["affinity"].item() == 0.0
+    assert logits.grad[:, :, :, 4:].abs().sum().item() == 0.0
+    assert preds["direction"].grad[:, :, :, 4:].abs().sum().item() == 0.0
+
+    # Focal on the half-ignored map == focal on just the valid half.
+    focal = FocalLoss(gamma=2.0)
+    expected = focal(logits[:, :, :, :4].detach(), sem[:, :, :4])
+    assert torch.allclose(focal(logits.detach(), sem), expected)

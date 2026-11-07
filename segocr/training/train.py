@@ -23,7 +23,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch.optim.swa_utils import AveragedModel
-from torch.utils.data import DataLoader
+from torch.utils.data import ConcatDataset, DataLoader, WeightedRandomSampler
 from tqdm import tqdm
 
 from segocr.models.losses import SegOCRLoss
@@ -40,7 +40,8 @@ def train(
     resume_from: str | Path | None = None,
     seed: int | None = None,
     reproducible: bool = False,
-) -> None:
+    init_from: str | Path | None = None,
+) -> Path | None:
     """Train SegOCR end-to-end.
 
     Reads the YAML config, builds the dataset / model / optimizer /
@@ -59,6 +60,17 @@ def train(
         reproducible: enable bit-exact GPU determinism (cudnn
             deterministic + benchmark off). ~10–20% slower; use only
             when you specifically need bitwise reproducibility.
+        init_from: optional checkpoint to initialize weights from (EMA
+            weights preferred), starting a fresh run at iteration 0. Used
+            for self-training fine-tuning rounds.
+
+    If ``training.pseudo_label_dir`` is set, that pseudo-labeled real
+    dataset is mixed into training so a ``training.pseudo_label_ratio``
+    fraction of samples comes from it.
+
+    Returns:
+        Path of the best weights: ``averaged_best.pth`` if averaging ran,
+        else the top checkpoint by val mIoU, else ``None`` (no eval ran).
     """
     config = load_config(config_path)
     train_cfg = config["training"]
@@ -95,12 +107,23 @@ def train(
             "fda_beta": float(style_cfg.get("fda_beta", 0.01)),
         }
     train_ds = SegOCRDataset(data_dir, split="train", train_aug=True, **fda_kwargs)
+    sampler: WeightedRandomSampler | None = None
+    pseudo_dir = train_cfg.get("pseudo_label_dir")
+    if pseudo_dir:
+        pseudo_ds = SegOCRDataset(pseudo_dir, split="train", train_aug=True, val_fraction=0.0)
+        ratio = float(train_cfg.get("pseudo_label_ratio", 0.3))
+        weights = [(1.0 - ratio) / len(train_ds)] * len(train_ds)
+        weights += [ratio / len(pseudo_ds)] * len(pseudo_ds)
+        train_ds = ConcatDataset([train_ds, pseudo_ds])
+        sampler = WeightedRandomSampler(weights, num_samples=len(train_ds), replacement=True)
+        logger.info("Mixing %d pseudo-labeled samples at ratio %.2f", len(pseudo_ds), ratio)
     val_ds = SegOCRDataset(data_dir, split="val", train_aug=False)
 
     train_loader = DataLoader(
         train_ds,
         batch_size=int(train_cfg["batch_size"]),
-        shuffle=True,
+        shuffle=sampler is None,
+        sampler=sampler,
         num_workers=int(train_cfg.get("num_workers", 0)),
         pin_memory=device.type == "cuda",
         collate_fn=collate_fn,
@@ -119,6 +142,10 @@ def train(
 
     # ── Model + EMA ─────────────────────────────────────────────────────────
     model = build_model(model_cfg).to(device)
+    if init_from is not None:
+        init_ckpt = torch.load(init_from, map_location=device)
+        model.load_state_dict(init_ckpt.get("ema", init_ckpt["model"]))
+        logger.info("Initialized weights from %s", init_from)
     ema_cfg = train_cfg.get("ema", {}) or {}
     ema_model: AveragedModel | None = None
     if ema_cfg.get("enabled", False):
@@ -240,14 +267,17 @@ def train(
     )
 
     # ── Top-N checkpoint averaging ──────────────────────────────────────────
+    best_path = best_checkpoints[0][1] if best_checkpoints else None
     avg_cfg = train_cfg.get("checkpoint_averaging", {}) or {}
     if avg_cfg.get("enabled", False) and len(best_checkpoints) >= 2:
         avg_path = output_dir / "averaged_best.pth"
         average_checkpoints([p for _, p in best_checkpoints], avg_path)
         logger.info("Averaged %d checkpoints to %s", len(best_checkpoints), avg_path)
+        best_path = avg_path
 
     if wandb_run is not None:
         wandb_run.finish()
+    return best_path
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────────

@@ -13,6 +13,10 @@ background class de-emphasized to ~0.2 and rare classes capped at 10×.
 The direction loss is masked to foreground pixels only — penalising
 direction predictions on background would be meaningless and would
 dominate the loss given background is ~95% of pixels.
+
+Pixels whose semantic target is ``IGNORE_INDEX`` (and affinity targets < 0)
+contribute nothing — used by self-training pseudo-labels for low-confidence
+regions. Synthetic data never contains them, so its loss is unchanged.
 """
 from __future__ import annotations
 
@@ -21,6 +25,7 @@ import torch.nn.functional as F  # noqa: N812 — F is the canonical torch.nn.fu
 from torch import nn
 
 EPS = 1e-6
+IGNORE_INDEX = 255
 
 
 class FocalLoss(nn.Module):
@@ -47,6 +52,8 @@ class FocalLoss(nn.Module):
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         # logits: (B, C, H, W); targets: (B, H, W) long
+        valid = targets != IGNORE_INDEX
+        targets = targets.masked_fill(~valid, 0)
         log_probs = F.log_softmax(logits, dim=1)
         # Per-pixel cross-entropy: gather the log-prob of the true class
         target_log_p = log_probs.gather(1, targets.unsqueeze(1)).squeeze(1)
@@ -57,9 +64,10 @@ class FocalLoss(nn.Module):
         if self.alpha is not None:
             alpha_per_pixel = self.alpha[targets]
             loss = loss * alpha_per_pixel
+        loss = loss * valid
 
         if self.reduction == "mean":
-            return loss.mean()
+            return loss.sum() / valid.sum().clamp(min=1)
         if self.reduction == "sum":
             return loss.sum()
         return loss
@@ -87,7 +95,7 @@ class DiceLoss(nn.Module):
         # logits: (B, C, H, W); targets: (B, H, W) long
         # Per-class loop avoids materializing a full (B, C, H, W) one-hot tensor;
         # at C=63 + 512² that one-hot is ~63× the peak per-class tensor.
-        probs = F.softmax(logits, dim=1)
+        probs = F.softmax(logits, dim=1) * (targets != IGNORE_INDEX).unsqueeze(1)
         num_classes = probs.shape[1]
         start = 1 if self.ignore_background else 0
 
@@ -126,7 +134,8 @@ class SegOCRLoss(nn.Module):
         )
         self.dice = DiceLoss(ignore_background=True)
         self.bce = nn.BCEWithLogitsLoss(
-            pos_weight=torch.tensor([float(loss_config.get("affinity_pos_weight", 5.0))])
+            pos_weight=torch.tensor([float(loss_config.get("affinity_pos_weight", 5.0))]),
+            reduction="none",
         )
         self.smooth_l1 = nn.SmoothL1Loss(reduction="none")
 
@@ -161,15 +170,16 @@ class SegOCRLoss(nn.Module):
 
         if "affinity" in predictions and "affinity" in targets:
             aff_logits = predictions["affinity"].squeeze(1)  # (B, H, W)
+            aff_valid = (targets["affinity"] >= 0).float()
             aff_target = (targets["affinity"] > 0).float()
-            aff = self.bce(aff_logits, aff_target)
+            aff = (self.bce(aff_logits, aff_target) * aff_valid).sum() / aff_valid.sum().clamp(min=1)
             loss_terms["affinity"] = aff
             total = total + self.affinity_weight * aff
 
         if "direction" in predictions and "direction" in targets:
             dir_pred = predictions["direction"]                # (B, 2, H, W)
             dir_target = targets["direction"]                  # (B, 2, H, W)
-            fg = (sem_target > 0).unsqueeze(1).float()         # (B, 1, H, W)
+            fg = ((sem_target > 0) & (sem_target != IGNORE_INDEX)).unsqueeze(1).float()
             per_pixel = self.smooth_l1(dir_pred, dir_target).mean(dim=1, keepdim=True)
             denom = fg.sum().clamp(min=1.0)
             dir_loss = (per_pixel * fg).sum() / denom

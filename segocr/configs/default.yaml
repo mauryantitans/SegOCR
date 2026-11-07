@@ -202,6 +202,7 @@ adaptation:
     synthetic_ratio: 0.7
     real_ratio: 0.3
     unlabeled_real_dir: "data/unlabeled_real"
+    finetune_iters: 20000      # per round; must be >= training.eval_interval
 
   dann:
     enabled: true
