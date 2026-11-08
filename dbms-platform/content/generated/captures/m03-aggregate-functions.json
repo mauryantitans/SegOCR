@@ -2,7 +2,7 @@
  "doc": "m03-aggregate-functions",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-07"
+  "capturedAt": "2026-11-08"
  },
  "blocks": {
   "s2:c01b950e722a": {
@@ -120,6 +120,7 @@
      "sql": "CREATE TABLE sensor_readings (\n  reading_id INT PRIMARY KEY,\n  sensor     VARCHAR(10) NOT NULL,\n  celsius    DECIMAL(5,2) NULL\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -415,7 +416,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select min(`lab_85feb281674c601cffb1`.`orders`.`order_date`) AS `MIN(order_date)`,max(`lab_85feb281674c601cffb1`.`orders`.`order_date`) AS `MAX(order_date)` from `lab_85feb281674c601cffb1`.`orders`"
+       "message": "/* select#1 */ select min(`orders`.`order_date`) AS `MIN(order_date)`,max(`orders`.`order_date`) AS `MAX(order_date)` from `orders`"
       }
      ]
     }

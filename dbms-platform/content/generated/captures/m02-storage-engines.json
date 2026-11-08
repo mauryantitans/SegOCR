@@ -1,0 +1,1329 @@
+{
+ "doc": "m02-storage-engines",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:74d91ead7a2f": {
+   "statements": [
+    {
+     "sql": "SHOW ENGINES",
+     "status": "ok",
+     "columns": [
+      "Engine",
+      "Support",
+      "Comment",
+      "Transactions",
+      "XA",
+      "Savepoints"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       "ARCHIVE",
+       "YES",
+       "Archive storage engine",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "BLACKHOLE",
+       "YES",
+       "/dev/null storage engine (anything you write to it disappears)",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "MRG_MYISAM",
+       "YES",
+       "Collection of identical MyISAM tables",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "FEDERATED",
+       "NO",
+       "Federated MySQL storage engine",
+       null,
+       null,
+       null
+      ],
+      [
+       "MyISAM",
+       "YES",
+       "MyISAM storage engine",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "PERFORMANCE_SCHEMA",
+       "YES",
+       "Performance Schema",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "InnoDB",
+       "DEFAULT",
+       "Supports transactions, row-level locking, and foreign keys",
+       "YES",
+       "YES",
+       "YES"
+      ],
+      [
+       "MEMORY",
+       "YES",
+       "Hash based, stored in memory, useful for temporary tables",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "CSV",
+       "YES",
+       "CSV storage engine",
+       "NO",
+       "NO",
+       "NO"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:511c8ec46476": {
+   "statements": [
+    {
+     "sql": "SELECT ENGINE, SUPPORT, TRANSACTIONS, SAVEPOINTS\nFROM information_schema.ENGINES\nORDER BY SUPPORT = 'DEFAULT' DESC, ENGINE",
+     "status": "ok",
+     "columns": [
+      "ENGINE",
+      "SUPPORT",
+      "TRANSACTIONS",
+      "SAVEPOINTS"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       "InnoDB",
+       "DEFAULT",
+       "YES",
+       "YES"
+      ],
+      [
+       "ARCHIVE",
+       "YES",
+       "NO",
+       "NO"
+      ],
+      [
+       "BLACKHOLE",
+       "YES",
+       "NO",
+       "NO"
+      ],
+      [
+       "CSV",
+       "YES",
+       "NO",
+       "NO"
+      ],
+      [
+       "FEDERATED",
+       "NO",
+       null,
+       null
+      ],
+      [
+       "MEMORY",
+       "YES",
+       "NO",
+       "NO"
+      ],
+      [
+       "MRG_MYISAM",
+       "YES",
+       "NO",
+       "NO"
+      ],
+      [
+       "MyISAM",
+       "YES",
+       "NO",
+       "NO"
+      ],
+      [
+       "PERFORMANCE_SCHEMA",
+       "YES",
+       "NO",
+       "NO"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:7c472d988474": {
+   "statements": [
+    {
+     "sql": "SELECT @@default_storage_engine AS default_engine",
+     "status": "ok",
+     "columns": [
+      "default_engine"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "InnoDB"
+      ]
+     ]
+    },
+    {
+     "sql": "CREATE TABLE engine_demo_innodb (id INT PRIMARY KEY, note VARCHAR(20)) ENGINE = InnoDB",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE engine_demo_myisam (id INT PRIMARY KEY, note VARCHAR(20)) ENGINE = MyISAM",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE engine_demo_memory (id INT PRIMARY KEY, note VARCHAR(20)) ENGINE = MEMORY",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME, ENGINE, ROW_FORMAT\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'engine_demo%'\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "ENGINE",
+      "ROW_FORMAT"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "engine_demo_innodb",
+       "InnoDB",
+       "Dynamic"
+      ],
+      [
+       "engine_demo_memory",
+       "MEMORY",
+       "Fixed"
+      ],
+      [
+       "engine_demo_myisam",
+       "MyISAM",
+       "Dynamic"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:743a63fb19a4": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE engine_demo_myisam ENGINE = InnoDB",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME, ENGINE FROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'engine_demo_myisam'",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "ENGINE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "engine_demo_myisam",
+       "InnoDB"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:935d1108d78e": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO engine_demo_innodb VALUES (1, 'innodb row')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO engine_demo_memory VALUES (1, 'memory row')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1196,
+       "message": "Some non-transactional changed tables couldn't be rolled back"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT 'InnoDB' AS engine, COUNT(*) AS rows_after_rollback FROM engine_demo_innodb\nUNION ALL\nSELECT 'MEMORY', COUNT(*) FROM engine_demo_memory",
+     "status": "ok",
+     "columns": [
+      "engine",
+      "rows_after_rollback"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "InnoDB",
+       0
+      ],
+      [
+       "MEMORY",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:243dcfe7fb91": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE session_cache (\n  session_id CHAR(32)    NOT NULL PRIMARY KEY,\n  user_id    INT         NOT NULL,\n  KEY idx_session_cache_user (user_id)\n) ENGINE = MEMORY",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO session_cache VALUES (MD5('s1'), 7), (MD5('s2'), 12), (MD5('s3'), 7)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SHOW INDEX FROM session_cache",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Non_unique",
+      "Key_name",
+      "Seq_in_index",
+      "Column_name",
+      "Collation",
+      "Cardinality",
+      "Sub_part",
+      "Packed",
+      "Null",
+      "Index_type",
+      "Comment",
+      "Index_comment",
+      "Visible",
+      "Expression"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "session_cache",
+       0,
+       "PRIMARY",
+       1,
+       "session_id",
+       null,
+       3,
+       null,
+       null,
+       "",
+       "HASH",
+       "",
+       "",
+       "YES",
+       null
+      ],
+      [
+       "session_cache",
+       1,
+       "idx_session_cache_user",
+       1,
+       "user_id",
+       null,
+       1,
+       null,
+       null,
+       "",
+       "HASH",
+       "",
+       "",
+       "YES",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:de96f3b41a6e": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT session_id FROM session_cache WHERE user_id = 7",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "session_cache",
+       null,
+       "ref",
+       "idx_session_cache_user",
+       "idx_session_cache_user",
+       "4",
+       "const",
+       2,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `session_cache`.`session_id` AS `session_id` from `session_cache` where (`session_cache`.`user_id` = 7)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:2ea8c011b4e1": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT session_id FROM session_cache WHERE user_id > 7",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "session_cache",
+       null,
+       "ALL",
+       "idx_session_cache_user",
+       null,
+       null,
+       null,
+       3,
+       33.33,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `session_cache`.`session_id` AS `session_id` from `session_cache` where (`session_cache`.`user_id` > 7)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:d13a2f2e4da8": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE memory_notes (id INT PRIMARY KEY, body TEXT) ENGINE = MEMORY",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1163,
+      "message": "The used table type doesn't support BLOB/TEXT columns"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s10:5bd9a32daf32": {
+   "statements": [
+    {
+     "sql": "SET SESSION max_heap_table_size = 16384",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- the minimum, 16 KB, for this session only\nCREATE TABLE tiny_cache (id INT PRIMARY KEY, payload CHAR(100) NOT NULL) ENGINE = MEMORY",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION max_heap_table_size = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s11:eaabb7b15808": {
+   "statements": [
+    {
+     "sql": "INSERT INTO tiny_cache\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 1000)\nSELECT n, 'x' FROM seq",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1114,
+      "message": "The table 'tiny_cache' is full"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:f86039bee5fc": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS rows_left_behind FROM tiny_cache",
+     "status": "ok",
+     "columns": [
+      "rows_left_behind"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       30
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:cb8d3cefe86c": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE export_orders_bad (order_id INT, status VARCHAR(12)) ENGINE = CSV",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1178,
+      "message": "The storage engine for the table doesn't support nullable columns"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:4177a83c8900": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE export_orders_bad2 (order_id INT NOT NULL, status VARCHAR(12) NOT NULL, KEY (order_id)) ENGINE = CSV",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1069,
+      "message": "Too many keys specified; max 0 keys allowed"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s15:089d444534ef": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE export_orders (order_id INT NOT NULL, status VARCHAR(12) NOT NULL, total DECIMAL(10,2) NOT NULL) ENGINE = CSV",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO export_orders\nSELECT o.order_id, o.status, SUM(oi.quantity * oi.unit_price)\nFROM orders AS o JOIN order_items AS oi ON oi.order_id = o.order_id\nWHERE o.order_id <= 5\nGROUP BY o.order_id, o.status",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM export_orders ORDER BY order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "total"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "cancelled",
+       "278.94"
+      ],
+      [
+       2,
+       "delivered",
+       "1891.97"
+      ],
+      [
+       3,
+       "delivered",
+       "149.00"
+      ],
+      [
+       4,
+       "paid",
+       "263.97"
+      ],
+      [
+       5,
+       "cancelled",
+       "594.02"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:84a3371ac295": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 100000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE access_log_innodb  (id INT NOT NULL, line VARCHAR(100) NOT NULL) ENGINE = InnoDB",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE access_log_archive (id INT NOT NULL, line VARCHAR(100) NOT NULL) ENGINE = ARCHIVE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO access_log_innodb\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 50000)\nSELECT n, CONCAT('GET /products/', n % 30, ' 200 OK user-agent=Mozilla/5.0') FROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Records: 50000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO access_log_archive SELECT id, line FROM access_log_innodb",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Records: 50000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE access_log_innodb",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "access_log_innodb",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION information_schema_stats_expiry = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME, ENGINE, ROW_FORMAT, DATA_LENGTH\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'access_log_%'\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "ENGINE",
+      "ROW_FORMAT",
+      "DATA_LENGTH"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "access_log_archive",
+       "ARCHIVE",
+       "Compressed",
+       158932
+      ],
+      [
+       "access_log_innodb",
+       "InnoDB",
+       "Dynamic",
+       4734976
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:b3a4bb1477ef": {
+   "statements": [
+    {
+     "sql": "UPDATE access_log_archive SET line = 'redacted' WHERE id = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1031,
+      "message": "Table storage engine for 'access_log_archive' doesn't have this option"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s18:4988e3d3e61d": {
+   "statements": [
+    {
+     "sql": "DELETE FROM access_log_archive WHERE id = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1031,
+      "message": "Table storage engine for 'access_log_archive' doesn't have this option"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s19:c9e14feec3d6": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE audit_sink (event_id INT, detail VARCHAR(50)) ENGINE = BLACKHOLE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO audit_sink VALUES (1, 'login'), (2, 'logout')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_stored FROM audit_sink",
+     "status": "ok",
+     "columns": [
+      "rows_stored"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:fc9b67b50914": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE legacy_order_notes (\n  note_id  INT PRIMARY KEY,\n  order_id INT UNSIGNED NOT NULL,\n  note     VARCHAR(100) NOT NULL,\n  FOREIGN KEY (order_id) REFERENCES orders (order_id)\n) ENGINE = MyISAM",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO legacy_order_notes VALUES (1, 99999, 'order does not exist')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SHOW CREATE TABLE legacy_order_notes",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Create Table"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "legacy_order_notes",
+       "CREATE TABLE `legacy_order_notes` (\n  `note_id` int NOT NULL,\n  `order_id` int unsigned NOT NULL,\n  `note` varchar(100) NOT NULL,\n  PRIMARY KEY (`note_id`),\n  KEY `order_id` (`order_id`)\n) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:1ce7d1604903": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM legacy_order_notes",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       "Select tables optimized away"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `legacy_order_notes`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:14c95eb2242d": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM orders",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "index",
+       null,
+       "idx_orders_customer",
+       "4",
+       null,
+       80,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `orders`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:e4924bb18b6e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE remote_orders (id INT) ENGINE = FEDERATED",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1286,
+      "message": "Unknown storage engine 'FEDERATED'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s24:88cd9788bca8": {
+   "statements": [
+    {
+     "sql": "SET SESSION sql_mode = ''",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE remote_orders (id INT) ENGINE = FEDERATED",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1286,
+       "message": "Unknown storage engine 'FEDERATED'"
+      },
+      {
+       "level": "Warning",
+       "code": 1266,
+       "message": "Using storage engine InnoDB for table 'remote_orders'"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'remote_orders'",
+     "status": "ok",
+     "columns": [
+      "ENGINE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "InnoDB"
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION sql_mode = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "c1:d4266e425711": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE page_hits_myisam SET hits = hits + 1 + SLEEP(5) WHERE page_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 2,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT hits FROM page_hits_myisam WHERE page_id = 2",
+       "status": "ok",
+       "columns": [
+        "hits"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         200
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 2,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 2,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "DO SLEEP(1)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "DO SLEEP(1)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT page_id, hits FROM page_hits_myisam ORDER BY page_id",
+       "status": "ok",
+       "columns": [
+        "page_id",
+        "hits"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         1,
+         101
+        ],
+        [
+         2,
+         200
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:18d60a884a12": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE page_hits_innodb SET hits = hits + 1 + SLEEP(5) WHERE page_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 5,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 1,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "257135",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "page_hits_innodb",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "page_hits_innodb",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       }
+      ]
+     }
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT hits FROM page_hits_innodb WHERE page_id = 2",
+       "status": "ok",
+       "columns": [
+        "hits"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         200
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE page_hits_innodb SET hits = hits + 1 WHERE page_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "DO SLEEP(1)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "DO SLEEP(1)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT page_id, hits FROM page_hits_innodb ORDER BY page_id",
+       "status": "ok",
+       "columns": [
+        "page_id",
+        "hits"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         1,
+         101
+        ],
+        [
+         2,
+         201
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s25:e9aae86d344b": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, ENGINE, ROW_FORMAT, TABLE_ROWS\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND ENGINE <> 'InnoDB'\nORDER BY ENGINE, TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "ENGINE",
+      "ROW_FORMAT",
+      "TABLE_ROWS"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "access_log_archive",
+       "ARCHIVE",
+       "Compressed",
+       50000
+      ],
+      [
+       "audit_sink",
+       "BLACKHOLE",
+       "Dynamic",
+       0
+      ],
+      [
+       "export_orders",
+       "CSV",
+       "Dynamic",
+       5
+      ],
+      [
+       "engine_demo_memory",
+       "MEMORY",
+       "Fixed",
+       1
+      ],
+      [
+       "session_cache",
+       "MEMORY",
+       "Fixed",
+       3
+      ],
+      [
+       "tiny_cache",
+       "MEMORY",
+       "Fixed",
+       30
+      ],
+      [
+       "legacy_order_notes",
+       "MyISAM",
+       "Dynamic",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s26:e5ddbd6cbc5a": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE products ENGINE = MEMORY, ADD COLUMN description TEXT",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3776,
+      "message": "Cannot change table's storage engine because the table participates in a foreign key constraint."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}
