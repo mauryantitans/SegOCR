@@ -101,12 +101,14 @@
      "sql": "SET SESSION cte_max_recursion_depth = 300000",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
      "sql": "CREATE TABLE seq_keys (\n  id      INT UNSIGNED NOT NULL,\n  payload CHAR(60)     NOT NULL,\n  PRIMARY KEY (id)\n) ENGINE=InnoDB",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -150,10 +152,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), min(seq_keys.payload)  (cost=1091 rows=1) (actual time=0.777..0.777 rows=1 loops=1)\n    -> Filter: (seq_keys.id between 50001 and 52000)  (cost=728 rows=3634) (actual time=0.0577..0.556 rows=2000 loops=1)\n        -> Index range scan on seq_keys using PRIMARY over (50001 <= id <= 52000)  (cost=728 rows=3634) (actual time=0.0559..0.438 rows=2000 loops=1)\n"
+       "-> Aggregate: count(0), min(seq_keys.payload)  (cost=1091 rows=1) (actual time=0.573..0.573 rows=1 loops=1)\n    -> Filter: (seq_keys.id between 50001 and 52000)  (cost=728 rows=3634) (actual time=0.0483..0.393 rows=2000 loops=1)\n        -> Index range scan on seq_keys using PRIMARY over (50001 <= id <= 52000)  (cost=728 rows=3634) (actual time=0.0467..0.278 rows=2000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 1.78
+     "elapsed_ms": 1.63
     }
    ],
    "measured": true
@@ -184,6 +186,7 @@
      "sql": "CREATE TABLE merge_demo (\n  id  INT UNSIGNED NOT NULL PRIMARY KEY,\n  v   INT NOT NULL,\n  INDEX idx_v (v) COMMENT 'MERGE_THRESHOLD=40'\n) COMMENT = 'MERGE_THRESHOLD=45'",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -217,6 +220,7 @@
      "sql": "CREATE TABLE rnd_keys LIKE seq_keys",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -259,7 +263,7 @@
      "rows": [
       [
        "rnd_keys",
-       194482,
+       194402,
        "1891.0000",
        "106"
       ],
@@ -538,7 +542,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Filter: (rnd_keys.id between 1000 and 1004)  (cost=2.01 rows=5) (actual time=0.00796..0.00927 rows=5 loops=1)\n    -> Index range scan on rnd_keys using PRIMARY over (1000 <= id <= 1004)  (cost=2.01 rows=5) (actual time=0.00692..0.00786 rows=5 loops=1)\n"
+       "-> Filter: (rnd_keys.id between 1000 and 1004)  (cost=2.01 rows=5) (actual time=0.012..0.0139 rows=5 loops=1)\n    -> Index range scan on rnd_keys using PRIMARY over (1000 <= id <= 1004)  (cost=2.01 rows=5) (actual time=0.0103..0.0119 rows=5 loops=1)\n"
       ]
      ]
     }
@@ -551,6 +555,7 @@
      "sql": "CREATE TABLE hash_request (k INT NOT NULL, INDEX idx_k (k) USING HASH) ENGINE=InnoDB",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": [],
      "warnings": [
       {

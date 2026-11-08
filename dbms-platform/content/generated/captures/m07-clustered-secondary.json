@@ -11,12 +11,14 @@
      "sql": "SET SESSION cte_max_recursion_depth = 300000",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
      "sql": "CREATE TABLE orders_big (\n  order_id    INT UNSIGNED  NOT NULL,\n  customer_id INT UNSIGNED  NOT NULL,\n  status      VARCHAR(10)   NOT NULL,\n  order_date  DATE          NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  country     CHAR(2)       NOT NULL,\n  PRIMARY KEY (order_id),\n  INDEX idx_customer (customer_id)\n) ENGINE=InnoDB",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -201,10 +203,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Index lookup on orders_big using idx_customer (customer_id=4242)  (cost=3.5 rows=10) (actual time=0.0382..0.0401 rows=10 loops=1)\n"
+       "-> Index lookup on orders_big using idx_customer (customer_id=4242)  (cost=3.5 rows=10) (actual time=0.0443..0.0472 rows=10 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 0.56
+     "elapsed_ms": 0.76
     },
     {
      "sql": "EXPLAIN ANALYZE SELECT customer_id, order_id FROM orders_big WHERE customer_id = 4242",
@@ -215,10 +217,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Covering index lookup on orders_big using idx_customer (customer_id=4242)  (cost=1.25 rows=10) (actual time=0.00467..0.00626 rows=10 loops=1)\n"
+       "-> Covering index lookup on orders_big using idx_customer (customer_id=4242)  (cost=1.25 rows=10) (actual time=0.00729..0.00938 rows=10 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 0.47
+     "elapsed_ms": 0.46
     }
    ],
    "measured": true
@@ -365,6 +367,7 @@
      "sql": "CREATE TABLE orders_by_customer (\n  customer_id INT UNSIGNED  NOT NULL,\n  order_id    INT UNSIGNED  NOT NULL,\n  status      VARCHAR(10)   NOT NULL,\n  order_date  DATE          NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  country     CHAR(2)       NOT NULL,\n  PRIMARY KEY (customer_id, order_id),\n  UNIQUE KEY uq_order_id (order_id)\n) ENGINE=InnoDB",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -445,12 +448,14 @@
      "sql": "CREATE TABLE pk_int (\n  id INT UNSIGNED NOT NULL PRIMARY KEY,\n  customer_id INT UNSIGNED NOT NULL, order_date DATE NOT NULL,\n  INDEX idx_c (customer_id), INDEX idx_d (order_date)\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
      "sql": "CREATE TABLE pk_uuid (\n  id CHAR(36) CHARACTER SET ascii NOT NULL PRIMARY KEY,\n  customer_id INT UNSIGNED NOT NULL, order_date DATE NOT NULL,\n  INDEX idx_c (customer_id), INDEX idx_d (order_date)\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -525,6 +530,7 @@
      "sql": "CREATE TABLE promoted (code INT NOT NULL, note VARCHAR(20), UNIQUE KEY uq_code (code))",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -602,6 +608,7 @@
      "sql": "CREATE TABLE keyless (code INT NULL, note VARCHAR(20))",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -632,6 +639,7 @@
       "Visible",
       "Expression"
      ],
+     "row_count": 0,
      "rows": []
     }
    ],
@@ -817,6 +825,7 @@
      "sql": "CREATE INDEX idx_customer_amount ON orders_big (customer_id, amount)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": []
     },

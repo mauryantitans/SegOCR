@@ -161,7 +161,7 @@ WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders_big'
 ORDER BY INDEX_NAME, SEQ_IN_INDEX;
 ```
 
-The estimates are close to the true distinct counts above but not identical — they are extrapolated from a sample of 20 leaf pages per index. In the capture `idx_status` reports a cardinality of **3** although there are 4 statuses (the rare `cancelled` entries can be missed by the sample), and `idx_order_date` reports a value in the 740s–750s for 731 distinct dates (it varied between captures). Now compare the optimizer's row estimates for two status values:
+The estimates are close to the true distinct counts above but not identical — they are extrapolated from a sample of 20 leaf pages per index. In the capture `idx_status` reports a cardinality of **3** although there are 4 statuses (the rare `cancelled` entries can be missed by the sample), and `idx_order_date` reports a value near, but not equal to, the 731 distinct dates (between roughly 715 and 755 across our captures). Now compare the optimizer's row estimates for two status values:
 
 ```sql run
 EXPLAIN SELECT * FROM orders_big WHERE status = 'cancelled';
@@ -309,7 +309,7 @@ SELECT INDEX_NAME, CARDINALITY FROM information_schema.STATISTICS
 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stale_demo' ORDER BY INDEX_NAME;
 ```
 
-After `ANALYZE TABLE` the capture shows a `TABLE_ROWS` value close to 100,000 and a cardinality close to 50 for `idx_grp` — sampled (successive captures gave slightly different values, e.g. 48 and 51), but now in the right order of magnitude.
+After `ANALYZE TABLE` the capture shows a `TABLE_ROWS` value close to 100,000 and a cardinality close to 50 for `idx_grp` — sampled (successive captures gave slightly different values, e.g. 45, 48 and 51), but now in the right order of magnitude.
 
 ## Execution Walkthrough
 

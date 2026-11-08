@@ -1046,10 +1046,10 @@
    ],
    "measured": null
   },
-  "s18:7dd791285433": {
+  "s18:33822f0f4693": {
    "statements": [
     {
-     "sql": "SELECT order_id, customer_id, status,\n       COUNT(*) OVER (PARTITION BY customer_id) AS customer_order_count\nFROM orders\nWHERE customer_id IN (1, 2)\nORDER BY customer_id, order_id",
+     "sql": "SELECT order_id, customer_id, status,\n       COUNT(*) OVER (PARTITION BY customer_id) AS customer_order_count\nFROM orders\nWHERE customer_id IN (1, 3)\nORDER BY customer_id, order_id",
      "status": "ok",
      "columns": [
       "order_id",
@@ -1057,7 +1057,7 @@
       "status",
       "customer_order_count"
      ],
-     "row_count": 2,
+     "row_count": 5,
      "rows": [
       [
        31,
@@ -1070,6 +1070,24 @@
        1,
        "delivered",
        2
+      ],
+      [
+       1,
+       3,
+       "cancelled",
+       3
+      ],
+      [
+       30,
+       3,
+       "delivered",
+       3
+      ],
+      [
+       35,
+       3,
+       "delivered",
+       3
       ]
      ]
     }

@@ -130,7 +130,11 @@ EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big IGNORE INDEX (idx_cust_date_a
 EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1 AND 3000;
 ```
 
-The uncovered plan reads all 200,000 rows of the clustered index (*Table scan*) and filters them; the covered plan reads only the ~30,000 entries in the range (*Covering index range scan*) from an index that is much narrower than the table. Rows examined is the robust evidence; the timings are measured on the build machine and on a small, fully cached table they are noisy — the gap grows when the table no longer fits in memory.
+The uncovered plan reads all 200,000 rows of the clustered index (*Table scan*) and filters them; the covered plan reads only the ~30,000 entries in the range (*Covering index range scan*) from an index that is much narrower than the table. Rows examined is the robust evidence; the timings are measured on the build machine (where the covered plan was several times faster), and the gap grows when the table no longer fits in memory.
+
+:::warning[A measurement surprise worth knowing]
+While this lesson was being written, one capture ran while an unrelated session on the same server had left a transaction open for several minutes. In that run the covering index scan was *slower* than the table scan. The most likely reason is MVCC: InnoDB secondary-index records carry no transaction ID, so when a secondary page was modified more recently than the oldest snapshot still in use (and a freshly built index's pages always are), InnoDB must visit the clustered record to check visibility — the covering advantage disappears. Once the long transaction ended, the covered plan was consistently faster. Long-running transactions hurt more than purge; they can silently disable index-only reads. Repeat measurements, and check `information_schema.INNODB_TRX` when numbers look wrong.
+:::
 
 ## Syntax Breakdown
 

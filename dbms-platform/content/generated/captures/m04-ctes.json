@@ -1,0 +1,913 @@
+{
+ "doc": "m04-ctes",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s4:fcdacfc637c2": {
+   "statements": [
+    {
+     "sql": "WITH order_totals AS (\n  SELECT order_id, SUM(quantity * unit_price) AS total\n  FROM order_items\n  GROUP BY order_id\n)\nSELECT COUNT(*) AS orders, ROUND(AVG(total), 2) AS avg_order_value, MAX(total) AS largest_order\nFROM order_totals",
+     "status": "ok",
+     "columns": [
+      "orders",
+      "avg_order_value",
+      "largest_order"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       80,
+       "858.72",
+       "6061.08"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:f1dbc4a46655": {
+   "statements": [
+    {
+     "sql": "WITH valid_orders AS (\n  SELECT order_id, customer_id\n  FROM orders\n  WHERE status NOT IN ('cancelled', 'refunded')\n),\ncustomer_revenue AS (\n  SELECT vo.customer_id, SUM(oi.quantity * oi.unit_price) AS revenue\n  FROM valid_orders vo\n  JOIN order_items oi ON oi.order_id = vo.order_id\n  GROUP BY vo.customer_id\n),\nbenchmark AS (\n  SELECT AVG(revenue) AS avg_revenue FROM customer_revenue\n)\nSELECT cr.customer_id, cr.revenue,\n       ROUND(cr.revenue - b.avg_revenue, 2) AS above_avg\nFROM customer_revenue cr\nCROSS JOIN benchmark b\nWHERE cr.revenue > b.avg_revenue\nORDER BY cr.revenue DESC",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "revenue",
+      "above_avg"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       19,
+       "8448.82",
+       "5280.17"
+      ],
+      [
+       11,
+       "7657.55",
+       "4488.90"
+      ],
+      [
+       10,
+       "6893.02",
+       "3724.37"
+      ],
+      [
+       3,
+       "5829.45",
+       "2660.80"
+      ],
+      [
+       18,
+       "5713.27",
+       "2544.62"
+      ],
+      [
+       16,
+       "4604.14",
+       "1435.49"
+      ],
+      [
+       9,
+       "4157.98",
+       "989.33"
+      ],
+      [
+       14,
+       "3874.58",
+       "705.93"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:b1908e87f84e": {
+   "statements": [
+    {
+     "sql": "WITH category_stats (category_id, products, avg_price) AS (\n  SELECT category_id, COUNT(*), ROUND(AVG(price), 2)\n  FROM products\n  WHERE category_id IS NOT NULL\n  GROUP BY category_id\n)\nSELECT c.name, s.products, s.avg_price\nFROM category_stats s\nJOIN categories c ON c.category_id = s.category_id\nORDER BY s.avg_price DESC\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "name",
+      "products",
+      "avg_price"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Laptops",
+       4,
+       "1086.50"
+      ],
+      [
+       "Computers",
+       1,
+       "379.00"
+      ],
+      [
+       "Coffee",
+       4,
+       "180.38"
+      ],
+      [
+       "Audio",
+       4,
+       "152.24"
+      ],
+      [
+       "Fitness",
+       4,
+       "114.50"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:3ff15f12aca9": {
+   "statements": [
+    {
+     "sql": "WITH monthly AS (\n  SELECT MONTH(o.order_date) AS m,\n         SUM(oi.quantity * oi.unit_price) AS revenue\n  FROM orders o\n  JOIN order_items oi ON oi.order_id = o.order_id\n  WHERE o.status NOT IN ('cancelled', 'refunded')\n  GROUP BY MONTH(o.order_date)\n)\nSELECT cur.m AS month, cur.revenue,\n       prev.revenue AS prev_revenue,\n       ROUND(100 * (cur.revenue - prev.revenue) / prev.revenue, 1) AS pct_change\nFROM monthly cur\nLEFT JOIN monthly prev ON prev.m = cur.m - 1\nORDER BY cur.m",
+     "status": "ok",
+     "columns": [
+      "month",
+      "revenue",
+      "prev_revenue",
+      "pct_change"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       1,
+       "1002.44",
+       null,
+       null
+      ],
+      [
+       2,
+       "6484.22",
+       "1002.44",
+       "546.8"
+      ],
+      [
+       3,
+       "1171.84",
+       "6484.22",
+       "-81.9"
+      ],
+      [
+       4,
+       "2023.59",
+       "1171.84",
+       "72.7"
+      ],
+      [
+       5,
+       "3278.94",
+       "2023.59",
+       "62.0"
+      ],
+      [
+       6,
+       "14669.33",
+       "3278.94",
+       "347.4"
+      ],
+      [
+       7,
+       "9996.14",
+       "14669.33",
+       "-31.9"
+      ],
+      [
+       8,
+       "4835.01",
+       "9996.14",
+       "-51.6"
+      ],
+      [
+       9,
+       "1073.95",
+       "4835.01",
+       "-77.8"
+      ],
+      [
+       10,
+       "3222.47",
+       "1073.95",
+       "200.1"
+      ],
+      [
+       11,
+       "11303.22",
+       "3222.47",
+       "250.8"
+      ],
+      [
+       12,
+       "4311.91",
+       "11303.22",
+       "-61.9"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:dee3fa5cc6a9": {
+   "statements": [
+    {
+     "sql": "WITH activity AS (\n  SELECT c.customer_id,\n         COUNT(o.order_id) AS orders,\n         MAX(o.order_date) AS last_order\n  FROM customers c\n  LEFT JOIN orders o ON o.customer_id = c.customer_id\n  GROUP BY c.customer_id\n),\nsegmented AS (\n  SELECT customer_id, orders,\n         CASE WHEN orders = 0 THEN 'never ordered'\n              WHEN orders >= 5 THEN 'loyal'\n              WHEN last_order >= '2024-10-01' THEN 'recent'\n              ELSE 'lapsing' END AS segment\n  FROM activity\n)\nSELECT segment, COUNT(*) AS customers, SUM(orders) AS orders\nFROM segmented\nGROUP BY segment\nORDER BY customers DESC, segment",
+     "status": "ok",
+     "columns": [
+      "segment",
+      "customers",
+      "orders"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "loyal",
+       8,
+       "48"
+      ],
+      [
+       "recent",
+       8,
+       "25"
+      ],
+      [
+       "never ordered",
+       5,
+       "0"
+      ],
+      [
+       "lapsing",
+       4,
+       "7"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:33f61d516b3f": {
+   "statements": [
+    {
+     "sql": "SELECT p.name, p.price\nFROM products p\nWHERE p.price > (\n  WITH cat_avg AS (SELECT AVG(price) AS a FROM products WHERE category_id = 9)\n  SELECT a FROM cat_avg\n)\nAND p.category_id = 9\nORDER BY p.price DESC",
+     "status": "ok",
+     "columns": [
+      "name",
+      "price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "High Performance MySQL",
+       "59.99"
+      ],
+      [
+       "Database Internals (Book)",
+       "54.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:5fda476b462c": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE product_flags AS\nSELECT product_id, category_id, price, FALSE AS is_premium FROM products",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 30,
+     "info": "Records: 30  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "WITH cat_avg AS (\n  SELECT category_id, AVG(price) AS avg_price\n  FROM product_flags\n  WHERE category_id IS NOT NULL\n  GROUP BY category_id\n)\nUPDATE product_flags pf\nJOIN cat_avg ca ON ca.category_id = pf.category_id\nSET pf.is_premium = TRUE\nWHERE pf.price > ca.avg_price",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 10,
+     "info": "Rows matched: 10  Changed: 10  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT is_premium, COUNT(*) AS products FROM product_flags GROUP BY is_premium ORDER BY is_premium",
+     "status": "ok",
+     "columns": [
+      "is_premium",
+      "products"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       0,
+       20
+      ],
+      [
+       1,
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:a4ae2e2dc1df": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE monthly_summary (month_no INT PRIMARY KEY, orders INT, customers INT)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO monthly_summary (month_no, orders, customers)\nWITH m AS (\n  SELECT MONTH(order_date) AS month_no, order_id, customer_id FROM orders\n)\nSELECT month_no, COUNT(*), COUNT(DISTINCT customer_id)\nFROM m\nGROUP BY month_no",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 12,
+     "info": "Records: 12  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM monthly_summary ORDER BY month_no LIMIT 6",
+     "status": "ok",
+     "columns": [
+      "month_no",
+      "orders",
+      "customers"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       3,
+       3
+      ],
+      [
+       2,
+       9,
+       9
+      ],
+      [
+       3,
+       6,
+       4
+      ],
+      [
+       4,
+       9,
+       6
+      ],
+      [
+       5,
+       4,
+       4
+      ],
+      [
+       6,
+       6,
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:3cbfd9b7f59c": {
+   "statements": [
+    {
+     "sql": "WITH activity AS (\n  SELECT c.customer_id, COUNT(o.order_id) AS orders, MAX(o.order_date) AS last_order\n  FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id\n  GROUP BY c.customer_id)\nSELECT * FROM activity ORDER BY customer_id LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "orders",
+      "last_order"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       1,
+       2,
+       "2024-09-21 11:15:00"
+      ],
+      [
+       2,
+       0,
+       null
+      ],
+      [
+       3,
+       3,
+       "2024-10-31 09:09:00"
+      ],
+      [
+       4,
+       4,
+       "2024-12-01 19:06:00"
+      ],
+      [
+       5,
+       2,
+       "2024-08-25 19:23:00"
+      ],
+      [
+       6,
+       3,
+       "2024-12-21 13:06:00"
+      ],
+      [
+       7,
+       4,
+       "2024-12-22 14:33:00"
+      ],
+      [
+       8,
+       3,
+       "2024-11-06 14:00:00"
+      ],
+      [
+       9,
+       1,
+       "2024-06-28 18:56:00"
+      ],
+      [
+       10,
+       5,
+       "2024-11-09 19:09:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:a7fb3f288fd9": {
+   "statements": [
+    {
+     "sql": "WITH activity AS (\n  SELECT c.customer_id, COUNT(o.order_id) AS orders, MAX(o.order_date) AS last_order\n  FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id\n  GROUP BY c.customer_id),\nsegmented AS (\n  SELECT customer_id, orders,\n         CASE WHEN orders = 0 THEN 'never ordered'\n              WHEN orders >= 5 THEN 'loyal'\n              WHEN last_order >= '2024-10-01' THEN 'recent'\n              ELSE 'lapsing' END AS segment\n  FROM activity)\nSELECT * FROM segmented ORDER BY customer_id LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "orders",
+      "segment"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       1,
+       2,
+       "lapsing"
+      ],
+      [
+       2,
+       0,
+       "never ordered"
+      ],
+      [
+       3,
+       3,
+       "recent"
+      ],
+      [
+       4,
+       4,
+       "recent"
+      ],
+      [
+       5,
+       2,
+       "lapsing"
+      ],
+      [
+       6,
+       3,
+       "recent"
+      ],
+      [
+       7,
+       4,
+       "recent"
+      ],
+      [
+       8,
+       3,
+       "recent"
+      ],
+      [
+       9,
+       1,
+       "lapsing"
+      ],
+      [
+       10,
+       5,
+       "loyal"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:475e33813a76": {
+   "statements": [
+    {
+     "sql": "WITH activity AS (\n  SELECT c.customer_id, COUNT(o.order_id) AS orders, MAX(o.order_date) AS last_order\n  FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id\n  GROUP BY c.customer_id),\nsegmented AS (\n  SELECT customer_id, orders,\n         CASE WHEN orders = 0 THEN 'never ordered'\n              WHEN orders >= 5 THEN 'loyal'\n              WHEN last_order >= '2024-10-01' THEN 'recent'\n              ELSE 'lapsing' END AS segment\n  FROM activity)\nSELECT segment, COUNT(*) AS customers, SUM(orders) AS orders\nFROM segmented GROUP BY segment ORDER BY customers DESC, segment",
+     "status": "ok",
+     "columns": [
+      "segment",
+      "customers",
+      "orders"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "loyal",
+       8,
+       "48"
+      ],
+      [
+       "recent",
+       8,
+       "25"
+      ],
+      [
+       "never ordered",
+       5,
+       "0"
+      ],
+      [
+       "lapsing",
+       4,
+       "7"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:8a15fed7e842": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nWITH activity AS (\n  SELECT c.customer_id, COUNT(o.order_id) AS orders, MAX(o.order_date) AS last_order\n  FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id\n  GROUP BY c.customer_id),\nsegmented AS (\n  SELECT customer_id, orders,\n         CASE WHEN orders = 0 THEN 'never ordered'\n              WHEN orders >= 5 THEN 'loyal'\n              WHEN last_order >= '2024-10-01' THEN 'recent'\n              ELSE 'lapsing' END AS segment\n  FROM activity)\nSELECT segment, COUNT(*) AS customers, SUM(orders) AS orders\nFROM segmented GROUP BY segment",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Table scan on activity  (cost=44.1..46.8 rows=25)\n            -> Materialize CTE activity  (cost=44..44 rows=25)\n                -> Group aggregate: count(o.order_id), max(o.order_date)  (cost=41.5 rows=25)\n                    -> Nested loop left join  (cost=31.5 rows=100)\n                        -> Index scan on c using PRIMARY  (cost=2.75 rows=25)\n                        -> Index lookup on o using idx_orders_customer (customer_id=c.customer_id)  (cost=0.766 rows=4)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:b2c801d77054": {
+   "statements": [
+    {
+     "sql": "WITH activity AS (\n  SELECT c.customer_id, COUNT(o.order_id) AS orders\n  FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id\n  GROUP BY c.customer_id\n)\nSELECT COUNT(*) AS customers, SUM(orders) AS orders, SUM(orders = 0) AS never_ordered\nFROM activity",
+     "status": "ok",
+     "columns": [
+      "customers",
+      "orders",
+      "never_ordered"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25,
+       "80",
+       "5"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:f254601bfec7": {
+   "statements": [
+    {
+     "sql": "SELECT ROUND(AVG(revenue), 2) AS avg_customer_revenue\nFROM (\n  SELECT o.customer_id, SUM(oi.quantity * oi.unit_price) AS revenue\n  FROM orders o JOIN order_items oi ON oi.order_id = o.order_id\n  WHERE o.status NOT IN ('cancelled', 'refunded')\n  GROUP BY o.customer_id\n) AS customer_revenue",
+     "status": "ok",
+     "columns": [
+      "avg_customer_revenue"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "3168.65"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:131ea0c3271c": {
+   "statements": [
+    {
+     "sql": "WITH customer_revenue AS (\n  SELECT o.customer_id, SUM(oi.quantity * oi.unit_price) AS revenue\n  FROM orders o JOIN order_items oi ON oi.order_id = o.order_id\n  WHERE o.status NOT IN ('cancelled', 'refunded')\n  GROUP BY o.customer_id\n)\nSELECT ROUND(AVG(revenue), 2) AS avg_customer_revenue FROM customer_revenue",
+     "status": "ok",
+     "columns": [
+      "avg_customer_revenue"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "3168.65"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:6d63e3e3c2ff": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW v_customer_revenue AS\nWITH customer_revenue AS (\n  SELECT o.customer_id, SUM(oi.quantity * oi.unit_price) AS revenue\n  FROM orders o JOIN order_items oi ON oi.order_id = o.order_id\n  WHERE o.status NOT IN ('cancelled', 'refunded')\n  GROUP BY o.customer_id\n)\nSELECT customer_id, revenue FROM customer_revenue",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT customer_id, revenue FROM v_customer_revenue ORDER BY revenue DESC LIMIT 3",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "revenue"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       19,
+       "8448.82"
+      ],
+      [
+       11,
+       "7657.55"
+      ],
+      [
+       10,
+       "6893.02"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:a030732f163c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nWITH delivered AS (\n  SELECT o.customer_id, o.order_id, o.order_date\n  FROM orders o\n  WHERE o.status = 'delivered'\n)\nSELECT c.first_name, d.order_id\nFROM customers c\nJOIN delivered d ON d.customer_id = c.customer_id\nWHERE c.state = 'WA'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=5.63 rows=1.67)\n    -> Filter: (c.state = 'WA')  (cost=2.75 rows=2.5)\n        -> Table scan on c  (cost=2.75 rows=25)\n    -> Filter: (o.`status` = 'delivered')  (cost=0.777 rows=0.667)\n        -> Index lookup on o using idx_orders_customer (customer_id=c.customer_id)  (cost=0.777 rows=4)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:50f5316ad73c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nWITH delivered AS (\n  SELECT o.customer_id, o.order_id, o.order_date\n  FROM orders o\n  WHERE o.status = 'delivered'\n)\nSELECT /*+ NO_MERGE(d) */ c.first_name, d.order_id\nFROM customers c\nJOIN delivered d ON d.customer_id = c.customer_id\nWHERE c.state = 'WA'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=7.33 rows=33.3)\n    -> Filter: (c.state = 'WA')  (cost=2.75 rows=2.5)\n        -> Table scan on c  (cost=2.75 rows=25)\n    -> Index lookup on d using <auto_key0> (customer_id=c.customer_id)  (cost=9.87..10.2 rows=2)\n        -> Materialize CTE delivered  (cost=9.58..9.58 rows=13.3)\n            -> Filter: (o.`status` = 'delivered')  (cost=8.25 rows=13.3)\n                -> Table scan on o  (cost=8.25 rows=80)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:66232421411d": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nWITH monthly AS (\n  SELECT MONTH(o.order_date) AS m, SUM(oi.quantity * oi.unit_price) AS revenue\n  FROM orders o JOIN order_items oi ON oi.order_id = o.order_id\n  GROUP BY MONTH(o.order_date)\n)\nSELECT cur.m, cur.revenue, prev.revenue\nFROM monthly cur LEFT JOIN monthly prev ON prev.m = cur.m - 1",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "PRIMARY",
+       "<derived2>",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       182,
+       100.0,
+       null
+      ],
+      [
+       1,
+       "PRIMARY",
+       "<derived2>",
+       null,
+       "ref",
+       "<auto_key0>",
+       "<auto_key0>",
+       "5",
+       "func",
+       10,
+       100.0,
+       "Using where"
+      ],
+      [
+       2,
+       "DERIVED",
+       "o",
+       null,
+       "index",
+       "PRIMARY,idx_orders_date",
+       "idx_orders_date",
+       "5",
+       null,
+       80,
+       100.0,
+       "Using index; Using temporary"
+      ],
+      [
+       2,
+       "DERIVED",
+       "oi",
+       null,
+       "ref",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "o.order_id",
+       2,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "with `monthly` as (/* select#2 */ select month(`lab_f93d5995c6085b43f52e`.`o`.`order_date`) AS `m`,sum((`lab_f93d5995c6085b43f52e`.`oi`.`quantity` * `lab_f93d5995c6085b43f52e`.`oi`.`unit_price`)) AS `revenue` from `lab_f93d5995c6085b43f52e`.`orders` `o` join `lab_f93d5995c6085b43f52e`.`order_items` `oi` where (`lab_f93d5995c6085b43f52e`.`oi`.`order_id` = `lab_f93d5995c6085b43f52e`.`o`.`order_id`) group by month(`lab_f93d5995c6085b43f52e`.`o`.`order_date`)) /* select#1 */ select `cur`.`m` AS `m`,`cur`.`revenue` AS `revenue`,`prev`.`revenue` AS `revenue` from `monthly` `cur` left join `monthly` `prev` on((`prev`.`m` = (`cur`.`m` - 1))) where true"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:e528f146c2c5": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nWITH per_customer AS (\n  SELECT customer_id, COUNT(*) AS orders\n  FROM orders\n  GROUP BY customer_id\n)\nSELECT * FROM per_customer\nWHERE customer_id BETWEEN 7 AND 9 AND orders > 2",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on per_customer  (cost=3.84..5.47 rows=2.83)\n    -> Materialize CTE per_customer  (cost=2.94..2.94 rows=2.83)\n        -> Filter: (count(0) > 2)  (cost=2.66 rows=2.83)\n            -> Group aggregate: count(0)  (cost=2.66 rows=2.83)\n                -> Filter: (orders.customer_id between 7 and 9)  (cost=1.86 rows=8)\n                    -> Covering index range scan on orders using idx_orders_customer over (7 <= customer_id <= 9)  (cost=1.86 rows=8)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:0bc970e800d2": {
+   "statements": [
+    {
+     "sql": "WITH top_customers AS (\n  SELECT customer_id FROM orders GROUP BY customer_id HAVING COUNT(*) >= 6\n)\nSELECT customer_id FROM top_customers ORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       14
+      ],
+      [
+       18
+      ],
+      [
+       19
+      ],
+      [
+       22
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:65542fff685e": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM top_customers",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1146,
+      "message": "Table 'top_customers' doesn't exist"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s22:2ca5555f1655": {
+   "statements": [
+    {
+     "sql": "WITH revenue_rank AS (SELECT customer_id FROM revenue WHERE total > 1000),\n     revenue AS (SELECT o.customer_id, SUM(oi.quantity * oi.unit_price) AS total\n                 FROM orders o JOIN order_items oi ON oi.order_id = o.order_id\n                 GROUP BY o.customer_id)\nSELECT * FROM revenue_rank",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1146,
+      "message": "Table 'revenue' doesn't exist"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s23:0248c5b7aeb7": {
+   "statements": [
+    {
+     "sql": "WITH stats (category_id, products, avg_price) AS (\n  SELECT category_id, COUNT(*) FROM products GROUP BY category_id\n)\nSELECT * FROM stats",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1353,
+      "message": "In definition of view, derived table or common table expression, SELECT list and column names list have different column counts"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s24:453b0d84eeb0": {
+   "statements": [
+    {
+     "sql": "WITH x AS (SELECT 1 AS n),\n     x AS (SELECT 2 AS n)\nSELECT * FROM x",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1066,
+      "message": "Not unique table/alias: 'x'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s25:3c9923b5c197": {
+   "statements": [
+    {
+     "sql": "WITH orders AS (SELECT 1 AS order_id)\nSELECT COUNT(*) AS orders_seen FROM orders",
+     "status": "ok",
+     "columns": [
+      "orders_seen"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

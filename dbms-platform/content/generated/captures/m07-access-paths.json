@@ -1,0 +1,1072 @@
+{
+ "doc": "m07-access-paths",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:33aa1caa445d": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 300000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE customers_big (\n  customer_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  email       VARCHAR(100) NOT NULL,\n  segment     VARCHAR(10)  NOT NULL,\n  UNIQUE KEY uq_customers_email (email)\n) ENGINE=InnoDB",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO customers_big\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 19997)\nSELECT n, CONCAT('user', n, '@example.com'), ELT(1 + n % 3, 'consumer', 'business', 'student') FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 19997,
+     "info": "Records: 19997  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE orders_big (\n  order_id    INT UNSIGNED  NOT NULL PRIMARY KEY,\n  customer_id INT UNSIGNED  NOT NULL,\n  status      VARCHAR(10)   NOT NULL,\n  order_date  DATE          NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  country     CHAR(2)       NOT NULL,\n  INDEX idx_cust_date (customer_id, order_date),\n  INDEX idx_status_date (status, order_date)\n) ENGINE=InnoDB",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders_big\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 200000)\nSELECT n,\n       1 + (n * 7919) % 19997,\n       ELT(1 + (n % 20 > 0) + (n % 20 > 2) + (n % 20 > 15), 'cancelled', 'pending', 'shipped', 'delivered'),\n       DATE '2023-01-01' + INTERVAL (n * 37) % 731 DAY,\n       ROUND(5 + (n * 104729 % 99500) / 100, 2),\n       ELT(1 + n % 7, 'US', 'IN', 'DE', 'BR', 'JP', 'FR', 'MX')\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE customers_big, orders_big",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "lab_29ac06d8f5acec10b675.customers_big",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_29ac06d8f5acec10b675.orders_big",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:bc40162194f0": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE order_id = 77",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "const",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "const",
+       1,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select '77' AS `order_id`,'9854' AS `customer_id`,'delivered' AS `status`,'2024-10-18' AS `order_date`,'51.33' AS `amount`,'US' AS `country` from `lab_29ac06d8f5acec10b675`.`orders_big` where true"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM customers_big WHERE email = 'user77@example.com'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "customers_big",
+       null,
+       "const",
+       "uq_customers_email",
+       "uq_customers_email",
+       "402",
+       "const",
+       1,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select '77' AS `customer_id`,'user77@example.com' AS `email`,'student' AS `segment` from `lab_29ac06d8f5acec10b675`.`customers_big` where true"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:88b32e51127e": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT o.order_id, c.segment\nFROM orders_big o JOIN customers_big c ON c.customer_id = o.customer_id\nWHERE o.customer_id = 77",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "const",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "const",
+       1,
+       100.0,
+       null
+      ],
+      [
+       1,
+       "SIMPLE",
+       "o",
+       null,
+       "ref",
+       "idx_cust_date",
+       "idx_cust_date",
+       "4",
+       "const",
+       10,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_29ac06d8f5acec10b675`.`o`.`order_id` AS `order_id`,'student' AS `segment` from `lab_29ac06d8f5acec10b675`.`orders_big` `o` join `lab_29ac06d8f5acec10b675`.`customers_big` `c` where (`lab_29ac06d8f5acec10b675`.`o`.`customer_id` = 77)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:913940189252": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT o.order_id, c.segment\nFROM orders_big o JOIN customers_big c ON c.customer_id = o.customer_id\nWHERE o.status = 'cancelled' AND o.order_date = '2024-03-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "o",
+       null,
+       "ref",
+       "idx_cust_date,idx_status_date",
+       "idx_status_date",
+       "45",
+       "const,const",
+       13,
+       100.0,
+       null
+      ],
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "eq_ref",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "o.customer_id",
+       1,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_29ac06d8f5acec10b675`.`o`.`order_id` AS `order_id`,`lab_29ac06d8f5acec10b675`.`c`.`segment` AS `segment` from `lab_29ac06d8f5acec10b675`.`orders_big` `o` join `lab_29ac06d8f5acec10b675`.`customers_big` `c` where ((`lab_29ac06d8f5acec10b675`.`c`.`customer_id` = `lab_29ac06d8f5acec10b675`.`o`.`customer_id`) and (`lab_29ac06d8f5acec10b675`.`o`.`order_date` = DATE'2024-03-01') and (`lab_29ac06d8f5acec10b675`.`o`.`status` = 'cancelled'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:aa71f9030156": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE customer_id BETWEEN 100 AND 199",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "range",
+       "idx_cust_date",
+       "idx_cust_date",
+       "4",
+       null,
+       1000,
+       100.0,
+       "Using index condition"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_29ac06d8f5acec10b675`.`orders_big`.`order_id` AS `order_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`customer_id` AS `customer_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`status` AS `status`,`lab_29ac06d8f5acec10b675`.`orders_big`.`order_date` AS `order_date`,`lab_29ac06d8f5acec10b675`.`orders_big`.`amount` AS `amount`,`lab_29ac06d8f5acec10b675`.`orders_big`.`country` AS `country` from `lab_29ac06d8f5acec10b675`.`orders_big` where (`lab_29ac06d8f5acec10b675`.`orders_big`.`customer_id` between 100 and 199)"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM orders_big",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "index",
+       null,
+       "idx_cust_date",
+       "7",
+       null,
+       199555,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_29ac06d8f5acec10b675`.`orders_big`"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE amount > 900",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       199555,
+       33.33,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_29ac06d8f5acec10b675`.`orders_big`.`order_id` AS `order_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`customer_id` AS `customer_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`status` AS `status`,`lab_29ac06d8f5acec10b675`.`orders_big`.`order_date` AS `order_date`,`lab_29ac06d8f5acec10b675`.`orders_big`.`amount` AS `amount`,`lab_29ac06d8f5acec10b675`.`orders_big`.`country` AS `country` from `lab_29ac06d8f5acec10b675`.`orders_big` where (`lab_29ac06d8f5acec10b675`.`orders_big`.`amount` > 900.00)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:7a64de348032": {
+   "statements": [
+    {
+     "sql": "SELECT @@optimizer_switch LIKE '%index_condition_pushdown=on%' AS icp_on,\n       @@optimizer_switch LIKE '%mrr=on%'                      AS mrr_on,\n       @@optimizer_switch LIKE '%mrr_cost_based=on%'           AS mrr_cost_based,\n       @@optimizer_switch LIKE '%skip_scan=on%'                AS skip_scan_on",
+     "status": "ok",
+     "columns": [
+      "icp_on",
+      "mrr_on",
+      "mrr_cost_based",
+      "skip_scan_on"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1,
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:a431319b9074": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999 AND MONTH(order_date) = 12",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "range",
+       "idx_cust_date",
+       "idx_cust_date",
+       "4",
+       null,
+       18350,
+       100.0,
+       "Using index condition"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_29ac06d8f5acec10b675`.`orders_big`.`order_id` AS `order_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`customer_id` AS `customer_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`status` AS `status`,`lab_29ac06d8f5acec10b675`.`orders_big`.`order_date` AS `order_date`,`lab_29ac06d8f5acec10b675`.`orders_big`.`amount` AS `amount`,`lab_29ac06d8f5acec10b675`.`orders_big`.`country` AS `country` from `lab_29ac06d8f5acec10b675`.`orders_big` where ((`lab_29ac06d8f5acec10b675`.`orders_big`.`customer_id` between 1000 and 1999) and (month(`lab_29ac06d8f5acec10b675`.`orders_big`.`order_date`) = 12))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:eab1d4990985": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT * FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999 AND MONTH(order_date) = 12",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Index range scan on orders_big using idx_cust_date over (1000 <= customer_id <= 1999), with index condition: ((orders_big.customer_id between 1000 and 1999) and (month(orders_big.order_date) = 12))  (cost=8258 rows=18350) (actual time=2.89..2.95 rows=848 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 3.76
+    }
+   ],
+   "measured": true
+  },
+  "s9:05e6ff745875": {
+   "statements": [
+    {
+     "sql": "SET SESSION optimizer_switch = 'index_condition_pushdown=off'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s10:eab1d4990985": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT * FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999 AND MONTH(order_date) = 12",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: ((orders_big.customer_id between 1000 and 1999) and (month(orders_big.order_date) = 12))  (cost=8258 rows=18350) (actual time=3.6..18 rows=848 loops=1)\n    -> Index range scan on orders_big using idx_cust_date over (1000 <= customer_id <= 1999)  (cost=8258 rows=18350) (actual time=3.59..17.4 rows=10001 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 19.09
+    }
+   ],
+   "measured": true
+  },
+  "s11:0b22a1fe4ee3": {
+   "statements": [
+    {
+     "sql": "SET SESSION optimizer_switch = 'default'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s12:234cebba8455": {
+   "statements": [
+    {
+     "sql": "SET SESSION optimizer_switch = 'mrr=on,mrr_cost_based=off'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE customer_id BETWEEN 1000 AND 1199",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "range",
+       "idx_cust_date",
+       "idx_cust_date",
+       "4",
+       null,
+       2000,
+       100.0,
+       "Using index condition; Using MRR"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_29ac06d8f5acec10b675`.`orders_big`.`order_id` AS `order_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`customer_id` AS `customer_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`status` AS `status`,`lab_29ac06d8f5acec10b675`.`orders_big`.`order_date` AS `order_date`,`lab_29ac06d8f5acec10b675`.`orders_big`.`amount` AS `amount`,`lab_29ac06d8f5acec10b675`.`orders_big`.`country` AS `country` from `lab_29ac06d8f5acec10b675`.`orders_big` where (`lab_29ac06d8f5acec10b675`.`orders_big`.`customer_id` between 1000 and 1199)"
+      }
+     ]
+    },
+    {
+     "sql": "SET SESSION optimizer_switch = 'default'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE customer_id BETWEEN 1000 AND 1199",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "range",
+       "idx_cust_date",
+       "idx_cust_date",
+       "4",
+       null,
+       2000,
+       100.0,
+       "Using index condition"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_29ac06d8f5acec10b675`.`orders_big`.`order_id` AS `order_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`customer_id` AS `customer_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`status` AS `status`,`lab_29ac06d8f5acec10b675`.`orders_big`.`order_date` AS `order_date`,`lab_29ac06d8f5acec10b675`.`orders_big`.`amount` AS `amount`,`lab_29ac06d8f5acec10b675`.`orders_big`.`country` AS `country` from `lab_29ac06d8f5acec10b675`.`orders_big` where (`lab_29ac06d8f5acec10b675`.`orders_big`.`customer_id` between 1000 and 1199)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:0752f3e4108b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT status, order_date FROM orders_big WHERE order_date = '2024-03-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "range",
+       "idx_status_date",
+       "idx_status_date",
+       "45",
+       null,
+       19955,
+       100.0,
+       "Using where; Using index for skip scan"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_29ac06d8f5acec10b675`.`orders_big`.`status` AS `status`,`lab_29ac06d8f5acec10b675`.`orders_big`.`order_date` AS `order_date` from `lab_29ac06d8f5acec10b675`.`orders_big` where (`lab_29ac06d8f5acec10b675`.`orders_big`.`order_date` = DATE'2024-03-01')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:282f51a7283c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT status, order_date FROM orders_big WHERE order_date = '2024-03-01'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (orders_big.order_date = DATE'2024-03-01')  (cost=5026 rows=19955) (actual time=0.0349..0.192 rows=274 loops=1)\n    -> Covering index skip scan on orders_big using idx_status_date over order_date = '2024-03-01'  (cost=5026 rows=19955) (actual time=0.0333..0.172 rows=274 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 0.83
+    }
+   ],
+   "measured": true
+  },
+  "s15:96ab7a8fb97f": {
+   "statements": [
+    {
+     "sql": "SET SESSION optimizer_switch = 'skip_scan=off'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s16:282f51a7283c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT status, order_date FROM orders_big WHERE order_date = '2024-03-01'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (orders_big.order_date = DATE'2024-03-01')  (cost=20108 rows=19956) (actual time=1.4..49.7 rows=274 loops=1)\n    -> Covering index scan on orders_big using idx_status_date  (cost=20108 rows=199555) (actual time=0.354..34.4 rows=200000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 53.41
+    }
+   ],
+   "measured": true
+  },
+  "s17:0b22a1fe4ee3": {
+   "statements": [
+    {
+     "sql": "SET SESSION optimizer_switch = 'default'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s18:c9220d0cfc9c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE order_date = '2024-03-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       199555,
+       10.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_29ac06d8f5acec10b675`.`orders_big`.`order_id` AS `order_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`customer_id` AS `customer_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`status` AS `status`,`lab_29ac06d8f5acec10b675`.`orders_big`.`order_date` AS `order_date`,`lab_29ac06d8f5acec10b675`.`orders_big`.`amount` AS `amount`,`lab_29ac06d8f5acec10b675`.`orders_big`.`country` AS `country` from `lab_29ac06d8f5acec10b675`.`orders_big` where (`lab_29ac06d8f5acec10b675`.`orders_big`.`order_date` = DATE'2024-03-01')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:0943087949bd": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT order_id, customer_id, order_date FROM orders_big ORDER BY customer_id, order_date LIMIT 20",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "index",
+       null,
+       "idx_cust_date",
+       "7",
+       null,
+       20,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_29ac06d8f5acec10b675`.`orders_big`.`order_id` AS `order_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`customer_id` AS `customer_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`order_date` AS `order_date` from `lab_29ac06d8f5acec10b675`.`orders_big` order by `lab_29ac06d8f5acec10b675`.`orders_big`.`customer_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`order_date` limit 20"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big ORDER BY customer_id, order_date LIMIT 20",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "index",
+       null,
+       "idx_cust_date",
+       "7",
+       null,
+       20,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_29ac06d8f5acec10b675`.`orders_big`.`order_id` AS `order_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`customer_id` AS `customer_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`status` AS `status`,`lab_29ac06d8f5acec10b675`.`orders_big`.`order_date` AS `order_date`,`lab_29ac06d8f5acec10b675`.`orders_big`.`amount` AS `amount`,`lab_29ac06d8f5acec10b675`.`orders_big`.`country` AS `country` from `lab_29ac06d8f5acec10b675`.`orders_big` order by `lab_29ac06d8f5acec10b675`.`orders_big`.`customer_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`order_date` limit 20"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:329a40ff6f4a": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT * FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999 AND MONTH(order_date) = 12",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Index range scan on orders_big using idx_cust_date over (1000 <= customer_id <= 1999), with index condition: ((orders_big.customer_id between 1000 and 1999) and (month(orders_big.order_date) = 12))  (cost=8258 rows=18350)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:10c7bef051c3": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS index_entries_in_range FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999",
+     "status": "ok",
+     "columns": [
+      "index_entries_in_range"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10001
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:2a7092cf3a41": {
+   "statements": [
+    {
+     "sql": "SELECT MONTH(order_date) = 12 AS passes, COUNT(*) AS entries\nFROM orders_big WHERE customer_id BETWEEN 1000 AND 1999\nGROUP BY passes ORDER BY passes",
+     "status": "ok",
+     "columns": [
+      "passes",
+      "entries"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       0,
+       9153
+      ],
+      [
+       1,
+       848
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:f0eb82df7c58": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, customer_id, order_date, amount\nFROM orders_big\nWHERE customer_id BETWEEN 1000 AND 1999 AND MONTH(order_date) = 12\nORDER BY customer_id, order_date\nLIMIT 8",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "order_date",
+      "amount"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       140618,
+       1001,
+       "2023-12-06",
+       "865.22"
+      ],
+      [
+       80627,
+       1001,
+       "2024-12-20",
+       "175.83"
+      ],
+      [
+       4899,
+       1002,
+       "2024-12-07",
+       "458.71"
+      ],
+      [
+       173395,
+       1004,
+       "2023-12-26",
+       "389.55"
+      ],
+      [
+       97667,
+       1005,
+       "2023-12-13",
+       "672.43"
+      ],
+      [
+       37676,
+       1005,
+       "2024-12-27",
+       "978.04"
+      ],
+      [
+       190435,
+       1008,
+       "2024-12-18",
+       "886.15"
+      ],
+      [
+       54716,
+       1009,
+       "2023-12-20",
+       "479.64"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:807334196bc0": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT order_id, amount FROM orders_big WHERE order_date = '2024-03-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       199555,
+       10.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_29ac06d8f5acec10b675`.`orders_big`.`order_id` AS `order_id`,`lab_29ac06d8f5acec10b675`.`orders_big`.`amount` AS `amount` from `lab_29ac06d8f5acec10b675`.`orders_big` where (`lab_29ac06d8f5acec10b675`.`orders_big`.`order_date` = DATE'2024-03-01')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

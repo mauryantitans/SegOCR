@@ -1,0 +1,811 @@
+{
+ "doc": "m03-string-functions",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:91024ef1c37b": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id,\n       phone,\n       CONCAT(first_name, ' ', last_name, ' (', phone, ')')       AS concat_label,\n       CONCAT_WS(' · ', CONCAT(first_name, ' ', last_name), phone) AS concat_ws_label\nFROM customers\nWHERE customer_id IN (4, 5, 10)\nORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "phone",
+      "concat_label",
+      "concat_ws_label"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       4,
+       "+1-206-555-3615",
+       "Diego Lopez (+1-206-555-3615)",
+       "Diego Lopez · +1-206-555-3615"
+      ],
+      [
+       5,
+       null,
+       null,
+       "Grace Smith"
+      ],
+      [
+       10,
+       null,
+       null,
+       "Lucas Lin"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:076125162279": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE intl_names (\n  id   INT PRIMARY KEY,\n  name VARCHAR(20) NOT NULL\n) DEFAULT CHARSET = utf8mb4",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO intl_names VALUES\n  (1, 'Smith'), (2, 'Müller'), (3, 'José'), (4, '東京'), (5, 'Café ☕'), (6, 'Zoë 🎉')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 6,
+     "info": "Records: 6  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT id, name,\n       CHAR_LENGTH(name) AS characters,\n       LENGTH(name)      AS bytes,\n       HEX(name)         AS encoded\nFROM intl_names\nORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "name",
+      "characters",
+      "bytes",
+      "encoded"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "Smith",
+       5,
+       5,
+       "536D697468"
+      ],
+      [
+       2,
+       "Müller",
+       6,
+       7,
+       "4DC3BC6C6C6572"
+      ],
+      [
+       3,
+       "José",
+       4,
+       5,
+       "4A6F73C3A9"
+      ],
+      [
+       4,
+       "東京",
+       2,
+       6,
+       "E69DB1E4BAAC"
+      ],
+      [
+       5,
+       "Café ☕",
+       6,
+       9,
+       "436166C3A920E29895"
+      ],
+      [
+       6,
+       "Zoë 🎉",
+       5,
+       9,
+       "5A6FC3AB20F09F8E89"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:48cb511b43b3": {
+   "statements": [
+    {
+     "sql": "SELECT email,\n       SUBSTRING_INDEX(email, '@', 1)   AS local_part,\n       SUBSTRING_INDEX(email, '@', -1)  AS domain,\n       LEFT(phone, 2)                   AS country_prefix,\n       SUBSTRING(phone, 4, 3)           AS area_code,\n       RIGHT(phone, 4)                  AS last_four\nFROM customers\nWHERE customer_id IN (1, 2, 5)\nORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "email",
+      "local_part",
+      "domain",
+      "country_prefix",
+      "area_code",
+      "last_four"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "amara.sharma1@example.com",
+       "amara.sharma1",
+       "example.com",
+       "+1",
+       "450",
+       "4657"
+      ],
+      [
+       "kwame.garcia2@example.com",
+       "kwame.garcia2",
+       "example.com",
+       "+1",
+       "232",
+       "1488"
+      ],
+      [
+       "grace.smith5@example.com",
+       "grace.smith5",
+       "example.com",
+       null,
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:9e750747116b": {
+   "statements": [
+    {
+     "sql": "SELECT TRIM('   padded   ')                    AS trimmed,\n       CHAR_LENGTH(TRIM('   padded   '))       AS trimmed_len,\n       TRIM(LEADING '0' FROM '000120')         AS no_leading_zeros,\n       TRIM(BOTH '-' FROM '--SKU-1001--')      AS no_dashes,\n       REPLACE('+1-450-555-4657', '-', '')     AS digits_only,\n       LPAD('42', 6, '0')                      AS zero_padded,\n       LPAD('1234567', 6, '0')                 AS lpad_truncates,\n       RPAD('ab', 5, '.')                      AS right_padded",
+     "status": "ok",
+     "columns": [
+      "trimmed",
+      "trimmed_len",
+      "no_leading_zeros",
+      "no_dashes",
+      "digits_only",
+      "zero_padded",
+      "lpad_truncates",
+      "right_padded"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "padded",
+       6,
+       "120",
+       "SKU-1001",
+       "+14505554657",
+       "000042",
+       "123456",
+       "ab..."
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:25569a569f4a": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id,\n       CONCAT_WS(', ', city, state)                         AS location,\n       CONCAT_WS(' · ', CONCAT_WS(', ', city, state),\n                 UPPER(loyalty_tier))                       AS location_and_tier\nFROM customers\nWHERE customer_id IN (1, 3, 9, 10)\nORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "location",
+      "location_and_tier"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "Austin, TX",
+       "Austin, TX · BRONZE"
+      ],
+      [
+       3,
+       "San Jose, CA",
+       "San Jose, CA"
+      ],
+      [
+       9,
+       "San Francisco, CA",
+       "San Francisco, CA · GOLD"
+      ],
+      [
+       10,
+       "New York, NY",
+       "New York, NY"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:0446446bf2e5": {
+   "statements": [
+    {
+     "sql": "SELECT 'Hello' = 'hello'                     AS equal_ci,\n       LOCATE('LAPTOP', 'Gaming Laptop 16')   AS locate_ci,\n       REPLACE('Gaming Laptop 16', 'laptop', 'Notebook') AS replace_lower,\n       REPLACE('Gaming Laptop 16', 'Laptop', 'Notebook') AS replace_exact",
+     "status": "ok",
+     "columns": [
+      "equal_ci",
+      "locate_ci",
+      "replace_lower",
+      "replace_exact"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       8,
+       "Gaming Laptop 16",
+       "Gaming Notebook 16"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:a05fbe606b98": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE sku_import (id INT PRIMARY KEY, raw_sku VARCHAR(30), clean_sku VARCHAR(30))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sku_import (id, raw_sku) VALUES\n  (1, '  sku-1001 '), (2, 'SKU 1002'), (3, 'Sku-1003'), (4, 'sku_1004  ')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE sku_import\nSET clean_sku = UPPER(REPLACE(REPLACE(TRIM(raw_sku), ' ', '-'), '_', '-'))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Rows matched: 4  Changed: 4  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT id, CONCAT('[', raw_sku, ']') AS raw_bracketed, clean_sku,\n       clean_sku IN (SELECT sku FROM products) AS matches_catalog\nFROM sku_import ORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "raw_bracketed",
+      "clean_sku",
+      "matches_catalog"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "[  sku-1001 ]",
+       "SKU-1001",
+       1
+      ],
+      [
+       2,
+       "[SKU 1002]",
+       "SKU-1002",
+       1
+      ],
+      [
+       3,
+       "[Sku-1003]",
+       "SKU-1003",
+       1
+      ],
+      [
+       4,
+       "[sku_1004  ]",
+       "SKU-1004",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:36e59af4c73b": {
+   "statements": [
+    {
+     "sql": "SELECT oi.order_id,\n       COUNT(*)                                                  AS line_count,\n       GROUP_CONCAT(p.name ORDER BY p.name SEPARATOR ' | ')      AS products\nFROM order_items oi\nJOIN products p ON p.product_id = oi.product_id\nWHERE oi.order_id BETWEEN 1 AND 5\nGROUP BY oi.order_id\nORDER BY oi.order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "line_count",
+      "products"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       2,
+       "Webcam 1080p | Wireless Mouse"
+      ],
+      [
+       2,
+       4,
+       "Espresso Machine | Laptop Stand | Noise-Cancelling Headphones | Wireless Earbuds"
+      ],
+      [
+       3,
+       1,
+       "Studio Microphone"
+      ],
+      [
+       4,
+       4,
+       "Bluetooth Speaker | Cast Iron Skillet | Fitness Tracker | SQL Antipatterns"
+      ],
+      [
+       5,
+       3,
+       "Noise-Cancelling Headphones | Single-Origin Beans 1kg | Webcam 1080p"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:819fdf61acd5": {
+   "statements": [
+    {
+     "sql": "SET SESSION group_concat_max_len = 40",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT category_id,\n       GROUP_CONCAT(name ORDER BY name)             AS names,\n       CHAR_LENGTH(GROUP_CONCAT(name ORDER BY name)) AS len\nFROM products\nWHERE category_id IN (7, 9)\nGROUP BY category_id\nORDER BY category_id",
+     "status": "ok",
+     "columns": [
+      "category_id",
+      "names",
+      "len"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       7,
+       "Burr Coffee Grinder,Espresso Machine,Pou",
+       40
+      ],
+      [
+       9,
+       "Database Internals (Book),Designing Data",
+       40
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1260,
+       "message": "Row 3 was cut by GROUP_CONCAT()"
+      },
+      {
+       "level": "Warning",
+       "code": 1260,
+       "message": "Row 3 was cut by GROUP_CONCAT()"
+      },
+      {
+       "level": "Warning",
+       "code": 1260,
+       "message": "Row 5 was cut by GROUP_CONCAT()"
+      },
+      {
+       "level": "Warning",
+       "code": 1260,
+       "message": "Row 5 was cut by GROUP_CONCAT()"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:b34fd07caec3": {
+   "statements": [
+    {
+     "sql": "SET SESSION group_concat_max_len = 1024",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT category_id,\n       CHAR_LENGTH(GROUP_CONCAT(name ORDER BY name)) AS len,\n       JSON_ARRAYAGG(name)                           AS names_json\nFROM products\nWHERE category_id = 7\nGROUP BY category_id",
+     "status": "ok",
+     "columns": [
+      "category_id",
+      "len",
+      "names_json"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       7,
+       77,
+       "[\"Espresso Machine\", \"Burr Coffee Grinder\", \"Pour-Over Kettle\", \"Single-Origin Beans 1kg\"]"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:a11b5c1e5a5a": {
+   "statements": [
+    {
+     "sql": "SELECT CONCAT(LPAD(product_id, 6, '0'), RPAD(LEFT(name, 15), 15, ' '), LPAD(stock_qty, 5, ' ')) AS fixed_width_line,\n       CHAR_LENGTH(CONCAT(LPAD(product_id, 6, '0'), RPAD(LEFT(name, 15), 15, ' '), LPAD(stock_qty, 5, ' '))) AS width\nFROM products\nWHERE product_id IN (1, 10, 25)\nORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "fixed_width_line",
+      "width"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "000001Ultrabook 14 Pr  245",
+       26
+      ],
+      [
+       "000010Noise-Cancellin   74",
+       26
+      ],
+      [
+       "000025Yoga Mat         248",
+       26
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:6527e6808692": {
+   "statements": [
+    {
+     "sql": "SET @raw = '  Amara.Sharma1@Example.COM '",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT CONCAT('[', @raw, ']') AS bracketed, CHAR_LENGTH(@raw) AS len",
+     "status": "ok",
+     "columns": [
+      "bracketed",
+      "len"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "[  Amara.Sharma1@Example.COM ]",
+       28
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:99302bfc6502": {
+   "statements": [
+    {
+     "sql": "SELECT CONCAT('[', TRIM(@raw), ']') AS trimmed, CHAR_LENGTH(TRIM(@raw)) AS len",
+     "status": "ok",
+     "columns": [
+      "trimmed",
+      "len"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "[Amara.Sharma1@Example.COM]",
+       25
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:45b9554bbaf5": {
+   "statements": [
+    {
+     "sql": "SELECT SUBSTRING_INDEX(TRIM(@raw), '@', -1) AS domain_part",
+     "status": "ok",
+     "columns": [
+      "domain_part"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Example.COM"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:7922d389c160": {
+   "statements": [
+    {
+     "sql": "SELECT LOWER(SUBSTRING_INDEX(TRIM(@raw), '@', -1)) AS normalized_domain",
+     "status": "ok",
+     "columns": [
+      "normalized_domain"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "example.com"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:8c6a5dbde5a4": {
+   "statements": [
+    {
+     "sql": "SELECT LOWER(SUBSTRING_INDEX(TRIM(email), '@', -1)) AS domain, COUNT(*) AS customers\nFROM customers\nGROUP BY domain",
+     "status": "ok",
+     "columns": [
+      "domain",
+      "customers"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "example.com",
+       25
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:c24264de6373": {
+   "statements": [
+    {
+     "sql": "SELECT name, CHAR_LENGTH(name) AS chars, LENGTH(name) AS bytes,\n       LENGTH(name) - CHAR_LENGTH(name) AS extra_bytes\nFROM intl_names\nWHERE LENGTH(name) <> CHAR_LENGTH(name)\nORDER BY id",
+     "status": "ok",
+     "columns": [
+      "name",
+      "chars",
+      "bytes",
+      "extra_bytes"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Müller",
+       6,
+       7,
+       1
+      ],
+      [
+       "José",
+       4,
+       5,
+       1
+      ],
+      [
+       "東京",
+       2,
+       6,
+       4
+      ],
+      [
+       "Café ☕",
+       6,
+       9,
+       3
+      ],
+      [
+       "Zoë 🎉",
+       5,
+       9,
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:fb250e8e861d": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT product_id, sku FROM products WHERE LEFT(sku, 7) = 'SKU-102'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (left(products.sku,7) = 'SKU-102')  (cost=3.25 rows=30)\n    -> Index scan on products using uq_products_sku  (cost=3.25 rows=30)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:c0a2ba7b8583": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT product_id, sku FROM products WHERE sku LIKE 'SKU-102%'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (products.sku like 'SKU-102%')  (cost=2.28 rows=10)\n    -> Covering index range scan on products using uq_products_sku over ('SKU-102' <= sku <= 'SKU-102????????????????????????????????????????????????????')  (cost=2.28 rows=10)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1300,
+       "message": "Invalid utf8mb3 character string: 'F48FBF'"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:474c11cd7e11": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE customers_fx AS SELECT * FROM customers",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "info": "Records: 25  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE customers_fx\nSET email = CONCAT(SUBSTRING_INDEX(email, '@', 1), '@',\n                   ELT(1 + customer_id % 5, 'acme.com', 'globex.com', 'initech.com', 'umbrella.com', 'example.com'))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 20,
+     "info": "Rows matched: 25  Changed: 20  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE INDEX idx_email_domain ON customers_fx ((SUBSTRING_INDEX(email, '@', -1)))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE customers_fx",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_75759a2d86d442b14f87.customers_fx",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT customer_id FROM customers_fx\nWHERE SUBSTRING_INDEX(email, '@', -1) = 'initech.com'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Index lookup on customers_fx using idx_email_domain (substring_index(email,_utf8mb4'@',-(1))='initech.com')  (cost=1.12 rows=5)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:47a325525d80": {
+   "statements": [
+    {
+     "sql": "SELECT name, LENGTH(name) <= 6 AS passes_byte_check, CHAR_LENGTH(name) <= 6 AS passes_char_check\nFROM intl_names\nWHERE id IN (2, 4, 6)\nORDER BY id",
+     "status": "ok",
+     "columns": [
+      "name",
+      "passes_byte_check",
+      "passes_char_check"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Müller",
+       0,
+       1
+      ],
+      [
+       "東京",
+       1,
+       1
+      ],
+      [
+       "Zoë 🎉",
+       0,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:b97da46c9078": {
+   "statements": [
+    {
+     "sql": "SELECT LPAD(7000, 5, '0')   AS code_for_7000,\n       LPAD(80000, 5, '0')  AS code_for_80000,\n       LPAD(100000, 5, '0') AS code_for_100000,\n       LPAD(100004, 5, '0') AS code_for_100004",
+     "status": "ok",
+     "columns": [
+      "code_for_7000",
+      "code_for_80000",
+      "code_for_100000",
+      "code_for_100004"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "07000",
+       "80000",
+       "10000",
+       "10000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:1cc67b4a299e": {
+   "statements": [
+    {
+     "sql": "SELECT 'abc ' = 'abc'                         AS default_no_pad,\n       'abc ' = 'abc' COLLATE utf8mb4_bin     AS bin_pad_space,\n       'abc ' = 'abc' COLLATE utf8mb4_general_ci AS general_pad_space",
+     "status": "ok",
+     "columns": [
+      "default_no_pad",
+      "bin_pad_space",
+      "general_pad_space"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

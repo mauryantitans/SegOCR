@@ -31,12 +31,14 @@
      "sql": "SET SESSION cte_max_recursion_depth = 300000",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
      "sql": "CREATE TABLE orders_big (\n  order_id    INT UNSIGNED  NOT NULL,\n  customer_id INT UNSIGNED  NOT NULL,\n  status      VARCHAR(10)   NOT NULL,\n  order_date  DATE          NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  country     CHAR(2)       NOT NULL,\n  PRIMARY KEY (order_id)\n) ENGINE=InnoDB",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -83,7 +85,7 @@
      "row_count": 1,
      "rows": [
       [
-       199646,
+       199707,
        9977856,
        "609.0000",
        0
@@ -124,7 +126,7 @@
        null,
        null,
        null,
-       199646,
+       199707,
        10.0,
        "Using where"
       ]
@@ -151,10 +153,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Filter: (orders_big.customer_id = 4242)  (cost=20117 rows=19965) (actual time=3.72..43.3 rows=10 loops=1)\n    -> Table scan on orders_big  (cost=20117 rows=199646) (actual time=0.249..35.6 rows=200000 loops=1)\n"
+       "-> Filter: (orders_big.customer_id = 4242)  (cost=20123 rows=19971) (actual time=3.82..50.3 rows=10 loops=1)\n    -> Table scan on orders_big  (cost=20123 rows=199707) (actual time=0.259..41.7 rows=200000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 44.09
+     "elapsed_ms": 51.29
     }
    ],
    "measured": true
@@ -165,6 +167,7 @@
      "sql": "CREATE INDEX idx_orders_big_customer ON orders_big (customer_id)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": []
     },
@@ -224,10 +227,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Index lookup on orders_big using idx_orders_big_customer (customer_id=4242)  (cost=3.5 rows=10) (actual time=0.0506..0.0532 rows=10 loops=1)\n"
+       "-> Index lookup on orders_big using idx_orders_big_customer (customer_id=4242)  (cost=3.5 rows=10) (actual time=0.0514..0.0541 rows=10 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 0.76
+     "elapsed_ms": 0.77
     }
    ],
    "measured": true
@@ -263,7 +266,7 @@
        1,
        "order_id",
        "A",
-       199646,
+       199707,
        null,
        null,
        "",
@@ -280,7 +283,7 @@
        1,
        "customer_id",
        "A",
-       20065,
+       20056,
        null,
        null,
        "",
@@ -373,7 +376,7 @@
        null,
        null,
        null,
-       199646,
+       199707,
        100.0,
        "Using filesort"
       ]
@@ -514,7 +517,7 @@
        "idx_orders_big_customer",
        "4",
        null,
-       199646,
+       199707,
        100.0,
        "Using index"
       ]
@@ -751,12 +754,14 @@
      "sql": "CREATE TABLE ins_no_idx LIKE orders_big",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
      "sql": "ALTER TABLE ins_no_idx DROP INDEX idx_orders_big_customer",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": []
     },
@@ -764,12 +769,14 @@
      "sql": "CREATE TABLE ins_four_idx LIKE ins_no_idx",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
      "sql": "ALTER TABLE ins_four_idx\n  ADD INDEX idx_c (customer_id),\n  ADD INDEX idx_d (order_date),\n  ADD INDEX idx_s_d (status, order_date),\n  ADD INDEX idx_a (amount)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": []
     }
@@ -785,7 +792,7 @@
      "affected_rows": 100000,
      "info": "Records: 100000  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 352.34
+     "elapsed_ms": 409.4
     },
     {
      "sql": "INSERT INTO ins_four_idx SELECT * FROM orders_big WHERE order_id <= 100000",
@@ -794,7 +801,7 @@
      "affected_rows": 100000,
      "info": "Records: 100000  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 1027.85
+     "elapsed_ms": 1098.47
     }
    ],
    "measured": true
@@ -882,7 +889,7 @@
        null,
        null,
        null,
-       199555,
+       199737,
        100.0,
        "Using where"
       ]
@@ -904,6 +911,7 @@
      "sql": "CREATE TABLE customer_codes (\n  code  VARCHAR(10) NOT NULL,\n  name  VARCHAR(40) NOT NULL,\n  PRIMARY KEY (code)\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {

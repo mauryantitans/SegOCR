@@ -11,12 +11,14 @@
      "sql": "SET SESSION cte_max_recursion_depth = 300000",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
      "sql": "CREATE TABLE orders_big (\n  order_id    INT UNSIGNED  NOT NULL,\n  customer_id INT UNSIGNED  NOT NULL,\n  status      VARCHAR(10)   NOT NULL,\n  order_date  DATE          NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  country     CHAR(2)       NOT NULL,\n  PRIMARY KEY (order_id)\n) ENGINE=InnoDB",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -31,6 +33,7 @@
      "sql": "CREATE INDEX idx_cust_status_date ON orders_big (customer_id, status, order_date)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": []
     },
@@ -265,7 +268,7 @@
        null,
        null,
        null,
-       199767,
+       199616,
        1.0,
        "Using where"
       ]
@@ -287,6 +290,7 @@
      "sql": "CREATE TABLE app_users (\n  user_id  INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  email    VARCHAR(100) NOT NULL,\n  phone    VARCHAR(20)  NULL,\n  UNIQUE KEY uq_app_users_email (email),\n  UNIQUE KEY uq_app_users_phone (phone)\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -348,6 +352,7 @@
      "sql": "CREATE TABLE product_reviews (\n  review_id   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  product_id  INT UNSIGNED NOT NULL,\n  customer_id INT UNSIGNED NOT NULL,\n  rating      TINYINT NOT NULL,\n  UNIQUE KEY uq_review_product_customer (product_id, customer_id)\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -451,6 +456,7 @@
      "sql": "ALTER TABLE orders_big\n  ADD INDEX idx_date_status (order_date, status),\n  ADD INDEX idx_status_date (status, order_date)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": []
     },
@@ -571,10 +577,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=11316 rows=1) (actual time=4.71..4.71 rows=1 loops=1)\n    -> Filter: ((orders_big.`status` = 'cancelled') and (orders_big.order_date between '2024-01-01' and '2024-03-31'))  (cost=9740 rows=15762) (actual time=0.191..4.67 rows=1244 loops=1)\n        -> Covering index range scan on orders_big using idx_date_status over ('2024-01-01' <= order_date <= '2024-03-31' AND status = 'cancelled')  (cost=9740 rows=47286) (actual time=0.187..3.24 rows=24640 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=11316 rows=1) (actual time=4.56..4.56 rows=1 loops=1)\n    -> Filter: ((orders_big.`status` = 'cancelled') and (orders_big.order_date between '2024-01-01' and '2024-03-31'))  (cost=9740 rows=15762) (actual time=0.221..4.51 rows=1244 loops=1)\n        -> Covering index range scan on orders_big using idx_date_status over ('2024-01-01' <= order_date <= '2024-03-31' AND status = 'cancelled')  (cost=9740 rows=47286) (actual time=0.216..3.08 rows=24640 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 5.53
+     "elapsed_ms": 6.69
     },
     {
      "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM orders_big FORCE INDEX (idx_status_date)\nWHERE status = 'cancelled' AND order_date BETWEEN '2024-01-01' AND '2024-03-31'",
@@ -585,7 +591,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=382 rows=1) (actual time=0.617..0.617 rows=1 loops=1)\n    -> Filter: ((orders_big.`status` = 'cancelled') and (orders_big.order_date between '2024-01-01' and '2024-03-31'))  (cost=257 rows=1244) (actual time=0.0271..0.571 rows=1244 loops=1)\n        -> Covering index range scan on orders_big using idx_status_date over (status = 'cancelled' AND '2024-01-01' <= order_date <= '2024-03-31')  (cost=257 rows=1244) (actual time=0.0254..0.245 rows=1244 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=382 rows=1) (actual time=0.609..0.609 rows=1 loops=1)\n    -> Filter: ((orders_big.`status` = 'cancelled') and (orders_big.order_date between '2024-01-01' and '2024-03-31'))  (cost=257 rows=1244) (actual time=0.0289..0.563 rows=1244 loops=1)\n        -> Covering index range scan on orders_big using idx_status_date over (status = 'cancelled' AND '2024-01-01' <= order_date <= '2024-03-31')  (cost=257 rows=1244) (actual time=0.0266..0.271 rows=1244 loops=1)\n"
       ]
      ],
      "elapsed_ms": 1.33
@@ -599,6 +605,7 @@
      "sql": "ALTER TABLE orders_big\n  DROP INDEX idx_date_status,\n  ADD INDEX idx_customer (customer_id),\n  ADD INDEX idx_country (country),\n  ADD INDEX idx_status (status)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": []
     },
@@ -692,7 +699,7 @@
        "idx_status,idx_country",
        "42,8",
        null,
-       5002,
+       4996,
        99.99,
        "Using intersect(idx_status,idx_country); Using where; Using index"
       ]
@@ -714,6 +721,7 @@
      "sql": "ALTER TABLE orders_big ALTER INDEX idx_customer INVISIBLE",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": []
     },
@@ -803,6 +811,7 @@
      "sql": "SET SESSION optimizer_switch = 'use_invisible_indexes=on'",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -851,6 +860,7 @@
      "sql": "SET SESSION optimizer_switch = 'use_invisible_indexes=off'",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     }
    ],
@@ -1061,6 +1071,7 @@
      "sql": "CREATE TABLE subscribers (id INT PRIMARY KEY, email VARCHAR(100) NOT NULL)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {

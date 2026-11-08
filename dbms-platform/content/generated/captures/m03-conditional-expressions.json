@@ -1,0 +1,947 @@
+{
+ "doc": "m03-conditional-expressions",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:8d47ed569a1b": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name, price,\n       CASE\n         WHEN price >= 500 THEN 'premium'\n         WHEN price >= 100 THEN 'mid-range'\n         ELSE 'budget'\n       END AS price_band\nFROM products\nWHERE product_id IN (3, 8, 12, 15, 24, 29)\nORDER BY price DESC",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price",
+      "price_band"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       3,
+       "Gaming Laptop 16",
+       "1799.00",
+       "premium"
+      ],
+      [
+       8,
+       "27\" 4K Monitor",
+       "379.00",
+       "mid-range"
+      ],
+      [
+       12,
+       "Wireless Earbuds",
+       "129.99",
+       "mid-range"
+      ],
+      [
+       15,
+       "Burr Coffee Grinder",
+       "129.00",
+       "mid-range"
+      ],
+      [
+       29,
+       "Gift Card $50",
+       "50.00",
+       "budget"
+      ],
+      [
+       24,
+       "Fiction Bestseller",
+       "18.99",
+       "budget"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:2a93f7943776": {
+   "statements": [
+    {
+     "sql": "SELECT method,\n       CASE method\n         WHEN 'card'          THEN 'Credit/debit card'\n         WHEN 'paypal'        THEN 'PayPal'\n         WHEN 'bank_transfer' THEN 'Bank transfer'\n         ELSE 'Other'\n       END AS method_label,\n       COUNT(*) AS payments\nFROM payments\nGROUP BY method\nORDER BY payments DESC, method",
+     "status": "ok",
+     "columns": [
+      "method",
+      "method_label",
+      "payments"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "card",
+       "Credit/debit card",
+       40
+      ],
+      [
+       "paypal",
+       "PayPal",
+       15
+      ],
+      [
+       "gift_card",
+       "Other",
+       14
+      ],
+      [
+       "bank_transfer",
+       "Bank transfer",
+       7
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:cef369e9f3c6": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, first_name,\n       IF(phone IS NULL, 'no phone', 'has phone') AS phone_status,\n       IFNULL(loyalty_tier, 'none')                AS tier\nFROM customers\nWHERE customer_id BETWEEN 1 AND 6\nORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "phone_status",
+      "tier"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "Amara",
+       "has phone",
+       "bronze"
+      ],
+      [
+       2,
+       "Kwame",
+       "has phone",
+       "bronze"
+      ],
+      [
+       3,
+       "Diego",
+       "has phone",
+       "none"
+      ],
+      [
+       4,
+       "Diego",
+       "has phone",
+       "gold"
+      ],
+      [
+       5,
+       "Grace",
+       "no phone",
+       "silver"
+      ],
+      [
+       6,
+       "Sofia",
+       "has phone",
+       "silver"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:7b2183052c16": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id,\n       COALESCE(phone, email) AS best_contact\nFROM customers\nWHERE customer_id IN (4, 5, 10)\nORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "best_contact"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       4,
+       "+1-206-555-3615"
+      ],
+      [
+       5,
+       "grace.smith5@example.com"
+      ],
+      [
+       10,
+       "lucas.lin10@example.com"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:86b4ca3d540c": {
+   "statements": [
+    {
+     "sql": "SELECT 10 / 0              AS plain_division,\n       10 / NULLIF(0, 0)   AS nullif_division,\n       NULLIF('N/A', 'N/A') AS sentinel_to_null,\n       NULLIF(5, 3)        AS unchanged",
+     "status": "ok",
+     "columns": [
+      "plain_division",
+      "nullif_division",
+      "sentinel_to_null",
+      "unchanged"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       null,
+       null,
+       null,
+       5
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1365,
+       "message": "Division by 0"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:9f73073cf30f": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE case_types AS\nSELECT CASE WHEN 1 = 1 THEN 1 ELSE 2.50 END      AS int_or_decimal,\n       CASE WHEN 1 = 1 THEN 1 ELSE 1.5e0 END     AS int_or_double,\n       CASE WHEN 1 = 1 THEN 1 ELSE 'x' END       AS int_or_string,\n       IF(1 = 1, 10, 'ten')                      AS if_mixed,\n       COALESCE(NULL, 5)                         AS coalesce_int,\n       CASE WHEN 1 = 0 THEN 1 END                AS no_else",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'case_types'\nORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "COLUMN_TYPE",
+      "IS_NULLABLE"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "int_or_decimal",
+       "decimal(3,2)",
+       "NO"
+      ],
+      [
+       "int_or_double",
+       "double",
+       "NO"
+      ],
+      [
+       "int_or_string",
+       "varchar(2)",
+       "NO"
+      ],
+      [
+       "if_mixed",
+       "varchar(3)",
+       "NO"
+      ],
+      [
+       "coalesce_int",
+       "int",
+       "NO"
+      ],
+      [
+       "no_else",
+       "int",
+       "YES"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:8790f715b9ff": {
+   "statements": [
+    {
+     "sql": "SELECT status, COUNT(*) AS orders\nFROM orders\nGROUP BY status\nORDER BY CASE status\n           WHEN 'pending'   THEN 1\n           WHEN 'paid'      THEN 2\n           WHEN 'shipped'   THEN 3\n           WHEN 'delivered' THEN 4\n           ELSE 5\n         END,\n         status",
+     "status": "ok",
+     "columns": [
+      "status",
+      "orders"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "pending",
+       2
+      ],
+      [
+       "paid",
+       6
+      ],
+      [
+       "shipped",
+       14
+      ],
+      [
+       "delivered",
+       45
+      ],
+      [
+       "cancelled",
+       8
+      ],
+      [
+       "refunded",
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:1c216dd7f76e": {
+   "statements": [
+    {
+     "sql": "SELECT CASE\n         WHEN price >= 500 THEN '1 premium'\n         WHEN price >= 100 THEN '2 mid-range'\n         ELSE '3 budget'\n       END              AS price_band,\n       COUNT(*)         AS products,\n       SUM(stock_qty)   AS units_in_stock\nFROM products\nGROUP BY price_band\nORDER BY price_band",
+     "status": "ok",
+     "columns": [
+      "price_band",
+      "products",
+      "units_in_stock"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "1 premium",
+       3,
+       "667"
+      ],
+      [
+       "2 mid-range",
+       8,
+       "610"
+      ],
+      [
+       "3 budget",
+       19,
+       "2146"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:6e6378674a80": {
+   "statements": [
+    {
+     "sql": "SELECT QUARTER(order_date)                                              AS qtr,\n       COUNT(*)                                                         AS all_orders,\n       SUM(CASE WHEN status IN ('shipped', 'delivered') THEN 1 ELSE 0 END) AS fulfilled,\n       SUM(CASE WHEN status IN ('pending', 'paid') THEN 1 ELSE 0 END)      AS open_orders,\n       SUM(CASE WHEN status IN ('cancelled', 'refunded') THEN 1 ELSE 0 END) AS lost,\n       ROUND(100 * AVG(CASE WHEN status IN ('cancelled', 'refunded') THEN 1 ELSE 0 END), 1) AS lost_pct\nFROM orders\nGROUP BY qtr\nORDER BY qtr",
+     "status": "ok",
+     "columns": [
+      "qtr",
+      "all_orders",
+      "fulfilled",
+      "open_orders",
+      "lost",
+      "lost_pct"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       18,
+       "12",
+       "2",
+       "4",
+       "22.2"
+      ],
+      [
+       2,
+       19,
+       "16",
+       "1",
+       "2",
+       "10.5"
+      ],
+      [
+       3,
+       20,
+       "14",
+       "2",
+       "4",
+       "20.0"
+      ],
+      [
+       4,
+       23,
+       "17",
+       "3",
+       "3",
+       "13.0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:be7cb66c18dd": {
+   "statements": [
+    {
+     "sql": "SELECT QUARTER(paid_at) AS qtr,\n       SUM(CASE WHEN method = 'card'      THEN amount ELSE 0 END) AS card,\n       SUM(CASE WHEN method = 'paypal'    THEN amount ELSE 0 END) AS paypal,\n       SUM(CASE WHEN method = 'gift_card' THEN amount ELSE 0 END) AS gift_card,\n       SUM(CASE WHEN method = 'bank_transfer' THEN amount ELSE 0 END) AS bank_transfer,\n       SUM(amount)                                                AS total\nFROM payments\nWHERE status = 'succeeded'\nGROUP BY qtr\nORDER BY qtr",
+     "status": "ok",
+     "columns": [
+      "qtr",
+      "card",
+      "paypal",
+      "gift_card",
+      "bank_transfer",
+      "total"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "5774.74",
+       "789.56",
+       "1574.28",
+       "519.92",
+       "8658.50"
+      ],
+      [
+       2,
+       "7803.78",
+       "781.49",
+       "11058.50",
+       "328.09",
+       "19971.86"
+      ],
+      [
+       3,
+       "8449.09",
+       "1489.95",
+       "1773.15",
+       "4087.93",
+       "15800.12"
+      ],
+      [
+       4,
+       "12045.40",
+       "3057.96",
+       "3164.27",
+       "263.97",
+       "18531.60"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:44bff618df83": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE price_review AS\nSELECT product_id, category_id, price FROM products WHERE category_id IN (7, 9)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 8,
+     "info": "Records: 8  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE price_review\nSET price = CASE category_id\n              WHEN 7 THEN ROUND(price * 1.05, 2)   -- coffee +5 %\n              WHEN 9 THEN ROUND(price * 0.90, 2)   -- database books −10 %\n              ELSE price\n            END",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 8,
+     "info": "Rows matched: 8  Changed: 8  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT pr.product_id, pr.category_id, p.price AS old_price, pr.price AS new_price\nFROM price_review pr JOIN products p USING (product_id)\nORDER BY pr.product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "category_id",
+      "old_price",
+      "new_price"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       14,
+       7,
+       "499.00",
+       "523.95"
+      ],
+      [
+       15,
+       7,
+       "129.00",
+       "135.45"
+      ],
+      [
+       16,
+       7,
+       "59.00",
+       "61.95"
+      ],
+      [
+       17,
+       7,
+       "34.50",
+       "36.23"
+      ],
+      [
+       20,
+       9,
+       "54.99",
+       "49.49"
+      ],
+      [
+       21,
+       9,
+       "49.99",
+       "44.99"
+      ],
+      [
+       22,
+       9,
+       "59.99",
+       "53.99"
+      ],
+      [
+       23,
+       9,
+       "39.99",
+       "35.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:d0c33659fb73": {
+   "statements": [
+    {
+     "sql": "SELECT p.product_id, p.name,\n       COALESCE(SUM(oi.quantity), 0)                                      AS units,\n       SUM(oi.quantity * oi.unit_price) / NULLIF(COALESCE(SUM(oi.quantity), 0), 0) AS avg_selling_price\nFROM products p\nLEFT JOIN order_items oi ON oi.product_id = p.product_id\nWHERE p.product_id IN (1, 4, 13, 24)\nGROUP BY p.product_id\nORDER BY p.product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "units",
+      "avg_selling_price"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "Ultrabook 14 Pro",
+       "19",
+       "1278.489474"
+      ],
+      [
+       4,
+       "Chromebook 11",
+       "0",
+       null
+      ],
+      [
+       13,
+       "Studio Microphone",
+       "8",
+       "143.412500"
+      ],
+      [
+       24,
+       "Fiction Bestseller",
+       "20",
+       "18.705000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:77f4ce78127a": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, customer_id, status, discount_code FROM orders WHERE customer_id = 4 ORDER BY order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "status",
+      "discount_code"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       8,
+       4,
+       "shipped",
+       null
+      ],
+      [
+       33,
+       4,
+       "delivered",
+       null
+      ],
+      [
+       62,
+       4,
+       "delivered",
+       null
+      ],
+      [
+       69,
+       4,
+       "paid",
+       "VIP20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:e59b74a01787": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, status,\n       CASE WHEN status = 'delivered' THEN 1 ELSE 0 END AS is_delivered,\n       CASE WHEN status = 'shipped'   THEN 1 ELSE 0 END AS is_shipped,\n       CASE WHEN discount_code IS NOT NULL THEN 1 END   AS used_code_no_else\nFROM orders WHERE customer_id = 4 ORDER BY order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "is_delivered",
+      "is_shipped",
+      "used_code_no_else"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       8,
+       "shipped",
+       0,
+       1,
+       null
+      ],
+      [
+       33,
+       "delivered",
+       1,
+       0,
+       null
+      ],
+      [
+       62,
+       "delivered",
+       1,
+       0,
+       null
+      ],
+      [
+       69,
+       "paid",
+       0,
+       0,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:4f808394c3cf": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id,\n       SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END)   AS delivered,\n       SUM(CASE WHEN status = 'shipped'   THEN 1 ELSE 0 END)   AS shipped,\n       COUNT(CASE WHEN discount_code IS NOT NULL THEN 1 END)   AS used_code,\n       AVG(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END)   AS delivered_share\nFROM orders WHERE customer_id = 4\nGROUP BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "delivered",
+      "shipped",
+      "used_code",
+      "delivered_share"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4,
+       "2",
+       "1",
+       1,
+       "0.5000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:76f1f86da952": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id,\n       SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS delivered,\n       SUM(CASE WHEN status = 'shipped'   THEN 1 ELSE 0 END) AS shipped,\n       SUM(CASE WHEN status IN ('cancelled','refunded') THEN 1 ELSE 0 END) AS lost,\n       COUNT(*) AS total\nFROM orders\nGROUP BY customer_id\nORDER BY customer_id\nLIMIT 8",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "delivered",
+      "shipped",
+      "lost",
+      "total"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       1,
+       "2",
+       "0",
+       "0",
+       2
+      ],
+      [
+       3,
+       "2",
+       "0",
+       "1",
+       3
+      ],
+      [
+       4,
+       "2",
+       "1",
+       "0",
+       4
+      ],
+      [
+       5,
+       "1",
+       "0",
+       "0",
+       2
+      ],
+      [
+       6,
+       "1",
+       "1",
+       "1",
+       3
+      ],
+      [
+       7,
+       "2",
+       "1",
+       "1",
+       4
+      ],
+      [
+       8,
+       "2",
+       "0",
+       "1",
+       3
+      ],
+      [
+       9,
+       "0",
+       "0",
+       "0",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:56b3bdfed09a": {
+   "statements": [
+    {
+     "sql": "SELECT COALESCE(1, 1 / 0) AS short_circuit,\n       CASE WHEN 1 = 1 THEN 'first' ELSE 1 / 0 END AS case_short_circuit",
+     "status": "ok",
+     "columns": [
+      "short_circuit",
+      "case_short_circuit"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "1.0000",
+       "first"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:a34a9ff8ef3e": {
+   "statements": [
+    {
+     "sql": "SELECT CASE WHEN 1 = 1 THEN 10 ELSE 'n/a' END\n     < CASE WHEN 1 = 1 THEN 9  ELSE 'n/a' END AS ten_less_than_nine",
+     "status": "ok",
+     "columns": [
+      "ten_less_than_nine"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:8d0d894b8c67": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id FROM orders\nWHERE IF(order_date >= '2024-12-01', 1, 0) = 1",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (if((orders.order_date >= TIMESTAMP'2024-12-01 00:00:00'),1,0) = 1)  (cost=8.25 rows=80)\n    -> Index scan on orders using idx_orders_date  (cost=8.25 rows=80)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:f2f204e1476f": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id FROM orders\nWHERE order_date >= '2024-12-01'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (orders.order_date >= TIMESTAMP'2024-12-01 00:00:00')  (cost=1.86 rows=8)\n    -> Covering index range scan on orders using idx_orders_date over ('2024-12-01 00:00:00' <= order_date)  (cost=1.86 rows=8)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:3f860e985123": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, loyalty_tier,\n       CASE loyalty_tier WHEN NULL THEN 'none' ELSE loyalty_tier END AS wrong_label,\n       CASE WHEN loyalty_tier IS NULL THEN 'none' ELSE loyalty_tier END AS right_label\nFROM customers\nWHERE customer_id IN (3, 4, 10)\nORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "loyalty_tier",
+      "wrong_label",
+      "right_label"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       3,
+       null,
+       null,
+       "none"
+      ],
+      [
+       4,
+       "gold",
+       "gold",
+       "gold"
+      ],
+      [
+       10,
+       null,
+       null,
+       "none"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:ebddeb4a6a14": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name,\n       CASE WHEN stock_qty = 0 THEN 'n/a' ELSE price END AS shown_price\nFROM products\nWHERE product_id IN (1, 4, 6, 13, 24, 29)\nORDER BY shown_price",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "shown_price"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "Ultrabook 14 Pro",
+       "1299.00"
+      ],
+      [
+       24,
+       "Fiction Bestseller",
+       "18.99"
+      ],
+      [
+       29,
+       "Gift Card $50",
+       "50.00"
+      ],
+      [
+       6,
+       "Mechanical Keyboard",
+       "89.99"
+      ],
+      [
+       4,
+       "Chromebook 11",
+       "n/a"
+      ],
+      [
+       13,
+       "Studio Microphone",
+       "n/a"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:4a001c1d4178": {
+   "statements": [
+    {
+     "sql": "SELECT name, price,\n       CASE WHEN price >= 100 THEN 'mid-range'\n            WHEN price >= 500 THEN 'premium'\n            ELSE 'budget' END AS wrong_band\nFROM products\nWHERE product_id IN (1, 3, 14)\nORDER BY price DESC",
+     "status": "ok",
+     "columns": [
+      "name",
+      "price",
+      "wrong_band"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Gaming Laptop 16",
+       "1799.00",
+       "mid-range"
+      ],
+      [
+       "Ultrabook 14 Pro",
+       "1299.00",
+       "mid-range"
+      ],
+      [
+       "Espresso Machine",
+       "499.00",
+       "mid-range"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

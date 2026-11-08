@@ -241,7 +241,7 @@ EXPLAIN SELECT order_id, order_date FROM orders_big
 WHERE status = 'pending' ORDER BY order_date DESC LIMIT 5;
 ```
 
-No filesort: `idx_orders_status_date` delivers the pending orders already ordered by date; reading it backwards (`Backward index scan`) gives descending order, and the LIMIT stops after 5 entries.
+No filesort: `idx_orders_status_date` delivers the pending orders already ordered by date; reading it backwards (`Backward index scan`) gives descending order, and it is covering (`Using index` — `order_id` is the PK). The `rows` estimate (tens of thousands) is the size of the `ref` range; traditional EXPLAIN does not reduce it for the `LIMIT`, but execution stops after 5 entries.
 
 **5. `select_type` for subqueries and derived tables.**
 
@@ -254,14 +254,14 @@ JOIN (SELECT customer_id, SUM(amount) AS total FROM orders_big GROUP BY customer
 WHERE c.customer_id = 42;
 ```
 
-Look at the `id`, `select_type` and `table` columns: the derived table `t` may be **materialized** (`DERIVED`, table `<derived2>`) or, if the optimizer can push the condition `customer_id = 42` into it, executed far more cheaply — read the `rows` estimates for the inner `orders_big` access to see which happened. Then check the rewritten query:
+Read the `id`, `select_type` and `table` columns. Row `id = 2`, `select_type = DERIVED`, is the subquery in `FROM`: it is **materialized** by scanning the whole of `idx_orders_customer` (`type = index`, ~200,000 rows) and grouping every customer. The outer query (`id = 1`, `PRIMARY`) reads `c` as a `const` and then looks up the materialized result `<derived2>` through an automatically created index `<auto_key0>`. In other words, MySQL computed totals for 20,000 customers to return one — the plan exposes an expensive pattern that moving `WHERE customer_id = 42` inside the derived table would avoid. Next, check the rewritten form of an `IN` subquery:
 
 ```sql run
 EXPLAIN SELECT * FROM orders_big WHERE customer_id IN (SELECT customer_id FROM customers_big WHERE segment = 'student' AND referrer_id = 7);
 SHOW WARNINGS;
 ```
 
-The Note from `SHOW WARNINGS` shows the statement after transformations — here the `IN (subquery)` has been turned into a **semi-join** (`semi join` in the rewritten text), which is why EXPLAIN shows both tables with the same `id` instead of a separate subquery row. Subquery strategies are covered in [Optimizing Subqueries and Derived Tables](/lessons/m07-optimizing-subqueries).
+Both rows have `id = 1` and `select_type = SIMPLE` — there is no subquery row any more. The Note from `SHOW WARNINGS` shows why: the statement after transformations reads `… from customers_big join orders_big where …`. Because `customer_id` is the primary key of `customers_big`, the subquery cannot produce duplicates, so the optimizer converted the `IN (subquery)` into an ordinary **inner join** (*table pull-out*, one of the semi-join strategies) and was free to start from `customers_big`. Subquery strategies are covered in [Optimizing Subqueries and Derived Tables](/lessons/m07-optimizing-subqueries).
 
 **6. EXPLAIN for data-changing statements.** `EXPLAIN` works for `UPDATE`, `DELETE`, `INSERT … SELECT` and `REPLACE` without executing them — always check a mass update's plan before running it:
 
@@ -270,7 +270,7 @@ EXPLAIN UPDATE orders_big SET status = 'delivered' WHERE status = 'shipped' AND 
 EXPLAIN DELETE FROM orders_big WHERE amount < 6;
 ```
 
-The `UPDATE` uses the composite index; the `DELETE` on an unindexed column would scan — and, under REPEATABLE READ, lock — every row it examines.
+The `UPDATE` uses a range on the composite index (`key_len = 45`). Its `Using temporary` has a specific reason: the statement changes `status`, a column of the very index it is scanning, so MySQL first collects the qualifying rows and then updates them, to avoid meeting an updated row again further along the index. The `DELETE` on an unindexed column would scan — and, under REPEATABLE READ, lock — every row it examines.
 
 ## Execution Walkthrough
 
@@ -400,7 +400,7 @@ EXPLAIN FORMAT=JSON SELECT order_id FROM orders_big IGNORE INDEX (idx_orders_sta
 WHERE status = 'cancelled' AND order_date >= '2024-12-01';
 ```
 
-The cost of the forced full scan is far higher than the range plan's cost in the walkthrough. Costs are in abstract optimizer units (calibrated so that roughly one page read ≈ 1 unit by default); compare them only between plans for the same query on the same server.
+The forced full scan's `query_cost` is about 20,117 in the capture, against about 340 for the range-plus-`eq_ref` plan of the whole join in the walkthrough. Costs are in abstract optimizer units (calibrated so that roughly one page read ≈ 1 unit by default); compare them only between plans for the same query on the same server.
 
 ## Best Practices
 
@@ -425,7 +425,7 @@ The cost of the forced full scan is far higher than the range plan's cost in the
 
 **Mistake 4 — panicking at `Using filesort`.** It means *a sort happens*, often in memory and on few rows (after a selective filter or with LIMIT). It matters when many rows are sorted; check `rows` first.
 
-**Mistake 5 — EXPLAINing on a toy dataset.** On a 50-row development table the optimizer correctly chooses full scans for almost everything, so the plan says nothing about production. The shop dataset illustrates this:
+**Mistake 5 — EXPLAINing on a toy dataset.** On a 50-row development table the optimizer correctly chooses to read everything, so the plan says nothing about production. A four-row table illustrates this:
 
 ```sql run
 CREATE TABLE tiny_orders (id INT PRIMARY KEY, customer_id INT NOT NULL, INDEX idx_tiny_customer (customer_id));
@@ -434,7 +434,7 @@ ANALYZE TABLE tiny_orders;
 EXPLAIN SELECT * FROM tiny_orders WHERE customer_id >= 1;
 ```
 
-With four rows, reading the whole table is the cheapest plan regardless of indexes. Always analyze plans on data with production-like size and distribution.
+With four rows, MySQL simply reads every entry — here through a full scan of the small covering index (`type = index`, `rows = 4`) rather than a range — because nothing is cheaper at that size. Always analyze plans on data with production-like size and distribution.
 
 ## Industry Application
 

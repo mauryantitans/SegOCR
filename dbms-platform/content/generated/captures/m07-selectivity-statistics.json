@@ -135,13 +135,13 @@
        "idx_customer",
        1,
        "customer_id",
-       19955
+       19968
       ],
       [
        "idx_order_date",
        1,
        "order_date",
-       716
+       742
       ],
       [
        "idx_status",
@@ -400,7 +400,7 @@
        "channel",
        "singleton",
        3,
-       "[[\"base64:type254:YXBw\", 0.0902668196815378], [\"base64:type254:cGhvbmU=\", 0.10023669487878353], [\"base64:type254:d2Vi\", 1.0]]"
+       "[[\"base64:type254:YXBw\", 0.09008669100098274], [\"base64:type254:cGhvbmU=\", 0.10011582198511863], [\"base64:type254:d2Vi\", 1.0]]"
       ]
      ]
     }
@@ -481,7 +481,7 @@
        null,
        null,
        199677,
-       89.98,
+       89.99,
        "Using where"
       ]
      ],
@@ -541,7 +541,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Inner hash join (o.country = c.`code`)  (cost=20103 rows=1.39)\n            -> Filter: (o.`channel` = 'phone')  (cost=2855 rows=199)\n                -> Table scan on o  (cost=2855 rows=199677)\n            -> Hash\n                -> Table scan on c  (cost=0.95 rows=7)\n"
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Inner hash join (o.country = c.`code`)  (cost=20103 rows=1.41)\n            -> Filter: (o.`channel` = 'phone')  (cost=2855 rows=200)\n                -> Table scan on o  (cost=2855 rows=199677)\n            -> Hash\n                -> Table scan on c  (cost=0.95 rows=7)\n"
       ]
      ]
     }
@@ -816,7 +816,7 @@
      "row_count": 1,
      "rows": [
       [
-       100275
+       97763
       ]
      ]
     },
@@ -835,7 +835,7 @@
       ],
       [
        "PRIMARY",
-       100275
+       97763
       ]
      ]
     }
@@ -1041,10 +1041,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: sum(orders_big.amount)  (cost=30120 rows=1) (actual time=47.7..47.7 rows=1 loops=1)\n    -> Filter: (orders_big.order_date >= DATE'2023-03-01')  (cost=20136 rows=99838) (actual time=0.164..35.7 rows=183858 loops=1)\n        -> Table scan on orders_big  (cost=20136 rows=199677) (actual time=0.162..22.8 rows=200000 loops=1)\n"
+       "-> Aggregate: sum(orders_big.amount)  (cost=30120 rows=1) (actual time=50.2..50.2 rows=1 loops=1)\n    -> Filter: (orders_big.order_date >= DATE'2023-03-01')  (cost=20136 rows=99838) (actual time=0.199..38.3 rows=183858 loops=1)\n        -> Table scan on orders_big  (cost=20136 rows=199677) (actual time=0.196..25.6 rows=200000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 48.72
+     "elapsed_ms": 51.33
     },
     {
      "sql": "EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big FORCE INDEX (idx_order_date) WHERE order_date >= '2023-03-01'",
@@ -1055,10 +1055,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: sum(orders_big.amount)  (cost=54911 rows=1) (actual time=250..250 rows=1 loops=1)\n    -> Index range scan on orders_big using idx_order_date over ('2023-03-01' <= order_date), with index condition: (orders_big.order_date >= DATE'2023-03-01')  (cost=44927 rows=99838) (actual time=4.25..238 rows=183858 loops=1)\n"
+       "-> Aggregate: sum(orders_big.amount)  (cost=54911 rows=1) (actual time=272..272 rows=1 loops=1)\n    -> Index range scan on orders_big using idx_order_date over ('2023-03-01' <= order_date), with index condition: (orders_big.order_date >= DATE'2023-03-01')  (cost=44927 rows=99838) (actual time=4.26..260 rows=183858 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 251.76
+     "elapsed_ms": 272.92
     }
    ],
    "measured": true
@@ -1074,10 +1074,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: sum(orders_big.amount)  (cost=20472 rows=1) (actual time=128..128 rows=1 loops=1)\n    -> Index lookup on orders_big using idx_status (status='shipped')  (cost=10489 rows=99838) (actual time=1.63..119 rows=130000 loops=1)\n"
+       "-> Aggregate: sum(orders_big.amount)  (cost=20472 rows=1) (actual time=131..131 rows=1 loops=1)\n    -> Index lookup on orders_big using idx_status (status='shipped')  (cost=10489 rows=99838) (actual time=2.37..122 rows=130000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 128.82
+     "elapsed_ms": 134.55
     },
     {
      "sql": "EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big IGNORE INDEX (idx_status) WHERE status = 'shipped'",
@@ -1088,10 +1088,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: sum(orders_big.amount)  (cost=26792 rows=1) (actual time=48.9..48.9 rows=1 loops=1)\n    -> Filter: (orders_big.`status` = 'shipped')  (cost=20136 rows=66559) (actual time=0.203..40.3 rows=130000 loops=1)\n        -> Table scan on orders_big  (cost=20136 rows=199677) (actual time=0.198..24.7 rows=200000 loops=1)\n"
+       "-> Aggregate: sum(orders_big.amount)  (cost=26792 rows=1) (actual time=78.7..78.7 rows=1 loops=1)\n    -> Filter: (orders_big.`status` = 'shipped')  (cost=20136 rows=66559) (actual time=0.188..70.1 rows=130000 loops=1)\n        -> Table scan on orders_big  (cost=20136 rows=199677) (actual time=0.183..43.3 rows=200000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 50.34
+     "elapsed_ms": 80.41
     }
    ],
    "measured": true

@@ -11,12 +11,14 @@
      "sql": "SET SESSION cte_max_recursion_depth = 300000",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
      "sql": "CREATE TABLE orders_big (\n  order_id    INT UNSIGNED  NOT NULL,\n  customer_id INT UNSIGNED  NOT NULL,\n  status      VARCHAR(10)   NOT NULL,\n  order_date  DATE          NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  country     CHAR(2)       NOT NULL,\n  PRIMARY KEY (order_id),\n  INDEX idx_cust_date (customer_id, order_date)\n) ENGINE=InnoDB",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -80,7 +82,7 @@
        null,
        null,
        null,
-       199646,
+       199616,
        29.47,
        "Using where"
       ]
@@ -102,6 +104,7 @@
      "sql": "CREATE INDEX idx_cust_date_amount ON orders_big (customer_id, order_date, amount)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": []
     },
@@ -161,10 +164,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: sum(orders_big.amount)  (cost=26000 rows=1) (actual time=35.3..35.3 rows=1 loops=1)\n    -> Filter: (orders_big.customer_id between 1 and 3000)  (cost=20117 rows=58830) (actual time=0.187..33.4 rows=30004 loops=1)\n        -> Table scan on orders_big  (cost=20117 rows=199646) (actual time=0.183..24.1 rows=200000 loops=1)\n"
+       "-> Aggregate: sum(orders_big.amount)  (cost=25997 rows=1) (actual time=32.1..32.1 rows=1 loops=1)\n    -> Filter: (orders_big.customer_id between 1 and 3000)  (cost=20114 rows=58830) (actual time=0.213..30.1 rows=30004 loops=1)\n        -> Table scan on orders_big  (cost=20114 rows=199616) (actual time=0.186..21.9 rows=200000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 36.36
+     "elapsed_ms": 33.06
     },
     {
      "sql": "EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1 AND 3000",
@@ -175,10 +178,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: sum(orders_big.amount)  (cost=18607 rows=1) (actual time=92.7..92.7 rows=1 loops=1)\n    -> Filter: (orders_big.customer_id between 1 and 3000)  (cost=12445 rows=61620) (actual time=4.12..90.7 rows=30004 loops=1)\n        -> Covering index range scan on orders_big using idx_cust_date_amount over (1 <= customer_id <= 3000)  (cost=12445 rows=61620) (actual time=4.12..88.8 rows=30004 loops=1)\n"
+       "-> Aggregate: sum(orders_big.amount)  (cost=18607 rows=1) (actual time=7.35..7.35 rows=1 loops=1)\n    -> Filter: (orders_big.customer_id between 1 and 3000)  (cost=12445 rows=61620) (actual time=0.173..5.49 rows=30004 loops=1)\n        -> Covering index range scan on orders_big using idx_cust_date_amount over (1 <= customer_id <= 3000)  (cost=12445 rows=61620) (actual time=0.172..3.72 rows=30004 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 94.05
+     "elapsed_ms": 8.61
     }
    ],
    "measured": true
@@ -189,6 +192,7 @@
      "sql": "CREATE TABLE customers_big (\n  customer_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  email       VARCHAR(100) NOT NULL\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -255,6 +259,7 @@
      "sql": "CREATE INDEX idx_email_16 ON customers_big (email(16))",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": []
     },
@@ -348,7 +353,7 @@
        null,
        null,
        null,
-       100029,
+       99931,
        100.0,
        "Using filesort"
       ]
@@ -395,7 +400,7 @@
        "idx_cust_date",
        "7",
        null,
-       199646,
+       199616,
        100.0,
        "Using where; Using index"
       ]
@@ -417,6 +422,7 @@
      "sql": "CREATE INDEX idx_order_year ON orders_big ((YEAR(order_date)))",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": []
     },
@@ -468,7 +474,7 @@
        "idx_order_year",
        "5",
        "const",
-       99868,
+       99899,
        100.0,
        null
       ]
@@ -532,7 +538,7 @@
        "idx_cust_date",
        "7",
        null,
-       199737,
+       199798,
        100.0,
        "Using where; Using index"
       ]
@@ -554,6 +560,7 @@
      "sql": "CREATE TABLE products_json (\n  product_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  attrs      JSON NOT NULL,\n  INDEX idx_sku ((CAST(attrs->>'$.sku' AS CHAR(20)) COLLATE utf8mb4_bin))\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -676,6 +683,7 @@
      "sql": "CREATE INDEX idx_country_amount ON orders_big (country, amount)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": []
     },
@@ -708,7 +716,7 @@
        "idx_country_amount",
        "13",
        null,
-       199737,
+       199798,
        100.0,
        "Using index; Using filesort"
       ]
@@ -730,6 +738,7 @@
      "sql": "CREATE INDEX idx_country_amount_desc ON orders_big (country ASC, amount DESC)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": []
     },
@@ -809,7 +818,7 @@
        null,
        null,
        null,
-       29970,
+       29061,
        100.0,
        "Using where"
       ]
@@ -831,6 +840,7 @@
      "sql": "ALTER TABLE products_json ADD INDEX idx_tags ((CAST(attrs->'$.tags' AS CHAR(20) ARRAY)))",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": []
     },
@@ -1092,7 +1102,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: sum(orders_big.amount)  (cost=18607 rows=1) (actual time=69.1..69.1 rows=1 loops=1)\n    -> Filter: (orders_big.customer_id between 1 and 3000)  (cost=12445 rows=61620) (actual time=4.21..67 rows=30004 loops=1)\n        -> Covering index range scan on orders_big using idx_cust_date_amount over (1 <= customer_id <= 3000)  (cost=12445 rows=61620) (actual time=4.21..64 rows=30004 loops=1)\n"
+       "-> Aggregate: sum(orders_big.amount)  (cost=18607 rows=1) (actual time=7.2..7.2 rows=1 loops=1)\n    -> Filter: (orders_big.customer_id between 1 and 3000)  (cost=12445 rows=61620) (actual time=0.195..5.34 rows=30004 loops=1)\n        -> Covering index range scan on orders_big using idx_cust_date_amount over (1 <= customer_id <= 3000)  (cost=12445 rows=61620) (actual time=0.194..3.64 rows=30004 loops=1)\n"
       ]
      ]
     }
@@ -1105,6 +1115,7 @@
      "sql": "CREATE TABLE urls (id INT PRIMARY KEY, url VARCHAR(300) NOT NULL, UNIQUE KEY uq_url_prefix (url(20)))",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -1138,6 +1149,7 @@
      "sql": "CREATE TABLE products_json_nocoll (\n  product_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  attrs      JSON NOT NULL,\n  INDEX idx_sku_nocoll ((CAST(attrs->>'$.sku' AS CHAR(20))))\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -1196,7 +1208,7 @@
        null,
        null,
        null,
-       30024,
+       30015,
        100.0,
        "Using where"
       ]

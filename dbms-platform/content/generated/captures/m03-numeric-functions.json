@@ -1,0 +1,747 @@
+{
+ "doc": "m03-numeric-functions",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:751949491363": {
+   "statements": [
+    {
+     "sql": "SELECT ROUND(1299.456, 2)   AS round_2,\n       TRUNCATE(1299.456, 2) AS truncate_2,\n       ROUND(1299.456)      AS round_0,\n       ROUND(1299.456, -2)  AS round_hundreds,\n       TRUNCATE(1299.456, -2) AS truncate_hundreds,\n       ROUND(-1.5)          AS round_neg,\n       TRUNCATE(-1.5, 0)    AS truncate_neg",
+     "status": "ok",
+     "columns": [
+      "round_2",
+      "truncate_2",
+      "round_0",
+      "round_hundreds",
+      "truncate_hundreds",
+      "round_neg",
+      "truncate_neg"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "1299.46",
+       "1299.45",
+       "1299",
+       "1300",
+       "1200",
+       "-2",
+       "-1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:cfb1af0fe6f0": {
+   "statements": [
+    {
+     "sql": "SELECT ROUND(2.5)        AS dec_2_5,\n       ROUND(2.5e0)      AS dbl_2_5,\n       ROUND(3.5e0)      AS dbl_3_5,\n       ROUND(-2.5)       AS dec_neg_2_5,\n       ROUND(-2.5e0)     AS dbl_neg_2_5,\n       ROUND(1.005, 2)   AS dec_1_005,\n       ROUND(1.005e0, 2) AS dbl_1_005",
+     "status": "ok",
+     "columns": [
+      "dec_2_5",
+      "dbl_2_5",
+      "dbl_3_5",
+      "dec_neg_2_5",
+      "dbl_neg_2_5",
+      "dec_1_005",
+      "dbl_1_005"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "3",
+       2.0,
+       4.0,
+       "-3",
+       -2.0,
+       "1.01",
+       1.0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:708fb95d4091": {
+   "statements": [
+    {
+     "sql": "SELECT CEIL(1.2)  AS ceil_pos,  FLOOR(1.8)  AS floor_pos,\n       CEIL(-1.5) AS ceil_neg,  FLOOR(-1.5) AS floor_neg,\n       TRUNCATE(-1.5, 0) AS trunc_neg,\n       -7 DIV 2   AS div_neg,\n       FLOOR(-7 / 2) AS floor_div_neg",
+     "status": "ok",
+     "columns": [
+      "ceil_pos",
+      "floor_pos",
+      "ceil_neg",
+      "floor_neg",
+      "trunc_neg",
+      "div_neg",
+      "floor_div_neg"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2,
+       1,
+       -1,
+       -2,
+       "-1",
+       -3,
+       -4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:a0b05f8c6f1d": {
+   "statements": [
+    {
+     "sql": "SELECT 7 DIV 2   AS div_7_2,\n       7 MOD 3   AS mod_7_3,\n       -7 MOD 3  AS mod_neg_7_3,\n       7 % -3    AS mod_7_neg3,\n       MOD(7.5, 2) AS mod_decimal,\n       135 DIV 60 AS hours,\n       135 MOD 60 AS minutes",
+     "status": "ok",
+     "columns": [
+      "div_7_2",
+      "mod_7_3",
+      "mod_neg_7_3",
+      "mod_7_neg3",
+      "mod_decimal",
+      "hours",
+      "minutes"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3,
+       1,
+       -1,
+       1,
+       "1.5",
+       2,
+       15
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:30dc791b0684": {
+   "statements": [
+    {
+     "sql": "SELECT ABS(-5)        AS abs_val,\n       SIGN(-3)       AS sign_val,\n       POWER(2, 10)   AS two_pow_10,\n       SQRT(16)       AS sqrt_16,\n       SQRT(-1)       AS sqrt_neg,\n       LN(0)          AS ln_zero,\n       LOG10(1000)    AS log10_1000,\n       LOG(2, 8)      AS log2_8,\n       GREATEST(3, 7, 5)    AS greatest_val,\n       GREATEST(3, NULL, 5) AS greatest_null",
+     "status": "ok",
+     "columns": [
+      "abs_val",
+      "sign_val",
+      "two_pow_10",
+      "sqrt_16",
+      "sqrt_neg",
+      "ln_zero",
+      "log10_1000",
+      "log2_8",
+      "greatest_val",
+      "greatest_null"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       -1,
+       1024.0,
+       4.0,
+       null,
+       null,
+       3.0,
+       3.0,
+       7,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 3020,
+       "message": "Invalid argument for logarithm"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:3e73f1f4cf11": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, product_id, quantity, unit_price,\n       quantity * unit_price                       AS net,\n       quantity * unit_price * 0.0825              AS tax_exact,\n       ROUND(quantity * unit_price * 0.0825, 2)    AS tax_rounded,\n       ROUND(quantity * unit_price * 1.0825, 2)    AS gross_rounded\nFROM order_items\nWHERE order_id = 2\nORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "product_id",
+      "quantity",
+      "unit_price",
+      "net",
+      "tax_exact",
+      "tax_rounded",
+      "gross_rounded"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       2,
+       9,
+       1,
+       "39.99",
+       "39.99",
+       "3.299175",
+       "3.30",
+       "43.29"
+      ],
+      [
+       2,
+       10,
+       1,
+       "224.99",
+       "224.99",
+       "18.561675",
+       "18.56",
+       "243.55"
+      ],
+      [
+       2,
+       12,
+       1,
+       "129.99",
+       "129.99",
+       "10.724175",
+       "10.72",
+       "140.71"
+      ],
+      [
+       2,
+       14,
+       3,
+       "499.00",
+       "1497.00",
+       "123.502500",
+       "123.50",
+       "1620.50"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:a168159cca22": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name, stock_qty,\n       CEIL(stock_qty / 12)  AS boxes_needed,\n       stock_qty DIV 12      AS full_boxes,\n       stock_qty MOD 12      AS loose_units\nFROM products\nWHERE product_id IN (5, 9, 13, 25)\nORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "stock_qty",
+      "boxes_needed",
+      "full_boxes",
+      "loose_units"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       5,
+       "Wireless Mouse",
+       118,
+       10,
+       9,
+       10
+      ],
+      [
+       9,
+       "Laptop Stand",
+       11,
+       1,
+       0,
+       11
+      ],
+      [
+       13,
+       "Studio Microphone",
+       0,
+       0,
+       0,
+       0
+      ],
+      [
+       25,
+       "Yoga Mat",
+       248,
+       21,
+       20,
+       8
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:9e5c20da9a92": {
+   "statements": [
+    {
+     "sql": "SELECT FLOOR(price / 100) * 100        AS bucket_from,\n       COUNT(*)                         AS products,\n       MIN(price)                       AS lowest,\n       MAX(price)                       AS highest\nFROM products\nGROUP BY bucket_from\nORDER BY bucket_from",
+     "status": "ok",
+     "columns": [
+      "bucket_from",
+      "products",
+      "lowest",
+      "highest"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       0,
+       19,
+       "18.99",
+       "99.00"
+      ],
+      [
+       100,
+       3,
+       "129.00",
+       "149.00"
+      ],
+      [
+       200,
+       3,
+       "249.00",
+       "299.00"
+      ],
+      [
+       300,
+       1,
+       "379.00",
+       "379.00"
+      ],
+      [
+       400,
+       1,
+       "499.00",
+       "499.00"
+      ],
+      [
+       900,
+       1,
+       "999.00",
+       "999.00"
+      ],
+      [
+       1200,
+       1,
+       "1299.00",
+       "1299.00"
+      ],
+      [
+       1700,
+       1,
+       "1799.00",
+       "1799.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:9cd5ca833d42": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name, price, cost,\n       price - cost                                     AS margin,\n       ROUND((price - cost) / NULLIF(price, 0) * 100, 1) AS margin_pct\nFROM products\nWHERE product_id IN (1, 5, 17, 29)\nORDER BY margin_pct DESC",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price",
+      "cost",
+      "margin",
+      "margin_pct"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       17,
+       "Single-Origin Beans 1kg",
+       "34.50",
+       "17.51",
+       "16.99",
+       "49.2"
+      ],
+      [
+       29,
+       "Gift Card $50",
+       "50.00",
+       "31.26",
+       "18.74",
+       "37.5"
+      ],
+      [
+       1,
+       "Ultrabook 14 Pro",
+       "1299.00",
+       "841.65",
+       "457.35",
+       "35.2"
+      ],
+      [
+       5,
+       "Wireless Mouse",
+       "29.99",
+       "21.59",
+       "8.40",
+       "28.0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:6322c93b4c58": {
+   "statements": [
+    {
+     "sql": "SELECT 1 / 3           AS one_third,\n       1 / 3 * 3       AS times_three,\n       1 / 3 + 1 / 3 + 1 / 3 AS sum_of_thirds,\n       1e0 / 3         AS double_third,\n       0.1 + 0.2 = 0.3       AS decimal_equal,\n       0.1e0 + 0.2e0 = 0.3e0 AS double_equal",
+     "status": "ok",
+     "columns": [
+      "one_third",
+      "times_three",
+      "sum_of_thirds",
+      "double_third",
+      "decimal_equal",
+      "double_equal"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "0.3333",
+       "1.0000",
+       "1.0000",
+       0.3333333333333333,
+       1,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:0d4195eb0401": {
+   "volatile": true,
+   "statements": [
+    {
+     "sql": "SELECT customer_id, first_name, RAND() AS r\nFROM customers\nORDER BY RAND()\nLIMIT 3",
+     "status": "ok"
+    }
+   ]
+  },
+  "w1.0:7fed0d5c7248": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, product_id, quantity, unit_price\nFROM order_items WHERE order_id = 2 AND product_id = 14",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "product_id",
+      "quantity",
+      "unit_price"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2,
+       14,
+       3,
+       "499.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:3be003a257e0": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE expr_types AS\nSELECT quantity * unit_price                         AS step_a,\n       quantity * unit_price * 1.0825                AS step_b,\n       ROUND(quantity * unit_price * 1.0825, 2)      AS step_c,\n       quantity * unit_price * 1.0825e0              AS with_double\nFROM order_items WHERE order_id = 2 AND product_id = 14",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COLUMN_NAME, COLUMN_TYPE FROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'expr_types' ORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "COLUMN_TYPE"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "step_a",
+       "decimal(20,2)"
+      ],
+      [
+       "step_b",
+       "decimal(25,6)"
+      ],
+      [
+       "step_c",
+       "decimal(22,2)"
+      ],
+      [
+       "with_double",
+       "double"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:d58399a3c88a": {
+   "statements": [
+    {
+     "sql": "SELECT step_a, step_b, step_c, with_double FROM expr_types",
+     "status": "ok",
+     "columns": [
+      "step_a",
+      "step_b",
+      "step_c",
+      "with_double"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "1497.00",
+       "1620.502500",
+       "1620.50",
+       1620.5025
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:0d974da2a0c9": {
+   "statements": [
+    {
+     "sql": "SELECT ROUND(quantity * unit_price * 1.0825, 2)   AS exact_rounded,\n       ROUND(quantity * unit_price * 1.0825e0, 2) AS double_rounded\nFROM order_items WHERE order_id = 2 AND product_id = 14",
+     "status": "ok",
+     "columns": [
+      "exact_rounded",
+      "double_rounded"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "1620.50",
+       1620.5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:68f13b471b27": {
+   "statements": [
+    {
+     "sql": "SELECT 10 / 0     AS divide,\n       10 DIV 0   AS int_divide,\n       10 MOD 0   AS remainder,\n       10 / NULLIF(0, 0) AS guarded",
+     "status": "ok",
+     "columns": [
+      "divide",
+      "int_divide",
+      "remainder",
+      "guarded"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       null,
+       null,
+       null,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1365,
+       "message": "Division by 0"
+      },
+      {
+       "level": "Warning",
+       "code": 1365,
+       "message": "Division by 0"
+      },
+      {
+       "level": "Warning",
+       "code": 1365,
+       "message": "Division by 0"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:2e20947fe50c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id FROM orders WHERE order_id * 2 = 84",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: ((orders.order_id * 2) = 84)  (cost=8.25 rows=80)\n    -> Index scan on orders using idx_orders_customer  (cost=8.25 rows=80)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:865868515787": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id FROM orders WHERE order_id = 84 / 2",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Rows fetched before execution  (cost=0..0 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:5aad2d018505": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, product_id, quantity - 5 AS shortfall\nFROM order_items\nORDER BY quantity\nLIMIT 3",
+     "status": "error",
+     "columns": [
+      "order_id",
+      "product_id",
+      "shortfall"
+     ],
+     "rows": [],
+     "error": {
+      "code": 1690,
+      "message": "BIGINT UNSIGNED value is out of range in '(`lab_135e9cadfa341b999e02`.`order_items`.`quantity` - 5)'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s16:578e31c33301": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, product_id, quantity, CAST(quantity AS SIGNED) - 5 AS shortfall\nFROM order_items\nORDER BY quantity, order_id, product_id\nLIMIT 3",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "product_id",
+      "quantity",
+      "shortfall"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       2,
+       9,
+       1,
+       -4
+      ],
+      [
+       2,
+       10,
+       1,
+       -4
+      ],
+      [
+       2,
+       12,
+       1,
+       -4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:bda3b770f549": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE unit_prices (\n  product_id INT PRIMARY KEY,\n  avg_unit_price DECIMAL(10,2) NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s18:7bc53ff792bd": {
+   "statements": [
+    {
+     "sql": "INSERT INTO unit_prices (product_id, avg_unit_price)\nSELECT p.product_id, SUM(oi.quantity * oi.unit_price) / 0\nFROM products p JOIN order_items oi ON oi.product_id = p.product_id\nWHERE p.product_id = 1\nGROUP BY p.product_id",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1365,
+      "message": "Division by 0"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s19:96f3022d0f17": {
+   "statements": [
+    {
+     "sql": "INSERT INTO unit_prices (product_id, avg_unit_price)\nSELECT p.product_id,\n       SUM(oi.quantity * oi.unit_price) / NULLIF(SUM(oi.quantity), 0)\nFROM products p LEFT JOIN order_items oi ON oi.product_id = p.product_id\nWHERE p.product_id IN (1, 4)\nGROUP BY p.product_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 1",
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1265,
+       "message": "Data truncated for column 'avg_unit_price' at row 1"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT * FROM unit_prices ORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "avg_unit_price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "1278.49"
+      ],
+      [
+       4,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}
