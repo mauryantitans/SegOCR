@@ -1,0 +1,1528 @@
+{
+ "doc": "m04-value-functions",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:c1ead231b8ec": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, order_id, DATE(order_date) AS order_day,\n       DATE(LAG(order_date)  OVER w) AS prev_order_day,\n       DATE(LEAD(order_date) OVER w) AS next_order_day,\n       DATEDIFF(order_date, LAG(order_date) OVER w) AS days_since_prev\nFROM orders\nWHERE customer_id IN (10, 18)\nWINDOW w AS (PARTITION BY customer_id ORDER BY order_date, order_id)\nORDER BY customer_id, order_date, order_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "order_id",
+      "order_day",
+      "prev_order_day",
+      "next_order_day",
+      "days_since_prev"
+     ],
+     "row_count": 13,
+     "rows": [
+      [
+       10,
+       78,
+       "2024-04-18",
+       null,
+       "2024-04-23",
+       null
+      ],
+      [
+       10,
+       32,
+       "2024-04-23",
+       "2024-04-18",
+       "2024-05-26",
+       5
+      ],
+      [
+       10,
+       15,
+       "2024-05-26",
+       "2024-04-23",
+       "2024-06-22",
+       33
+      ],
+      [
+       10,
+       74,
+       "2024-06-22",
+       "2024-05-26",
+       "2024-11-09",
+       27
+      ],
+      [
+       10,
+       4,
+       "2024-11-09",
+       "2024-06-22",
+       null,
+       140
+      ],
+      [
+       18,
+       20,
+       "2024-02-11",
+       null,
+       "2024-03-06",
+       null
+      ],
+      [
+       18,
+       14,
+       "2024-03-06",
+       "2024-02-11",
+       "2024-03-15",
+       24
+      ],
+      [
+       18,
+       47,
+       "2024-03-15",
+       "2024-03-06",
+       "2024-03-16",
+       9
+      ],
+      [
+       18,
+       7,
+       "2024-03-16",
+       "2024-03-15",
+       "2024-04-19",
+       1
+      ],
+      [
+       18,
+       3,
+       "2024-04-19",
+       "2024-03-16",
+       "2024-07-07",
+       34
+      ],
+      [
+       18,
+       73,
+       "2024-07-07",
+       "2024-04-19",
+       "2024-08-26",
+       79
+      ],
+      [
+       18,
+       21,
+       "2024-08-26",
+       "2024-07-07",
+       "2024-11-04",
+       50
+      ],
+      [
+       18,
+       22,
+       "2024-11-04",
+       "2024-08-26",
+       null,
+       70
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:34a1ab1006e8": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, DATE(order_date) AS order_day,\n       LAG(order_id, 1)    OVER w AS prev_order,\n       LAG(order_id, 2)    OVER w AS two_back,\n       LAG(order_id, 1, 0) OVER w AS prev_or_zero\nFROM orders\nWHERE customer_id = 18\nWINDOW w AS (ORDER BY order_date, order_id)\nORDER BY order_date, order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_day",
+      "prev_order",
+      "two_back",
+      "prev_or_zero"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       20,
+       "2024-02-11",
+       null,
+       null,
+       0
+      ],
+      [
+       14,
+       "2024-03-06",
+       20,
+       null,
+       20
+      ],
+      [
+       47,
+       "2024-03-15",
+       14,
+       20,
+       14
+      ],
+      [
+       7,
+       "2024-03-16",
+       47,
+       14,
+       47
+      ],
+      [
+       3,
+       "2024-04-19",
+       7,
+       47,
+       7
+      ],
+      [
+       73,
+       "2024-07-07",
+       3,
+       7,
+       3
+      ],
+      [
+       21,
+       "2024-08-26",
+       73,
+       3,
+       73
+      ],
+      [
+       22,
+       "2024-11-04",
+       21,
+       73,
+       21
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:826e13d05b09": {
+   "statements": [
+    {
+     "sql": "SELECT category_id, name, price,\n       FIRST_VALUE(name)  OVER w AS cheapest_in_category,\n       price - FIRST_VALUE(price) OVER w AS above_cheapest\nFROM products\nWHERE category_id IN (5, 7)\nWINDOW w AS (PARTITION BY category_id ORDER BY price, product_id)\nORDER BY category_id, price, product_id",
+     "status": "ok",
+     "columns": [
+      "category_id",
+      "name",
+      "price",
+      "cheapest_in_category",
+      "above_cheapest"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       5,
+       "Bluetooth Speaker",
+       "79.99",
+       "Bluetooth Speaker",
+       "0.00"
+      ],
+      [
+       5,
+       "Wireless Earbuds",
+       "129.99",
+       "Bluetooth Speaker",
+       "50.00"
+      ],
+      [
+       5,
+       "Studio Microphone",
+       "149.00",
+       "Bluetooth Speaker",
+       "69.01"
+      ],
+      [
+       5,
+       "Noise-Cancelling Headphones",
+       "249.99",
+       "Bluetooth Speaker",
+       "170.00"
+      ],
+      [
+       7,
+       "Single-Origin Beans 1kg",
+       "34.50",
+       "Single-Origin Beans 1kg",
+       "0.00"
+      ],
+      [
+       7,
+       "Pour-Over Kettle",
+       "59.00",
+       "Single-Origin Beans 1kg",
+       "24.50"
+      ],
+      [
+       7,
+       "Burr Coffee Grinder",
+       "129.00",
+       "Single-Origin Beans 1kg",
+       "94.50"
+      ],
+      [
+       7,
+       "Espresso Machine",
+       "499.00",
+       "Single-Origin Beans 1kg",
+       "464.50"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:5714321b0523": {
+   "statements": [
+    {
+     "sql": "SELECT MONTH(o.order_date)                              AS month_no,\n       SUM(oi.quantity * oi.unit_price)                 AS revenue,\n       LAG(SUM(oi.quantity * oi.unit_price)) OVER (ORDER BY MONTH(o.order_date)) AS prev_revenue,\n       ROUND(100 * (SUM(oi.quantity * oi.unit_price)\n                    - LAG(SUM(oi.quantity * oi.unit_price)) OVER (ORDER BY MONTH(o.order_date)))\n             / LAG(SUM(oi.quantity * oi.unit_price)) OVER (ORDER BY MONTH(o.order_date)), 1) AS pct_change\nFROM orders o\nJOIN order_items oi ON oi.order_id = o.order_id\nWHERE o.status NOT IN ('cancelled', 'refunded')\nGROUP BY MONTH(o.order_date)\nORDER BY month_no",
+     "status": "ok",
+     "columns": [
+      "month_no",
+      "revenue",
+      "prev_revenue",
+      "pct_change"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       1,
+       "1002.44",
+       null,
+       null
+      ],
+      [
+       2,
+       "6484.22",
+       "1002.44",
+       "546.8"
+      ],
+      [
+       3,
+       "1171.84",
+       "6484.22",
+       "-81.9"
+      ],
+      [
+       4,
+       "2023.59",
+       "1171.84",
+       "72.7"
+      ],
+      [
+       5,
+       "3278.94",
+       "2023.59",
+       "62.0"
+      ],
+      [
+       6,
+       "14669.33",
+       "3278.94",
+       "347.4"
+      ],
+      [
+       7,
+       "9996.14",
+       "14669.33",
+       "-31.9"
+      ],
+      [
+       8,
+       "4835.01",
+       "9996.14",
+       "-51.6"
+      ],
+      [
+       9,
+       "1073.95",
+       "4835.01",
+       "-77.8"
+      ],
+      [
+       10,
+       "3222.47",
+       "1073.95",
+       "200.1"
+      ],
+      [
+       11,
+       "11303.22",
+       "3222.47",
+       "250.8"
+      ],
+      [
+       12,
+       "4311.91",
+       "11303.22",
+       "-61.9"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:260fa05eae9b": {
+   "statements": [
+    {
+     "sql": "WITH monthly AS (\n  SELECT MONTH(o.order_date) AS month_no,\n         SUM(oi.quantity * oi.unit_price) AS revenue\n  FROM orders o\n  JOIN order_items oi ON oi.order_id = o.order_id\n  WHERE o.status NOT IN ('cancelled', 'refunded')\n  GROUP BY MONTH(o.order_date)\n)\nSELECT month_no, revenue,\n       LAG(revenue) OVER (ORDER BY month_no) AS prev_revenue,\n       ROUND(100 * (revenue / LAG(revenue) OVER (ORDER BY month_no) - 1), 1) AS pct_change\nFROM monthly\nORDER BY month_no",
+     "status": "ok",
+     "columns": [
+      "month_no",
+      "revenue",
+      "prev_revenue",
+      "pct_change"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       1,
+       "1002.44",
+       null,
+       null
+      ],
+      [
+       2,
+       "6484.22",
+       "1002.44",
+       "546.8"
+      ],
+      [
+       3,
+       "1171.84",
+       "6484.22",
+       "-81.9"
+      ],
+      [
+       4,
+       "2023.59",
+       "1171.84",
+       "72.7"
+      ],
+      [
+       5,
+       "3278.94",
+       "2023.59",
+       "62.0"
+      ],
+      [
+       6,
+       "14669.33",
+       "3278.94",
+       "347.4"
+      ],
+      [
+       7,
+       "9996.14",
+       "14669.33",
+       "-31.9"
+      ],
+      [
+       8,
+       "4835.01",
+       "9996.14",
+       "-51.6"
+      ],
+      [
+       9,
+       "1073.95",
+       "4835.01",
+       "-77.8"
+      ],
+      [
+       10,
+       "3222.47",
+       "1073.95",
+       "200.1"
+      ],
+      [
+       11,
+       "11303.22",
+       "3222.47",
+       "250.8"
+      ],
+      [
+       12,
+       "4311.91",
+       "11303.22",
+       "-61.9"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:54d768d85985": {
+   "statements": [
+    {
+     "sql": "SELECT category_id, name, price,\n       LAST_VALUE(name) OVER (PARTITION BY category_id ORDER BY price, product_id) AS last_default_frame,\n       LAST_VALUE(name) OVER (PARTITION BY category_id ORDER BY price, product_id\n                              ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_full_frame\nFROM products\nWHERE category_id IN (5, 7)\nORDER BY category_id, price, product_id",
+     "status": "ok",
+     "columns": [
+      "category_id",
+      "name",
+      "price",
+      "last_default_frame",
+      "last_full_frame"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       5,
+       "Bluetooth Speaker",
+       "79.99",
+       "Bluetooth Speaker",
+       "Noise-Cancelling Headphones"
+      ],
+      [
+       5,
+       "Wireless Earbuds",
+       "129.99",
+       "Wireless Earbuds",
+       "Noise-Cancelling Headphones"
+      ],
+      [
+       5,
+       "Studio Microphone",
+       "149.00",
+       "Studio Microphone",
+       "Noise-Cancelling Headphones"
+      ],
+      [
+       5,
+       "Noise-Cancelling Headphones",
+       "249.99",
+       "Noise-Cancelling Headphones",
+       "Noise-Cancelling Headphones"
+      ],
+      [
+       7,
+       "Single-Origin Beans 1kg",
+       "34.50",
+       "Single-Origin Beans 1kg",
+       "Espresso Machine"
+      ],
+      [
+       7,
+       "Pour-Over Kettle",
+       "59.00",
+       "Pour-Over Kettle",
+       "Espresso Machine"
+      ],
+      [
+       7,
+       "Burr Coffee Grinder",
+       "129.00",
+       "Burr Coffee Grinder",
+       "Espresso Machine"
+      ],
+      [
+       7,
+       "Espresso Machine",
+       "499.00",
+       "Espresso Machine",
+       "Espresso Machine"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:3705e7bf9621": {
+   "statements": [
+    {
+     "sql": "SELECT category_id, name, price,\n       NTH_VALUE(name, 2) OVER (PARTITION BY category_id ORDER BY price DESC, product_id\n                                ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS runner_up,\n       NTH_VALUE(name, 2) OVER (PARTITION BY category_id ORDER BY price DESC, product_id) AS runner_up_default\nFROM products\nWHERE category_id IN (5, 7)\nORDER BY category_id, price DESC, product_id",
+     "status": "ok",
+     "columns": [
+      "category_id",
+      "name",
+      "price",
+      "runner_up",
+      "runner_up_default"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       5,
+       "Noise-Cancelling Headphones",
+       "249.99",
+       "Studio Microphone",
+       null
+      ],
+      [
+       5,
+       "Studio Microphone",
+       "149.00",
+       "Studio Microphone",
+       "Studio Microphone"
+      ],
+      [
+       5,
+       "Wireless Earbuds",
+       "129.99",
+       "Studio Microphone",
+       "Studio Microphone"
+      ],
+      [
+       5,
+       "Bluetooth Speaker",
+       "79.99",
+       "Studio Microphone",
+       "Studio Microphone"
+      ],
+      [
+       7,
+       "Espresso Machine",
+       "499.00",
+       "Burr Coffee Grinder",
+       null
+      ],
+      [
+       7,
+       "Burr Coffee Grinder",
+       "129.00",
+       "Burr Coffee Grinder",
+       "Burr Coffee Grinder"
+      ],
+      [
+       7,
+       "Pour-Over Kettle",
+       "59.00",
+       "Burr Coffee Grinder",
+       "Burr Coffee Grinder"
+      ],
+      [
+       7,
+       "Single-Origin Beans 1kg",
+       "34.50",
+       "Burr Coffee Grinder",
+       "Burr Coffee Grinder"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:bcc5a7eb727e": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, order_id, DATE(order_date) AS order_day,\n       ROW_NUMBER() OVER w                       AS order_seq,\n       DATE(FIRST_VALUE(order_date) OVER w)      AS first_order_day,\n       DATEDIFF(order_date, FIRST_VALUE(order_date) OVER w) AS days_since_first,\n       COALESCE(DATEDIFF(order_date, LAG(order_date) OVER w), 0) AS gap_days\nFROM orders\nWHERE customer_id IN (14, 19)\nWINDOW w AS (PARTITION BY customer_id ORDER BY order_date, order_id)\nORDER BY customer_id, order_seq",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "order_id",
+      "order_day",
+      "order_seq",
+      "first_order_day",
+      "days_since_first",
+      "gap_days"
+     ],
+     "row_count": 14,
+     "rows": [
+      [
+       14,
+       44,
+       "2024-01-28",
+       1,
+       "2024-01-28",
+       0,
+       0
+      ],
+      [
+       14,
+       71,
+       "2024-02-19",
+       2,
+       "2024-01-28",
+       22,
+       22
+      ],
+      [
+       14,
+       12,
+       "2024-11-06",
+       3,
+       "2024-01-28",
+       283,
+       261
+      ],
+      [
+       14,
+       42,
+       "2024-11-21",
+       4,
+       "2024-01-28",
+       298,
+       15
+      ],
+      [
+       14,
+       28,
+       "2024-12-04",
+       5,
+       "2024-01-28",
+       311,
+       13
+      ],
+      [
+       14,
+       9,
+       "2024-12-08",
+       6,
+       "2024-01-28",
+       315,
+       4
+      ],
+      [
+       19,
+       66,
+       "2024-06-14",
+       1,
+       "2024-06-14",
+       0,
+       0
+      ],
+      [
+       19,
+       60,
+       "2024-07-14",
+       2,
+       "2024-06-14",
+       30,
+       30
+      ],
+      [
+       19,
+       49,
+       "2024-07-15",
+       3,
+       "2024-06-14",
+       31,
+       1
+      ],
+      [
+       19,
+       80,
+       "2024-08-07",
+       4,
+       "2024-06-14",
+       54,
+       23
+      ],
+      [
+       19,
+       77,
+       "2024-09-06",
+       5,
+       "2024-06-14",
+       84,
+       30
+      ],
+      [
+       19,
+       2,
+       "2024-10-16",
+       6,
+       "2024-06-14",
+       124,
+       40
+      ],
+      [
+       19,
+       75,
+       "2024-11-01",
+       7,
+       "2024-06-14",
+       140,
+       16
+      ],
+      [
+       19,
+       48,
+       "2024-12-03",
+       8,
+       "2024-06-14",
+       172,
+       32
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:8099321471c7": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, order_id, status,\n       LAG(status) OVER w AS prev_status,\n       CASE WHEN LAG(status) OVER w IS NULL THEN 'first order'\n            WHEN LAG(status) OVER w <> status THEN 'changed'\n            ELSE 'same' END AS vs_previous\nFROM orders\nWHERE customer_id = 19\nWINDOW w AS (PARTITION BY customer_id ORDER BY order_date, order_id)\nORDER BY order_date, order_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "order_id",
+      "status",
+      "prev_status",
+      "vs_previous"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       19,
+       66,
+       "delivered",
+       null,
+       "first order"
+      ],
+      [
+       19,
+       60,
+       "delivered",
+       "delivered",
+       "same"
+      ],
+      [
+       19,
+       49,
+       "shipped",
+       "delivered",
+       "changed"
+      ],
+      [
+       19,
+       80,
+       "shipped",
+       "shipped",
+       "same"
+      ],
+      [
+       19,
+       77,
+       "cancelled",
+       "shipped",
+       "changed"
+      ],
+      [
+       19,
+       2,
+       "delivered",
+       "cancelled",
+       "changed"
+      ],
+      [
+       19,
+       75,
+       "delivered",
+       "delivered",
+       "same"
+      ],
+      [
+       19,
+       48,
+       "delivered",
+       "delivered",
+       "same"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:407060819546": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE page_views (\n  view_id   INT PRIMARY KEY,\n  user_id   INT NOT NULL,\n  viewed_at DATETIME NOT NULL,\n  page      VARCHAR(30) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO page_views VALUES\n  (1, 7, '2024-11-05 09:00:00', '/home'),\n  (2, 7, '2024-11-05 09:04:00', '/laptops'),\n  (3, 7, '2024-11-05 09:20:00', '/laptops/1'),\n  (4, 7, '2024-11-05 10:15:00', '/home'),\n  (5, 7, '2024-11-05 10:16:00', '/cart'),\n  (6, 7, '2024-11-05 18:40:00', '/home'),\n  (7, 9, '2024-11-05 09:10:00', '/home'),\n  (8, 9, '2024-11-05 09:55:00', '/coffee'),\n  (9, 9, '2024-11-05 10:05:00', '/coffee/14')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 9,
+     "info": "Records: 9  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s12:998680edfbe2": {
+   "statements": [
+    {
+     "sql": "WITH marked AS (\n  SELECT view_id, user_id, viewed_at, page,\n         CASE WHEN LAG(viewed_at) OVER w IS NULL\n                OR TIMESTAMPDIFF(MINUTE, LAG(viewed_at) OVER w, viewed_at) > 30\n              THEN 1 ELSE 0 END AS new_session\n  FROM page_views\n  WINDOW w AS (PARTITION BY user_id ORDER BY viewed_at, view_id)\n)\nSELECT user_id, view_id, viewed_at, page, new_session,\n       SUM(new_session) OVER (PARTITION BY user_id ORDER BY viewed_at, view_id\n                              ROWS UNBOUNDED PRECEDING) AS session_no\nFROM marked\nORDER BY user_id, viewed_at, view_id",
+     "status": "ok",
+     "columns": [
+      "user_id",
+      "view_id",
+      "viewed_at",
+      "page",
+      "new_session",
+      "session_no"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       7,
+       1,
+       "2024-11-05 09:00:00",
+       "/home",
+       1,
+       "1"
+      ],
+      [
+       7,
+       2,
+       "2024-11-05 09:04:00",
+       "/laptops",
+       0,
+       "1"
+      ],
+      [
+       7,
+       3,
+       "2024-11-05 09:20:00",
+       "/laptops/1",
+       0,
+       "1"
+      ],
+      [
+       7,
+       4,
+       "2024-11-05 10:15:00",
+       "/home",
+       1,
+       "2"
+      ],
+      [
+       7,
+       5,
+       "2024-11-05 10:16:00",
+       "/cart",
+       0,
+       "2"
+      ],
+      [
+       7,
+       6,
+       "2024-11-05 18:40:00",
+       "/home",
+       1,
+       "3"
+      ],
+      [
+       9,
+       7,
+       "2024-11-05 09:10:00",
+       "/home",
+       1,
+       "1"
+      ],
+      [
+       9,
+       8,
+       "2024-11-05 09:55:00",
+       "/coffee",
+       1,
+       "2"
+      ],
+      [
+       9,
+       9,
+       "2024-11-05 10:05:00",
+       "/coffee/14",
+       0,
+       "2"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:6b586dc3059c": {
+   "statements": [
+    {
+     "sql": "WITH marked AS (\n  SELECT user_id, viewed_at,\n         CASE WHEN LAG(viewed_at) OVER w IS NULL\n                OR TIMESTAMPDIFF(MINUTE, LAG(viewed_at) OVER w, viewed_at) > 30\n              THEN 1 ELSE 0 END AS new_session\n  FROM page_views\n  WINDOW w AS (PARTITION BY user_id ORDER BY viewed_at, view_id)\n),\nsessions AS (\n  SELECT user_id, viewed_at,\n         SUM(new_session) OVER (PARTITION BY user_id ORDER BY viewed_at\n                                ROWS UNBOUNDED PRECEDING) AS session_no\n  FROM marked\n)\nSELECT user_id, session_no,\n       MIN(viewed_at) AS started, MAX(viewed_at) AS ended,\n       TIMESTAMPDIFF(MINUTE, MIN(viewed_at), MAX(viewed_at)) AS minutes,\n       COUNT(*) AS pages\nFROM sessions\nGROUP BY user_id, session_no\nORDER BY user_id, session_no",
+     "status": "ok",
+     "columns": [
+      "user_id",
+      "session_no",
+      "started",
+      "ended",
+      "minutes",
+      "pages"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       7,
+       "1",
+       "2024-11-05 09:00:00",
+       "2024-11-05 09:20:00",
+       20,
+       3
+      ],
+      [
+       7,
+       "2",
+       "2024-11-05 10:15:00",
+       "2024-11-05 10:16:00",
+       1,
+       2
+      ],
+      [
+       7,
+       "3",
+       "2024-11-05 18:40:00",
+       "2024-11-05 18:40:00",
+       0,
+       1
+      ],
+      [
+       9,
+       "1",
+       "2024-11-05 09:10:00",
+       "2024-11-05 09:10:00",
+       0,
+       1
+      ],
+      [
+       9,
+       "2",
+       "2024-11-05 09:55:00",
+       "2024-11-05 10:05:00",
+       10,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:69230d15447e": {
+   "statements": [
+    {
+     "sql": "SELECT view_id, user_id, viewed_at, page FROM page_views WHERE user_id = 7 ORDER BY viewed_at, view_id",
+     "status": "ok",
+     "columns": [
+      "view_id",
+      "user_id",
+      "viewed_at",
+      "page"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       7,
+       "2024-11-05 09:00:00",
+       "/home"
+      ],
+      [
+       2,
+       7,
+       "2024-11-05 09:04:00",
+       "/laptops"
+      ],
+      [
+       3,
+       7,
+       "2024-11-05 09:20:00",
+       "/laptops/1"
+      ],
+      [
+       4,
+       7,
+       "2024-11-05 10:15:00",
+       "/home"
+      ],
+      [
+       5,
+       7,
+       "2024-11-05 10:16:00",
+       "/cart"
+      ],
+      [
+       6,
+       7,
+       "2024-11-05 18:40:00",
+       "/home"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:e703a4a46606": {
+   "statements": [
+    {
+     "sql": "SELECT view_id, viewed_at,\n       LAG(viewed_at) OVER (PARTITION BY user_id ORDER BY viewed_at, view_id) AS prev_view,\n       TIMESTAMPDIFF(MINUTE, LAG(viewed_at) OVER (PARTITION BY user_id ORDER BY viewed_at, view_id), viewed_at) AS gap_min\nFROM page_views WHERE user_id = 7 ORDER BY viewed_at, view_id",
+     "status": "ok",
+     "columns": [
+      "view_id",
+      "viewed_at",
+      "prev_view",
+      "gap_min"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "2024-11-05 09:00:00",
+       null,
+       null
+      ],
+      [
+       2,
+       "2024-11-05 09:04:00",
+       "2024-11-05 09:00:00",
+       4
+      ],
+      [
+       3,
+       "2024-11-05 09:20:00",
+       "2024-11-05 09:04:00",
+       16
+      ],
+      [
+       4,
+       "2024-11-05 10:15:00",
+       "2024-11-05 09:20:00",
+       55
+      ],
+      [
+       5,
+       "2024-11-05 10:16:00",
+       "2024-11-05 10:15:00",
+       1
+      ],
+      [
+       6,
+       "2024-11-05 18:40:00",
+       "2024-11-05 10:16:00",
+       504
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:1e487f3562a4": {
+   "statements": [
+    {
+     "sql": "SELECT view_id, viewed_at,\n       CASE WHEN LAG(viewed_at) OVER w IS NULL\n              OR TIMESTAMPDIFF(MINUTE, LAG(viewed_at) OVER w, viewed_at) > 30\n            THEN 1 ELSE 0 END AS new_session\nFROM page_views WHERE user_id = 7\nWINDOW w AS (PARTITION BY user_id ORDER BY viewed_at, view_id)\nORDER BY viewed_at, view_id",
+     "status": "ok",
+     "columns": [
+      "view_id",
+      "viewed_at",
+      "new_session"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "2024-11-05 09:00:00",
+       1
+      ],
+      [
+       2,
+       "2024-11-05 09:04:00",
+       0
+      ],
+      [
+       3,
+       "2024-11-05 09:20:00",
+       0
+      ],
+      [
+       4,
+       "2024-11-05 10:15:00",
+       1
+      ],
+      [
+       5,
+       "2024-11-05 10:16:00",
+       0
+      ],
+      [
+       6,
+       "2024-11-05 18:40:00",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:d717ad51cfb4": {
+   "statements": [
+    {
+     "sql": "WITH marked AS (\n  SELECT view_id, user_id, viewed_at,\n         CASE WHEN LAG(viewed_at) OVER w IS NULL\n                OR TIMESTAMPDIFF(MINUTE, LAG(viewed_at) OVER w, viewed_at) > 30\n              THEN 1 ELSE 0 END AS new_session\n  FROM page_views WHERE user_id = 7\n  WINDOW w AS (PARTITION BY user_id ORDER BY viewed_at, view_id))\nSELECT view_id, viewed_at, new_session,\n       SUM(new_session) OVER (ORDER BY viewed_at, view_id ROWS UNBOUNDED PRECEDING) AS session_no\nFROM marked ORDER BY viewed_at, view_id",
+     "status": "ok",
+     "columns": [
+      "view_id",
+      "viewed_at",
+      "new_session",
+      "session_no"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "2024-11-05 09:00:00",
+       1,
+       "1"
+      ],
+      [
+       2,
+       "2024-11-05 09:04:00",
+       0,
+       "1"
+      ],
+      [
+       3,
+       "2024-11-05 09:20:00",
+       0,
+       "1"
+      ],
+      [
+       4,
+       "2024-11-05 10:15:00",
+       1,
+       "2"
+      ],
+      [
+       5,
+       "2024-11-05 10:16:00",
+       0,
+       "2"
+      ],
+      [
+       6,
+       "2024-11-05 18:40:00",
+       1,
+       "3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:3926f6f9edb7": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nWITH marked AS (\n  SELECT view_id, user_id, viewed_at,\n         CASE WHEN LAG(viewed_at) OVER w IS NULL\n                OR TIMESTAMPDIFF(MINUTE, LAG(viewed_at) OVER w, viewed_at) > 30\n              THEN 1 ELSE 0 END AS new_session\n  FROM page_views\n  WINDOW w AS (PARTITION BY user_id ORDER BY viewed_at, view_id))\nSELECT view_id, SUM(new_session) OVER (PARTITION BY user_id ORDER BY viewed_at, view_id ROWS UNBOUNDED PRECEDING) AS session_no\nFROM marked",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Window aggregate: sum(marked.new_session) OVER (PARTITION BY marked.user_id ORDER BY marked.viewed_at,marked.view_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) \n    -> Sort: marked.user_id, marked.viewed_at, marked.view_id  (cost=2.6..2.6 rows=0)\n        -> Table scan on marked  (cost=2.5..2.5 rows=0)\n            -> Materialize CTE marked  (cost=0..0 rows=0)\n                -> Window aggregate with buffering: lag(page_views.viewed_at) OVER w, lag(page_views.viewed_at) OVER w\n                    -> Sort: page_views.user_id, page_views.viewed_at, page_views.view_id  (cost=1.15 rows=9)\n                        -> Table scan on page_views  (cost=1.15 rows=9)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:fc5b643c6ffc": {
+   "statements": [
+    {
+     "sql": "-- A: LAG\nSELECT order_id, customer_id, order_date,\n       LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date, order_id) AS prev_order_date\nFROM orders\nWHERE customer_id = 11\nORDER BY order_date, order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "order_date",
+      "prev_order_date"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       59,
+       11,
+       "2024-02-28 15:59:00",
+       null
+      ],
+      [
+       5,
+       11,
+       "2024-04-14 19:43:00",
+       "2024-02-28 15:59:00"
+      ],
+      [
+       24,
+       11,
+       "2024-06-21 14:28:00",
+       "2024-04-14 19:43:00"
+      ],
+      [
+       58,
+       11,
+       "2024-07-31 10:59:00",
+       "2024-06-21 14:28:00"
+      ],
+      [
+       41,
+       11,
+       "2024-11-05 12:16:00",
+       "2024-07-31 10:59:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:f19fee6d0e49": {
+   "statements": [
+    {
+     "sql": "-- B: correlated subquery with ORDER BY … LIMIT 1\nSELECT o.order_id, o.customer_id, o.order_date,\n       (SELECT p.order_date FROM orders p\n        WHERE p.customer_id = o.customer_id\n          AND (p.order_date < o.order_date\n               OR (p.order_date = o.order_date AND p.order_id < o.order_id))\n        ORDER BY p.order_date DESC, p.order_id DESC\n        LIMIT 1) AS prev_order_date\nFROM orders o\nWHERE o.customer_id = 11\nORDER BY o.order_date, o.order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "order_date",
+      "prev_order_date"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       59,
+       11,
+       "2024-02-28 15:59:00",
+       null
+      ],
+      [
+       5,
+       11,
+       "2024-04-14 19:43:00",
+       "2024-02-28 15:59:00"
+      ],
+      [
+       24,
+       11,
+       "2024-06-21 14:28:00",
+       "2024-04-14 19:43:00"
+      ],
+      [
+       58,
+       11,
+       "2024-07-31 10:59:00",
+       "2024-06-21 14:28:00"
+      ],
+      [
+       41,
+       11,
+       "2024-11-05 12:16:00",
+       "2024-07-31 10:59:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:f8d1578b1e0b": {
+   "statements": [
+    {
+     "sql": "-- C: self join + GROUP BY (gets the date only; fetching other columns needs another join)\nSELECT o.order_id, o.customer_id, o.order_date, MAX(p.order_date) AS prev_order_date\nFROM orders o\nLEFT JOIN orders p ON p.customer_id = o.customer_id AND p.order_date < o.order_date\nWHERE o.customer_id = 11\nGROUP BY o.order_id, o.customer_id, o.order_date\nORDER BY o.order_date, o.order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "order_date",
+      "prev_order_date"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       59,
+       11,
+       "2024-02-28 15:59:00",
+       null
+      ],
+      [
+       5,
+       11,
+       "2024-04-14 19:43:00",
+       "2024-02-28 15:59:00"
+      ],
+      [
+       24,
+       11,
+       "2024-06-21 14:28:00",
+       "2024-04-14 19:43:00"
+      ],
+      [
+       58,
+       11,
+       "2024-07-31 10:59:00",
+       "2024-06-21 14:28:00"
+      ],
+      [
+       41,
+       11,
+       "2024-11-05 12:16:00",
+       "2024-07-31 10:59:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:37c74cf71d4f": {
+   "statements": [
+    {
+     "sql": "WITH filled AS (\n  SELECT customer_id, phone,\n         COUNT(phone) OVER (ORDER BY customer_id ROWS UNBOUNDED PRECEDING) AS grp\n  FROM customers\n  WHERE customer_id BETWEEN 3 AND 11\n)\nSELECT customer_id, phone,\n       FIRST_VALUE(phone) OVER (PARTITION BY grp ORDER BY customer_id) AS last_known_phone\nFROM filled\nORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "phone",
+      "last_known_phone"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       3,
+       "+1-774-555-4257",
+       "+1-774-555-4257"
+      ],
+      [
+       4,
+       "+1-206-555-3615",
+       "+1-206-555-3615"
+      ],
+      [
+       5,
+       null,
+       "+1-206-555-3615"
+      ],
+      [
+       6,
+       "+1-567-555-6635",
+       "+1-567-555-6635"
+      ],
+      [
+       7,
+       "+1-587-555-2291",
+       "+1-587-555-2291"
+      ],
+      [
+       8,
+       "+1-246-555-4733",
+       "+1-246-555-4733"
+      ],
+      [
+       9,
+       "+1-589-555-5554",
+       "+1-589-555-5554"
+      ],
+      [
+       10,
+       null,
+       "+1-589-555-5554"
+      ],
+      [
+       11,
+       "+1-823-555-3803",
+       "+1-823-555-3803"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:8d5522031b81": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id,\n       LAG(order_date)  OVER w AS prev_date,\n       LEAD(order_date) OVER w AS next_date\nFROM orders\nWINDOW w AS (PARTITION BY customer_id ORDER BY order_date, order_id)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Window aggregate with buffering: lag(orders.order_date) OVER w, lead(orders.order_date) OVER w\n    -> Sort: orders.customer_id, orders.order_date, orders.order_id  (cost=8.25 rows=80)\n        -> Table scan on orders  (cost=8.25 rows=80)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:6dca2a43e871": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=JSON\nSELECT category_id, name,\n       LAST_VALUE(name) OVER (PARTITION BY category_id ORDER BY price\n                              ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS priciest\nFROM products",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"33.25\"\n    },\n    \"windowing\": {\n      \"windows\": [\n        {\n          \"name\": \"<unnamed window>\",\n          \"using_filesort\": true,\n          \"filesort_key\": [\n            \"`category_id`\",\n            \"`price`\"\n          ],\n          \"frame_buffer\": {\n            \"using_temporary_table\": true,\n            \"optimized_frame_evaluation\": true\n          },\n          \"functions\": [\n            \"last_value\"\n          ]\n        }\n      ],\n      \"cost_info\": {\n        \"sort_cost\": \"30.00\"\n      },\n      \"table\": {\n        \"table_name\": \"products\",\n        \"access_type\": \"ALL\",\n        \"rows_examined_per_scan\": 30,\n        \"rows_produced_per_join\": 30,\n        \"filtered\": \"100.00\",\n        \"cost_info\": {\n          \"read_cost\": \"0.25\",\n          \"eval_cost\": \"3.00\",\n          \"prefix_cost\": \"3.25\",\n          \"data_read_per_join\": \"17K\"\n        },\n        \"used_columns\": [\n          \"product_id\",\n          \"name\",\n          \"category_id\",\n          \"price\"\n        ]\n      }\n    }\n  }\n}"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_8341415c8c075fbf04c1`.`products`.`category_id` AS `category_id`,`lab_8341415c8c075fbf04c1`.`products`.`name` AS `name`,last_value(`lab_8341415c8c075fbf04c1`.`products`.`name`) OVER (PARTITION BY `lab_8341415c8c075fbf04c1`.`products`.`category_id` ORDER BY `lab_8341415c8c075fbf04c1`.`products`.`price` ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)  AS `priciest` from `lab_8341415c8c075fbf04c1`.`products`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:c9604ffe269a": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id,\n       LAG(phone) IGNORE NULLS OVER (ORDER BY customer_id) AS prev_known_phone\nFROM customers",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1235,
+      "message": "This version of MySQL doesn't yet support 'IGNORE NULLS'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s21:2f0229b701fc": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, LAG(order_id, -1) OVER (ORDER BY order_id) AS next_order\nFROM orders",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '-1) OVER (ORDER BY order_id) AS next_order\nFROM orders' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s22:51fa21780a2e": {
+   "statements": [
+    {
+     "sql": "SELECT view_id,\n       SUM(CASE WHEN TIMESTAMPDIFF(MINUTE, LAG(viewed_at) OVER (ORDER BY viewed_at), viewed_at) > 30\n                THEN 1 ELSE 0 END) OVER (ORDER BY viewed_at) AS session_no\nFROM page_views",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3593,
+      "message": "You cannot use the window function 'lag' in this context.'"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

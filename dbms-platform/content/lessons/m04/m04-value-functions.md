@@ -243,7 +243,7 @@ WINDOW w AS (PARTITION BY customer_id ORDER BY order_date, order_id)
 ORDER BY customer_id, order_seq;
 ```
 
-**5. Salary raises — a status change detector.** On the `hr` dataset the same pattern finds raises in `salary_history`; on shop data, the analogous question is "did the customer's order status pattern change". As a compact shop example, flag each order whose status differs from the customer's previous order's status:
+**5. State-change detection.** Comparing a value with its predecessor detects transitions — salary raises in an HR history (exercise 4 does that on the hr dataset), price changes, or status changes. Flag each order whose status differs from the same customer's previous order:
 
 ```sql run
 SELECT customer_id, order_id, status,
