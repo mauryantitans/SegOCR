@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -95,6 +96,14 @@ def lint(doc, kind: str, datasets: set[str], all_lesson_ids: set[str]) -> list[s
                     from app.sandbox.splitter import split_sql
                     if len(split_sql(st["sql"])) != 1:
                         errs.append(f"concurrency {seg['id']} step {k}: a step expected to block must be a single statement")
+    # Every structured fence must have produced a segment; a nested ``` inside YAML silently swallows blocks.
+    raw = doc.meta.get("_raw_body", "")
+    for kind in ("exercise", "quiz", "walkthrough", "concurrency", "viz"):
+        fences = len(re.findall(rf"^`{{3,}}{kind}\s*$", raw, re.M))
+        parsed = sum(1 for sg in doc.segments if sg["type"] == kind)
+        if fences != parsed:
+            errs.append(f"{fences} ```{kind} fences but {parsed} parsed — a ``` line inside a YAML block probably closed "
+                        "it early (use ~~~ inside, or a four-backtick outer fence)")
     for ref in meta.get("related", []) or []:
         if ref not in all_lesson_ids:
             errs.append(f"related lesson '{ref}' does not exist")
@@ -154,7 +163,10 @@ def capture_doc(m, doc_id: str, doc) -> tuple[dict, list[str]]:
             blocks[seg["key"]] = cap
             errs.extend(cerrs)
         elif t == "exercise":
-            errs.extend(check_exercise(m, seg["exercise"]))
+            try:
+                errs.extend(check_exercise(m, seg["exercise"]))
+            except Exception as e:  # noqa: BLE001 - e.g. invalid setup SQL
+                errs.append(f"exercise {seg['exercise']['id']}: setup or solution crashed: {type(e).__name__}: {e}")
     return blocks, errs
 
 
@@ -368,7 +380,9 @@ def main() -> int:
     failures = 0
     for kind, doc_id, path in targets:
         try:
-            doc = parse_document(path.read_text(), doc_id)
+            text = path.read_text()
+            doc = parse_document(text, doc_id)
+            doc.meta["_raw_body"] = text
         except (ContentError, yaml.YAMLError) as e:
             print(f"✗ {doc_id}: {e}")
             failures += 1

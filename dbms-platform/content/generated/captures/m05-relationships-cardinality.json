@@ -1,0 +1,605 @@
+{
+ "doc": "m05-relationships-cardinality",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:a3f13900c3f5": {
+   "statements": [
+    {
+     "sql": "SELECT k.TABLE_NAME            AS child_table,\n       k.COLUMN_NAME           AS fk_column,\n       k.REFERENCED_TABLE_NAME AS parent_table,\n       c.IS_NULLABLE           AS child_may_not_participate\nFROM information_schema.KEY_COLUMN_USAGE AS k\nJOIN information_schema.COLUMNS AS c\n  ON c.TABLE_SCHEMA = k.TABLE_SCHEMA AND c.TABLE_NAME = k.TABLE_NAME AND c.COLUMN_NAME = k.COLUMN_NAME\nWHERE k.TABLE_SCHEMA = DATABASE() AND k.REFERENCED_TABLE_NAME IS NOT NULL\nORDER BY k.TABLE_NAME, k.COLUMN_NAME",
+     "status": "ok",
+     "columns": [
+      "child_table",
+      "fk_column",
+      "parent_table",
+      "child_may_not_participate"
+     ],
+     "row_count": 11,
+     "rows": [
+      [
+       "advisors",
+       "instructor_id",
+       "instructors",
+       "NO"
+      ],
+      [
+       "advisors",
+       "student_id",
+       "students",
+       "NO"
+      ],
+      [
+       "course_prereqs",
+       "course_id",
+       "courses",
+       "NO"
+      ],
+      [
+       "course_prereqs",
+       "prereq_id",
+       "courses",
+       "NO"
+      ],
+      [
+       "courses",
+       "dept_id",
+       "departments",
+       "NO"
+      ],
+      [
+       "enrollments",
+       "section_id",
+       "sections",
+       "NO"
+      ],
+      [
+       "enrollments",
+       "student_id",
+       "students",
+       "NO"
+      ],
+      [
+       "instructors",
+       "dept_id",
+       "departments",
+       "NO"
+      ],
+      [
+       "sections",
+       "course_id",
+       "courses",
+       "NO"
+      ],
+      [
+       "sections",
+       "instructor_id",
+       "instructors",
+       "YES"
+      ],
+      [
+       "students",
+       "dept_id",
+       "departments",
+       "YES"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:6b5d012a5f7a": {
+   "statements": [
+    {
+     "sql": "INSERT INTO sections (section_id, course_id, term, year, instructor_id, room, capacity)\nVALUES (100, NULL, 'Spring', 2025, 1001, 'MH-100', 30)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1048,
+      "message": "Column 'course_id' cannot be null"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s3:61e9f73a173a": {
+   "statements": [
+    {
+     "sql": "INSERT INTO sections (section_id, course_id, term, year, instructor_id, room, capacity)\nVALUES (100, 'CS-160', 'Spring', 2025, NULL, 'MH-100', 30)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT section_id, course_id, instructor_id FROM sections WHERE section_id = 100",
+     "status": "ok",
+     "columns": [
+      "section_id",
+      "course_id",
+      "instructor_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       100,
+       "CS-160",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:53750e34181c": {
+   "statements": [
+    {
+     "sql": "UPDATE sections SET instructor_id = 9999 WHERE section_id = 100",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`sections`, CONSTRAINT `fk_sections_instructor` FOREIGN KEY (`instructor_id`) REFERENCES `instructors` (`instructor_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s5:1f969fd93b32": {
+   "statements": [
+    {
+     "sql": "INSERT INTO advisors (student_id, instructor_id) VALUES (20230001, 1012)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '20230001' for key 'advisors.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:48dabc4818f2": {
+   "statements": [
+    {
+     "sql": "INSERT INTO enrollments (student_id, section_id, grade)\nSELECT student_id, section_id, NULL FROM enrollments ORDER BY student_id, section_id LIMIT 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '20230001-3' for key 'enrollments.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:658b49888062": {
+   "statements": [
+    {
+     "sql": "SELECT 'instructor in TEACHES' AS role,\n       MIN(n) AS observed_min, MAX(n) AS observed_max\nFROM (SELECT i.instructor_id, COUNT(s.section_id) AS n\n      FROM instructors AS i\n      LEFT JOIN sections AS s ON s.instructor_id = i.instructor_id\n      GROUP BY i.instructor_id) AS x\nUNION ALL\nSELECT 'section in TEACHES',\n       MIN(n), MAX(n)\nFROM (SELECT s.section_id, (s.instructor_id IS NOT NULL) AS n\n      FROM sections AS s) AS y",
+     "status": "ok",
+     "columns": [
+      "role",
+      "observed_min",
+      "observed_max"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "instructor in TEACHES",
+       0,
+       4
+      ],
+      [
+       "section in TEACHES",
+       0,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:4167ffe77402": {
+   "statements": [
+    {
+     "sql": "SELECT e.student_id, e.section_id, sec.course_id, e.grade\nFROM enrollments AS e\nJOIN sections AS sec ON sec.section_id = e.section_id\nWHERE e.student_id = 20230001\nORDER BY e.section_id",
+     "status": "ok",
+     "columns": [
+      "student_id",
+      "section_id",
+      "course_id",
+      "grade"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       20230001,
+       3,
+       "MATH-161A",
+       "A"
+      ],
+      [
+       20230001,
+       9,
+       "CS-146",
+       "F"
+      ],
+      [
+       20230001,
+       19,
+       "CS-149",
+       "B"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:5def4fdbf4db": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)                              AS students,\n       COUNT(a.student_id)                   AS with_advisor,\n       COUNT(*) - COUNT(a.student_id)        AS without_advisor\nFROM students AS st\nLEFT JOIN advisors AS a ON a.student_id = st.student_id",
+     "status": "ok",
+     "columns": [
+      "students",
+      "with_advisor",
+      "without_advisor"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       40,
+       30,
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:669b8c0f6da5": {
+   "statements": [
+    {
+     "sql": "SELECT c.course_id, c.title\nFROM courses AS c\nLEFT JOIN sections AS s ON s.course_id = c.course_id\nWHERE s.section_id IS NULL\nORDER BY c.course_id",
+     "status": "ok",
+     "columns": [
+      "course_id",
+      "title"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "BUS-190",
+       "Operations Management"
+      ],
+      [
+       "DATA-200",
+       "Computational Programming for Analytics"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:8d6093253cc8": {
+   "statements": [
+    {
+     "sql": "CREATE TRIGGER trg_enrollments_capacity\nBEFORE INSERT ON enrollments\nFOR EACH ROW\nBEGIN\n  DECLARE v_capacity INT;\n  DECLARE v_enrolled INT;\n  -- lock the section row so concurrent enrollments into the same section serialize\n  SELECT capacity INTO v_capacity FROM sections WHERE section_id = NEW.section_id FOR UPDATE;\n  SELECT COUNT(*) INTO v_enrolled FROM enrollments WHERE section_id = NEW.section_id;\n  IF v_enrolled >= v_capacity THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Section is full';\n  END IF;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sections (section_id, course_id, term, year, instructor_id, room, capacity)\nVALUES (101, 'CS-160', 'Spring', 2025, 1001, 'SEM-1', 2)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO enrollments (student_id, section_id) VALUES (20230001, 101), (20230002, 101)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT section_id, COUNT(*) AS enrolled FROM enrollments WHERE section_id = 101 GROUP BY section_id",
+     "status": "ok",
+     "columns": [
+      "section_id",
+      "enrolled"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       101,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:0240243fa712": {
+   "statements": [
+    {
+     "sql": "INSERT INTO enrollments (student_id, section_id) VALUES (20230003, 101)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Section is full"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:8a325fc4574b": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM students) AS students,\n       (SELECT COUNT(*) FROM sections) AS sections",
+     "status": "ok",
+     "columns": [
+      "students",
+      "sections"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       40,
+       26
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:2c92d25566b7": {
+   "statements": [
+    {
+     "sql": "SELECT student_id, section_id, grade\nFROM enrollments\nORDER BY student_id, section_id\nLIMIT 6",
+     "status": "ok",
+     "columns": [
+      "student_id",
+      "section_id",
+      "grade"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       20230001,
+       3,
+       "A"
+      ],
+      [
+       20230001,
+       9,
+       "F"
+      ],
+      [
+       20230001,
+       19,
+       "B"
+      ],
+      [
+       20230001,
+       101,
+       null
+      ],
+      [
+       20230002,
+       6,
+       "A"
+      ],
+      [
+       20230002,
+       7,
+       "A"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:d770e94c98ce": {
+   "statements": [
+    {
+     "sql": "SELECT 'sections per student' AS direction, MIN(n) AS min_n, MAX(n) AS max_n\nFROM (SELECT s.student_id, COUNT(e.section_id) AS n\n      FROM students AS s LEFT JOIN enrollments AS e ON e.student_id = s.student_id\n      GROUP BY s.student_id) AS a\nUNION ALL\nSELECT 'students per section', MIN(n), MAX(n)\nFROM (SELECT sec.section_id, COUNT(e.student_id) AS n\n      FROM sections AS sec LEFT JOIN enrollments AS e ON e.section_id = sec.section_id\n      WHERE sec.section_id <= 24\n      GROUP BY sec.section_id) AS b",
+     "status": "ok",
+     "columns": [
+      "direction",
+      "min_n",
+      "max_n"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "sections per student",
+       0,
+       7
+      ],
+      [
+       "students per section",
+       2,
+       13
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:93e98d046f3f": {
+   "statements": [
+    {
+     "sql": "SELECT sec.term, sec.year, c.course_id, c.title, i.name AS instructor, e.grade\nFROM enrollments AS e\nJOIN sections    AS sec ON sec.section_id = e.section_id\nJOIN courses     AS c   ON c.course_id    = sec.course_id\nLEFT JOIN instructors AS i ON i.instructor_id = sec.instructor_id\nWHERE e.student_id = 20230001\nORDER BY sec.year, FIELD(sec.term, 'Spring', 'Summer', 'Fall'), c.course_id",
+     "status": "ok",
+     "columns": [
+      "term",
+      "year",
+      "course_id",
+      "title",
+      "instructor",
+      "grade"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Spring",
+       2023,
+       "MATH-161A",
+       "Applied Probability and Statistics",
+       "Fatima Kim",
+       "A"
+      ],
+      [
+       "Fall",
+       2023,
+       "CS-146",
+       "Data Structures and Algorithms",
+       "Isabella Wang",
+       "F"
+      ],
+      [
+       "Fall",
+       2024,
+       "CS-149",
+       "Operating Systems",
+       "Isabella Wang",
+       "B"
+      ],
+      [
+       "Spring",
+       2025,
+       "CS-160",
+       "Software Engineering",
+       "Arjun Rossi",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:42be34589f2b": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE course_crosslists (\n  course_id   VARCHAR(10) NOT NULL,\n  slot        TINYINT UNSIGNED NOT NULL,\n  alias_code  VARCHAR(10) NOT NULL,\n  PRIMARY KEY (course_id, slot),\n  UNIQUE (alias_code),\n  CONSTRAINT chk_crosslist_slot CHECK (slot BETWEEN 1 AND 2),\n  FOREIGN KEY (course_id) REFERENCES courses (course_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO course_crosslists VALUES ('CS-157A', 1, 'DATA-157A'), ('CS-157A', 2, 'SE-157A')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM course_crosslists ORDER BY course_id, slot",
+     "status": "ok",
+     "columns": [
+      "course_id",
+      "slot",
+      "alias_code"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "CS-157A",
+       1,
+       "DATA-157A"
+      ],
+      [
+       "CS-157A",
+       2,
+       "SE-157A"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:7dd24523e8e9": {
+   "statements": [
+    {
+     "sql": "INSERT INTO course_crosslists VALUES ('CS-157A', 3, 'BUS-157A')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_crosslist_slot' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s15:259955a1fff8": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT student_id FROM enrollments WHERE section_id = 9",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Covering index lookup on enrollments using idx_enrollments_section (section_id=9)  (cost=1.55 rows=13)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:9e3f1a39128d": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS sections_inner_join\nFROM sections AS s JOIN instructors AS i ON i.instructor_id = s.instructor_id",
+     "status": "ok",
+     "columns": [
+      "sections_inner_join"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       24
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:b1a8236c60bb": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS sections_left_join\nFROM sections AS s LEFT JOIN instructors AS i ON i.instructor_id = s.instructor_id",
+     "status": "ok",
+     "columns": [
+      "sections_left_join"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       26
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

@@ -1,0 +1,643 @@
+{
+ "doc": "m02-numeric-types",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:ae6350e2635e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE numeric_demo (\n  tiny_signed    TINYINT,\n  tiny_unsigned  TINYINT UNSIGNED,\n  price          DECIMAL(5,2),\n  approx_single  FLOAT,\n  approx_double  DOUBLE,\n  flags          BIT(8),\n  is_enabled     BOOLEAN\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, NUMERIC_PRECISION, NUMERIC_SCALE\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'numeric_demo'\nORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "DATA_TYPE",
+      "COLUMN_TYPE",
+      "NUMERIC_PRECISION",
+      "NUMERIC_SCALE"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "tiny_signed",
+       "tinyint",
+       "tinyint",
+       3,
+       0
+      ],
+      [
+       "tiny_unsigned",
+       "tinyint",
+       "tinyint unsigned",
+       3,
+       0
+      ],
+      [
+       "price",
+       "decimal",
+       "decimal(5,2)",
+       5,
+       2
+      ],
+      [
+       "approx_single",
+       "float",
+       "float",
+       12,
+       null
+      ],
+      [
+       "approx_double",
+       "double",
+       "double",
+       22,
+       null
+      ],
+      [
+       "flags",
+       "bit",
+       "bit(8)",
+       8,
+       null
+      ],
+      [
+       "is_enabled",
+       "tinyint",
+       "tinyint(1)",
+       3,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:f2181094559a": {
+   "statements": [
+    {
+     "sql": "INSERT INTO numeric_demo (tiny_signed) VALUES (128)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1264,
+      "message": "Out of range value for column 'tiny_signed' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s3:3fd842f8c46a": {
+   "statements": [
+    {
+     "sql": "INSERT INTO numeric_demo (tiny_unsigned) VALUES (-1)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1264,
+      "message": "Out of range value for column 'tiny_unsigned' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s4:a79e323a4b99": {
+   "statements": [
+    {
+     "sql": "INSERT INTO numeric_demo (price) VALUES (1.005)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1265,
+       "message": "Data truncated for column 'price' at row 1"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT price FROM numeric_demo WHERE price IS NOT NULL",
+     "status": "ok",
+     "columns": [
+      "price"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "1.01"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:d91c58ae4133": {
+   "statements": [
+    {
+     "sql": "INSERT INTO numeric_demo (price) VALUES (1234.5)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1264,
+      "message": "Out of range value for column 'price' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:917f466d45f6": {
+   "statements": [
+    {
+     "sql": "INSERT INTO numeric_demo (price) VALUES (999.995)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1264,
+      "message": "Out of range value for column 'price' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:74fc0dff2c0b": {
+   "statements": [
+    {
+     "sql": "SELECT 0.1 + 0.2 = 0.3           AS decimal_equal,\n       0.1e0 + 0.2e0 = 0.3e0     AS double_equal,\n       0.1e0 + 0.2e0             AS double_sum",
+     "status": "ok",
+     "columns": [
+      "decimal_equal",
+      "double_equal",
+      "double_sum"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       0,
+       0.30000000000000004
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:9b638406fc3b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO numeric_demo (approx_single, approx_double) VALUES (0.1, 0.1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT approx_single,\n       approx_double,\n       approx_single = 0.1             AS float_equals_0_1,\n       approx_double = 0.1             AS double_equals_0_1,\n       CAST(approx_single AS DOUBLE)   AS float_actual_value\nFROM numeric_demo\nWHERE approx_single IS NOT NULL",
+     "status": "ok",
+     "columns": [
+      "approx_single",
+      "approx_double",
+      "float_equals_0_1",
+      "double_equals_0_1",
+      "float_actual_value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0.1,
+       0.1,
+       0,
+       1,
+       0.10000000149011612
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:d60dfa6675f1": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE float_precision (f FLOAT, d DOUBLE)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO float_precision VALUES (16777217, 16777217), (123456789, 123456789)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT f, f + 0 AS float_stored, d FROM float_precision ORDER BY d",
+     "status": "ok",
+     "columns": [
+      "f",
+      "float_stored",
+      "d"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       16777200.0,
+       16777216.0,
+       16777217.0
+      ],
+      [
+       123457000.0,
+       123456792.0,
+       123456789.0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:af52492ad2fd": {
+   "statements": [
+    {
+     "sql": "SELECT ROUND(2.5)    AS dec_2_5,\n       ROUND(3.5)    AS dec_3_5,\n       ROUND(-2.5)   AS dec_neg_2_5,\n       ROUND(2.5e0)  AS dbl_2_5,\n       ROUND(3.5e0)  AS dbl_3_5",
+     "status": "ok",
+     "columns": [
+      "dec_2_5",
+      "dec_3_5",
+      "dec_neg_2_5",
+      "dbl_2_5",
+      "dbl_3_5"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "3",
+       "4",
+       "-3",
+       2.0,
+       4.0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:55943a5dce67": {
+   "statements": [
+    {
+     "sql": "SELECT 7 / 2    AS slash,\n       7 DIV 2  AS div_operator,\n       7 % 2    AS modulo,\n       1 / 3    AS one_third,\n       1 / 0    AS by_zero",
+     "status": "ok",
+     "columns": [
+      "slash",
+      "div_operator",
+      "modulo",
+      "one_third",
+      "by_zero"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "3.5000",
+       3,
+       1,
+       "0.3333",
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1365,
+       "message": "Division by 0"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:51ad0f551b6f": {
+   "statements": [
+    {
+     "sql": "SELECT CAST(1 AS UNSIGNED) - 2",
+     "status": "error",
+     "columns": [
+      "CAST(1 AS UNSIGNED) - 2"
+     ],
+     "rows": [],
+     "error": {
+      "code": 1690,
+      "message": "BIGINT UNSIGNED value is out of range in '(cast(1 as unsigned) - 2)'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:a788acf21c2b": {
+   "statements": [
+    {
+     "sql": "SELECT 9223372036854775807 + 1",
+     "status": "error",
+     "columns": [
+      "9223372036854775807 + 1"
+     ],
+     "rows": [],
+     "error": {
+      "code": 1690,
+      "message": "BIGINT value is out of range in '(9223372036854775807 + 1)'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s15:4dc4ca63f087": {
+   "statements": [
+    {
+     "sql": "INSERT INTO numeric_demo (flags, is_enabled) VALUES (b'1010', 2)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT flags + 0      AS flags_as_number,\n       BIN(flags)     AS flags_binary,\n       is_enabled,\n       is_enabled = TRUE AS equals_true,\n       is_enabled IS TRUE AS is_true\nFROM numeric_demo\nWHERE flags IS NOT NULL",
+     "status": "ok",
+     "columns": [
+      "flags_as_number",
+      "flags_binary",
+      "is_enabled",
+      "equals_true",
+      "is_true"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10,
+       "1010",
+       2,
+       0,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:f37b7806648d": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE legacy_widths (\n  a  INT(11),\n  z  INT(5) ZEROFILL,\n  fl FLOAT(7,2),\n  du DECIMAL(5,2) UNSIGNED\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1681,
+       "message": "Integer display width is deprecated and will be removed in a future release."
+      },
+      {
+       "level": "Warning",
+       "code": 1681,
+       "message": "The ZEROFILL attribute is deprecated and will be removed in a future release. Use the LPAD function to zero-pad numbers, or store the formatted numbers in a CHAR column."
+      },
+      {
+       "level": "Warning",
+       "code": 1681,
+       "message": "Integer display width is deprecated and will be removed in a future release."
+      },
+      {
+       "level": "Warning",
+       "code": 1681,
+       "message": "Specifying number of digits for floating point data types is deprecated and will be removed in a future release."
+      },
+      {
+       "level": "Warning",
+       "code": 1681,
+       "message": "UNSIGNED for decimal and floating point data types is deprecated and support for it will be removed in a future release."
+      }
+     ]
+    },
+    {
+     "sql": "SHOW CREATE TABLE legacy_widths",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Create Table"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "legacy_widths",
+       "CREATE TABLE `legacy_widths` (\n  `a` int DEFAULT NULL,\n  `z` int(5) unsigned zerofill DEFAULT NULL,\n  `fl` float(7,2) DEFAULT NULL,\n  `du` decimal(5,2) unsigned DEFAULT NULL\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:f166b3c7ab33": {
+   "statements": [
+    {
+     "sql": "INSERT INTO legacy_widths (a, z) VALUES (2147483647, 42)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT a, z, CAST(z AS CHAR) AS z_as_text, LPAD(42, 5, '0') AS modern_alternative FROM legacy_widths",
+     "status": "ok",
+     "columns": [
+      "a",
+      "z",
+      "z_as_text",
+      "modern_alternative"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2147483647,
+       42,
+       "00042",
+       "00042"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:8d9e8fc53322": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE dec_target (v DECIMAL(4,2))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COLUMN_TYPE, NUMERIC_PRECISION, NUMERIC_SCALE FROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'dec_target'",
+     "status": "ok",
+     "columns": [
+      "COLUMN_TYPE",
+      "NUMERIC_PRECISION",
+      "NUMERIC_SCALE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "decimal(4,2)",
+       4,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:7022a03aad76": {
+   "statements": [
+    {
+     "sql": "INSERT INTO dec_target VALUES ('12.345')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1265,
+       "message": "Data truncated for column 'v' at row 1"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT v FROM dec_target",
+     "status": "ok",
+     "columns": [
+      "v"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "12.35"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:c6cf3bbe3e1d": {
+   "statements": [
+    {
+     "sql": "INSERT INTO dec_target VALUES (123.4)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1264,
+      "message": "Out of range value for column 'v' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:fd59452cd7d8": {
+   "statements": [
+    {
+     "sql": "SET SESSION sql_mode = ''",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO dec_target VALUES (123.4)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1264,
+       "message": "Out of range value for column 'v' at row 1"
+      }
+     ]
+    },
+    {
+     "sql": "SET SESSION sql_mode = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT v FROM dec_target ORDER BY v",
+     "status": "ok",
+     "columns": [
+      "v"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "12.35"
+      ],
+      [
+       "99.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:913c59b0e3e9": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE tiny_keys (id TINYINT AUTO_INCREMENT PRIMARY KEY, note VARCHAR(10))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO tiny_keys VALUES (127, 'last one')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s19:8c1676b500c4": {
+   "statements": [
+    {
+     "sql": "INSERT INTO tiny_keys (note) VALUES ('one more')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '127' for key 'tiny_keys.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

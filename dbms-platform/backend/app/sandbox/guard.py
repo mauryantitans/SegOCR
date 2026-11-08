@@ -100,7 +100,10 @@ def classify(sql: str, lab_schema: str) -> Classification:
         up = body.upper()
         if re.match(r"SET\s+(PASSWORD|DEFAULT\s+ROLE|ROLE|RESOURCE\s+GROUP)\b", up):
             return Classification(ADMIN, verb, False, "Account settings cannot be changed from the sandbox.")
-        if re.search(r"(^|[\s,])(GLOBAL|PERSIST|PERSIST_ONLY)\s", up) or re.search(r"@@(GLOBAL|PERSIST|PERSIST_ONLY)\.", up):
+        # Only reject assignments TO global/persisted variables; reading @@GLOBAL.x on the right-hand side is fine.
+        targets = re.split(r",(?![^()]*\))", up[3:])
+        if any(re.match(r"\s*(GLOBAL|PERSIST|PERSIST_ONLY)\s", t) or re.match(r"\s*@@(GLOBAL|PERSIST|PERSIST_ONLY)\.", t)
+               for t in targets):
             return Classification(ADMIN, verb, False,
                                   "Global/persisted system variables are server-wide and cannot be changed from the sandbox. "
                                   "Use SET SESSION to change a variable for your own session.")
@@ -130,5 +133,6 @@ def classify(sql: str, lab_schema: str) -> Classification:
         return Classification(OTHER, verb, True)
     if verb == "HANDLER":
         return Classification(READ, verb, True)
-    return Classification(OTHER, verb, False,
-                          f"'{verb or body[:20]}' statements are not supported in the sandbox.")
+    # Unknown verbs (typos such as SELEKT, or rarely used statements) go to MySQL, which reports the real
+    # syntax error (1064) or privilege error; the per-lab account remains the security boundary.
+    return Classification(OTHER, verb, True)

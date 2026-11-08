@@ -1,0 +1,764 @@
+{
+ "doc": "m02-tables-ddl",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:e0d2e680b581": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE supplier (\n  supplier_id   INT UNSIGNED  NOT NULL AUTO_INCREMENT,\n  name          VARCHAR(100)  NOT NULL,\n  country_code  CHAR(2)       NOT NULL DEFAULT 'US',\n  email         VARCHAR(255)  NULL,\n  rating        TINYINT UNSIGNED NULL COMMENT '1-5, NULL = not rated yet',\n  is_active     BOOLEAN       NOT NULL DEFAULT TRUE,\n  created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  PRIMARY KEY (supplier_id),\n  UNIQUE KEY uq_supplier_email (email),\n  CONSTRAINT chk_supplier_rating CHECK (rating BETWEEN 1 AND 5)\n) ENGINE = InnoDB\n  DEFAULT CHARSET = utf8mb4\n  COLLATE = utf8mb4_0900_ai_ci\n  COMMENT = 'Product suppliers'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s2:535df84c6e6e": {
+   "statements": [
+    {
+     "sql": "SHOW CREATE TABLE supplier",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Create Table"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "supplier",
+       "CREATE TABLE `supplier` (\n  `supplier_id` int unsigned NOT NULL AUTO_INCREMENT,\n  `name` varchar(100) NOT NULL,\n  `country_code` char(2) NOT NULL DEFAULT 'US',\n  `email` varchar(255) DEFAULT NULL,\n  `rating` tinyint unsigned DEFAULT NULL COMMENT '1-5, NULL = not rated yet',\n  `is_active` tinyint(1) NOT NULL DEFAULT '1',\n  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  PRIMARY KEY (`supplier_id`),\n  UNIQUE KEY `uq_supplier_email` (`email`),\n  CONSTRAINT `chk_supplier_rating` CHECK ((`rating` between 1 and 5))\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Product suppliers'"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:cb655cf06a86": {
+   "statements": [
+    {
+     "sql": "DESCRIBE supplier",
+     "status": "ok",
+     "columns": [
+      "Field",
+      "Type",
+      "Null",
+      "Key",
+      "Default",
+      "Extra"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "supplier_id",
+       "int unsigned",
+       "NO",
+       "PRI",
+       null,
+       "auto_increment"
+      ],
+      [
+       "name",
+       "varchar(100)",
+       "NO",
+       "",
+       null,
+       ""
+      ],
+      [
+       "country_code",
+       "char(2)",
+       "NO",
+       "",
+       "US",
+       ""
+      ],
+      [
+       "email",
+       "varchar(255)",
+       "YES",
+       "UNI",
+       null,
+       ""
+      ],
+      [
+       "rating",
+       "tinyint unsigned",
+       "YES",
+       "",
+       null,
+       ""
+      ],
+      [
+       "is_active",
+       "tinyint(1)",
+       "NO",
+       "",
+       "1",
+       ""
+      ],
+      [
+       "created_at",
+       "datetime",
+       "NO",
+       "",
+       "CURRENT_TIMESTAMP",
+       "DEFAULT_GENERATED"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:5d16ade1db37": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE customers_copy LIKE customers",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO customers_copy SELECT * FROM customers",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "info": "Records: 25  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s8:0b35f0dc2230": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE customers_copy ADD COLUMN notes VARCHAR(200) NULL AFTER email, ALGORITHM = INSTANT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s9:b8237ea5ed2e": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE customers_copy ADD INDEX idx_city (city), ALGORITHM = INPLACE, LOCK = NONE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s10:0f8748db8e6d": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE customers_copy MODIFY phone VARCHAR(30) NULL, ALGORITHM = INSTANT",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1845,
+      "message": "ALGORITHM=INSTANT is not supported for this operation. Try ALGORITHM=COPY/INPLACE."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:93810f724308": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE customers_copy MODIFY phone VARCHAR(30) NULL, ALGORITHM = INPLACE, LOCK = NONE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s12:ebb6f9e394e4": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE customers_copy MODIFY city VARCHAR(100) NOT NULL, ALGORITHM = INPLACE",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1846,
+      "message": "ALGORITHM=INPLACE is not supported. Reason: Cannot change column type INPLACE. Try ALGORITHM=COPY."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s13:ce8e58d4fa59": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE customers_copy MODIFY city VARCHAR(100) NOT NULL, ALGORITHM = COPY, LOCK = NONE",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1846,
+      "message": "LOCK=NONE is not supported. Reason: COPY algorithm requires a lock. Try LOCK=SHARED."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:36bfc7458031": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE customers_copy MODIFY city VARCHAR(100) NOT NULL, ALGORITHM = COPY",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "info": "Records: 25  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s15:f5d76b47314c": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE customers_copy MODIFY phone VARCHAR(10) NULL",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1265,
+      "message": "Data truncated for column 'phone' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s16:79a497c08bef": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE customer_emails AS\nSELECT customer_id, email FROM customers WHERE customer_id <= 3",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SHOW CREATE TABLE customer_emails",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Create Table"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "customer_emails",
+       "CREATE TABLE `customer_emails` (\n  `customer_id` int unsigned NOT NULL DEFAULT '0',\n  `email` varchar(255) NOT NULL\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:3398a38b8e54": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE supplier ADD COLUMN internal_score INT NULL INVISIBLE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO supplier (name, email, created_at) VALUES ('Acme Parts', 'sales@acme.example', '2024-05-01 09:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM supplier",
+     "status": "ok",
+     "columns": [
+      "supplier_id",
+      "name",
+      "country_code",
+      "email",
+      "rating",
+      "is_active",
+      "created_at"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "Acme Parts",
+       "US",
+       "sales@acme.example",
+       null,
+       1,
+       "2024-05-01 09:00:00"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT supplier_id, name, internal_score FROM supplier",
+     "status": "ok",
+     "columns": [
+      "supplier_id",
+      "name",
+      "internal_score"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "Acme Parts",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:07cd72e16d6f": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE ticket (id INT AUTO_INCREMENT PRIMARY KEY, subject VARCHAR(40) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO ticket (subject) VALUES ('a'), ('b'), ('c')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM ticket",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO ticket (subject) VALUES ('after delete')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM ticket",
+     "status": "ok",
+     "columns": [
+      "id",
+      "subject"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4,
+       "after delete"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:249cea13505a": {
+   "statements": [
+    {
+     "sql": "TRUNCATE TABLE ticket",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO ticket (subject) VALUES ('after truncate')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM ticket",
+     "status": "ok",
+     "columns": [
+      "id",
+      "subject"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "after truncate"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:1e7e42ae45de": {
+   "statements": [
+    {
+     "sql": "TRUNCATE TABLE customers",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1701,
+      "message": "Cannot truncate a table referenced in a foreign key constraint (`orders`, CONSTRAINT `fk_orders_customer`)"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s21:e4c766e59db3": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE supplier_new LIKE supplier",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO supplier_new SELECT * FROM supplier",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "RENAME TABLE supplier TO supplier_old, supplier_new TO supplier",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME FROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'supplier%'\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "supplier"
+      ],
+      [
+       "supplier_old"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:bfff457afe8e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE shipment (\n  shipment_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  order_id    INT UNSIGNED NOT NULL,\n  carrier     VARCHAR(20)  NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO shipment (order_id, carrier) VALUES (1, 'UPS'), (2, 'FedEx'), (3, 'UPS')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE FROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'shipment' ORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "COLUMN_TYPE",
+      "IS_NULLABLE"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "shipment_id",
+       "int unsigned",
+       "NO"
+      ],
+      [
+       "order_id",
+       "int unsigned",
+       "NO"
+      ],
+      [
+       "carrier",
+       "varchar(20)",
+       "NO"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:532cc7808db2": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE shipment ADD COLUMN tracking_no VARCHAR(40) NULL, ALGORITHM = INSTANT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM shipment ORDER BY shipment_id",
+     "status": "ok",
+     "columns": [
+      "shipment_id",
+      "order_id",
+      "carrier",
+      "tracking_no"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       1,
+       "UPS",
+       null
+      ],
+      [
+       2,
+       2,
+       "FedEx",
+       null
+      ],
+      [
+       3,
+       3,
+       "UPS",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:fc2208c8b6ad": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE shipment ADD INDEX idx_carrier (carrier), ALGORITHM = INPLACE, LOCK = NONE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT INDEX_NAME, COLUMN_NAME, NON_UNIQUE FROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'shipment' ORDER BY INDEX_NAME, SEQ_IN_INDEX",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "COLUMN_NAME",
+      "NON_UNIQUE"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "idx_carrier",
+       "carrier",
+       1
+      ],
+      [
+       "PRIMARY",
+       "shipment_id",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:7892d411372c": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE shipment MODIFY order_id BIGINT UNSIGNED NOT NULL, ALGORITHM = COPY",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:4fac97dccadf": {
+   "statements": [
+    {
+     "sql": "RENAME TABLE shipment TO shipments",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SHOW TABLES LIKE 'shipment%'",
+     "status": "ok",
+     "columns": [
+      "Tables_in_lab_6fe7be9ac6c65340215e (shipment%)"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "shipments"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:cf6f782f50a3": {
+   "statements": [
+    {
+     "sql": "TRUNCATE TABLE shipments",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_after_truncate FROM shipments",
+     "status": "ok",
+     "columns": [
+      "rows_after_truncate"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "DROP TABLE shipments",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS tables_left FROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'shipment%'",
+     "status": "ok",
+     "columns": [
+      "tables_left"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:1ea0c1b9427c": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE review_flag (\n  flag_id   INT PRIMARY KEY,\n  review_id INT UNSIGNED NOT NULL REFERENCES reviews (review_id)   -- inline: silently ignored\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS foreign_keys\nFROM information_schema.TABLE_CONSTRAINTS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'review_flag' AND CONSTRAINT_TYPE = 'FOREIGN KEY'",
+     "status": "ok",
+     "columns": [
+      "foreign_keys"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:194c313d7ae5": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE review_flag_ok (\n  flag_id   INT PRIMARY KEY,\n  review_id INT UNSIGNED NOT NULL,\n  CONSTRAINT fk_flag_review FOREIGN KEY (review_id) REFERENCES reviews (review_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT CONSTRAINT_NAME, CONSTRAINT_TYPE\nFROM information_schema.TABLE_CONSTRAINTS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'review_flag_ok'\nORDER BY CONSTRAINT_TYPE",
+     "status": "ok",
+     "columns": [
+      "CONSTRAINT_NAME",
+      "CONSTRAINT_TYPE"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "fk_flag_review",
+       "FOREIGN KEY"
+      ],
+      [
+       "PRIMARY",
+       "PRIMARY KEY"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s24:805bbc2fbcdd": {
+   "statements": [
+    {
+     "sql": "DROP TABLE IF EXISTS custmers_copy",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1051,
+       "message": "Unknown table 'custmers_copy'"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

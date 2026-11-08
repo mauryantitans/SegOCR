@@ -1,0 +1,1438 @@
+{
+ "doc": "m02-defaults-auto-increment",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:7a0e2fea5013": {
+   "statements": [
+    {
+     "sql": "SET SESSION time_zone = '+00:00'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION timestamp = UNIX_TIMESTAMP('2024-06-01 09:30:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- freeze the clock for reproducible output\nCREATE TABLE support_tickets (\n  ticket_id   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  customer_id INT UNSIGNED NOT NULL,\n  subject     VARCHAR(120) NOT NULL,\n  status      VARCHAR(12)  NOT NULL DEFAULT 'open',                         -- literal\n  priority    TINYINT      NOT NULL DEFAULT 3,                              -- literal\n  tags        JSON         NOT NULL DEFAULT (JSON_ARRAY()),                 -- expression (8.0.13+)\n  created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,              -- current time\n  updated_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP\n                                    ON UPDATE CURRENT_TIMESTAMP,            -- auto-update\n  due_date    DATE         NOT NULL DEFAULT (CURRENT_DATE + INTERVAL 14 DAY),\n  closed_at   DATETIME     NULL                                             -- implicit DEFAULT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO support_tickets (customer_id, subject) VALUES (7, 'Wrong item delivered')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM support_tickets",
+     "status": "ok",
+     "columns": [
+      "ticket_id",
+      "customer_id",
+      "subject",
+      "status",
+      "priority",
+      "tags",
+      "created_at",
+      "updated_at",
+      "due_date",
+      "closed_at"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       7,
+       "Wrong item delivered",
+       "open",
+       3,
+       "[]",
+       "2024-06-01 09:30:00",
+       "2024-06-01 09:30:00",
+       "2024-06-15",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:dd8ce263b9c7": {
+   "statements": [
+    {
+     "sql": "INSERT INTO support_tickets (customer_id, subject, priority) VALUES (12, 'Refund status', DEFAULT)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT ticket_id, priority, DEFAULT(priority) AS priority_default, DEFAULT(status) AS status_default\nFROM support_tickets ORDER BY ticket_id",
+     "status": "ok",
+     "columns": [
+      "ticket_id",
+      "priority",
+      "priority_default",
+      "status_default"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       3,
+       3,
+       "open"
+      ],
+      [
+       2,
+       3,
+       3,
+       "open"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:ebf72c564152": {
+   "statements": [
+    {
+     "sql": "SELECT COLUMN_NAME, COLUMN_DEFAULT, IS_NULLABLE, EXTRA\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'support_tickets'\nORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "COLUMN_DEFAULT",
+      "IS_NULLABLE",
+      "EXTRA"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       "ticket_id",
+       null,
+       "NO",
+       "auto_increment"
+      ],
+      [
+       "customer_id",
+       null,
+       "NO",
+       ""
+      ],
+      [
+       "subject",
+       null,
+       "NO",
+       ""
+      ],
+      [
+       "status",
+       "open",
+       "NO",
+       ""
+      ],
+      [
+       "priority",
+       "3",
+       "NO",
+       ""
+      ],
+      [
+       "tags",
+       "json_array()",
+       "NO",
+       "DEFAULT_GENERATED"
+      ],
+      [
+       "created_at",
+       "CURRENT_TIMESTAMP",
+       "NO",
+       "DEFAULT_GENERATED"
+      ],
+      [
+       "updated_at",
+       "CURRENT_TIMESTAMP",
+       "NO",
+       "DEFAULT_GENERATED on update CURRENT_TIMESTAMP"
+      ],
+      [
+       "due_date",
+       "(curdate() + interval 14 day)",
+       "NO",
+       "DEFAULT_GENERATED"
+      ],
+      [
+       "closed_at",
+       null,
+       "YES",
+       ""
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:05d974c38365": {
+   "statements": [
+    {
+     "sql": "SET SESSION timestamp = UNIX_TIMESTAMP('2024-06-01 10:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE support_tickets SET status = 'open' WHERE ticket_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 1  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- same value: no change\nSELECT ticket_id, status, created_at, updated_at FROM support_tickets WHERE ticket_id = 1",
+     "status": "ok",
+     "columns": [
+      "ticket_id",
+      "status",
+      "created_at",
+      "updated_at"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "open",
+       "2024-06-01 09:30:00",
+       "2024-06-01 09:30:00"
+      ]
+     ]
+    },
+    {
+     "sql": "UPDATE support_tickets SET status = 'pending' WHERE ticket_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- real change\nSELECT ticket_id, status, created_at, updated_at FROM support_tickets WHERE ticket_id = 1",
+     "status": "ok",
+     "columns": [
+      "ticket_id",
+      "status",
+      "created_at",
+      "updated_at"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "pending",
+       "2024-06-01 09:30:00",
+       "2024-06-01 10:00:00"
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION timestamp = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s6:ddbfbf6ad3d9": {
+   "statements": [
+    {
+     "sql": "SHOW CREATE TABLE customers",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Create Table"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "customers",
+       "CREATE TABLE `customers` (\n  `customer_id` int unsigned NOT NULL AUTO_INCREMENT,\n  `first_name` varchar(50) NOT NULL,\n  `last_name` varchar(50) NOT NULL,\n  `email` varchar(255) NOT NULL,\n  `phone` varchar(20) DEFAULT NULL,\n  `city` varchar(60) NOT NULL,\n  `state` char(2) NOT NULL,\n  `loyalty_tier` enum('bronze','silver','gold') DEFAULT NULL,\n  `signup_date` date NOT NULL,\n  PRIMARY KEY (`customer_id`),\n  UNIQUE KEY `uq_customers_email` (`email`)\n) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:75df7b51f43e": {
+   "statements": [
+    {
+     "sql": "INSERT INTO customers (first_name, last_name, email, city, state, signup_date)\nVALUES ('Mei', 'Tanaka', 'mei.tanaka@example.com', 'San Jose', 'CA', '2024-12-30')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT LAST_INSERT_ID() AS new_customer_id",
+     "status": "ok",
+     "columns": [
+      "new_customer_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       26
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:aa16c4e6a44f": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE coupons (\n  coupon_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  code      VARCHAR(20)  NOT NULL UNIQUE,\n  pct       TINYINT      NOT NULL DEFAULT 10\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO coupons (code) VALUES ('SPRING15')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM coupons",
+     "status": "ok",
+     "columns": [
+      "coupon_id",
+      "code",
+      "pct"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SPRING15",
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:d7b4a9390023": {
+   "statements": [
+    {
+     "sql": "INSERT INTO coupons (code) VALUES ('VIP20'), ('WELCOME10'), ('SUMMER5')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT LAST_INSERT_ID() AS first_generated, ROW_COUNT() AS rows_inserted",
+     "status": "ok",
+     "columns": [
+      "first_generated",
+      "rows_inserted"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2,
+       3
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT * FROM coupons ORDER BY coupon_id",
+     "status": "ok",
+     "columns": [
+      "coupon_id",
+      "code",
+      "pct"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "SPRING15",
+       10
+      ],
+      [
+       2,
+       "VIP20",
+       10
+      ],
+      [
+       3,
+       "WELCOME10",
+       10
+      ],
+      [
+       4,
+       "SUMMER5",
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:610710aeb804": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO coupons (code) VALUES ('FLASH50')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT LAST_INSERT_ID() AS id_taken_inside_transaction",
+     "status": "ok",
+     "columns": [
+      "id_taken_inside_transaction"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5
+      ]
+     ]
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO coupons (code) VALUES ('AUTUMN10')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM coupons ORDER BY coupon_id",
+     "status": "ok",
+     "columns": [
+      "coupon_id",
+      "code",
+      "pct"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "SPRING15",
+       10
+      ],
+      [
+       2,
+       "VIP20",
+       10
+      ],
+      [
+       3,
+       "WELCOME10",
+       10
+      ],
+      [
+       4,
+       "SUMMER5",
+       10
+      ],
+      [
+       6,
+       "AUTUMN10",
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:ae1161ac4ed2": {
+   "statements": [
+    {
+     "sql": "INSERT INTO coupons (code) VALUES ('VIP20')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'VIP20' for key 'coupons.code'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:9d6c9c2d8b9b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO coupons (code) VALUES ('WINTER25')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM coupons ORDER BY coupon_id",
+     "status": "ok",
+     "columns": [
+      "coupon_id",
+      "code",
+      "pct"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "SPRING15",
+       10
+      ],
+      [
+       2,
+       "VIP20",
+       10
+      ],
+      [
+       3,
+       "WELCOME10",
+       10
+      ],
+      [
+       4,
+       "SUMMER5",
+       10
+      ],
+      [
+       6,
+       "AUTUMN10",
+       10
+      ],
+      [
+       8,
+       "WINTER25",
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:233db0d2301b": {
+   "statements": [
+    {
+     "sql": "INSERT IGNORE INTO coupons (code) VALUES ('VIP20')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1062,
+       "message": "Duplicate entry 'VIP20' for key 'coupons.code'"
+      }
+     ]
+    },
+    {
+     "sql": "INSERT INTO coupons (code, pct) VALUES ('SPRING15', 15) AS new ON DUPLICATE KEY UPDATE pct = new.pct",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO coupons (code) VALUES ('NEWYEAR30')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM coupons ORDER BY coupon_id",
+     "status": "ok",
+     "columns": [
+      "coupon_id",
+      "code",
+      "pct"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       1,
+       "SPRING15",
+       15
+      ],
+      [
+       2,
+       "VIP20",
+       10
+      ],
+      [
+       3,
+       "WELCOME10",
+       10
+      ],
+      [
+       4,
+       "SUMMER5",
+       10
+      ],
+      [
+       6,
+       "AUTUMN10",
+       10
+      ],
+      [
+       8,
+       "WINTER25",
+       10
+      ],
+      [
+       11,
+       "NEWYEAR30",
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:773c004f6d6c": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE coupon_archive (\n  archive_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  code       VARCHAR(20)  NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO coupon_archive (code) SELECT code FROM coupons ORDER BY coupon_id LIMIT 5",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO coupon_archive (code) VALUES ('MANUAL')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM coupon_archive ORDER BY archive_id",
+     "status": "ok",
+     "columns": [
+      "archive_id",
+      "code"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "SPRING15"
+      ],
+      [
+       2,
+       "VIP20"
+      ],
+      [
+       3,
+       "WELCOME10"
+      ],
+      [
+       4,
+       "SUMMER5"
+      ],
+      [
+       5,
+       "AUTUMN10"
+      ],
+      [
+       8,
+       "MANUAL"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:76056199114e": {
+   "statements": [
+    {
+     "sql": "INSERT INTO coupons (coupon_id, code) VALUES (100, 'EXPLICIT')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "-- explicit id above the counter\nINSERT INTO coupons (code) VALUES ('AFTER_EXPLICIT')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "-- continues from 101\nDELETE FROM coupons WHERE coupon_id >= 100",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "rows": []
+    },
+    {
+     "sql": "-- remove the top rows\nINSERT INTO coupons (code) VALUES ('AFTER_DELETE')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "-- 100 and 101 are not reused\nSELECT coupon_id, code FROM coupons WHERE coupon_id >= 50 ORDER BY coupon_id",
+     "status": "ok",
+     "columns": [
+      "coupon_id",
+      "code"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       102,
+       "AFTER_DELETE"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:5a70c75a19df": {
+   "statements": [
+    {
+     "sql": "UPDATE coupons SET coupon_id = 500 WHERE code = 'AFTER_DELETE'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO coupons (code) VALUES ('AFTER_UPDATE')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT coupon_id, code FROM coupons WHERE coupon_id >= 100 ORDER BY coupon_id",
+     "status": "ok",
+     "columns": [
+      "coupon_id",
+      "code"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       500,
+       "AFTER_DELETE"
+      ],
+      [
+       501,
+       "AFTER_UPDATE"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:68a283eafe0d": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE coupon_archive AUTO_INCREMENT = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- too low: InnoDB uses MAX(archive_id) + 1 instead\nINSERT INTO coupon_archive (code) VALUES ('AFTER_ALTER')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM coupon_archive WHERE code IN ('MANUAL', 'AFTER_ALTER') ORDER BY archive_id",
+     "status": "ok",
+     "columns": [
+      "archive_id",
+      "code"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       8,
+       "MANUAL"
+      ],
+      [
+       9,
+       "AFTER_ALTER"
+      ]
+     ]
+    },
+    {
+     "sql": "TRUNCATE TABLE coupon_archive",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO coupon_archive (code) VALUES ('AFTER_TRUNCATE')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM coupon_archive",
+     "status": "ok",
+     "columns": [
+      "archive_id",
+      "code"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "AFTER_TRUNCATE"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:fce1aaeda442": {
+   "statements": [
+    {
+     "sql": "SET SESSION auto_increment_increment = 10, auto_increment_offset = 3",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE region_events (event_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, note VARCHAR(20))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO region_events (note) VALUES ('a'), ('b'), ('c')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM region_events ORDER BY event_id",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "note"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       3,
+       "a"
+      ],
+      [
+       13,
+       "b"
+      ],
+      [
+       23,
+       "c"
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION auto_increment_increment = DEFAULT, auto_increment_offset = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s19:87c9009b6852": {
+   "statements": [
+    {
+     "sql": "SELECT AUTO_INCREMENT AS first_read\nFROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'region_events'",
+     "status": "ok",
+     "columns": [
+      "first_read"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       33
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO region_events (note) VALUES ('d')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT AUTO_INCREMENT AS after_insert_cached\nFROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'region_events'",
+     "status": "ok",
+     "columns": [
+      "after_insert_cached"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       33
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION information_schema_stats_expiry = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT AUTO_INCREMENT AS after_insert_fresh\nFROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'region_events'",
+     "status": "ok",
+     "columns": [
+      "after_insert_fresh"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       34
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:3e1ce6f4ab8a": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO web_orders (channel) VALUES ('app')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "SELECT LAST_INSERT_ID() AS a_id",
+       "status": "ok",
+       "columns": [
+        "a_id"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "INSERT INTO web_orders (channel) VALUES ('web')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "SELECT LAST_INSERT_ID() AS b_id",
+       "status": "ok",
+       "columns": [
+        "b_id"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         4
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT LAST_INSERT_ID() AS a_id_again",
+       "status": "ok",
+       "columns": [
+        "a_id_again"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT * FROM web_orders ORDER BY order_id",
+       "status": "ok",
+       "columns": [
+        "order_id",
+        "channel"
+       ],
+       "row_count": 3,
+       "rows": [
+        [
+         1,
+         "web"
+        ],
+        [
+         2,
+         "web"
+        ],
+        [
+         4,
+         "web"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s21:02bd6266f5ae": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_autoinc_lock_mode AS autoinc_lock_mode",
+     "status": "ok",
+     "columns": [
+      "autoinc_lock_mode"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:3509fb443546": {
+   "statements": [
+    {
+     "sql": "SELECT coupon_id, code, pct FROM coupons ORDER BY coupon_id",
+     "status": "ok",
+     "columns": [
+      "coupon_id",
+      "code",
+      "pct"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       1,
+       "SPRING15",
+       15
+      ],
+      [
+       2,
+       "VIP20",
+       10
+      ],
+      [
+       3,
+       "WELCOME10",
+       10
+      ],
+      [
+       4,
+       "SUMMER5",
+       10
+      ],
+      [
+       6,
+       "AUTUMN10",
+       10
+      ],
+      [
+       8,
+       "WINTER25",
+       10
+      ],
+      [
+       11,
+       "NEWYEAR30",
+       10
+      ],
+      [
+       500,
+       "AFTER_DELETE",
+       10
+      ],
+      [
+       501,
+       "AFTER_UPDATE",
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s24:dcd872881a2a": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS rows_present, MAX(coupon_id) AS highest_id, MAX(coupon_id) - COUNT(*) AS ids_not_in_table\nFROM coupons",
+     "status": "ok",
+     "columns": [
+      "rows_present",
+      "highest_id",
+      "ids_not_in_table"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       9,
+       501,
+       492
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s25:440450d70db7": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE invoice_number_seq (id BIGINT UNSIGNED NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO invoice_number_seq VALUES (2024000)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE invoice_number_seq SET id = LAST_INSERT_ID(id + 1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT LAST_INSERT_ID() AS next_invoice_number",
+     "status": "ok",
+     "columns": [
+      "next_invoice_number"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2024001
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s26:07ab8e2f5a7a": {
+   "statements": [
+    {
+     "sql": "INSERT INTO support_tickets (subject) VALUES ('No customer given')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1364,
+      "message": "Field 'customer_id' doesn't have a default value"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s27:71f9f31b949b": {
+   "statements": [
+    {
+     "sql": "SET SESSION sql_mode = ''",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE loose_tickets (id INT PRIMARY KEY, customer_id INT NOT NULL, subject VARCHAR(50) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO loose_tickets (id) VALUES (1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1364,
+       "message": "Field 'customer_id' doesn't have a default value"
+      },
+      {
+       "level": "Warning",
+       "code": 1364,
+       "message": "Field 'subject' doesn't have a default value"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT * FROM loose_tickets",
+     "status": "ok",
+     "columns": [
+      "id",
+      "customer_id",
+      "subject"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       0,
+       ""
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION sql_mode = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s28:42b60bf7cebd": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE bad_default (due DATE DEFAULT CURRENT_DATE + INTERVAL 7 DAY)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CURRENT_DATE + INTERVAL 7 DAY)' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s29:d88f5431819b": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE bad_ref (id INT AUTO_INCREMENT PRIMARY KEY, code VARCHAR(20) DEFAULT (CONCAT('T-', id)))",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3768,
+      "message": "Default value expression of column 'code' cannot refer to an auto-increment column."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s30:737f71d53223": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE bad_ai (id INT AUTO_INCREMENT, name VARCHAR(20))",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1075,
+      "message": "Incorrect table definition; there can be only one auto column and it must be defined as a key"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s31:5750dc9035e0": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE tiny_ids (id TINYINT AUTO_INCREMENT PRIMARY KEY, note VARCHAR(10))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO tiny_ids VALUES (127, 'max')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s32:ccc76854e86e": {
+   "statements": [
+    {
+     "sql": "INSERT INTO tiny_ids (note) VALUES ('next')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '127' for key 'tiny_ids.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s33:dfd0968c3cd9": {
+   "statements": [
+    {
+     "sql": "INSERT INTO coupons (code) VALUES ('GENERATED')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT LAST_INSERT_ID() AS after_generated",
+     "status": "ok",
+     "columns": [
+      "after_generated"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       502
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO coupons (coupon_id, code) VALUES (900, 'EXPLICIT_900')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT LAST_INSERT_ID() AS after_explicit_insert",
+     "status": "ok",
+     "columns": [
+      "after_explicit_insert"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       502
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

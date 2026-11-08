@@ -1,0 +1,661 @@
+{
+ "doc": "m02-string-types",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:10870cd24ad0": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE string_demo (\n  fixed_code   CHAR(5),\n  var_text     VARCHAR(5),\n  fixed_bytes  BINARY(5),\n  var_bytes    VARBINARY(5),\n  short_note   TINYTEXT\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO string_demo VALUES ('ab  ', 'ab  ', 'ab', 'ab', 'ab  ')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT CONCAT('[', fixed_code, ']') AS char_value,\n       CONCAT('[', var_text, ']')   AS varchar_value,\n       HEX(fixed_bytes)             AS binary_hex,\n       HEX(var_bytes)               AS varbinary_hex,\n       LENGTH(fixed_code)           AS char_len,\n       LENGTH(var_text)             AS varchar_len,\n       LENGTH(fixed_bytes)          AS binary_len\nFROM string_demo",
+     "status": "ok",
+     "columns": [
+      "char_value",
+      "varchar_value",
+      "binary_hex",
+      "varbinary_hex",
+      "char_len",
+      "varchar_len",
+      "binary_len"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "[ab]",
+       "[ab  ]",
+       "6162000000",
+       "6162",
+       2,
+       4,
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:341f4df5de3b": {
+   "statements": [
+    {
+     "sql": "SELECT CHAR_LENGTH('héllo') AS chars,  LENGTH('héllo') AS bytes,\n       CHAR_LENGTH('東京')   AS cjk_chars, LENGTH('東京') AS cjk_bytes,\n       CHAR_LENGTH('😀')     AS emoji_chars, LENGTH('😀') AS emoji_bytes,\n       HEX('é')             AS e_acute_utf8",
+     "status": "ok",
+     "columns": [
+      "chars",
+      "bytes",
+      "cjk_chars",
+      "cjk_bytes",
+      "emoji_chars",
+      "emoji_bytes",
+      "e_acute_utf8"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       6,
+       2,
+       6,
+       1,
+       4,
+       "C3A9"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:bbf9cdac7b61": {
+   "statements": [
+    {
+     "sql": "INSERT INTO string_demo (var_text) VALUES ('東京大阪市')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT var_text, CHAR_LENGTH(var_text) AS chars, LENGTH(var_text) AS bytes\nFROM string_demo WHERE var_text LIKE '東%'",
+     "status": "ok",
+     "columns": [
+      "var_text",
+      "chars",
+      "bytes"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "東京大阪市",
+       5,
+       15
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:4a3d2e18e1c6": {
+   "statements": [
+    {
+     "sql": "INSERT INTO string_demo (var_text) VALUES ('abcdef')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1406,
+      "message": "Data too long for column 'var_text' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s5:e7028d91aae8": {
+   "statements": [
+    {
+     "sql": "INSERT INTO string_demo (var_text) VALUES ('abcde   ')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1265,
+       "message": "Data truncated for column 'var_text' at row 1"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT CONCAT('[', var_text, ']') AS stored_value FROM string_demo WHERE var_text LIKE 'abcde%'",
+     "status": "ok",
+     "columns": [
+      "stored_value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "[abcde]"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:66b0d5602139": {
+   "statements": [
+    {
+     "sql": "SELECT COLLATION_NAME, PAD_ATTRIBUTE\nFROM information_schema.COLLATIONS\nWHERE COLLATION_NAME IN ('utf8mb4_0900_ai_ci', 'utf8mb4_0900_bin', 'utf8mb4_general_ci', 'utf8mb4_bin')\nORDER BY COLLATION_NAME",
+     "status": "ok",
+     "columns": [
+      "COLLATION_NAME",
+      "PAD_ATTRIBUTE"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "utf8mb4_0900_ai_ci",
+       "NO PAD"
+      ],
+      [
+       "utf8mb4_0900_bin",
+       "NO PAD"
+      ],
+      [
+       "utf8mb4_bin",
+       "PAD SPACE"
+      ],
+      [
+       "utf8mb4_general_ci",
+       "PAD SPACE"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:1d7049165427": {
+   "statements": [
+    {
+     "sql": "SELECT fixed_code = 'ab'    AS char_equals_ab,\n       var_text   = 'ab'    AS varchar_equals_ab,\n       var_text   = 'ab  '  AS varchar_equals_ab_spaces,\n       fixed_code = 'AB'    AS char_equals_upper_ab\nFROM string_demo\nWHERE fixed_code IS NOT NULL",
+     "status": "ok",
+     "columns": [
+      "char_equals_ab",
+      "varchar_equals_ab",
+      "varchar_equals_ab_spaces",
+      "char_equals_upper_ab"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       0,
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:f7513b341633": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE tshirt (\n  sku   VARCHAR(10) PRIMARY KEY,\n  size  ENUM('S', 'M', 'L', 'XL') NOT NULL,\n  tags  SET('cotton', 'organic', 'recycled') NOT NULL DEFAULT ''\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO tshirt VALUES ('T1', 'M', 'recycled,cotton'), ('T2', 'XL', ''), ('T3', 'S', 'organic,cotton')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT sku, size, size + 0 AS size_index, tags, tags + 0 AS tags_bitmap\nFROM tshirt ORDER BY sku",
+     "status": "ok",
+     "columns": [
+      "sku",
+      "size",
+      "size_index",
+      "tags",
+      "tags_bitmap"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "T1",
+       "M",
+       2.0,
+       "cotton,recycled",
+       5.0
+      ],
+      [
+       "T2",
+       "XL",
+       4.0,
+       "",
+       0.0
+      ],
+      [
+       "T3",
+       "S",
+       1.0,
+       "cotton,organic",
+       3.0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:a459e824c896": {
+   "statements": [
+    {
+     "sql": "INSERT INTO tshirt VALUES ('T4', 'XXL', '')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1265,
+      "message": "Data truncated for column 'size' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:08828a462dfe": {
+   "statements": [
+    {
+     "sql": "SELECT size FROM tshirt ORDER BY size",
+     "status": "ok",
+     "columns": [
+      "size"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "S"
+      ],
+      [
+       "M"
+      ],
+      [
+       "XL"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:53b4e9fb813a": {
+   "statements": [
+    {
+     "sql": "SELECT size FROM tshirt ORDER BY CAST(size AS CHAR)",
+     "status": "ok",
+     "columns": [
+      "size"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "M"
+      ],
+      [
+       "S"
+      ],
+      [
+       "XL"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:a9373c1af788": {
+   "statements": [
+    {
+     "sql": "SELECT sku, tags FROM tshirt WHERE FIND_IN_SET('cotton', tags) > 0 ORDER BY sku",
+     "status": "ok",
+     "columns": [
+      "sku",
+      "tags"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "T1",
+       "cotton,recycled"
+      ],
+      [
+       "T3",
+       "cotton,organic"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:18919da4d202": {
+   "statements": [
+    {
+     "sql": "SELECT 'abc' = 'ABC'                              AS text_compare,\n       CAST('abc' AS BINARY) = CAST('ABC' AS BINARY) AS binary_compare,\n       HEX(UNHEX(SHA2('hello', 256)))             AS sha256_hex,\n       LENGTH(UNHEX(SHA2('hello', 256)))          AS sha256_bytes,\n       LENGTH(SHA2('hello', 256))                 AS sha256_hex_chars",
+     "status": "ok",
+     "columns": [
+      "text_compare",
+      "binary_compare",
+      "sha256_hex",
+      "sha256_bytes",
+      "sha256_hex_chars"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       0,
+       "2CF24DBA5FB0A30E26E83B2AC5B9E29E1B161E5C1FA7425E73043362938B9824",
+       32,
+       64
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:a8b0b3ec188d": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE too_wide (a VARCHAR(10000), b VARCHAR(10000), c VARCHAR(10000))",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1118,
+      "message": "Row size too large. The maximum row size for the used table type, not counting BLOBs, is 65535. This includes storage overhead, check the manual. You have to change some columns to TEXT or BLOBs"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s16:3ee17673b163": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE wide_ok (a VARCHAR(5000), b VARCHAR(5000), c TEXT, d TEXT)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COLUMN_NAME, COLUMN_TYPE, CHARACTER_MAXIMUM_LENGTH, CHARACTER_OCTET_LENGTH\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wide_ok'\nORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "COLUMN_TYPE",
+      "CHARACTER_MAXIMUM_LENGTH",
+      "CHARACTER_OCTET_LENGTH"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "a",
+       "varchar(5000)",
+       5000,
+       20000
+      ],
+      [
+       "b",
+       "varchar(5000)",
+       5000,
+       20000
+      ],
+      [
+       "c",
+       "text",
+       65535,
+       65535
+      ],
+      [
+       "d",
+       "text",
+       65535,
+       65535
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:73c8df034872": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE long_key (url VARCHAR(1000), INDEX idx_url (url))",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1071,
+      "message": "Specified key was too long; max key length is 3072 bytes"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:677d938961be": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE pad_trace (c CHAR(4), v VARCHAR(4))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO pad_trace VALUES ('ab ', 'ab ')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:0c46aebc788b": {
+   "statements": [
+    {
+     "sql": "SELECT CONCAT('[', c, ']') AS c_value, CHAR_LENGTH(c) AS c_chars,\n       CONCAT('[', v, ']') AS v_value, CHAR_LENGTH(v) AS v_chars\nFROM pad_trace",
+     "status": "ok",
+     "columns": [
+      "c_value",
+      "c_chars",
+      "v_value",
+      "v_chars"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "[ab]",
+       2,
+       "[ab ]",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:3831064eed67": {
+   "statements": [
+    {
+     "sql": "SELECT c = 'ab' AS c_eq, v = 'ab' AS v_eq, v = 'ab ' AS v_eq_space FROM pad_trace",
+     "status": "ok",
+     "columns": [
+      "c_eq",
+      "v_eq",
+      "v_eq_space"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       0,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:6bc1fe2be993": {
+   "statements": [
+    {
+     "sql": "SELECT v = 'ab' COLLATE utf8mb4_general_ci AS v_eq_pad_space FROM pad_trace",
+     "status": "ok",
+     "columns": [
+      "v_eq_pad_space"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:a1989574961f": {
+   "statements": [
+    {
+     "sql": "SELECT v LIKE 'ab' AS v_like_ab, v LIKE 'ab%' AS v_like_ab_prefix FROM pad_trace",
+     "status": "ok",
+     "columns": [
+      "v_like_ab",
+      "v_like_ab_prefix"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:b0971bc99afa": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE legacy_comments (body VARCHAR(100) CHARACTER SET utf8)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 3719,
+       "message": "'utf8' is currently an alias for the character set UTF8MB3, but will be an alias for UTF8MB4 in a future release. Please consider using UTF8MB4 in order to be unambiguous."
+      }
+     ]
+    },
+    {
+     "sql": "SHOW CREATE TABLE legacy_comments",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Create Table"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "legacy_comments",
+       "CREATE TABLE `legacy_comments` (\n  `body` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:8d4f98ef6bfa": {
+   "statements": [
+    {
+     "sql": "INSERT INTO legacy_comments VALUES ('Great product 👍')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1366,
+      "message": "Incorrect string value: '\\xF0\\x9F\\x91\\x8D' for column 'body' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s20:6c15c3bcfce3": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE notes_bad (body TEXT NOT NULL DEFAULT '')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1101,
+      "message": "BLOB, TEXT, GEOMETRY or JSON column 'body' can't have a default value"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s21:091ae81a064b": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE notes_ok (body TEXT NOT NULL DEFAULT (''))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO notes_ok () VALUES ()",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT CONCAT('[', body, ']') AS body FROM notes_ok",
+     "status": "ok",
+     "columns": [
+      "body"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "[]"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

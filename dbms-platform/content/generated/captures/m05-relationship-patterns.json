@@ -1,0 +1,763 @@
+{
+ "doc": "m05-relationship-patterns",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:eafca5816e28": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE library_cards (\n  card_no     CHAR(10)     NOT NULL PRIMARY KEY,\n  member_id   INT UNSIGNED NOT NULL,\n  issued_on   DATE         NOT NULL,\n  CONSTRAINT uq_cards_member UNIQUE (member_id),\n  CONSTRAINT fk_cards_member FOREIGN KEY (member_id) REFERENCES members (member_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO library_cards VALUES\n  ('LC00000001', 1, '2024-01-10'),\n  ('LC00000002', 2, '2024-01-12')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT c.card_no, m.member_id, m.name\nFROM library_cards AS c JOIN members AS m ON m.member_id = c.member_id\nORDER BY c.card_no",
+     "status": "ok",
+     "columns": [
+      "card_no",
+      "member_id",
+      "name"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "LC00000001",
+       1,
+       "Marcus Moradi"
+      ],
+      [
+       "LC00000002",
+       2,
+       "Marcus Haddad"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:712ca0d28647": {
+   "statements": [
+    {
+     "sql": "INSERT INTO library_cards VALUES ('LC00000003', 1, '2024-06-01')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '1' for key 'library_cards.uq_cards_member'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s3:ef5dd8f226f9": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE member_profiles (\n  member_id        INT UNSIGNED NOT NULL PRIMARY KEY,\n  favourite_genre  VARCHAR(40)  NULL,\n  newsletter_optin BOOLEAN      NOT NULL DEFAULT FALSE,\n  CONSTRAINT fk_profiles_member FOREIGN KEY (member_id) REFERENCES members (member_id)\n    ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO member_profiles (member_id, favourite_genre, newsletter_optin)\nVALUES (1, 'technology', TRUE), (3, 'fiction', FALSE)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT m.member_id, m.name, p.favourite_genre, p.newsletter_optin\nFROM members AS m LEFT JOIN member_profiles AS p ON p.member_id = m.member_id\nWHERE m.member_id <= 4\nORDER BY m.member_id",
+     "status": "ok",
+     "columns": [
+      "member_id",
+      "name",
+      "favourite_genre",
+      "newsletter_optin"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "Marcus Moradi",
+       "technology",
+       1
+      ],
+      [
+       2,
+       "Marcus Haddad",
+       null,
+       null
+      ],
+      [
+       3,
+       "Mei Tanaka",
+       "fiction",
+       0
+      ],
+      [
+       4,
+       "Anika Tanaka",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:84c837821f64": {
+   "statements": [
+    {
+     "sql": "DELETE FROM books WHERE book_id = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1451,
+      "message": "Cannot delete or update a parent row: a foreign key constraint fails (`book_authors`, CONSTRAINT `fk_book_authors_book` FOREIGN KEY (`book_id`) REFERENCES `books` (`book_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s5:06d8ed56fe33": {
+   "statements": [
+    {
+     "sql": "SELECT b.title,\n       GROUP_CONCAT(a.name ORDER BY ba.author_order SEPARATOR ', ') AS authors,\n       COUNT(*) AS author_count\nFROM books AS b\nJOIN book_authors AS ba ON ba.book_id = b.book_id\nJOIN authors AS a       ON a.author_id = ba.author_id\nGROUP BY b.book_id, b.title\nHAVING author_count > 1\nORDER BY b.book_id",
+     "status": "ok",
+     "columns": [
+      "title",
+      "authors",
+      "author_count"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "High Performance MySQL, 3rd Edition",
+       "Baron Schwartz, Peter Zaitsev, Vadim Tkachenko",
+       3
+      ],
+      [
+       "Database System Concepts",
+       "Abraham Silberschatz, Henry F. Korth, S. Sudarshan",
+       3
+      ],
+      [
+       "Fundamentals of Database Systems",
+       "Ramez Elmasri, Shamkant B. Navathe",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:09f1bdfbfc2d": {
+   "statements": [
+    {
+     "sql": "SELECT a.author_id, a.name, COUNT(ba.book_id) AS books\nFROM authors AS a\nLEFT JOIN book_authors AS ba ON ba.author_id = a.author_id\nGROUP BY a.author_id, a.name\nHAVING books <> 1\nORDER BY books DESC, a.author_id",
+     "status": "ok",
+     "columns": [
+      "author_id",
+      "name",
+      "books"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       13,
+       "Ursula K. Le Guin",
+       2
+      ],
+      [
+       15,
+       "Haruki Murakami",
+       2
+      ],
+      [
+       16,
+       "Unpublished Author",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:2d8592634b22": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE loans\n  ADD COLUMN open_copy_id INT UNSIGNED AS (IF(returned_at IS NULL, copy_id, NULL)) STORED,\n  ADD CONSTRAINT uq_loans_one_open_per_copy UNIQUE (open_copy_id)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 52,
+     "info": "Records: 52  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT loan_id, copy_id, member_id, loaned_at, returned_at, open_copy_id\nFROM loans\nWHERE returned_at IS NULL\nORDER BY loan_id",
+     "status": "ok",
+     "columns": [
+      "loan_id",
+      "copy_id",
+      "member_id",
+      "loaned_at",
+      "returned_at",
+      "open_copy_id"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       1,
+       11,
+       10,
+       "2022-10-06",
+       null,
+       11
+      ],
+      [
+       7,
+       16,
+       3,
+       "2023-08-15",
+       null,
+       16
+      ],
+      [
+       16,
+       23,
+       10,
+       "2021-10-10",
+       null,
+       23
+      ],
+      [
+       17,
+       21,
+       3,
+       "2023-10-16",
+       null,
+       21
+      ],
+      [
+       21,
+       1,
+       16,
+       "2024-09-25",
+       null,
+       1
+      ],
+      [
+       38,
+       8,
+       5,
+       "2024-05-11",
+       null,
+       8
+      ],
+      [
+       50,
+       3,
+       14,
+       "2024-01-10",
+       null,
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:310b36c5e904": {
+   "statements": [
+    {
+     "sql": "INSERT INTO loans (loan_id, copy_id, member_id, loaned_at, due_at)\nSELECT 1000, copy_id, 19, '2024-12-01', '2024-12-22'\nFROM loans WHERE returned_at IS NULL ORDER BY loan_id LIMIT 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '11' for key 'loans.uq_loans_one_open_per_copy'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:794ac79afa33": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE library_staff (\n  staff_id      INT UNSIGNED NOT NULL PRIMARY KEY,\n  name          VARCHAR(80)  NOT NULL,\n  role          VARCHAR(40)  NOT NULL,\n  supervisor_id INT UNSIGNED NULL,\n  CONSTRAINT fk_staff_supervisor FOREIGN KEY (supervisor_id)\n    REFERENCES library_staff (staff_id) ON DELETE SET NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO library_staff VALUES\n  (1, 'Ruth Okafor',   'Head Librarian',      NULL),\n  (2, 'Tom Becker',    'Circulation Lead',    1),\n  (3, 'Mei Tanaka',    'Cataloguing Lead',    1),\n  (4, 'Ivan Petrov',   'Circulation Clerk',   2),\n  (5, 'Sara Haddad',   'Circulation Clerk',   2),\n  (6, 'Leo Martins',   'Cataloguer',          3)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 6,
+     "info": "Records: 6  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "WITH RECURSIVE chain AS (\n  SELECT staff_id, name, supervisor_id, 0 AS depth, CAST(name AS CHAR(200)) AS path\n  FROM library_staff WHERE supervisor_id IS NULL\n  UNION ALL\n  SELECT s.staff_id, s.name, s.supervisor_id, c.depth + 1, CONCAT(c.path, ' > ', s.name)\n  FROM library_staff AS s JOIN chain AS c ON s.supervisor_id = c.staff_id\n)\nSELECT staff_id, depth, path FROM chain ORDER BY path",
+     "status": "ok",
+     "columns": [
+      "staff_id",
+      "depth",
+      "path"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       0,
+       "Ruth Okafor"
+      ],
+      [
+       3,
+       1,
+       "Ruth Okafor > Mei Tanaka"
+      ],
+      [
+       6,
+       2,
+       "Ruth Okafor > Mei Tanaka > Leo Martins"
+      ],
+      [
+       2,
+       1,
+       "Ruth Okafor > Tom Becker"
+      ],
+      [
+       4,
+       2,
+       "Ruth Okafor > Tom Becker > Ivan Petrov"
+      ],
+      [
+       5,
+       2,
+       "Ruth Okafor > Tom Becker > Sara Haddad"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:2984b099d1c1": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE library_staff\n  ADD CONSTRAINT chk_staff_not_self CHECK (supervisor_id <> staff_id)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3823,
+      "message": "Column 'supervisor_id' cannot be used in a check constraint 'chk_staff_not_self': needed in a foreign key constraint 'fk_staff_supervisor' referential action."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:8e9ad157700e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE book_relations (\n  book_id         INT UNSIGNED NOT NULL,\n  related_book_id INT UNSIGNED NOT NULL,\n  relation        ENUM('sequel','same_series','recommended') NOT NULL,\n  PRIMARY KEY (book_id, related_book_id),\n  KEY idx_book_relations_related (related_book_id),\n  CONSTRAINT chk_book_rel_not_self CHECK (book_id <> related_book_id),\n  CONSTRAINT fk_book_rel_book    FOREIGN KEY (book_id)         REFERENCES books (book_id),\n  CONSTRAINT fk_book_rel_related FOREIGN KEY (related_book_id) REFERENCES books (book_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO book_relations VALUES (8, 11, 'same_series'), (5, 6, 'recommended'), (10, 12, 'recommended')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT b1.title AS book, r.relation, b2.title AS related_book\nFROM book_relations AS r\nJOIN books AS b1 ON b1.book_id = r.book_id\nJOIN books AS b2 ON b2.book_id = r.related_book_id\nORDER BY r.book_id",
+     "status": "ok",
+     "columns": [
+      "book",
+      "relation",
+      "related_book"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Database System Concepts",
+       "recommended",
+       "Fundamentals of Database Systems"
+      ],
+      [
+       "The Left Hand of Darkness",
+       "same_series",
+       "The Dispossessed"
+      ],
+      [
+       "1Q84",
+       "recommended",
+       "Kafka on the Shore"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:6cb3f6384015": {
+   "statements": [
+    {
+     "sql": "INSERT INTO book_relations VALUES (3, 3, 'recommended')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_book_rel_not_self' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s13:3584d53385f0": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE branches (branch_id TINYINT UNSIGNED PRIMARY KEY, name VARCHAR(40) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE vendors  (vendor_id TINYINT UNSIGNED PRIMARY KEY, name VARCHAR(40) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO branches VALUES (1, 'Central'), (2, 'Eastside')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO vendors  VALUES (1, 'BookHub'), (2, 'PaperTrail')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE vendor_supplies (\n  vendor_id  TINYINT UNSIGNED NOT NULL,\n  book_id    INT UNSIGNED     NOT NULL,\n  branch_id  TINYINT UNSIGNED NOT NULL,\n  unit_cost  DECIMAL(8,2)     NOT NULL,\n  PRIMARY KEY (vendor_id, book_id, branch_id),\n  KEY idx_supplies_book (book_id),\n  KEY idx_supplies_branch (branch_id),\n  FOREIGN KEY (vendor_id) REFERENCES vendors (vendor_id),\n  FOREIGN KEY (book_id)   REFERENCES books (book_id),\n  FOREIGN KEY (branch_id) REFERENCES branches (branch_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO vendor_supplies VALUES\n  (1, 1, 2, 41.00),   -- BookHub supplies Database Internals to Eastside\n  (1, 2, 1, 38.50),   -- BookHub supplies DDIA to Central\n  (2, 1, 1, 43.25)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- PaperTrail supplies Database Internals to Central\nSELECT vendor_id, book_id, branch_id FROM vendor_supplies ORDER BY vendor_id, book_id, branch_id",
+     "status": "ok",
+     "columns": [
+      "vendor_id",
+      "book_id",
+      "branch_id"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       1,
+       2
+      ],
+      [
+       1,
+       2,
+       1
+      ],
+      [
+       2,
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:4b7c460f8bd5": {
+   "statements": [
+    {
+     "sql": "WITH vb  AS (SELECT DISTINCT vendor_id, book_id   FROM vendor_supplies),\n     bbr AS (SELECT DISTINCT book_id,   branch_id FROM vendor_supplies),\n     vbr AS (SELECT DISTINCT vendor_id, branch_id FROM vendor_supplies)\nSELECT vb.vendor_id, vb.book_id, bbr.branch_id,\n       EXISTS (SELECT 1 FROM vendor_supplies AS s\n               WHERE s.vendor_id = vb.vendor_id AND s.book_id = vb.book_id\n                 AND s.branch_id = bbr.branch_id) AS is_real_fact\nFROM vb\nJOIN bbr ON bbr.book_id = vb.book_id\nJOIN vbr ON vbr.vendor_id = vb.vendor_id AND vbr.branch_id = bbr.branch_id\nORDER BY vb.vendor_id, vb.book_id, bbr.branch_id",
+     "status": "ok",
+     "columns": [
+      "vendor_id",
+      "book_id",
+      "branch_id",
+      "is_real_fact"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       1,
+       1,
+       0
+      ],
+      [
+       1,
+       1,
+       2,
+       1
+      ],
+      [
+       1,
+       2,
+       1,
+       1
+      ],
+      [
+       2,
+       1,
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:1662ff3553c3": {
+   "statements": [
+    {
+     "sql": "SELECT staff_id, name, supervisor_id FROM library_staff ORDER BY staff_id",
+     "status": "ok",
+     "columns": [
+      "staff_id",
+      "name",
+      "supervisor_id"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "Ruth Okafor",
+       null
+      ],
+      [
+       2,
+       "Tom Becker",
+       1
+      ],
+      [
+       3,
+       "Mei Tanaka",
+       1
+      ],
+      [
+       4,
+       "Ivan Petrov",
+       2
+      ],
+      [
+       5,
+       "Sara Haddad",
+       2
+      ],
+      [
+       6,
+       "Leo Martins",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:19ea0db7f02b": {
+   "statements": [
+    {
+     "sql": "DELETE FROM library_staff WHERE staff_id = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:1662ff3553c3": {
+   "statements": [
+    {
+     "sql": "SELECT staff_id, name, supervisor_id FROM library_staff ORDER BY staff_id",
+     "status": "ok",
+     "columns": [
+      "staff_id",
+      "name",
+      "supervisor_id"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "Ruth Okafor",
+       null
+      ],
+      [
+       3,
+       "Mei Tanaka",
+       1
+      ],
+      [
+       4,
+       "Ivan Petrov",
+       null
+      ],
+      [
+       5,
+       "Sara Haddad",
+       null
+      ],
+      [
+       6,
+       "Leo Martins",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:0f386ab03f77": {
+   "statements": [
+    {
+     "sql": "UPDATE library_staff SET supervisor_id = 1 WHERE supervisor_id IS NULL AND staff_id <> 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Rows matched: 2  Changed: 2  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT staff_id, name, supervisor_id FROM library_staff ORDER BY staff_id",
+     "status": "ok",
+     "columns": [
+      "staff_id",
+      "name",
+      "supervisor_id"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "Ruth Okafor",
+       null
+      ],
+      [
+       3,
+       "Mei Tanaka",
+       1
+      ],
+      [
+       4,
+       "Ivan Petrov",
+       1
+      ],
+      [
+       5,
+       "Sara Haddad",
+       1
+      ],
+      [
+       6,
+       "Leo Martins",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:dccab407745b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT book_id FROM book_authors WHERE author_id = 13",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Covering index lookup on book_authors using idx_book_authors_author (author_id=13)  (cost=0.45 rows=2)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:e1ba7653a394": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE library_cards_bad (\n  card_no   CHAR(10) PRIMARY KEY,\n  member_id INT UNSIGNED NOT NULL,\n  FOREIGN KEY (member_id) REFERENCES members (member_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO library_cards_bad VALUES ('X1', 5), ('X2', 5)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT member_id, COUNT(*) AS cards FROM library_cards_bad GROUP BY member_id",
+     "status": "ok",
+     "columns": [
+      "member_id",
+      "cards"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

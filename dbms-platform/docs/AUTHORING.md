@@ -140,7 +140,8 @@ Rules for `run` blocks:
 
 ### What the sandbox cannot run (use display-only `sql` blocks)
 
-Each lab runs as a MySQL account with privileges **only on its own schema**:
+Each lab runs as a MySQL account with privileges **only on its own schema** (`SHOW GRANTS` displays this as
+`ALL PRIVILEGES ON your_lab.*`, since it is every schema-level privilege except GRANT OPTION):
 `SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, ALTER, INDEX, REFERENCES, CREATE TEMPORARY TABLES, LOCK TABLES,
 CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EXECUTE, TRIGGER, EVENT`.
 

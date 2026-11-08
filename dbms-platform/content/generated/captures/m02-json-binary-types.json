@@ -1,0 +1,569 @@
+{
+ "doc": "m02-json-binary-types",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:eb884e9c5a51": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE product_attr (\n  product_id INT UNSIGNED PRIMARY KEY,\n  attrs      JSON NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO product_attr VALUES\n  (1, '{ \"color\": \"red\",   \"size\": \"M\", \"color\": \"blue\" }'),\n  (2, '{\"sku\":\"P-2\",\"price\":19.99,\"tags\":[\"eco\",\"new\"],\"dims\":{\"w\":10,\"h\":20},\"active\":true}')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id, attrs, JSON_TYPE(attrs) AS json_type, JSON_STORAGE_SIZE(attrs) AS binary_bytes\nFROM product_attr ORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "attrs",
+      "json_type",
+      "binary_bytes"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "{\"size\": \"M\", \"color\": \"blue\"}",
+       "OBJECT",
+       35
+      ],
+      [
+       2,
+       "{\"sku\": \"P-2\", \"dims\": {\"h\": 20, \"w\": 10}, \"tags\": [\"eco\", \"new\"], \"price\": 19.99, \"active\": true}",
+       "OBJECT",
+       112
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:96dd59fd135a": {
+   "statements": [
+    {
+     "sql": "INSERT INTO product_attr VALUES (3, '{\"color\": \"green\", }')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3140,
+      "message": "Invalid JSON text: \"Missing a name for object member.\" at position 19 in value for column 'product_attr.attrs'."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s3:ebc3dd76281c": {
+   "statements": [
+    {
+     "sql": "INSERT INTO product_attr VALUES (4, 'green')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3140,
+      "message": "Invalid JSON text: \"Invalid value.\" at position 0 in value for column 'product_attr.attrs'."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s4:3c4f1941e0a4": {
+   "statements": [
+    {
+     "sql": "SELECT attrs->'$.sku'          AS sku_json,\n       attrs->>'$.sku'         AS sku_text,\n       attrs->'$.price'        AS price,\n       JSON_TYPE(attrs->'$.price') AS price_type,\n       attrs->>'$.tags[0]'     AS first_tag,\n       attrs->>'$.dims.w'      AS width,\n       JSON_TYPE(attrs->'$.active') AS active_type\nFROM product_attr WHERE product_id = 2",
+     "status": "ok",
+     "columns": [
+      "sku_json",
+      "sku_text",
+      "price",
+      "price_type",
+      "first_tag",
+      "width",
+      "active_type"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "\"P-2\"",
+       "P-2",
+       "19.99",
+       "DOUBLE",
+       "eco",
+       "10",
+       "BOOLEAN"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:b780e5e23ef3": {
+   "statements": [
+    {
+     "sql": "SELECT CAST('[3, 1, 2]' AS JSON)       = CAST('[3,1,2]' AS JSON)       AS same_array,\n       CAST('{\"a\":1,\"b\":2}' AS JSON)   = CAST('{\"b\":2,\"a\":1}' AS JSON) AS same_object,\n       CAST('[1, 2, 3]' AS JSON)       = CAST('[3, 2, 1]' AS JSON)     AS array_order_matters,\n       '{\"a\":1}' = CAST('{\"a\":1}' AS JSON)                             AS string_vs_json",
+     "status": "ok",
+     "columns": [
+      "same_array",
+      "same_object",
+      "array_order_matters",
+      "string_vs_json"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1,
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:cc6e219154c2": {
+   "statements": [
+    {
+     "sql": "UPDATE product_attr\nSET attrs = JSON_SET(attrs, '$.price', 17.99, '$.stock', 5)\nWHERE product_id = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT attrs FROM product_attr WHERE product_id = 2",
+     "status": "ok",
+     "columns": [
+      "attrs"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "{\"sku\": \"P-2\", \"dims\": {\"h\": 20, \"w\": 10}, \"tags\": [\"eco\", \"new\"], \"price\": 17.99, \"stock\": 5, \"active\": true}"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:778162bcf427": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, attrs->>'$.sku' AS sku\nFROM product_attr\nWHERE 'eco' MEMBER OF (attrs->'$.tags')\n  AND CAST(attrs->>'$.price' AS DECIMAL(10,2)) < 20.00",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "sku"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2,
+       "P-2"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:121aa79f705c": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE product_spec (\n  product_id INT UNSIGNED PRIMARY KEY,\n  spec JSON NOT NULL,\n  CONSTRAINT chk_spec_schema CHECK (JSON_SCHEMA_VALID(\n    '{\"type\": \"object\",\n      \"required\": [\"sku\"],\n      \"properties\": {\"sku\":   {\"type\": \"string\"},\n                     \"price\": {\"type\": \"number\", \"minimum\": 0}}}',\n    spec))\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO product_spec VALUES (1, '{\"sku\": \"A-1\", \"price\": 9.5}')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s10:8ee88d0f1c78": {
+   "statements": [
+    {
+     "sql": "INSERT INTO product_spec VALUES (2, '{\"sku\": \"A-2\", \"price\": -1}')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_spec_schema' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:6eea9e63d932": {
+   "statements": [
+    {
+     "sql": "INSERT INTO product_spec VALUES (3, '{\"price\": 4}')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_spec_schema' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:34abed71e3cf": {
+   "statements": [
+    {
+     "sql": "SELECT JSON_OBJECT('customer_id', customer_id,\n                   'name', CONCAT(first_name, ' ', last_name),\n                   'tier', loyalty_tier) AS customer_json\nFROM customers\nORDER BY customer_id\nLIMIT 3",
+     "status": "ok",
+     "columns": [
+      "customer_json"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "{\"name\": \"Amara Sharma\", \"tier\": \"bronze\", \"customer_id\": 1}"
+      ],
+      [
+       "{\"name\": \"Kwame Garcia\", \"tier\": \"bronze\", \"customer_id\": 2}"
+      ],
+      [
+       "{\"name\": \"Diego Haddad\", \"tier\": null, \"customer_id\": 3}"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:672c5cd22b40": {
+   "statements": [
+    {
+     "sql": "SELECT jt.sku, jt.qty\nFROM JSON_TABLE('[{\"sku\": \"A\", \"qty\": 2}, {\"sku\": \"B\", \"qty\": 5}]',\n                '$[*]' COLUMNS (sku VARCHAR(10) PATH '$.sku',\n                                qty INT         PATH '$.qty')) AS jt",
+     "status": "ok",
+     "columns": [
+      "sku",
+      "qty"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "A",
+       2
+      ],
+      [
+       "B",
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:f46cdf172630": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE attachment (\n  attachment_id INT UNSIGNED PRIMARY KEY,\n  file_name     VARCHAR(255) NOT NULL,\n  mime_type     VARCHAR(100) NOT NULL,\n  content       MEDIUMBLOB   NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO attachment VALUES (1, 'logo.png', 'image/png', x'89504E470D0A1A0A')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT attachment_id, file_name, LENGTH(content) AS bytes, HEX(content) AS hex_content\nFROM attachment",
+     "status": "ok",
+     "columns": [
+      "attachment_id",
+      "file_name",
+      "bytes",
+      "hex_content"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "logo.png",
+       8,
+       "89504E470D0A1A0A"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:673a2f38bc53": {
+   "statements": [
+    {
+     "sql": "SELECT HEX(UUID_TO_BIN('6ccd780c-baba-1026-9564-5b8c656024db'))     AS plain_16_bytes,\n       HEX(UUID_TO_BIN('6ccd780c-baba-1026-9564-5b8c656024db', 1))  AS swapped_16_bytes,\n       BIN_TO_UUID(UUID_TO_BIN('6ccd780c-baba-1026-9564-5b8c656024db', 1), 1) AS round_trip,\n       LENGTH(UUID_TO_BIN('6ccd780c-baba-1026-9564-5b8c656024db'))  AS bytes,\n       IS_UUID('6ccd780c-baba-1026-9564-5b8c656024db')              AS valid_uuid",
+     "status": "ok",
+     "columns": [
+      "plain_16_bytes",
+      "swapped_16_bytes",
+      "round_trip",
+      "bytes",
+      "valid_uuid"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "6CCD780CBABA102695645B8C656024DB",
+       "1026BABA6CCD780C95645B8C656024DB",
+       "6ccd780c-baba-1026-9564-5b8c656024db",
+       16,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:e6c8d5cde37c": {
+   "volatile": true,
+   "statements": [
+    {
+     "sql": "SELECT UUID() AS new_uuid, HEX(UUID_TO_BIN(UUID(), 1)) AS new_swapped",
+     "status": "ok"
+    }
+   ]
+  },
+  "w1.0:0203a5100be4": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE uuid_gen (gen_order INT PRIMARY KEY, uuid_text CHAR(36) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO uuid_gen VALUES\n  (1, 'ffffffff-0001-11ef-8000-00000000000a'),\n  (2, '00000000-0002-11ef-8000-00000000000a'),\n  (3, '00000001-0002-11ef-8000-00000000000a')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT gen_order, uuid_text FROM uuid_gen ORDER BY gen_order",
+     "status": "ok",
+     "columns": [
+      "gen_order",
+      "uuid_text"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "ffffffff-0001-11ef-8000-00000000000a"
+      ],
+      [
+       2,
+       "00000000-0002-11ef-8000-00000000000a"
+      ],
+      [
+       3,
+       "00000001-0002-11ef-8000-00000000000a"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:61ad310438f0": {
+   "statements": [
+    {
+     "sql": "SELECT gen_order, uuid_text FROM uuid_gen ORDER BY uuid_text",
+     "status": "ok",
+     "columns": [
+      "gen_order",
+      "uuid_text"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       2,
+       "00000000-0002-11ef-8000-00000000000a"
+      ],
+      [
+       3,
+       "00000001-0002-11ef-8000-00000000000a"
+      ],
+      [
+       1,
+       "ffffffff-0001-11ef-8000-00000000000a"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:6225ed6803a7": {
+   "statements": [
+    {
+     "sql": "SELECT gen_order, HEX(UUID_TO_BIN(uuid_text, 1)) AS swapped_key\nFROM uuid_gen\nORDER BY UUID_TO_BIN(uuid_text, 1)",
+     "status": "ok",
+     "columns": [
+      "gen_order",
+      "swapped_key"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "11EF0001FFFFFFFF800000000000000A"
+      ],
+      [
+       2,
+       "11EF000200000000800000000000000A"
+      ],
+      [
+       3,
+       "11EF000200000001800000000000000A"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:e1e552ffc9c9": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE device (device_id BINARY(16) PRIMARY KEY, label VARCHAR(20) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO device SELECT UUID_TO_BIN(uuid_text, 1), CONCAT('device-', gen_order) FROM uuid_gen",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT BIN_TO_UUID(device_id, 1) AS device_uuid, label, LENGTH(device_id) AS key_bytes\nFROM device ORDER BY device_id",
+     "status": "ok",
+     "columns": [
+      "device_uuid",
+      "label",
+      "key_bytes"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "ffffffff-0001-11ef-8000-00000000000a",
+       "device-1",
+       16
+      ],
+      [
+       "00000000-0002-11ef-8000-00000000000a",
+       "device-2",
+       16
+      ],
+      [
+       "00000001-0002-11ef-8000-00000000000a",
+       "device-3",
+       16
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:13203c546be1": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE settings_bad (prefs JSON NOT NULL DEFAULT '{}')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1101,
+      "message": "BLOB, TEXT, GEOMETRY or JSON column 'prefs' can't have a default value"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s18:96a9751a2db9": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE settings_ok (user_id INT PRIMARY KEY, prefs JSON NOT NULL DEFAULT (JSON_OBJECT()))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO settings_ok (user_id) VALUES (1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT user_id, prefs FROM settings_ok",
+     "status": "ok",
+     "columns": [
+      "user_id",
+      "prefs"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "{}"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:0c727c3bbb3d": {
+   "statements": [
+    {
+     "sql": "SELECT LENGTH('6ccd780c-baba-1026-9564-5b8c656024db')              AS char36_bytes,\n       LENGTH(UUID_TO_BIN('6ccd780c-baba-1026-9564-5b8c656024db')) AS binary16_bytes",
+     "status": "ok",
+     "columns": [
+      "char36_bytes",
+      "binary16_bytes"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       36,
+       16
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

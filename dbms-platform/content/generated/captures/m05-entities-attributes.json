@@ -1,0 +1,753 @@
+{
+ "doc": "m05-entities-attributes",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:749b43efa050": {
+   "statements": [
+    {
+     "sql": "SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_KEY\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers'\nORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "COLUMN_TYPE",
+      "IS_NULLABLE",
+      "COLUMN_KEY"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       "customer_id",
+       "int unsigned",
+       "NO",
+       "PRI"
+      ],
+      [
+       "first_name",
+       "varchar(50)",
+       "NO",
+       ""
+      ],
+      [
+       "last_name",
+       "varchar(50)",
+       "NO",
+       ""
+      ],
+      [
+       "email",
+       "varchar(255)",
+       "NO",
+       "UNI"
+      ],
+      [
+       "phone",
+       "varchar(20)",
+       "YES",
+       ""
+      ],
+      [
+       "city",
+       "varchar(60)",
+       "NO",
+       ""
+      ],
+      [
+       "state",
+       "char(2)",
+       "NO",
+       ""
+      ],
+      [
+       "loyalty_tier",
+       "enum('bronze','silver','gold')",
+       "YES",
+       ""
+      ],
+      [
+       "signup_date",
+       "date",
+       "NO",
+       ""
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:3e68fb316171": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS entity_set_size FROM customers",
+     "status": "ok",
+     "columns": [
+      "entity_set_size"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:8c57ee57b5eb": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE suppliers (\n  supplier_id     INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  tax_id          VARCHAR(20)  NOT NULL,           -- key attribute (natural, alternate key)\n  company_name    VARCHAR(120) NOT NULL,           -- simple\n  street          VARCHAR(120) NOT NULL,           -- composite: address\n  city            VARCHAR(60)  NOT NULL,\n  state           CHAR(2)      NOT NULL,\n  postal_code     VARCHAR(10)  NOT NULL,\n  contact_first   VARCHAR(50)  NULL,               -- composite: contact name (optional)\n  contact_last    VARCHAR(50)  NULL,\n  partner_since   DATE         NOT NULL,           -- stored; \"years as partner\" is derived\n  PRIMARY KEY (supplier_id),\n  CONSTRAINT uq_suppliers_tax_id UNIQUE (tax_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE supplier_phones (                     -- multivalued attribute\n  supplier_id  INT UNSIGNED NOT NULL,\n  phone        VARCHAR(20)  NOT NULL,\n  phone_type   ENUM('main','sales','support','fax') NOT NULL,\n  PRIMARY KEY (supplier_id, phone),\n  CONSTRAINT fk_supplier_phones FOREIGN KEY (supplier_id)\n    REFERENCES suppliers (supplier_id) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO suppliers (tax_id, company_name, street, city, state, postal_code,\n                       contact_first, contact_last, partner_since) VALUES\n  ('94-1234567', 'Bayline Electronics', '100 Market St',   'San Jose', 'CA', '95113', 'Lena',  'Park',  '2019-03-01'),\n  ('74-7654321', 'Lone Star Books',     '22 Congress Ave', 'Austin',   'TX', '78701', NULL,    NULL,    '2022-07-15'),\n  ('13-5550001', 'Hudson Home Goods',   '9 Pier Rd',       'Albany',   'NY', '12207', 'Marco', 'Rossi', '2016-11-20')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO supplier_phones VALUES\n  (1, '+1-408-555-0100', 'main'),\n  (1, '+1-408-555-0111', 'sales'),\n  (1, '+1-408-555-0122', 'support'),\n  (3, '+1-518-555-0300', 'main')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT s.supplier_id, s.company_name, s.city,\n       COUNT(p.phone) AS phones,\n       GROUP_CONCAT(CONCAT(p.phone_type, ': ', p.phone) ORDER BY p.phone SEPARATOR '; ') AS phone_list\nFROM suppliers AS s\nLEFT JOIN supplier_phones AS p ON p.supplier_id = s.supplier_id\nGROUP BY s.supplier_id, s.company_name, s.city\nORDER BY s.supplier_id",
+     "status": "ok",
+     "columns": [
+      "supplier_id",
+      "company_name",
+      "city",
+      "phones",
+      "phone_list"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "Bayline Electronics",
+       "San Jose",
+       3,
+       "main: +1-408-555-0100; sales: +1-408-555-0111; support: +1-408-555-0122"
+      ],
+      [
+       2,
+       "Lone Star Books",
+       "Austin",
+       0,
+       null
+      ],
+      [
+       3,
+       "Hudson Home Goods",
+       "Albany",
+       1,
+       "main: +1-518-555-0300"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:4e0d8a235711": {
+   "statements": [
+    {
+     "sql": "SELECT state, COUNT(*) AS suppliers\nFROM suppliers\nGROUP BY state\nORDER BY state",
+     "status": "ok",
+     "columns": [
+      "state",
+      "suppliers"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "CA",
+       1
+      ],
+      [
+       "NY",
+       1
+      ],
+      [
+       "TX",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:51a2a574aeea": {
+   "statements": [
+    {
+     "sql": "SELECT CONCAT_WS(', ', street, city, CONCAT(state, ' ', postal_code)) AS full_address,\n       SUBSTRING_INDEX(SUBSTRING_INDEX(CONCAT_WS(', ', street, city, CONCAT(state, ' ', postal_code)), ', ', -1), ' ', 1) AS parsed_state\nFROM suppliers\nORDER BY supplier_id",
+     "status": "ok",
+     "columns": [
+      "full_address",
+      "parsed_state"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "100 Market St, San Jose, CA 95113",
+       "CA"
+      ],
+      [
+       "22 Congress Ave, Austin, TX 78701",
+       "TX"
+      ],
+      [
+       "9 Pier Rd, Albany, NY 12207",
+       "NY"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:ad013d7ed12c": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE order_items\n  ADD COLUMN line_total DECIMAL(12,2) AS (quantity * unit_price) VIRTUAL",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT order_id, product_id, quantity, unit_price, line_total\nFROM order_items\nORDER BY order_id, product_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "product_id",
+      "quantity",
+      "unit_price",
+      "line_total"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       5,
+       3,
+       "29.99",
+       "89.97"
+      ],
+      [
+       1,
+       30,
+       3,
+       "62.99",
+       "188.97"
+      ],
+      [
+       2,
+       9,
+       1,
+       "39.99",
+       "39.99"
+      ],
+      [
+       2,
+       10,
+       1,
+       "224.99",
+       "224.99"
+      ],
+      [
+       2,
+       12,
+       1,
+       "129.99",
+       "129.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:ef4cf7734eaf": {
+   "statements": [
+    {
+     "sql": "UPDATE order_items SET line_total = 0 WHERE order_id = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3105,
+      "message": "The value specified for generated column 'line_total' in table 'order_items' is not allowed."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:9566fd02ea09": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE suppliers\n  ADD COLUMN years_as_partner INT AS (TIMESTAMPDIFF(YEAR, partner_since, CURDATE())) VIRTUAL",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3763,
+      "message": "Expression of generated column 'years_as_partner' contains a disallowed function: curdate."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:dfd52ceb6ea4": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW supplier_overview AS\nSELECT supplier_id, company_name, partner_since,\n       TIMESTAMPDIFF(YEAR, partner_since, CURDATE()) AS years_as_partner\nFROM suppliers",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT supplier_id, company_name, partner_since\nFROM supplier_overview\nORDER BY partner_since",
+     "status": "ok",
+     "columns": [
+      "supplier_id",
+      "company_name",
+      "partner_since"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       3,
+       "Hudson Home Goods",
+       "2016-11-20"
+      ],
+      [
+       1,
+       "Bayline Electronics",
+       "2019-03-01"
+      ],
+      [
+       2,
+       "Lone Star Books",
+       "2022-07-15"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:f4cd43a082bf": {
+   "statements": [
+    {
+     "sql": "SELECT o.order_id, o.status, SUM(oi.line_total) AS order_total, COUNT(*) AS line_count\nFROM orders AS o\nJOIN order_items AS oi ON oi.order_id = o.order_id\nGROUP BY o.order_id, o.status\nORDER BY o.order_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "order_total",
+      "line_count"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "cancelled",
+       "278.94",
+       2
+      ],
+      [
+       2,
+       "delivered",
+       "1891.97",
+       4
+      ],
+      [
+       3,
+       "delivered",
+       "149.00",
+       1
+      ],
+      [
+       4,
+       "paid",
+       "263.97",
+       4
+      ],
+      [
+       5,
+       "cancelled",
+       "594.02",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:0e79f754f2e9": {
+   "statements": [
+    {
+     "sql": "INSERT INTO customers (first_name, last_name, email, city, state, signup_date)\nVALUES ('Amara', 'Sharma', 'AMARA.SHARMA1@EXAMPLE.COM', 'Austin', 'TX', '2024-12-01')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'AMARA.SHARMA1@EXAMPLE.COM' for key 'customers.uq_customers_email'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:1c2345bcadc6": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE suppliers ADD COLUMN duns_number CHAR(9) NULL,\n                      ADD CONSTRAINT uq_suppliers_duns UNIQUE (duns_number)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE suppliers SET duns_number = '123456789' WHERE supplier_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT supplier_id, company_name, duns_number FROM suppliers ORDER BY supplier_id",
+     "status": "ok",
+     "columns": [
+      "supplier_id",
+      "company_name",
+      "duns_number"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "Bayline Electronics",
+       "123456789"
+      ],
+      [
+       2,
+       "Lone Star Books",
+       null
+      ],
+      [
+       3,
+       "Hudson Home Goods",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:0f6a1859a177": {
+   "statements": [
+    {
+     "sql": "SELECT supplier_id, tax_id, company_name, street, city, state, postal_code, contact_first, contact_last\nFROM suppliers WHERE supplier_id = 1",
+     "status": "ok",
+     "columns": [
+      "supplier_id",
+      "tax_id",
+      "company_name",
+      "street",
+      "city",
+      "state",
+      "postal_code",
+      "contact_first",
+      "contact_last"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "94-1234567",
+       "Bayline Electronics",
+       "100 Market St",
+       "San Jose",
+       "CA",
+       "95113",
+       "Lena",
+       "Park"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:9ab3d8b0d8a9": {
+   "statements": [
+    {
+     "sql": "SELECT supplier_id, phone, phone_type FROM supplier_phones WHERE supplier_id = 1",
+     "status": "ok",
+     "columns": [
+      "supplier_id",
+      "phone",
+      "phone_type"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "+1-408-555-0100",
+       "main"
+      ],
+      [
+       1,
+       "+1-408-555-0111",
+       "sales"
+      ],
+      [
+       1,
+       "+1-408-555-0122",
+       "support"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:1c9e5b87c879": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT phone, phone_type FROM supplier_phones WHERE supplier_id = 1",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Index lookup on supplier_phones using PRIMARY (supplier_id=1)  (cost=0.551 rows=3)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:fc9391893efc": {
+   "statements": [
+    {
+     "sql": "SELECT supplier_id,\n       CONCAT_WS(', ', street, city, CONCAT(state, ' ', postal_code)) AS display_address,\n       CONCAT_WS(' ', contact_first, contact_last) AS contact_name\nFROM suppliers ORDER BY supplier_id",
+     "status": "ok",
+     "columns": [
+      "supplier_id",
+      "display_address",
+      "contact_name"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "100 Market St, San Jose, CA 95113",
+       "Lena Park"
+      ],
+      [
+       2,
+       "22 Congress Ave, Austin, TX 78701",
+       ""
+      ],
+      [
+       3,
+       "9 Pier Rd, Albany, NY 12207",
+       "Marco Rossi"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:690775648ff3": {
+   "statements": [
+    {
+     "sql": "SELECT s.supplier_id, s.company_name,\n       CONCAT_WS(' ', s.contact_first, s.contact_last) AS contact_name,\n       GROUP_CONCAT(p.phone ORDER BY p.phone SEPARATOR ', ') AS phones\nFROM suppliers AS s\nLEFT JOIN supplier_phones AS p ON p.supplier_id = s.supplier_id\nGROUP BY s.supplier_id, s.company_name, contact_name\nORDER BY s.supplier_id",
+     "status": "ok",
+     "columns": [
+      "supplier_id",
+      "company_name",
+      "contact_name",
+      "phones"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "Bayline Electronics",
+       "Lena Park",
+       "+1-408-555-0100, +1-408-555-0111, +1-408-555-0122"
+      ],
+      [
+       2,
+       "Lone Star Books",
+       "",
+       null
+      ],
+      [
+       3,
+       "Hudson Home Goods",
+       "Marco Rossi",
+       "+1-518-555-0300"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:6db075704125": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE product_tags_json (\n  product_id INT UNSIGNED PRIMARY KEY,\n  tags       JSON NOT NULL,\n  INDEX idx_tags ((CAST(tags AS CHAR(20) ARRAY)))\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO product_tags_json VALUES\n  (1, '[\"sale\", \"new\"]'), (2, '[\"new\"]'), (3, '[\"gift\", \"sale\"]'), (4, '[\"newsletter\"]')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id FROM product_tags_json\nWHERE 'new' MEMBER OF (tags)\nORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1
+      ],
+      [
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:8b1dd3826138": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_items_line_total ON order_items (line_total)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE order_items",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "order_items",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id, product_id, line_total FROM order_items WHERE line_total > 500",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (order_items.line_total > 500.00)  (cost=5.67 rows=27)\n    -> Covering index range scan on order_items using idx_items_line_total over (500.00 < line_total)  (cost=5.67 rows=27)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:9e37509fe84a": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE supplier_phones_bad (\n  supplier_id INT UNSIGNED PRIMARY KEY,\n  phone1 VARCHAR(20), phone2 VARCHAR(20), phone3 VARCHAR(20)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO supplier_phones_bad VALUES (1, '+1-408-555-0100', '+1-408-555-0111', '+1-408-555-0122'),\n                                       (3, '+1-518-555-0300', NULL, NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT supplier_id FROM supplier_phones_bad\nWHERE '+1-408-555-0111' IN (phone1, phone2, phone3)",
+     "status": "ok",
+     "columns": [
+      "supplier_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:e9b09dc1a612": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(phone) AS counted_with_null,\n       COUNT(NULLIF(phone, '')) AS same_on_this_data\nFROM customers",
+     "status": "ok",
+     "columns": [
+      "counted_with_null",
+      "same_on_this_data"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20,
+       20
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

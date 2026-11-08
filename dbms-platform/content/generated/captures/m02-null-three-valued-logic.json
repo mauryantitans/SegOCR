@@ -1,0 +1,926 @@
+{
+ "doc": "m02-null-three-valued-logic",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:f8ab31cf8ea3": {
+   "statements": [
+    {
+     "sql": "WITH v(p) AS (SELECT TRUE UNION ALL SELECT FALSE UNION ALL SELECT NULL)\nSELECT a.p        AS p,\n       b.p        AS q,\n       a.p AND b.p AS p_and_q,\n       a.p OR  b.p AS p_or_q\nFROM v AS a CROSS JOIN v AS b\nORDER BY a.p IS NULL, a.p DESC, b.p IS NULL, b.p DESC",
+     "status": "ok",
+     "columns": [
+      "p",
+      "q",
+      "p_and_q",
+      "p_or_q"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       1,
+       1,
+       1,
+       1
+      ],
+      [
+       1,
+       0,
+       0,
+       1
+      ],
+      [
+       1,
+       null,
+       null,
+       1
+      ],
+      [
+       0,
+       1,
+       0,
+       1
+      ],
+      [
+       0,
+       0,
+       0,
+       0
+      ],
+      [
+       0,
+       null,
+       0,
+       null
+      ],
+      [
+       null,
+       1,
+       null,
+       1
+      ],
+      [
+       null,
+       0,
+       0,
+       null
+      ],
+      [
+       null,
+       null,
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:28619dc1251b": {
+   "statements": [
+    {
+     "sql": "WITH v(p) AS (SELECT TRUE UNION ALL SELECT FALSE UNION ALL SELECT NULL)\nSELECT p,\n       NOT p          AS not_p,\n       p OR NOT p     AS excluded_middle,\n       p AND NOT p    AS contradiction\nFROM v\nORDER BY p IS NULL, p DESC",
+     "status": "ok",
+     "columns": [
+      "p",
+      "not_p",
+      "excluded_middle",
+      "contradiction"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       0,
+       1,
+       0
+      ],
+      [
+       0,
+       1,
+       1,
+       0
+      ],
+      [
+       null,
+       null,
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:ab2e0500c09e": {
+   "statements": [
+    {
+     "sql": "SELECT NULL = NULL      AS eq,\n       NULL <> NULL     AS ne,\n       NULL < 1         AS lt,\n       NULL = 0         AS eq_zero,\n       NULL = ''        AS eq_empty,\n       NULL <=> NULL    AS null_safe_eq,\n       1 <=> NULL       AS null_safe_one,\n       NULL IS NULL     AS is_null,\n       ISNULL(NULL)     AS isnull_fn",
+     "status": "ok",
+     "columns": [
+      "eq",
+      "ne",
+      "lt",
+      "eq_zero",
+      "eq_empty",
+      "null_safe_eq",
+      "null_safe_one",
+      "is_null",
+      "isnull_fn"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       null,
+       null,
+       null,
+       null,
+       null,
+       1,
+       0,
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:711e6a943936": {
+   "statements": [
+    {
+     "sql": "WITH v(p) AS (SELECT TRUE UNION ALL SELECT FALSE UNION ALL SELECT NULL)\nSELECT p,\n       p IS TRUE        AS is_true,\n       p IS FALSE       AS is_false,\n       p IS UNKNOWN     AS is_unknown,\n       p IS NOT TRUE    AS is_not_true,\n       p IS NOT UNKNOWN AS is_not_unknown\nFROM v\nORDER BY p IS NULL, p DESC",
+     "status": "ok",
+     "columns": [
+      "p",
+      "is_true",
+      "is_false",
+      "is_unknown",
+      "is_not_true",
+      "is_not_unknown"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       1,
+       0,
+       0,
+       0,
+       1
+      ],
+      [
+       0,
+       0,
+       1,
+       0,
+       1,
+       1
+      ],
+      [
+       null,
+       0,
+       0,
+       1,
+       1,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:8dc1654eea21": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM customers)                         AS all_customers,\n       (SELECT COUNT(*) FROM customers WHERE phone = NULL)      AS eq_null,\n       (SELECT COUNT(*) FROM customers WHERE phone IS NULL)     AS is_null,\n       (SELECT COUNT(*) FROM customers WHERE phone IS NOT NULL) AS is_not_null",
+     "status": "ok",
+     "columns": [
+      "all_customers",
+      "eq_null",
+      "is_null",
+      "is_not_null"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25,
+       0,
+       5,
+       20
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:d99bd1b42f72": {
+   "statements": [
+    {
+     "sql": "SELECT 10 + NULL        AS plus,\n       10 * NULL        AS times,\n       NULL - NULL      AS minus_self,\n       NULL / 0         AS null_div_zero,\n       ABS(NULL)        AS abs_null,\n       GREATEST(5, NULL, 9) AS greatest_with_null",
+     "status": "ok",
+     "columns": [
+      "plus",
+      "times",
+      "minus_self",
+      "null_div_zero",
+      "abs_null",
+      "greatest_with_null"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       null,
+       null,
+       null,
+       null,
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:5e92705e3e35": {
+   "statements": [
+    {
+     "sql": "SELECT 1 / 0 AS one_over_zero, MOD(7, 0) AS mod_zero",
+     "status": "ok",
+     "columns": [
+      "one_over_zero",
+      "mod_zero"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       null,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1365,
+       "message": "Division by 0"
+      },
+      {
+       "level": "Warning",
+       "code": 1365,
+       "message": "Division by 0"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:4c8016c83b54": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id,\n       phone,\n       CONCAT(first_name, ' ', last_name, ' / ', phone)              AS concat_label,\n       CONCAT_WS(' / ', CONCAT(first_name, ' ', last_name), phone)   AS concat_ws_label,\n       CONCAT(first_name, ' ', last_name, ' / ', COALESCE(phone, 'no phone')) AS coalesce_label\nFROM customers\nWHERE customer_id BETWEEN 4 AND 6\nORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "phone",
+      "concat_label",
+      "concat_ws_label",
+      "coalesce_label"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       4,
+       "+1-206-555-3615",
+       "Diego Lopez / +1-206-555-3615",
+       "Diego Lopez / +1-206-555-3615",
+       "Diego Lopez / +1-206-555-3615"
+      ],
+      [
+       5,
+       null,
+       null,
+       "Grace Smith",
+       "Grace Smith / no phone"
+      ],
+      [
+       6,
+       "+1-567-555-6635",
+       "Sofia Miller / +1-567-555-6635",
+       "Sofia Miller / +1-567-555-6635",
+       "Sofia Miller / +1-567-555-6635"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:70707cd5a9d6": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM orders)                                   AS all_orders,\n       (SELECT COUNT(*) FROM orders WHERE discount_code = 'VIP20')     AS vip20,\n       (SELECT COUNT(*) FROM orders WHERE discount_code <> 'VIP20')    AS not_vip20,\n       (SELECT COUNT(*) FROM orders\n         WHERE discount_code = 'VIP20' OR discount_code <> 'VIP20')    AS vip20_or_not",
+     "status": "ok",
+     "columns": [
+      "all_orders",
+      "vip20",
+      "not_vip20",
+      "vip20_or_not"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       80,
+       15,
+       29,
+       44
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:53730596349a": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE employee_badges (\n  badge_id      INT          PRIMARY KEY,          -- nullability not stated\n  holder_name   VARCHAR(60)  NOT NULL,\n  employee_code VARCHAR(10)  NULL UNIQUE,\n  clearance     TINYINT      NULL CHECK (clearance BETWEEN 1 AND 5)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO employee_badges VALUES\n  (1, 'Visitor A', NULL,   NULL),\n  (2, 'Visitor B', NULL,   NULL),\n  (3, 'Ana Ruiz',  'E-101', 3)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM employee_badges ORDER BY badge_id",
+     "status": "ok",
+     "columns": [
+      "badge_id",
+      "holder_name",
+      "employee_code",
+      "clearance"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "Visitor A",
+       null,
+       null
+      ],
+      [
+       2,
+       "Visitor B",
+       null,
+       null
+      ],
+      [
+       3,
+       "Ana Ruiz",
+       "E-101",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:d3aabfe6a87b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO employee_badges VALUES (4, 'Ben Okoye', 'E-101', 2)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'E-101' for key 'employee_badges.employee_code'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:c21145346424": {
+   "statements": [
+    {
+     "sql": "INSERT INTO employee_badges VALUES (5, 'Cy Park', 'E-102', 9)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'employee_badges_chk_1' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s13:1f4b450549b0": {
+   "statements": [
+    {
+     "sql": "SHOW CREATE TABLE employee_badges",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Create Table"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "employee_badges",
+       "CREATE TABLE `employee_badges` (\n  `badge_id` int NOT NULL,\n  `holder_name` varchar(60) NOT NULL,\n  `employee_code` varchar(10) DEFAULT NULL,\n  `clearance` tinyint DEFAULT NULL,\n  PRIMARY KEY (`badge_id`),\n  UNIQUE KEY `employee_code` (`employee_code`),\n  CONSTRAINT `employee_badges_chk_1` CHECK ((`clearance` between 1 and 5))\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:25cf35dbc359": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, discount_code FROM orders WHERE order_id <= 12 ORDER BY order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "discount_code"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       1,
+       null
+      ],
+      [
+       2,
+       "VIP20"
+      ],
+      [
+       3,
+       null
+      ],
+      [
+       4,
+       null
+      ],
+      [
+       5,
+       null
+      ],
+      [
+       6,
+       null
+      ],
+      [
+       7,
+       null
+      ],
+      [
+       8,
+       null
+      ],
+      [
+       9,
+       "VIP20"
+      ],
+      [
+       10,
+       "VIP20"
+      ],
+      [
+       11,
+       "WELCOME10"
+      ],
+      [
+       12,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:3840a7f56309": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, discount_code,\n       discount_code <> 'WELCOME10' AS predicate,\n       CASE WHEN (discount_code <> 'WELCOME10') IS TRUE  THEN 'TRUE'\n            WHEN (discount_code <> 'WELCOME10') IS FALSE THEN 'FALSE'\n            ELSE 'UNKNOWN' END       AS truth_value\nFROM orders WHERE order_id <= 12 ORDER BY order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "discount_code",
+      "predicate",
+      "truth_value"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       1,
+       null,
+       null,
+       "UNKNOWN"
+      ],
+      [
+       2,
+       "VIP20",
+       1,
+       "TRUE"
+      ],
+      [
+       3,
+       null,
+       null,
+       "UNKNOWN"
+      ],
+      [
+       4,
+       null,
+       null,
+       "UNKNOWN"
+      ],
+      [
+       5,
+       null,
+       null,
+       "UNKNOWN"
+      ],
+      [
+       6,
+       null,
+       null,
+       "UNKNOWN"
+      ],
+      [
+       7,
+       null,
+       null,
+       "UNKNOWN"
+      ],
+      [
+       8,
+       null,
+       null,
+       "UNKNOWN"
+      ],
+      [
+       9,
+       "VIP20",
+       1,
+       "TRUE"
+      ],
+      [
+       10,
+       "VIP20",
+       1,
+       "TRUE"
+      ],
+      [
+       11,
+       "WELCOME10",
+       0,
+       "FALSE"
+      ],
+      [
+       12,
+       null,
+       null,
+       "UNKNOWN"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:28d37986b901": {
+   "statements": [
+    {
+     "sql": "SELECT SUM((discount_code <> 'WELCOME10') IS TRUE)    AS true_rows,\n       SUM((discount_code <> 'WELCOME10') IS FALSE)   AS false_rows,\n       SUM((discount_code <> 'WELCOME10') IS UNKNOWN) AS unknown_rows\nFROM orders",
+     "status": "ok",
+     "columns": [
+      "true_rows",
+      "false_rows",
+      "unknown_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "29",
+       "15",
+       "36"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:c06087cca687": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS not_welcome10_wrong FROM orders WHERE discount_code <> 'WELCOME10'",
+     "status": "ok",
+     "columns": [
+      "not_welcome10_wrong"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       29
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:f084886ea8e5": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS not_welcome10_null_safe FROM orders WHERE NOT (discount_code <=> 'WELCOME10')",
+     "status": "ok",
+     "columns": [
+      "not_welcome10_null_safe"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       65
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:bbb1ae02f1fb": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM customers WHERE email IS NULL",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       "Impossible WHERE"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `customers`.`customer_id` AS `customer_id`,`customers`.`first_name` AS `first_name`,`customers`.`last_name` AS `last_name`,`customers`.`email` AS `email`,`customers`.`phone` AS `phone`,`customers`.`city` AS `city`,`customers`.`state` AS `state`,`customers`.`loyalty_tier` AS `loyalty_tier`,`customers`.`signup_date` AS `signup_date` from `customers` where false"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:992e703f0b2d": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_customers_phone ON customers (phone)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE customers",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "customers",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT customer_id FROM customers WHERE phone IS NULL",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "customers",
+       null,
+       "ref",
+       "idx_customers_phone",
+       "idx_customers_phone",
+       "83",
+       "const",
+       5,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `customers`.`customer_id` AS `customer_id` from `customers` where (`customers`.`phone` is null)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:b59cfe65af6f": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)                                          AS all_orders,\n       SUM(discount_code = 'WELCOME10')                  AS used_welcome10,\n       SUM(discount_code IS NULL)                        AS no_code,\n       SUM(NOT (discount_code <=> 'WELCOME10'))          AS did_not_use_welcome10\nFROM orders",
+     "status": "ok",
+     "columns": [
+      "all_orders",
+      "used_welcome10",
+      "no_code",
+      "did_not_use_welcome10"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       80,
+       "15",
+       "36",
+       "65"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:ab8ef463dee1": {
+   "statements": [
+    {
+     "sql": "-- Three equivalent ways to find orders that have not shipped\nSELECT (SELECT COUNT(*) FROM orders WHERE shipped_at IS NULL)              AS is_null,\n       (SELECT COUNT(*) FROM orders WHERE ISNULL(shipped_at))              AS isnull_fn,\n       (SELECT COUNT(*) FROM orders WHERE shipped_at <=> NULL)             AS null_safe",
+     "status": "ok",
+     "columns": [
+      "is_null",
+      "isnull_fn",
+      "null_safe"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       16,
+       16,
+       16
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:de699b7452f6": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS customers_with_no_phone_WRONG FROM customers WHERE phone = NULL",
+     "status": "ok",
+     "columns": [
+      "customers_with_no_phone_WRONG"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:22c2352e7d20": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS customers_with_no_phone FROM customers WHERE phone IS NULL",
+     "status": "ok",
+     "columns": [
+      "customers_with_no_phone"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:605ad035456d": {
+   "statements": [
+    {
+     "sql": "INSERT INTO employee_badges VALUES (6, NULL, 'E-103', 1)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1048,
+      "message": "Column 'holder_name' cannot be null"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s21:b0518cf4f366": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE bad_pk (id INT NULL PRIMARY KEY)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1171,
+      "message": "All parts of a PRIMARY KEY must be NOT NULL; if you need NULL in a key, use UNIQUE instead"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s22:cbcef6b32071": {
+   "statements": [
+    {
+     "sql": "UPDATE products SET cost = cost / 0 WHERE product_id = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1365,
+      "message": "Division by 0"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s23:7a7aa89ec5d5": {
+   "statements": [
+    {
+     "sql": "SELECT 2 IN (1, NULL) AS in_list, 1 IN (1, NULL) AS found, 2 NOT IN (1, NULL) AS not_in_list",
+     "status": "ok",
+     "columns": [
+      "in_list",
+      "found",
+      "not_in_list"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       null,
+       1,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

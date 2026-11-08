@@ -1,0 +1,966 @@
+{
+ "doc": "m02-charsets-collations",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:089f3027db4f": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION VARIABLES WHERE Variable_name IN\n  ('character_set_server', 'collation_server', 'character_set_database', 'collation_database',\n   'character_set_client', 'character_set_connection', 'character_set_results', 'collation_connection')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "character_set_client",
+       "utf8mb4"
+      ],
+      [
+       "character_set_connection",
+       "utf8mb4"
+      ],
+      [
+       "character_set_database",
+       "utf8mb4"
+      ],
+      [
+       "character_set_results",
+       "utf8mb4"
+      ],
+      [
+       "character_set_server",
+       "utf8mb4"
+      ],
+      [
+       "collation_connection",
+       "utf8mb4_0900_ai_ci"
+      ],
+      [
+       "collation_database",
+       "utf8mb4_0900_ai_ci"
+      ],
+      [
+       "collation_server",
+       "utf8mb4_0900_ai_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:d858adf83ce4": {
+   "statements": [
+    {
+     "sql": "SHOW CHARACTER SET LIKE 'utf8%'",
+     "status": "ok",
+     "columns": [
+      "Charset",
+      "Description",
+      "Default collation",
+      "Maxlen"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "utf8mb3",
+       "UTF-8 Unicode",
+       "utf8mb3_general_ci",
+       3
+      ],
+      [
+       "utf8mb4",
+       "UTF-8 Unicode",
+       "utf8mb4_0900_ai_ci",
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:bc316b7a960a": {
+   "statements": [
+    {
+     "sql": "SHOW COLLATION WHERE Charset = 'utf8mb4' AND Collation IN\n  ('utf8mb4_0900_ai_ci', 'utf8mb4_0900_as_ci', 'utf8mb4_0900_as_cs', 'utf8mb4_0900_bin',\n   'utf8mb4_bin', 'utf8mb4_general_ci', 'utf8mb4_unicode_ci')",
+     "status": "ok",
+     "columns": [
+      "Collation",
+      "Charset",
+      "Id",
+      "Default",
+      "Compiled",
+      "Sortlen",
+      "Pad_attribute"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "utf8mb4_0900_ai_ci",
+       "utf8mb4",
+       255,
+       "Yes",
+       "Yes",
+       0,
+       "NO PAD"
+      ],
+      [
+       "utf8mb4_0900_as_ci",
+       "utf8mb4",
+       305,
+       "",
+       "Yes",
+       0,
+       "NO PAD"
+      ],
+      [
+       "utf8mb4_0900_as_cs",
+       "utf8mb4",
+       278,
+       "",
+       "Yes",
+       0,
+       "NO PAD"
+      ],
+      [
+       "utf8mb4_0900_bin",
+       "utf8mb4",
+       309,
+       "",
+       "Yes",
+       1,
+       "NO PAD"
+      ],
+      [
+       "utf8mb4_bin",
+       "utf8mb4",
+       46,
+       "",
+       "Yes",
+       1,
+       "PAD SPACE"
+      ],
+      [
+       "utf8mb4_general_ci",
+       "utf8mb4",
+       45,
+       "",
+       "Yes",
+       1,
+       "PAD SPACE"
+      ],
+      [
+       "utf8mb4_unicode_ci",
+       "utf8mb4",
+       224,
+       "",
+       "Yes",
+       8,
+       "PAD SPACE"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:ba084b91b8d3": {
+   "statements": [
+    {
+     "sql": "SELECT s, CHAR_LENGTH(s) AS characters, LENGTH(s) AS bytes, HEX(s) AS utf8_bytes\nFROM (SELECT 'a' AS s UNION ALL SELECT 'é' UNION ALL SELECT '€' UNION ALL SELECT '😀') AS samples",
+     "status": "ok",
+     "columns": [
+      "s",
+      "characters",
+      "bytes",
+      "utf8_bytes"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "a",
+       1,
+       1,
+       "61"
+      ],
+      [
+       "é",
+       1,
+       2,
+       "C3A9"
+      ],
+      [
+       "€",
+       1,
+       3,
+       "E282AC"
+      ],
+      [
+       "😀",
+       1,
+       4,
+       "F09F9880"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:9697bd27dc92": {
+   "statements": [
+    {
+     "sql": "SELECT 'a' = 'A'                                    AS ai_ci_case,\n       'e' = 'é'                                    AS ai_ci_accent,\n       'e' = 'é' COLLATE utf8mb4_0900_as_ci         AS as_ci_accent,\n       'a' = 'A' COLLATE utf8mb4_0900_as_ci         AS as_ci_case,\n       'a' = 'A' COLLATE utf8mb4_0900_as_cs         AS as_cs_case,\n       'a' = 'A' COLLATE utf8mb4_bin                AS bin_case,\n       'Straße' = 'Strasse'                         AS sharp_s,\n       'a' = 'a '                                   AS no_pad_trailing,\n       'a' = 'a ' COLLATE utf8mb4_general_ci        AS pad_space_trailing",
+     "status": "ok",
+     "columns": [
+      "ai_ci_case",
+      "ai_ci_accent",
+      "as_ci_accent",
+      "as_ci_case",
+      "as_cs_case",
+      "bin_case",
+      "sharp_s",
+      "no_pad_trailing",
+      "pad_space_trailing"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1,
+       0,
+       1,
+       0,
+       0,
+       1,
+       0,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:8069bbe3c598": {
+   "statements": [
+    {
+     "sql": "SELECT HEX(WEIGHT_STRING('a' COLLATE utf8mb4_0900_ai_ci)) AS ai_ci_a,\n       HEX(WEIGHT_STRING('A' COLLATE utf8mb4_0900_ai_ci)) AS ai_ci_A,\n       HEX(WEIGHT_STRING('á' COLLATE utf8mb4_0900_ai_ci)) AS ai_ci_a_acute,\n       HEX(WEIGHT_STRING('a' COLLATE utf8mb4_0900_as_cs)) AS as_cs_a,\n       HEX(WEIGHT_STRING('A' COLLATE utf8mb4_0900_as_cs)) AS as_cs_A",
+     "status": "ok",
+     "columns": [
+      "ai_ci_a",
+      "ai_ci_A",
+      "ai_ci_a_acute",
+      "as_cs_a",
+      "as_cs_A"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "1C47",
+       "1C47",
+       "1C47",
+       "1C470000002000000002",
+       "1C470000002000000008"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:a4ec66b3142e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE legacy_messages (\n  id   INT PRIMARY KEY,\n  body VARCHAR(100) CHARACTER SET utf8 NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 3719,
+       "message": "'utf8' is currently an alias for the character set UTF8MB3, but will be an alias for UTF8MB4 in a future release. Please consider using UTF8MB4 in order to be unambiguous."
+      }
+     ]
+    },
+    {
+     "sql": "SHOW CREATE TABLE legacy_messages",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Create Table"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "legacy_messages",
+       "CREATE TABLE `legacy_messages` (\n  `id` int NOT NULL,\n  `body` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:ffbf8a7e8118": {
+   "statements": [
+    {
+     "sql": "INSERT INTO legacy_messages VALUES (1, 'Arrived early 😀')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1366,
+      "message": "Incorrect string value: '\\xF0\\x9F\\x98\\x80' for column 'body' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:ed0e641f9715": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE legacy_messages CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO legacy_messages VALUES (1, 'Arrived early 😀')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT id, body, CHAR_LENGTH(body) AS characters, LENGTH(body) AS bytes FROM legacy_messages",
+     "status": "ok",
+     "columns": [
+      "id",
+      "body",
+      "characters",
+      "bytes"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "Arrived early 😀",
+       15,
+       18
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:0e79f754f2e9": {
+   "statements": [
+    {
+     "sql": "INSERT INTO customers (first_name, last_name, email, city, state, signup_date)\nVALUES ('Amara', 'Sharma', 'AMARA.SHARMA1@EXAMPLE.COM', 'Austin', 'TX', '2024-12-01')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'AMARA.SHARMA1@EXAMPLE.COM' for key 'customers.uq_customers_email'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:568188f98915": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE words (w VARCHAR(20) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO words VALUES ('apple'), ('Apple'), ('Banana'), ('banana'), ('Äpfel'),\n                         ('zebra'), ('Zebra'), ('éclair'), ('eclair')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 9,
+     "info": "Records: 9  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT GROUP_CONCAT(w ORDER BY w, w COLLATE utf8mb4_bin SEPARATOR ' ')  AS ai_ci_order,\n       GROUP_CONCAT(w ORDER BY w COLLATE utf8mb4_0900_as_cs SEPARATOR ' ') AS as_cs_order,\n       GROUP_CONCAT(w ORDER BY w COLLATE utf8mb4_bin SEPARATOR ' ')     AS bin_order\nFROM words",
+     "status": "ok",
+     "columns": [
+      "ai_ci_order",
+      "as_cs_order",
+      "bin_order"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Äpfel Apple apple Banana banana eclair éclair Zebra zebra",
+       "Äpfel apple Apple banana Banana eclair éclair zebra Zebra",
+       "Apple Banana Zebra apple banana eclair zebra Äpfel éclair"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:305a3cd7d750": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(DISTINCT w)                               AS distinct_ai_ci,\n       COUNT(DISTINCT w COLLATE utf8mb4_0900_as_ci)     AS distinct_as_ci,\n       COUNT(DISTINCT w COLLATE utf8mb4_0900_as_cs)     AS distinct_as_cs\nFROM words",
+     "status": "ok",
+     "columns": [
+      "distinct_ai_ci",
+      "distinct_as_ci",
+      "distinct_as_cs"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       6,
+       9
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:314df726dfa5": {
+   "statements": [
+    {
+     "sql": "SELECT w FROM words WHERE w LIKE 'a%' ORDER BY w, w COLLATE utf8mb4_bin",
+     "status": "ok",
+     "columns": [
+      "w"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Äpfel"
+      ],
+      [
+       "Apple"
+      ],
+      [
+       "apple"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:dc4b0832ecb7": {
+   "statements": [
+    {
+     "sql": "SELECT w FROM words WHERE w LIKE 'a%' COLLATE utf8mb4_0900_as_cs ORDER BY w",
+     "status": "ok",
+     "columns": [
+      "w"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "apple"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:6462eb57b08a": {
+   "statements": [
+    {
+     "sql": "SELECT 'ı' = 'i' AS dotless_i, 'İ' = 'i' AS dotted_capital_i,\n       'ı' = 'I' COLLATE utf8mb4_tr_0900_ai_ci AS turkish_dotless_vs_I",
+     "status": "ok",
+     "columns": [
+      "dotless_i",
+      "dotted_capital_i",
+      "turkish_dotless_vs_I"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:81ef88725251": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE vendors        (name VARCHAR(30) COLLATE utf8mb4_0900_ai_ci NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE legacy_vendors (name VARCHAR(30) COLLATE utf8mb4_general_ci NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO vendors VALUES ('Acme'), ('Globex'), ('Initech')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO legacy_vendors VALUES ('ACME'), ('Umbrella'), ('initech')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COLLATION(v.name) AS vendors_collation, COLLATION(l.name) AS legacy_collation\nFROM vendors v CROSS JOIN legacy_vendors l LIMIT 1",
+     "status": "ok",
+     "columns": [
+      "vendors_collation",
+      "legacy_collation"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "utf8mb4_0900_ai_ci",
+       "utf8mb4_general_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:1939027b63b7": {
+   "statements": [
+    {
+     "sql": "SELECT COERCIBILITY(v.name) AS column_c,\n       COERCIBILITY('Acme') AS literal_c,\n       COERCIBILITY(v.name COLLATE utf8mb4_general_ci) AS explicit_c\nFROM vendors v LIMIT 1",
+     "status": "ok",
+     "columns": [
+      "column_c",
+      "literal_c",
+      "explicit_c"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2,
+       4,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:4b14b1990b94": {
+   "statements": [
+    {
+     "sql": "SELECT v.name FROM vendors v JOIN legacy_vendors l ON v.name = l.name",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1267,
+      "message": "Illegal mix of collations (utf8mb4_0900_ai_ci,IMPLICIT) and (utf8mb4_general_ci,IMPLICIT) for operation '='"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:43f9188ba5a1": {
+   "statements": [
+    {
+     "sql": "SELECT name FROM vendors WHERE name = 'ACME'",
+     "status": "ok",
+     "columns": [
+      "name"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Acme"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:b20e59329711": {
+   "statements": [
+    {
+     "sql": "SELECT v.name AS vendor, l.name AS legacy_name\nFROM vendors v JOIN legacy_vendors l ON v.name = l.name COLLATE utf8mb4_0900_ai_ci\nORDER BY v.name",
+     "status": "ok",
+     "columns": [
+      "vendor",
+      "legacy_name"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Acme",
+       "ACME"
+      ],
+      [
+       "Initech",
+       "initech"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:3a5f49d93dfd": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE vendor_codes (name VARCHAR(30) COLLATE utf8mb4_bin NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO vendor_codes VALUES ('Acme'), ('INITECH')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT v.name, c.name AS code_name, COLLATION(c.name) AS code_collation\nFROM vendors v JOIN vendor_codes c ON v.name = c.name",
+     "status": "ok",
+     "columns": [
+      "name",
+      "code_name",
+      "code_collation"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Acme",
+       "Acme",
+       "utf8mb4_bin"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:c6865e7b0140": {
+   "statements": [
+    {
+     "sql": "SELECT 'utf8mb4_0900_ai_ci' AS evaluated_with, COUNT(*) AS matches\nFROM vendors v JOIN legacy_vendors l ON v.name = l.name COLLATE utf8mb4_0900_ai_ci\nUNION ALL\nSELECT 'utf8mb4_0900_as_cs', COUNT(*)\nFROM vendors v JOIN legacy_vendors l ON v.name COLLATE utf8mb4_0900_as_cs = l.name COLLATE utf8mb4_0900_as_cs",
+     "status": "ok",
+     "columns": [
+      "evaluated_with",
+      "matches"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "utf8mb4_0900_ai_ci",
+       2
+      ],
+      [
+       "utf8mb4_0900_as_cs",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:a8016fd1c3fa": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT customer_id FROM customers WHERE email = 'kwame.garcia2@example.com'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "customers",
+       null,
+       "const",
+       "uq_customers_email",
+       "uq_customers_email",
+       "1022",
+       "const",
+       1,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select '2' AS `customer_id` from `customers` where true"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:679645e31f7f": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT customer_id FROM customers WHERE email COLLATE utf8mb4_bin = 'kwame.garcia2@example.com'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "customers",
+       null,
+       "index",
+       "uq_customers_email",
+       "uq_customers_email",
+       "1022",
+       null,
+       25,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1739,
+       "message": "Cannot use ref access on index 'uq_customers_email' due to type or collation conversion on field 'email'"
+      },
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `customers`.`customer_id` AS `customer_id` from `customers` where ((`customers`.`email` collate utf8mb4_bin) = 'kwame.garcia2@example.com')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:e843e84ccdbe": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT customer_id FROM customers WHERE email = 'kwame.garcia2@example.com' COLLATE utf8mb4_bin",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "customers",
+       null,
+       "range",
+       "uq_customers_email",
+       "uq_customers_email",
+       "1022",
+       null,
+       1,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1739,
+       "message": "Cannot use ref access on index 'uq_customers_email' due to type or collation conversion on field 'email'"
+      },
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `customers`.`customer_id` AS `customer_id` from `customers` where (`customers`.`email` = <cache>(('kwame.garcia2@example.com' collate utf8mb4_bin)))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:8d9b0f5dfcd6": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE legacy_newsletter (\n  email VARCHAR(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,\n  KEY idx_legacy_newsletter_email (email)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'utf8mb3' is deprecated and will be removed in a future release. Please use utf8mb4 instead"
+      },
+      {
+       "level": "Warning",
+       "code": 3778,
+       "message": "'utf8mb3_general_ci' is a collation of the deprecated character set UTF8MB3. Please consider using UTF8MB4 with an appropriate collation instead."
+      }
+     ]
+    },
+    {
+     "sql": "INSERT INTO legacy_newsletter SELECT email FROM customers",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "info": "Records: 25  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE legacy_newsletter",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "legacy_newsletter",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT n.email FROM customers AS c JOIN legacy_newsletter AS n ON n.email = c.email\nWHERE c.customer_id = 3",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (n.email = 'diego.haddad3@example.com')  (cost=0.5 rows=2.5)\n    -> Index scan on n using idx_legacy_newsletter_email  (cost=0.5 rows=25)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1739,
+       "message": "Cannot use ref access on index 'idx_legacy_newsletter_email' due to type or collation conversion on field 'email'"
+      },
+      {
+       "level": "Warning",
+       "code": 1739,
+       "message": "Cannot use range access on index 'idx_legacy_newsletter_email' due to type or collation conversion on field 'email'"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:a77fe70c19f0": {
+   "statements": [
+    {
+     "sql": "SELECT v.name FROM vendors AS v WHERE v.name IN (SELECT name FROM legacy_vendors)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1267,
+      "message": "Illegal mix of collations (utf8mb4_0900_ai_ci,IMPLICIT) and (utf8mb4_general_ci,IMPLICIT) for operation '='"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s22:0a739be90f4b": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, email FROM customers\nWHERE email = 'Kwame.Garcia2@example.com'                                -- index lookup, case-insensitive\n  AND email = 'Kwame.Garcia2@example.com' COLLATE utf8mb4_0900_bin",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "email"
+     ],
+     "row_count": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s23:cf7605c1d5dd": {
+   "statements": [
+    {
+     "sql": "SELECT 'SKU-1 ' = 'SKU-1'                              AS default_no_pad,\n       'SKU-1 ' = 'SKU-1' COLLATE utf8mb4_general_ci   AS legacy_pad_space",
+     "status": "ok",
+     "columns": [
+      "default_no_pad",
+      "legacy_pad_space"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

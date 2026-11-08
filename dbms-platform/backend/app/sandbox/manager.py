@@ -98,7 +98,19 @@ class RunResult:
         return d
 
 
-def to_jsonable(v):
+FIELD_TYPE_BIT = 16
+
+
+def _frac(micro: int, scale: int | None) -> str:
+    """Fractional seconds formatted like MySQL: exactly `scale` digits for DATETIME(n)/TIME(n)."""
+    if scale and 0 < scale <= 6:
+        return "." + f"{micro:06d}"[:scale]
+    return f".{micro:06d}" if micro else ""
+
+
+def to_jsonable(v, scale: int | None = None, type_code: int | None = None):
+    if type_code == FIELD_TYPE_BIT and isinstance(v, (bytes, bytearray)):
+        return int.from_bytes(bytes(v), "big")
     if v is None or isinstance(v, (int, str, bool)):
         return v
     if isinstance(v, float):
@@ -106,15 +118,14 @@ def to_jsonable(v):
     if isinstance(v, decimal.Decimal):
         return str(v)
     if isinstance(v, dt.datetime):
-        s = v.strftime("%Y-%m-%d %H:%M:%S")
-        return s + (f".{v.microsecond:06d}" if v.microsecond else "")
+        return v.strftime("%Y-%m-%d %H:%M:%S") + _frac(v.microsecond, scale)
     if isinstance(v, dt.date):
         return v.isoformat()
     if isinstance(v, dt.timedelta):
-        total = int(v.total_seconds())
-        sign = "-" if total < 0 else ""
-        total = abs(total)
-        return f"{sign}{total // 3600:02d}:{(total % 3600) // 60:02d}:{total % 60:02d}"
+        sign = "-" if v < dt.timedelta(0) else ""
+        v = abs(v)
+        total, micro = int(v.total_seconds()), v.microseconds
+        return f"{sign}{total // 3600:02d}:{(total % 3600) // 60:02d}:{total % 60:02d}" + _frac(micro, scale)
     if isinstance(v, (bytes, bytearray)):
         b = bytes(v)
         try:
@@ -249,7 +260,8 @@ class LabSession:
                     res.columns = [d[0] for d in cur.description]
                     rows = cur.fetchmany(limit + 1)
                     res.truncated = len(rows) > limit
-                    res.rows = [[self.scrub(to_jsonable(v)) for v in r] for r in rows[:limit]]
+                    meta = [(d[5], d[1]) for d in cur.description]
+                    res.rows = [[self.scrub(to_jsonable(v, *meta[i])) for i, v in enumerate(r)] for r in rows[:limit]]
                     count = len(rows[:limit])
                     if res.truncated:  # drain the rest to count it
                         for _ in cur:

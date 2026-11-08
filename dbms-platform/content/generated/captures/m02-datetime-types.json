@@ -1,0 +1,741 @@
+{
+ "doc": "m02-datetime-types",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:dca0860b4858": {
+   "statements": [
+    {
+     "sql": "SET SESSION timestamp = 1718020800",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- 2024-06-10 12:00:00 UTC\nSET SESSION time_zone = '+00:00'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT NOW()             AS now_session_tz,\n       UTC_TIMESTAMP()   AS utc_now,\n       CURDATE()         AS today,\n       CURTIME()         AS time_now,\n       NOW(3)            AS now_millis,\n       UNIX_TIMESTAMP()  AS unix_seconds,\n       @@SESSION.time_zone AS session_tz",
+     "status": "ok",
+     "columns": [
+      "now_session_tz",
+      "utc_now",
+      "today",
+      "time_now",
+      "now_millis",
+      "unix_seconds",
+      "session_tz"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-06-10 12:00:00",
+       "2024-06-10 12:00:00",
+       "2024-06-10",
+       "12:00:00",
+       "2024-06-10 12:00:00",
+       1718020800,
+       "+00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:6ede67ff6db8": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE tz_demo (\n  id INT PRIMARY KEY,\n  local_dt  DATETIME,\n  instant   TIMESTAMP NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO tz_demo VALUES (1, '2024-06-10 12:00:00', '2024-06-10 12:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT id, local_dt, instant, UNIX_TIMESTAMP(instant) AS utc_seconds FROM tz_demo",
+     "status": "ok",
+     "columns": [
+      "id",
+      "local_dt",
+      "instant",
+      "utc_seconds"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "2024-06-10 12:00:00",
+       "2024-06-10 12:00:00",
+       1718020800
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:157c1deb2d1f": {
+   "statements": [
+    {
+     "sql": "SET SESSION time_zone = '-07:00'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT id, local_dt, instant, UNIX_TIMESTAMP(instant) AS utc_seconds FROM tz_demo",
+     "status": "ok",
+     "columns": [
+      "id",
+      "local_dt",
+      "instant",
+      "utc_seconds"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "2024-06-10 12:00:00",
+       "2024-06-10 05:00:00",
+       1718020800
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:936725c52483": {
+   "statements": [
+    {
+     "sql": "SET SESSION time_zone = '+05:30'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT id, local_dt, instant FROM tz_demo",
+     "status": "ok",
+     "columns": [
+      "id",
+      "local_dt",
+      "instant"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "2024-06-10 12:00:00",
+       "2024-06-10 17:30:00"
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION time_zone = '+00:00'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s6:ebb8011ea5dd": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE fsp_demo (d0 DATETIME, d3 DATETIME(3), d6 DATETIME(6), t3 TIME(3))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO fsp_demo VALUES ('2024-06-10 12:00:00.987654', '2024-06-10 12:00:00.987654',\n                             '2024-06-10 12:00:00.987654', '10:00:00.9996')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT CAST(d0 AS CHAR) AS dt_0,\n       CAST(d3 AS CHAR) AS dt_3,\n       CAST(d6 AS CHAR) AS dt_6,\n       CAST(t3 AS CHAR) AS time_3\nFROM fsp_demo",
+     "status": "ok",
+     "columns": [
+      "dt_0",
+      "dt_3",
+      "dt_6",
+      "time_3"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-06-10 12:00:01",
+       "2024-06-10 12:00:00.988",
+       "2024-06-10 12:00:00.987654",
+       "10:00:01.000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:7db264bc7fc4": {
+   "statements": [
+    {
+     "sql": "INSERT INTO fsp_demo (d0) VALUES ('2024-12-31 23:59:59.5')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT CAST(d0 AS CHAR) AS rounded_into_new_year FROM fsp_demo WHERE d3 IS NULL",
+     "status": "ok",
+     "columns": [
+      "rounded_into_new_year"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2025-01-01 00:00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:b68c57cd699a": {
+   "statements": [
+    {
+     "sql": "INSERT INTO tz_demo (id, local_dt) VALUES (7, '2024-02-30')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1292,
+      "message": "Incorrect datetime value: '2024-02-30' for column 'local_dt' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:1a208adb6656": {
+   "statements": [
+    {
+     "sql": "INSERT INTO tz_demo (id, local_dt) VALUES (8, '0000-00-00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1292,
+      "message": "Incorrect datetime value: '0000-00-00' for column 'local_dt' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s10:d8750a472ae0": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE misc_time (t TIME, y YEAR, d DATE)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO misc_time VALUES ('838:59:59', 2155, '1000-01-01'), ('-12:30:00', 24, '2024-02-29')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT CAST(t AS CHAR) AS t, y, d FROM misc_time ORDER BY y",
+     "status": "ok",
+     "columns": [
+      "t",
+      "y",
+      "d"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "-12:30:00",
+       2024,
+       "2024-02-29"
+      ],
+      [
+       "838:59:59",
+       2155,
+       "1000-01-01"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:6df58a4f71cc": {
+   "statements": [
+    {
+     "sql": "INSERT INTO misc_time (y) VALUES (1900)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1264,
+      "message": "Out of range value for column 'y' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:26858ac2a88e": {
+   "statements": [
+    {
+     "sql": "INSERT INTO tz_demo (id, instant) VALUES (3, '2038-01-19 03:14:07')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT id, instant FROM tz_demo WHERE id = 3",
+     "status": "ok",
+     "columns": [
+      "id",
+      "instant"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3,
+       "2038-01-19 03:14:07"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:7cb4819453f8": {
+   "statements": [
+    {
+     "sql": "INSERT INTO tz_demo (id, instant) VALUES (4, '2038-01-19 03:14:08')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1292,
+      "message": "Incorrect datetime value: '2038-01-19 03:14:08' for column 'instant' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:f9495a254ab4": {
+   "statements": [
+    {
+     "sql": "INSERT INTO tz_demo (id, local_dt) VALUES (5, '9999-12-31 23:59:59')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT id, local_dt FROM tz_demo WHERE id = 5",
+     "status": "ok",
+     "columns": [
+      "id",
+      "local_dt"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       "9999-12-31 23:59:59"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:96f04cd41190": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE audited_item (\n  id          INT PRIMARY KEY,\n  qty         INT NOT NULL,\n  created_at  DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n  updated_at  DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION timestamp = 1718020800",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- 12:00:00 UTC\nINSERT INTO audited_item (id, qty) VALUES (1, 10)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT id, qty, CAST(created_at AS CHAR) AS created_at, CAST(updated_at AS CHAR) AS updated_at FROM audited_item",
+     "status": "ok",
+     "columns": [
+      "id",
+      "qty",
+      "created_at",
+      "updated_at"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       10,
+       "2024-06-10 12:00:00.000",
+       "2024-06-10 12:00:00.000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:5c905adb1850": {
+   "statements": [
+    {
+     "sql": "SET SESSION timestamp = 1718024400",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- 13:00:00 UTC\nUPDATE audited_item SET qty = 11 WHERE id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT id, qty, CAST(created_at AS CHAR) AS created_at, CAST(updated_at AS CHAR) AS updated_at FROM audited_item",
+     "status": "ok",
+     "columns": [
+      "id",
+      "qty",
+      "created_at",
+      "updated_at"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       11,
+       "2024-06-10 12:00:00.000",
+       "2024-06-10 13:00:00.000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:79ab32d52d79": {
+   "statements": [
+    {
+     "sql": "SET SESSION timestamp = 1718028000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- 14:00:00 UTC\nUPDATE audited_item SET qty = 11 WHERE id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 1  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- same value: \"Changed: 0\"\nSELECT CAST(updated_at AS CHAR) AS updated_at FROM audited_item",
+     "status": "ok",
+     "columns": [
+      "updated_at"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-06-10 13:00:00.000"
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION timestamp = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s18:3e7f5df24735": {
+   "statements": [
+    {
+     "sql": "SET SESSION time_zone = '+00:00'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO tz_demo (id, local_dt, instant) VALUES (2, '2024-06-10 12:00:00+02:00', '2024-06-10 12:00:00+02:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT id, local_dt, instant FROM tz_demo WHERE id = 2",
+     "status": "ok",
+     "columns": [
+      "id",
+      "local_dt",
+      "instant"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2,
+       "2024-06-10 10:00:00",
+       "2024-06-10 10:00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:fbf1cf4bec39": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)                                                  AS delivered_orders,\n       ROUND(AVG(TIMESTAMPDIFF(HOUR, order_date, shipped_at)), 1) AS avg_hours_to_ship,\n       MIN(TIMESTAMPDIFF(HOUR, order_date, shipped_at))           AS fastest_hours,\n       MAX(TIMESTAMPDIFF(HOUR, order_date, shipped_at))           AS slowest_hours\nFROM orders\nWHERE status = 'delivered'",
+     "status": "ok",
+     "columns": [
+      "delivered_orders",
+      "avg_hours_to_ship",
+      "fastest_hours",
+      "slowest_hours"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       45,
+       "63.4",
+       26,
+       105
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:d59a926649c9": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS march_orders\nFROM orders\nWHERE order_date >= '2024-03-01' AND order_date < '2024-04-01'",
+     "status": "ok",
+     "columns": [
+      "march_orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:1a382784640e": {
+   "statements": [
+    {
+     "sql": "SET SESSION time_zone = '-07:00'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE meeting (id INT PRIMARY KEY, local_start DATETIME, start_instant TIMESTAMP NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO meeting VALUES (1, '2024-06-10 09:00:00', '2024-06-10 09:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:f5ae0fc4102a": {
+   "statements": [
+    {
+     "sql": "SELECT id, UNIX_TIMESTAMP(start_instant) AS utc_seconds FROM meeting",
+     "status": "ok",
+     "columns": [
+      "id",
+      "utc_seconds"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1718035200
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:04f5943a5bb0": {
+   "statements": [
+    {
+     "sql": "SET SESSION time_zone = '+00:00'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT local_start, start_instant FROM meeting",
+     "status": "ok",
+     "columns": [
+      "local_start",
+      "start_instant"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-06-10 09:00:00",
+       "2024-06-10 16:00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:8c0bec8bec0b": {
+   "statements": [
+    {
+     "sql": "SET SESSION time_zone = '+09:00'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT local_start, start_instant FROM meeting",
+     "status": "ok",
+     "columns": [
+      "local_start",
+      "start_instant"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-06-10 09:00:00",
+       "2024-06-11 01:00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:6a44957f27b8": {
+   "statements": [
+    {
+     "sql": "SET SESSION time_zone = '+00:00'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT CONVERT_TZ('2024-06-10 16:00:00', '+00:00', '-07:00') AS with_offset,\n       CONVERT_TZ('2024-06-10 16:00:00', 'UTC', 'America/Los_Angeles') AS with_named_zone",
+     "status": "ok",
+     "columns": [
+      "with_offset",
+      "with_named_zone"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-06-10 09:00:00",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:9629297a498e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE march_orders (id INT PRIMARY KEY, placed_at DATETIME NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO march_orders VALUES\n  (1, '2024-03-01 08:00:00'), (2, '2024-03-15 12:30:00'),\n  (3, '2024-03-31 00:00:00'), (4, '2024-03-31 18:45:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT SUM(placed_at BETWEEN '2024-03-01' AND '2024-03-31')               AS between_count,\n       SUM(placed_at >= '2024-03-01' AND placed_at < '2024-04-01')        AS half_open_count\nFROM march_orders",
+     "status": "ok",
+     "columns": [
+      "between_count",
+      "half_open_count"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "3",
+       "4"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

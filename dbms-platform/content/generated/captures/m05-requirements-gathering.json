@@ -1,0 +1,664 @@
+{
+ "doc": "m05-requirements-gathering",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:ea92d263b8c1": {
+   "statements": [
+    {
+     "sql": "SELECT 'customers'   AS entity, COUNT(*) AS row_count FROM customers\nUNION ALL SELECT 'categories',  COUNT(*) FROM categories\nUNION ALL SELECT 'products',    COUNT(*) FROM products\nUNION ALL SELECT 'orders',      COUNT(*) FROM orders\nUNION ALL SELECT 'order_items', COUNT(*) FROM order_items\nUNION ALL SELECT 'payments',    COUNT(*) FROM payments\nUNION ALL SELECT 'reviews',     COUNT(*) FROM reviews",
+     "status": "ok",
+     "columns": [
+      "entity",
+      "row_count"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "customers",
+       25
+      ],
+      [
+       "categories",
+       10
+      ],
+      [
+       "products",
+       30
+      ],
+      [
+       "orders",
+       80
+      ],
+      [
+       "order_items",
+       182
+      ],
+      [
+       "payments",
+       76
+      ],
+      [
+       "reviews",
+       45
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:c0cdfb73d11e": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, CONSTRAINT_TYPE, CONSTRAINT_NAME\nFROM information_schema.TABLE_CONSTRAINTS\nWHERE TABLE_SCHEMA = DATABASE()\nORDER BY TABLE_NAME, CONSTRAINT_TYPE, CONSTRAINT_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "CONSTRAINT_TYPE",
+      "CONSTRAINT_NAME"
+     ],
+     "row_count": 22,
+     "rows": [
+      [
+       "categories",
+       "FOREIGN KEY",
+       "fk_categories_parent"
+      ],
+      [
+       "categories",
+       "PRIMARY KEY",
+       "PRIMARY"
+      ],
+      [
+       "categories",
+       "UNIQUE",
+       "uq_categories_name"
+      ],
+      [
+       "customers",
+       "PRIMARY KEY",
+       "PRIMARY"
+      ],
+      [
+       "customers",
+       "UNIQUE",
+       "uq_customers_email"
+      ],
+      [
+       "order_items",
+       "CHECK",
+       "chk_items_qty"
+      ],
+      [
+       "order_items",
+       "FOREIGN KEY",
+       "fk_items_order"
+      ],
+      [
+       "order_items",
+       "FOREIGN KEY",
+       "fk_items_product"
+      ],
+      [
+       "order_items",
+       "PRIMARY KEY",
+       "PRIMARY"
+      ],
+      [
+       "orders",
+       "FOREIGN KEY",
+       "fk_orders_customer"
+      ],
+      [
+       "orders",
+       "PRIMARY KEY",
+       "PRIMARY"
+      ],
+      [
+       "payments",
+       "FOREIGN KEY",
+       "fk_payments_order"
+      ],
+      [
+       "payments",
+       "PRIMARY KEY",
+       "PRIMARY"
+      ],
+      [
+       "products",
+       "CHECK",
+       "chk_products_price"
+      ],
+      [
+       "products",
+       "FOREIGN KEY",
+       "fk_products_category"
+      ],
+      [
+       "products",
+       "PRIMARY KEY",
+       "PRIMARY"
+      ],
+      [
+       "products",
+       "UNIQUE",
+       "uq_products_sku"
+      ],
+      [
+       "reviews",
+       "CHECK",
+       "chk_reviews_rating"
+      ],
+      [
+       "reviews",
+       "FOREIGN KEY",
+       "fk_reviews_customer"
+      ],
+      [
+       "reviews",
+       "FOREIGN KEY",
+       "fk_reviews_product"
+      ],
+      [
+       "reviews",
+       "PRIMARY KEY",
+       "PRIMARY"
+      ],
+      [
+       "reviews",
+       "UNIQUE",
+       "uq_reviews_product_customer"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:c7c6908fa560": {
+   "statements": [
+    {
+     "sql": "SELECT CONSTRAINT_NAME, CHECK_CLAUSE\nFROM information_schema.CHECK_CONSTRAINTS\nWHERE CONSTRAINT_SCHEMA = DATABASE()\nORDER BY CONSTRAINT_NAME",
+     "status": "ok",
+     "columns": [
+      "CONSTRAINT_NAME",
+      "CHECK_CLAUSE"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "chk_items_qty",
+       "(`quantity` > 0)"
+      ],
+      [
+       "chk_products_price",
+       "(`price` >= 0)"
+      ],
+      [
+       "chk_reviews_rating",
+       "(`rating` between 1 and 5)"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:6916c12b1e30": {
+   "statements": [
+    {
+     "sql": "INSERT INTO reviews (product_id, customer_id, rating, comment, created_at)\nVALUES (1, 2, 6, 'Best thing ever!!!', '2024-12-01 10:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_reviews_rating' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s5:3b8fac7b600e": {
+   "statements": [
+    {
+     "sql": "INSERT INTO orders (customer_id, order_date, status)\nVALUES (999, '2024-12-01 09:00:00', 'pending')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`orders`, CONSTRAINT `fk_orders_customer` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`customer_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:5eec60787169": {
+   "statements": [
+    {
+     "sql": "INSERT INTO orders (customer_id, order_date, status)\nVALUES (NULL, '2024-12-01 09:00:00', 'pending')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1048,
+      "message": "Column 'customer_id' cannot be null"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:6ee109b8a63c": {
+   "statements": [
+    {
+     "sql": "INSERT INTO reviews (product_id, customer_id, rating, comment, created_at)\nSELECT product_id, customer_id, 5, 'Second review', '2024-12-01 10:00:00'\nFROM reviews\nORDER BY review_id\nLIMIT 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '24-8' for key 'reviews.uq_reviews_product_customer'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:1ed535a2b1bc": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)                                     AS order_lines,\n       SUM(oi.unit_price <> p.price)                AS lines_with_old_price,\n       ROUND(100 * AVG(oi.unit_price <> p.price), 1) AS pct_different\nFROM order_items AS oi\nJOIN products    AS p ON p.product_id = oi.product_id",
+     "status": "ok",
+     "columns": [
+      "order_lines",
+      "lines_with_old_price",
+      "pct_different"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       182,
+       "26",
+       "14.3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:4005e181377b": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE business_rules (\n  rule_id      VARCHAR(8)   NOT NULL PRIMARY KEY,\n  statement    VARCHAR(200) NOT NULL,\n  rule_kind    ENUM('structural','constraint','derivation') NOT NULL,\n  enforced_by  VARCHAR(64)  NULL      -- name of the constraint, or NULL if not declarative\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO business_rules VALUES\n  ('BR-01', 'Each order is placed by exactly one existing customer', 'structural', 'fk_orders_customer'),\n  ('BR-02', 'A customer reviews a product at most once',              'constraint', 'uq_reviews_product_customer'),\n  ('BR-03', 'Review rating is between 1 and 5',                       'constraint', 'chk_reviews_rating'),\n  ('BR-04', 'Order line quantity is positive',                        'constraint', 'chk_items_qty'),\n  ('BR-05', 'Customer email is unique',                               'constraint', 'uq_customers_email'),\n  ('BR-06', 'Only customers with a delivered purchase may review it', 'constraint', NULL),\n  ('BR-07', 'Line total = quantity x unit price',                     'derivation', NULL),\n  ('BR-08', 'Every order has at least one order line',                'constraint', NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 8,
+     "info": "Records: 8  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT r.rule_id, r.rule_kind, r.enforced_by,\n       tc.TABLE_NAME, tc.CONSTRAINT_TYPE\nFROM business_rules AS r\nLEFT JOIN information_schema.TABLE_CONSTRAINTS AS tc\n       ON tc.CONSTRAINT_SCHEMA = DATABASE()\n      AND tc.CONSTRAINT_NAME   = r.enforced_by\nORDER BY r.rule_id",
+     "status": "ok",
+     "columns": [
+      "rule_id",
+      "rule_kind",
+      "enforced_by",
+      "TABLE_NAME",
+      "CONSTRAINT_TYPE"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "BR-01",
+       "structural",
+       "fk_orders_customer",
+       "orders",
+       "FOREIGN KEY"
+      ],
+      [
+       "BR-02",
+       "constraint",
+       "uq_reviews_product_customer",
+       "reviews",
+       "UNIQUE"
+      ],
+      [
+       "BR-03",
+       "constraint",
+       "chk_reviews_rating",
+       "reviews",
+       "CHECK"
+      ],
+      [
+       "BR-04",
+       "constraint",
+       "chk_items_qty",
+       "order_items",
+       "CHECK"
+      ],
+      [
+       "BR-05",
+       "constraint",
+       "uq_customers_email",
+       "customers",
+       "UNIQUE"
+      ],
+      [
+       "BR-06",
+       "constraint",
+       null,
+       null,
+       null
+      ],
+      [
+       "BR-07",
+       "derivation",
+       null,
+       null,
+       null
+      ],
+      [
+       "BR-08",
+       "constraint",
+       null,
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:bffbecb968a7": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE return_requests (\n  return_id     INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  order_id      INT UNSIGNED NOT NULL,\n  product_id    INT UNSIGNED NOT NULL,\n  quantity      INT UNSIGNED NOT NULL,\n  reason        ENUM('damaged','wrong_item','changed_mind') NOT NULL,\n  requested_at  DATETIME NOT NULL,\n  approved      BOOLEAN NULL,            -- NULL = not decided yet\n  CONSTRAINT chk_returns_qty  CHECK (quantity > 0),\n  CONSTRAINT fk_returns_line  FOREIGN KEY (order_id, product_id)\n                              REFERENCES order_items (order_id, product_id)\n  -- BR: quantity <= order_items.quantity  (cross-table: trigger/app)\n  -- BR: order status must be 'delivered' (cross-table: trigger/app)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:e094402a0d7d": {
+   "statements": [
+    {
+     "sql": "SELECT CONSTRAINT_TYPE, CONSTRAINT_NAME\nFROM information_schema.TABLE_CONSTRAINTS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'return_requests'\nORDER BY CONSTRAINT_TYPE, CONSTRAINT_NAME",
+     "status": "ok",
+     "columns": [
+      "CONSTRAINT_TYPE",
+      "CONSTRAINT_NAME"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "CHECK",
+       "chk_returns_qty"
+      ],
+      [
+       "FOREIGN KEY",
+       "fk_returns_line"
+      ],
+      [
+       "PRIMARY KEY",
+       "PRIMARY"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:5ec634f10ddb": {
+   "statements": [
+    {
+     "sql": "INSERT INTO return_requests (order_id, product_id, quantity, reason, requested_at)\nSELECT oi.order_id, oi.product_id, 1, 'damaged', '2024-12-20 14:00:00'\nFROM order_items AS oi JOIN orders AS o ON o.order_id = oi.order_id\nWHERE o.status = 'delivered'\nORDER BY oi.order_id, oi.product_id\nLIMIT 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT return_id, order_id, product_id, quantity, reason, approved FROM return_requests",
+     "status": "ok",
+     "columns": [
+      "return_id",
+      "order_id",
+      "product_id",
+      "quantity",
+      "reason",
+      "approved"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       2,
+       9,
+       1,
+       "damaged",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:018d2aa000bb": {
+   "statements": [
+    {
+     "sql": "INSERT INTO return_requests (order_id, product_id, quantity, reason, requested_at)\nVALUES (1, 1, 1, 'too_expensive', '2024-12-20 14:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1265,
+      "message": "Data truncated for column 'reason' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:c5a9640fb257": {
+   "statements": [
+    {
+     "sql": "INSERT INTO return_requests (order_id, product_id, quantity, reason, requested_at)\nVALUES (999, 1, 1, 'damaged', '2024-12-20 14:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`return_requests`, CONSTRAINT `fk_returns_line` FOREIGN KEY (`order_id`, `product_id`) REFERENCES `order_items` (`order_id`, `product_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:1691d5b2a926": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)                         AS customers,\n       COUNT(*) - COUNT(phone)          AS missing_phone,\n       COUNT(*) - COUNT(loyalty_tier)   AS missing_tier,\n       COUNT(DISTINCT state)            AS distinct_states,\n       COUNT(DISTINCT city)             AS distinct_cities\nFROM customers",
+     "status": "ok",
+     "columns": [
+      "customers",
+      "missing_phone",
+      "missing_tier",
+      "distinct_states",
+      "distinct_cities"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25,
+       5,
+       4,
+       6,
+       8
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:c9bb6710d187": {
+   "statements": [
+    {
+     "sql": "SELECT MIN(n) AS min_orders, ROUND(AVG(n), 2) AS avg_orders, MAX(n) AS max_orders\nFROM (SELECT c.customer_id, COUNT(o.order_id) AS n\n      FROM customers AS c\n      LEFT JOIN orders AS o ON o.customer_id = c.customer_id\n      GROUP BY c.customer_id) AS per_customer",
+     "status": "ok",
+     "columns": [
+      "min_orders",
+      "avg_orders",
+      "max_orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       "3.20",
+       8
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:2f75139796ed": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id, order_date, status\nFROM orders\nWHERE customer_id = 7\nORDER BY order_date DESC",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Sort: orders.order_date DESC  (cost=1.15 rows=4)\n    -> Index lookup on orders using idx_orders_customer (customer_id=7)  (cost=1.15 rows=4)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:76e58a3229a7": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, TABLE_ROWS, AVG_ROW_LENGTH, DATA_LENGTH\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('orders', 'order_items', 'customers')\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "TABLE_ROWS",
+      "AVG_ROW_LENGTH",
+      "DATA_LENGTH"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "customers",
+       25,
+       655,
+       16384
+      ],
+      [
+       "order_items",
+       182,
+       90,
+       16384
+      ],
+      [
+       "orders",
+       80,
+       204,
+       16384
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:ba4499a76e44": {
+   "statements": [
+    {
+     "sql": "SELECT 20000                                    AS orders_per_day,\n       20000 * 365 * 7                          AS rows_after_7_years,\n       ROUND(20000 * 365 * 7 * 46 * 16 / 15 / POW(1024, 3), 1) AS est_clustered_gib",
+     "status": "ok",
+     "columns": [
+      "orders_per_day",
+      "rows_after_7_years",
+      "est_clustered_gib"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20000,
+       51100000,
+       2.3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:10fc9536479c": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE product_tags_bad (\n  product_id INT UNSIGNED PRIMARY KEY,\n  tags       VARCHAR(200)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO product_tags_bad VALUES (1, 'sale,new'), (2, 'new'), (3, 'gift,sale'), (4, 'newsletter')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id FROM product_tags_bad WHERE tags LIKE '%new%' ORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1
+      ],
+      [
+       2
+      ],
+      [
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:1325abfe00fc": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE orders\n  ADD CONSTRAINT chk_orders_has_discount CHECK (discount_code IS NOT NULL)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_orders_has_discount' is violated."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}
