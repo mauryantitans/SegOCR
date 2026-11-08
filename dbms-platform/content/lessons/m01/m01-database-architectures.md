@@ -268,11 +268,11 @@ GROUP BY status
 ORDER BY orders DESC, status;
 ```
 
-The totals match the unsharded table (45 delivered, 14 shipped, …) only because counts can be summed. An average could **not** be recombined by averaging the per-shard averages, a cross-shard join requires moving data between machines, and a transaction touching both shards would need a distributed commit protocol. On real separate servers these become the hard problems of sharding; tools such as **Vitess** (used with MySQL at YouTube, Slack, GitHub and others) implement the routing, scatter-gather and resharding for you.
+The totals match the unsharded table (45 delivered, 14 shipped, and 9 cancelled now that order 4 was cancelled in Practical Example 1) only because counts can be summed. An average could **not** be recombined by averaging the per-shard averages, a cross-shard join requires moving data between machines, and a transaction touching both shards would need a distributed commit protocol. On real separate servers these become the hard problems of sharding; tools such as **Vitess** (used with MySQL at YouTube, Slack, GitHub and others) implement the routing, scatter-gather and resharding for you.
 
 ## Execution Walkthrough
 
-Follow one request — "show customer 7 their orders" — through a three-tier, replicated MySQL deployment. The SQL steps run in your lab; the infrastructure steps are explained.
+Follow one request — "show customer 5 their orders", then cancel one — through a three-tier, replicated MySQL deployment. The SQL steps run in your lab; the infrastructure steps are explained.
 
 ```walkthrough
 title: One web request through a three-tier, replicated MySQL deployment
@@ -292,19 +292,19 @@ steps:
       finds the rows through the index on orders.customer_id (idx_orders_customer).
     sql: |
       EXPLAIN FORMAT=TREE
-      SELECT order_id, order_date, status FROM orders WHERE customer_id = 7 ORDER BY order_date;
+      SELECT order_id, order_date, status FROM orders WHERE customer_id = 5 ORDER BY order_date;
   - title: "4. Rows stream back over the connection"
     explain: >-
       The result set is sent back to the application server in protocol packets, in one round trip.
-    sql: SELECT order_id, order_date, status FROM orders WHERE customer_id = 7 ORDER BY order_date;
+    sql: SELECT order_id, order_date, status FROM orders WHERE customer_id = 5 ORDER BY order_date;
   - title: "5. A write goes to the primary"
     explain: >-
-      When the customer cancels a paid order, the write must go to the primary, inside a transaction. On commit,
+      When the customer cancels their paid order 18, the write must go to the primary, inside a transaction. On commit,
       the change is written to the binary log, from which replicas fetch and apply it — asynchronously by
       default, so a replica may briefly still show the old status (replication lag).
     sql: |
       START TRANSACTION;
-      UPDATE orders SET status = 'cancelled' WHERE order_id = 58 AND customer_id = 7 AND status IN ('pending', 'paid');
+      UPDATE orders SET status = 'cancelled' WHERE order_id = 18 AND customer_id = 5 AND status IN ('pending', 'paid');
       SELECT ROW_COUNT() AS rows_changed;
       COMMIT;
   - title: "6. Read-your-writes"
@@ -312,7 +312,7 @@ steps:
       If the next page load reads from a lagging replica, the customer may not see their own cancellation. Common
       remedies: route a user's reads to the primary for a short time after they write, wait for the replica to
       catch up to the write's GTID (WAIT_FOR_EXECUTED_GTID_SET), or use Group Replication's consistency levels.
-    sql: SELECT order_id, status FROM orders WHERE customer_id = 7 ORDER BY order_id;
+    sql: SELECT order_id, status FROM orders WHERE customer_id = 5 ORDER BY order_id;
 ```
 
 ## Output
@@ -320,8 +320,8 @@ steps:
 Reading the walkthrough's outputs:
 
 - **Step 3's plan** shows an index lookup on `orders` using `idx_orders_customer`, followed by a sort on `order_date`: the work happens on the database server, next to the data.
-- **Step 4** returns customer 7's orders in one result set. However many rows are returned, it is one statement and one round trip for the application.
-- **Step 5** reports `rows_changed`. Whether it is 1 or 0 depends on whether order 58 belongs to customer 7 and is still cancellable — the `WHERE` clause carries both the ownership check and the business rule, so the database refuses changes the application should not make. Check the captured value: it tells you which case applied in this dataset.
+- **Step 4** returns customer 5's two orders in one result set. However many rows are returned, it is one statement and one round trip for the application.
+- **Step 5** reports `rows_changed = 1`: order 18 belongs to customer 5 and was `paid`, so it was cancelled. The `WHERE` clause carries both the **ownership check** (`customer_id = 5`) and the **business rule** (`status IN ('pending', 'paid')`); had another customer's session tried to cancel order 18, or had the order already shipped, the statement would have changed 0 rows and the application would report that the cancellation was refused.
 - **Step 6** shows the state the *primary* now holds. On a replica, the same query could briefly return the old status — the price of asynchronous replication.
 
 ## Alternative Approaches
@@ -405,7 +405,7 @@ SELECT
   (SELECT AVG(quantity) FROM order_items) AS true_avg;
 ```
 
-The mean of `avg_shard_0` and `avg_shard_1` is not `true_avg` unless the shards hold equal numbers of line items. Gather `SUM` and `COUNT` from each shard and divide once.
+The per-shard averages are 1.6337 and 1.6914; their mean (≈ 1.6626) is not the true average of 1.6593, because the shards hold different numbers of line items. Gather `SUM` and `COUNT` from each shard and divide once.
 
 **Mistake 4 — writing to a replica.** Applications that read their connection string from the wrong variable send writes to a replica; without `read_only`, the replica diverges silently and replication may later break. Set `super_read_only = ON` on replicas.
 

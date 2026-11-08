@@ -367,10 +367,10 @@
    ],
    "measured": null
   },
-  "w1.2:a8c88783a484": {
+  "w1.2:767e0cf63898": {
    "statements": [
     {
-     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id, order_date, status FROM orders WHERE customer_id = 7 ORDER BY order_date",
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id, order_date, status FROM orders WHERE customer_id = 5 ORDER BY order_date",
      "status": "ok",
      "columns": [
       "EXPLAIN"
@@ -378,51 +378,41 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Sort: orders.order_date  (cost=1.15 rows=4)\n    -> Index lookup on orders using idx_orders_customer (customer_id=7)  (cost=1.15 rows=4)\n"
+       "-> Sort: orders.order_date  (cost=0.7 rows=2)\n    -> Index lookup on orders using idx_orders_customer (customer_id=5)  (cost=0.7 rows=2)\n"
       ]
      ]
     }
    ],
    "measured": null
   },
-  "w1.3:c3be1b43fbf4": {
+  "w1.3:e9e021dfe7e3": {
    "statements": [
     {
-     "sql": "SELECT order_id, order_date, status FROM orders WHERE customer_id = 7 ORDER BY order_date",
+     "sql": "SELECT order_id, order_date, status FROM orders WHERE customer_id = 5 ORDER BY order_date",
      "status": "ok",
      "columns": [
       "order_id",
       "order_date",
       "status"
      ],
-     "row_count": 4,
+     "row_count": 2,
      "rows": [
       [
-       27,
-       "2024-02-08 18:06:00",
-       "refunded"
-      ],
-      [
-       26,
-       "2024-08-26 19:56:00",
+       34,
+       "2024-05-20 08:46:00",
        "delivered"
       ],
       [
-       37,
-       "2024-11-16 11:36:00",
-       "delivered"
-      ],
-      [
-       17,
-       "2024-12-22 14:33:00",
-       "shipped"
+       18,
+       "2024-08-25 19:23:00",
+       "paid"
       ]
      ]
     }
    ],
    "measured": null
   },
-  "w1.4:308837cdb31b": {
+  "w1.4:0d4eb3b28452": {
    "statements": [
     {
      "sql": "START TRANSACTION",
@@ -432,11 +422,11 @@
      "rows": []
     },
     {
-     "sql": "UPDATE orders SET status = 'cancelled' WHERE order_id = 58 AND customer_id = 7 AND status IN ('pending', 'paid')",
+     "sql": "UPDATE orders SET status = 'cancelled' WHERE order_id = 18 AND customer_id = 5 AND status IN ('pending', 'paid')",
      "status": "ok",
      "columns": [],
-     "affected_rows": 0,
-     "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
      "rows": []
     },
     {
@@ -448,7 +438,7 @@
      "row_count": 1,
      "rows": [
       [
-       0
+       1
       ]
      ]
     },
@@ -462,31 +452,23 @@
    ],
    "measured": null
   },
-  "w1.5:7d5428a4ad9a": {
+  "w1.5:af991b5d02ff": {
    "statements": [
     {
-     "sql": "SELECT order_id, status FROM orders WHERE customer_id = 7 ORDER BY order_id",
+     "sql": "SELECT order_id, status FROM orders WHERE customer_id = 5 ORDER BY order_id",
      "status": "ok",
      "columns": [
       "order_id",
       "status"
      ],
-     "row_count": 4,
+     "row_count": 2,
      "rows": [
       [
-       17,
-       "shipped"
+       18,
+       "cancelled"
       ],
       [
-       26,
-       "delivered"
-      ],
-      [
-       27,
-       "refunded"
-      ],
-      [
-       37,
+       34,
        "delivered"
       ]
      ]
