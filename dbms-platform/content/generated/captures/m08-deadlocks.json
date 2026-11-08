@@ -1,0 +1,1259 @@
+{
+ "doc": "m08-deadlocks",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:97e8647e3cff": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_deadlock_detect      AS deadlock_detect,\n       @@innodb_lock_wait_timeout    AS lock_wait_timeout_s,\n       @@innodb_rollback_on_timeout  AS rollback_on_timeout,\n       @@innodb_print_all_deadlocks  AS print_all_deadlocks",
+     "status": "ok",
+     "columns": [
+      "deadlock_detect",
+      "lock_wait_timeout_s",
+      "rollback_on_timeout",
+      "print_all_deadlocks"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       50,
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:a00f68dea0b7": {
+   "statements": [
+    {
+     "sql": "SET SESSION innodb_lock_wait_timeout = 5",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @@SESSION.innodb_lock_wait_timeout AS my_timeout_s",
+     "status": "ok",
+     "columns": [
+      "my_timeout_s"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION innodb_lock_wait_timeout = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "c1:cec582005d55": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance - 100.00 WHERE account_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance - 50.00 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance + 100.00 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "B",
+        "trxId": "160668",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
+        "lockStructs": 2
+       },
+       {
+        "session": "A",
+        "trxId": "160663",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 2,
+        "rowsModified": 1,
+        "lockStructs": 3
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "1"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "2"
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "error",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance + 50.00 WHERE account_id = 2",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1213,
+        "message": "Deadlock found when trying to get lock; try restarting transaction"
+       }
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2) ORDER BY account_id",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "balance"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         1,
+         "492.57"
+        ],
+        [
+         2,
+         "4428.20"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2) ORDER BY account_id",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "balance"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         1,
+         "592.57"
+        ],
+        [
+         2,
+         "4328.20"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:b966d3508a47": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET version = version + 1 WHERE account_id IN (1, 3, 4, 5)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 4,
+       "info": "Rows matched: 4  Changed: 4  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET version = version + 1 WHERE account_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET version = version + 1 WHERE account_id = 1",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1213,
+        "message": "Deadlock found when trying to get lock; try restarting transaction"
+       }
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "error"
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET version = version + 1 WHERE account_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT account_id, version FROM accounts WHERE account_id <= 5 ORDER BY account_id",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "version"
+       ],
+       "row_count": 5,
+       "rows": [
+        [
+         1,
+         1
+        ],
+        [
+         2,
+         1
+        ],
+        [
+         3,
+         1
+        ],
+        [
+         4,
+         1
+        ],
+        [
+         5,
+         1
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c3:a5274717c4a4": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 4 FOR SHARE",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "7946.37"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 4 FOR SHARE",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "7946.37"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance - 100.00 WHERE account_id = 4",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "error",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance - 200.00 WHERE account_id = 4",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1213,
+        "message": "Deadlock found when trying to get lock; try restarting transaction"
+       }
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 4",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "7846.37"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c4:e920ae11a464": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT * FROM branches WHERE branch_id = 50 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "branch_id",
+        "name",
+        "city"
+       ],
+       "row_count": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT * FROM branches WHERE branch_id = 50 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "branch_id",
+        "name",
+        "city"
+       ],
+       "row_count": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "INSERT INTO branches VALUES (50, 'Kiosk A', 'Palo Alto')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "B",
+        "trxId": "161005",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "A",
+        "trxId": "161003",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 2,
+        "rowsModified": 0,
+        "lockStructs": 3
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "branches",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "branches",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "supremum pseudo-record"
+       },
+       {
+        "session": "A",
+        "table": "branches",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,INSERT_INTENTION",
+        "status": "WAITING",
+        "lockData": "supremum pseudo-record"
+       },
+       {
+        "session": "B",
+        "table": "branches",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "branches",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "supremum pseudo-record"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "error",
+     "statements": [
+      {
+       "sql": "INSERT INTO branches VALUES (50, 'Kiosk B', 'Palo Alto')",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1213,
+        "message": "Deadlock found when trying to get lock; try restarting transaction"
+       }
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT * FROM branches WHERE branch_id = 50",
+       "status": "ok",
+       "columns": [
+        "branch_id",
+        "name",
+        "city"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         50,
+         "Kiosk A",
+         "Palo Alto"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c5:0011cb0482c5": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO coupons VALUES (1)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "INSERT INTO coupons VALUES (1)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 5,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "C",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "INSERT INTO coupons VALUES (1)",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1213,
+        "message": "Deadlock found when trying to get lock; try restarting transaction"
+       }
+      }
+     ],
+     "completedAfterStep": 5,
+     "finalStatus": "error"
+    },
+    {
+     "step": 5,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT * FROM coupons",
+       "status": "ok",
+       "columns": [
+        "code"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c6:d50fb94c06be": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT account_id FROM accounts WHERE account_id IN (5, 8) ORDER BY account_id FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "account_id"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         5
+        ],
+        [
+         8
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT account_id FROM accounts WHERE account_id IN (5, 8) ORDER BY account_id FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "account_id"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         5
+        ],
+        [
+         8
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance - 100.00 WHERE account_id = 8",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance + 100.00 WHERE account_id = 5",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance - 50.00 WHERE account_id = 5",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance + 50.00 WHERE account_id = 8",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (5, 8) ORDER BY account_id",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "balance"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         5,
+         "7048.91"
+        ],
+        [
+         8,
+         "10353.88"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c7:8b0c7300321f": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET version = version + 1 WHERE account_id = 6",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION innodb_lock_wait_timeout = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET version = version + 1 WHERE account_id = 14",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET version = version + 1 WHERE account_id = 6",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1205,
+        "message": "Lock wait timeout exceeded; try restarting transaction"
+       }
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "error"
+    },
+    {
+     "step": 3,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT account_id, version FROM accounts WHERE account_id = 14",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         14,
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT account_id, version FROM accounts WHERE account_id = 14",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         14,
+         1
+        ]
+       ]
+      },
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "w1.0:6c31bbe9ab84": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET balance = balance - 100.00 WHERE account_id = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance + 100.00 WHERE account_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "592.57"
+      ],
+      [
+       2,
+       "4328.20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:3412f605e4cf": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2) ORDER BY account_id FOR UPDATE",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "592.57"
+      ],
+      [
+       2,
+       "4328.20"
+      ]
+     ]
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance - 50.00 WHERE account_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance + 50.00 WHERE account_id = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:4aeea93f628c": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance, SUM(balance) OVER () AS pair_total FROM accounts WHERE account_id IN (1, 2) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "pair_total"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "542.57",
+       "4920.77"
+      ],
+      [
+       2,
+       "4378.20",
+       "4920.77"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

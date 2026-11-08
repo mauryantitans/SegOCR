@@ -1,0 +1,688 @@
+{
+ "doc": "m01-keys",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:5eb41996d412": {
+   "statements": [
+    {
+     "sql": "SELECT tc.TABLE_NAME, tc.CONSTRAINT_TYPE, tc.CONSTRAINT_NAME,\n       GROUP_CONCAT(k.COLUMN_NAME ORDER BY k.ORDINAL_POSITION) AS key_columns\nFROM information_schema.TABLE_CONSTRAINTS AS tc\nJOIN information_schema.KEY_COLUMN_USAGE AS k\n  ON  k.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA\n  AND k.TABLE_NAME        = tc.TABLE_NAME\n  AND k.CONSTRAINT_NAME   = tc.CONSTRAINT_NAME\nWHERE tc.TABLE_SCHEMA = DATABASE()\n  AND tc.CONSTRAINT_TYPE IN ('PRIMARY KEY', 'UNIQUE')\nGROUP BY tc.TABLE_NAME, tc.CONSTRAINT_TYPE, tc.CONSTRAINT_NAME\nORDER BY tc.TABLE_NAME, tc.CONSTRAINT_TYPE",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "CONSTRAINT_TYPE",
+      "CONSTRAINT_NAME",
+      "key_columns"
+     ],
+     "row_count": 11,
+     "rows": [
+      [
+       "advisors",
+       "PRIMARY KEY",
+       "PRIMARY",
+       "student_id"
+      ],
+      [
+       "course_prereqs",
+       "PRIMARY KEY",
+       "PRIMARY",
+       "course_id,prereq_id"
+      ],
+      [
+       "courses",
+       "PRIMARY KEY",
+       "PRIMARY",
+       "course_id"
+      ],
+      [
+       "departments",
+       "PRIMARY KEY",
+       "PRIMARY",
+       "dept_id"
+      ],
+      [
+       "departments",
+       "UNIQUE",
+       "uq_departments_name",
+       "name"
+      ],
+      [
+       "enrollments",
+       "PRIMARY KEY",
+       "PRIMARY",
+       "student_id,section_id"
+      ],
+      [
+       "instructors",
+       "PRIMARY KEY",
+       "PRIMARY",
+       "instructor_id"
+      ],
+      [
+       "sections",
+       "PRIMARY KEY",
+       "PRIMARY",
+       "section_id"
+      ],
+      [
+       "sections",
+       "UNIQUE",
+       "uq_sections_offering",
+       "course_id,term,year,room"
+      ],
+      [
+       "students",
+       "PRIMARY KEY",
+       "PRIMARY",
+       "student_id"
+      ],
+      [
+       "students",
+       "UNIQUE",
+       "uq_students_email",
+       "email"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:92b031342a2b": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME,\n       REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME\nFROM information_schema.KEY_COLUMN_USAGE\nWHERE TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL\nORDER BY TABLE_NAME, COLUMN_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "COLUMN_NAME",
+      "CONSTRAINT_NAME",
+      "REFERENCED_TABLE_NAME",
+      "REFERENCED_COLUMN_NAME"
+     ],
+     "row_count": 11,
+     "rows": [
+      [
+       "advisors",
+       "instructor_id",
+       "fk_advisors_instructor",
+       "instructors",
+       "instructor_id"
+      ],
+      [
+       "advisors",
+       "student_id",
+       "fk_advisors_student",
+       "students",
+       "student_id"
+      ],
+      [
+       "course_prereqs",
+       "course_id",
+       "fk_prereqs_course",
+       "courses",
+       "course_id"
+      ],
+      [
+       "course_prereqs",
+       "prereq_id",
+       "fk_prereqs_prereq",
+       "courses",
+       "course_id"
+      ],
+      [
+       "courses",
+       "dept_id",
+       "fk_courses_dept",
+       "departments",
+       "dept_id"
+      ],
+      [
+       "enrollments",
+       "section_id",
+       "fk_enrollments_section",
+       "sections",
+       "section_id"
+      ],
+      [
+       "enrollments",
+       "student_id",
+       "fk_enrollments_student",
+       "students",
+       "student_id"
+      ],
+      [
+       "instructors",
+       "dept_id",
+       "fk_instructors_dept",
+       "departments",
+       "dept_id"
+      ],
+      [
+       "sections",
+       "course_id",
+       "fk_sections_course",
+       "courses",
+       "course_id"
+      ],
+      [
+       "sections",
+       "instructor_id",
+       "fk_sections_instructor",
+       "instructors",
+       "instructor_id"
+      ],
+      [
+       "students",
+       "dept_id",
+       "fk_students_dept",
+       "departments",
+       "dept_id"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:f6d1866ddcc3": {
+   "statements": [
+    {
+     "sql": "INSERT INTO students (student_id, name, email, dept_id, enrollment_year)\nVALUES (20230002, 'Sam Okafor', 'sam.okafor@student.example.edu', 2, 2021)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '20230002' for key 'students.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s4:db2380e40a8b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO students (student_id, name, email, dept_id, enrollment_year)\nVALUES (20250099, 'Samuel Okafor', 'samuel.okafor@student.example.edu', 2, 2025)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'samuel.okafor@student.example.edu' for key 'students.uq_students_email'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s5:48dabc4818f2": {
+   "statements": [
+    {
+     "sql": "INSERT INTO enrollments (student_id, section_id, grade)\nSELECT student_id, section_id, NULL FROM enrollments ORDER BY student_id, section_id LIMIT 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '20230001-3' for key 'enrollments.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:ada80db45fff": {
+   "statements": [
+    {
+     "sql": "INSERT INTO enrollments (student_id, section_id, grade) VALUES (20230002, 999, NULL)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`enrollments`, CONSTRAINT `fk_enrollments_section` FOREIGN KEY (`section_id`) REFERENCES `sections` (`section_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:18cf3e35fc1b": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE office_hours (\n  instructor_id INT UNSIGNED NULL,\n  weekday       TINYINT UNSIGNED,\n  PRIMARY KEY (instructor_id, weekday)\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1171,
+      "message": "All parts of a PRIMARY KEY must be NOT NULL; if you need NULL in a key, use UNIQUE instead"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:695d80dc7c29": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)                                AS sections,\n       COUNT(DISTINCT section_id)              AS distinct_section_id,\n       COUNT(DISTINCT course_id)               AS distinct_course_id,\n       COUNT(DISTINCT course_id, term, year)   AS distinct_course_term_year\nFROM sections",
+     "status": "ok",
+     "columns": [
+      "sections",
+      "distinct_section_id",
+      "distinct_course_id",
+      "distinct_course_term_year"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       24,
+       24,
+       13,
+       24
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:e5672c664892": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS students,\n       COUNT(DISTINCT student_id)        AS by_id,\n       COUNT(DISTINCT email)             AS by_email,\n       COUNT(DISTINCT student_id, email) AS by_id_and_email\nFROM students",
+     "status": "ok",
+     "columns": [
+      "students",
+      "by_id",
+      "by_email",
+      "by_id_and_email"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       40,
+       40,
+       40,
+       40
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:ea03f08e1fcc": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE rooms (\n  room_pk   INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  building  VARCHAR(40)  NOT NULL,\n  room_no   VARCHAR(10)  NOT NULL,\n  seats     SMALLINT UNSIGNED NOT NULL,\n  PRIMARY KEY (room_pk),\n  UNIQUE KEY uq_rooms_natural (building, room_no)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO rooms (building, room_no, seats) VALUES\n  ('Duncan Hall', '320', 30), ('MacQuarrie Hall', '112', 60), ('Boccardo Hall', '353', 40)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT room_pk, building, room_no, seats FROM rooms ORDER BY room_pk",
+     "status": "ok",
+     "columns": [
+      "room_pk",
+      "building",
+      "room_no",
+      "seats"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "Duncan Hall",
+       "320",
+       30
+      ],
+      [
+       2,
+       "MacQuarrie Hall",
+       "112",
+       60
+      ],
+      [
+       3,
+       "Boccardo Hall",
+       "353",
+       40
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:15e46425ac6a": {
+   "statements": [
+    {
+     "sql": "INSERT INTO rooms (building, room_no, seats) VALUES ('Duncan Hall', '320', 35)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'Duncan Hall-320' for key 'rooms.uq_rooms_natural'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s13:4ace383e56d2": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE api_tokens (\n  token_id   BINARY(16) NOT NULL DEFAULT (UUID_TO_BIN(UUID(), 1)),\n  student_id INT UNSIGNED NOT NULL,\n  PRIMARY KEY (token_id),\n  CONSTRAINT fk_tokens_student FOREIGN KEY (student_id) REFERENCES students (student_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO api_tokens (student_id) VALUES (20230001), (20230002)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT LENGTH(token_id) AS bytes_per_key, COUNT(*) AS tokens FROM api_tokens GROUP BY LENGTH(token_id)",
+     "status": "ok",
+     "columns": [
+      "bytes_per_key",
+      "tokens"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       16,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:4bb7009c8d47": {
+   "statements": [
+    {
+     "sql": "SELECT c.course_id, c.title, p.course_id AS prereq_id, p.title AS prereq_title\nFROM course_prereqs AS cp\nJOIN courses AS c ON c.course_id = cp.course_id\nJOIN courses AS p ON p.course_id = cp.prereq_id\nWHERE c.course_id LIKE 'CS-%'\nORDER BY c.course_id, p.course_id",
+     "status": "ok",
+     "columns": [
+      "course_id",
+      "title",
+      "prereq_id",
+      "prereq_title"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "CS-146",
+       "Data Structures and Algorithms",
+       "CS-046",
+       "Introduction to Programming"
+      ],
+      [
+       "CS-146",
+       "Data Structures and Algorithms",
+       "MATH-042",
+       "Discrete Mathematics"
+      ],
+      [
+       "CS-149",
+       "Operating Systems",
+       "CS-146",
+       "Data Structures and Algorithms"
+      ],
+      [
+       "CS-157A",
+       "Introduction to Database Management Systems",
+       "CS-146",
+       "Data Structures and Algorithms"
+      ],
+      [
+       "CS-157B",
+       "Database Management Systems II",
+       "CS-157A",
+       "Introduction to Database Management Systems"
+      ],
+      [
+       "CS-160",
+       "Software Engineering",
+       "CS-146",
+       "Data Structures and Algorithms"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:2e57911deb7f": {
+   "statements": [
+    {
+     "sql": "SELECT student_id, instructor_id FROM advisors ORDER BY student_id LIMIT 6",
+     "status": "ok",
+     "columns": [
+      "student_id",
+      "instructor_id"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       20230001,
+       1008
+      ],
+      [
+       20230002,
+       1004
+      ],
+      [
+       20230003,
+       1002
+      ],
+      [
+       20230005,
+       1006
+      ],
+      [
+       20230006,
+       1006
+      ],
+      [
+       20230007,
+       1006
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:f27dce98c5e0": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS rows_, COUNT(DISTINCT student_id) AS distinct_students,\n       COUNT(DISTINCT instructor_id) AS distinct_instructors\nFROM advisors",
+     "status": "ok",
+     "columns": [
+      "rows_",
+      "distinct_students",
+      "distinct_instructors"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       30,
+       30,
+       11
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:d6966f9750ae": {
+   "statements": [
+    {
+     "sql": "SELECT CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME\nFROM information_schema.KEY_COLUMN_USAGE\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'advisors'\nORDER BY CONSTRAINT_NAME",
+     "status": "ok",
+     "columns": [
+      "CONSTRAINT_NAME",
+      "COLUMN_NAME",
+      "REFERENCED_TABLE_NAME"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "fk_advisors_instructor",
+       "instructor_id",
+       "instructors"
+      ],
+      [
+       "fk_advisors_student",
+       "student_id",
+       "students"
+      ],
+      [
+       "PRIMARY",
+       "student_id",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:47d09264169b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO advisors (student_id, instructor_id)\nSELECT student_id, 1001 FROM advisors ORDER BY student_id LIMIT 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '20230001' for key 'advisors.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s16:cedbbf75beb5": {
+   "statements": [
+    {
+     "sql": "SELECT section_id, course_id, term, year, room FROM sections WHERE room IS NULL",
+     "status": "ok",
+     "columns": [
+      "section_id",
+      "course_id",
+      "term",
+      "year",
+      "room"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       11,
+       "MATH-161A",
+       "Fall",
+       2023,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:26c515f13902": {
+   "statements": [
+    {
+     "sql": "INSERT INTO sections (section_id, course_id, term, year, instructor_id, room, capacity)\nSELECT 99, course_id, term, year, instructor_id, room, capacity FROM sections WHERE room IS NULL",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT section_id, course_id, term, year, room FROM sections WHERE room IS NULL ORDER BY section_id",
+     "status": "ok",
+     "columns": [
+      "section_id",
+      "course_id",
+      "term",
+      "year",
+      "room"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       11,
+       "MATH-161A",
+       "Fall",
+       2023,
+       null
+      ],
+      [
+       99,
+       "MATH-161A",
+       "Fall",
+       2023,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:8b80b4630acb": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE scholarships (\n  scholarship_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  student_id     BIGINT NOT NULL,\n  CONSTRAINT fk_scholarship_student FOREIGN KEY (student_id) REFERENCES students (student_id)\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3780,
+      "message": "Referencing column 'student_id' and referenced column 'student_id' in foreign key constraint 'fk_scholarship_student' are incompatible."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s19:895ec5b910ea": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE awards (\n  award_id     INT UNSIGNED NOT NULL PRIMARY KEY,\n  student_name VARCHAR(80) NOT NULL,\n  CONSTRAINT fk_award_student FOREIGN KEY (student_name) REFERENCES students (name)\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1822,
+      "message": "Failed to add the foreign key constraint. Missing index for constraint 'fk_award_student' in the referenced table 'students'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s20:58feddba03b6": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE badges (badge_id INT PRIMARY KEY, badge_code VARCHAR(20) PRIMARY KEY)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1068,
+      "message": "Multiple primary key defined"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

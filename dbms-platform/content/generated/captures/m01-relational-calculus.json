@@ -1,0 +1,763 @@
+{
+ "doc": "m01-relational-calculus",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:0aeee6e01a39": {
+   "statements": [
+    {
+     "sql": "SELECT t.* FROM instructors AS t\nWHERE t.salary > 150000\nORDER BY t.instructor_id",
+     "status": "ok",
+     "columns": [
+      "instructor_id",
+      "name",
+      "dept_id",
+      "salary",
+      "hired_on"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1001,
+       "Arjun Rossi",
+       1,
+       "188000.00",
+       "2017-12-21"
+      ],
+      [
+       1002,
+       "Isabella Wang",
+       1,
+       "187000.00",
+       "2014-03-14"
+      ],
+      [
+       1007,
+       "Zara Berg",
+       3,
+       "188000.00",
+       "2015-07-06"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:3e1bcfc93ed6": {
+   "statements": [
+    {
+     "sql": "SELECT c.course_id, c.title\nFROM courses AS c\nWHERE EXISTS (SELECT 1 FROM sections AS s\n              WHERE s.course_id = c.course_id AND s.year = 2024)\nORDER BY c.course_id",
+     "status": "ok",
+     "columns": [
+      "course_id",
+      "title"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       "CS-149",
+       "Operating Systems"
+      ],
+      [
+       "CS-157A",
+       "Introduction to Database Management Systems"
+      ],
+      [
+       "CS-157B",
+       "Database Management Systems II"
+      ],
+      [
+       "CS-160",
+       "Software Engineering"
+      ],
+      [
+       "DATA-225",
+       "Database Systems for Analytics"
+      ],
+      [
+       "DATA-226",
+       "Data Warehousing"
+      ],
+      [
+       "DATA-245",
+       "Machine Learning"
+      ],
+      [
+       "MATH-042",
+       "Discrete Mathematics"
+      ],
+      [
+       "MATH-161A",
+       "Applied Probability and Statistics"
+      ],
+      [
+       "PHYS-050",
+       "General Physics"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:a06b85356363": {
+   "statements": [
+    {
+     "sql": "SELECT d.dept_id, d.name\nFROM departments AS d\nWHERE NOT EXISTS (SELECT 1 FROM courses AS c\n                  WHERE c.dept_id = d.dept_id AND c.credits <> 3)\nORDER BY d.dept_id",
+     "status": "ok",
+     "columns": [
+      "dept_id",
+      "name"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       2,
+       "Data Science"
+      ],
+      [
+       3,
+       "Mathematics"
+      ],
+      [
+       4,
+       "Business"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:c2b473fc7f4f": {
+   "statements": [
+    {
+     "sql": "SELECT d.dept_id, d.name\nFROM departments AS d\nWHERE 3 = ALL (SELECT c.credits FROM courses AS c WHERE c.dept_id = d.dept_id)\nORDER BY d.dept_id",
+     "status": "ok",
+     "columns": [
+      "dept_id",
+      "name"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       2,
+       "Data Science"
+      ],
+      [
+       3,
+       "Mathematics"
+      ],
+      [
+       4,
+       "Business"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:cc670a1d3be8": {
+   "statements": [
+    {
+     "sql": "SELECT i.name AS n, d.building AS b\nFROM instructors AS i, departments AS d\nWHERE i.dept_id = 2 AND d.dept_id = 2\nORDER BY i.name",
+     "status": "ok",
+     "columns": [
+      "n",
+      "b"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Anika Wang",
+       "MacQuarrie Hall"
+      ],
+      [
+       "Chloe Lin",
+       "MacQuarrie Hall"
+      ],
+      [
+       "Elena Haddad",
+       "MacQuarrie Hall"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:2dca1b08e898": {
+   "statements": [
+    {
+     "sql": "SELECT i.instructor_id, i.name\nFROM instructors AS i\nWHERE NOT EXISTS (SELECT 1 FROM sections AS s\n                  WHERE s.instructor_id = i.instructor_id AND s.room IS NULL)\nORDER BY i.instructor_id",
+     "status": "ok",
+     "columns": [
+      "instructor_id",
+      "name"
+     ],
+     "row_count": 11,
+     "rows": [
+      [
+       1001,
+       "Arjun Rossi"
+      ],
+      [
+       1002,
+       "Isabella Wang"
+      ],
+      [
+       1003,
+       "Omar Kim"
+      ],
+      [
+       1004,
+       "Chloe Lin"
+      ],
+      [
+       1005,
+       "Anika Wang"
+      ],
+      [
+       1006,
+       "Elena Haddad"
+      ],
+      [
+       1008,
+       "Fatima Kim"
+      ],
+      [
+       1009,
+       "Priya Wilson"
+      ],
+      [
+       1010,
+       "Samuel Lopez"
+      ],
+      [
+       1011,
+       "Noah Wilson"
+      ],
+      [
+       1012,
+       "Elena Lin"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:e54398aaa61e": {
+   "statements": [
+    {
+     "sql": "SELECT i.instructor_id, i.name\nFROM instructors AS i\nWHERE EXISTS     (SELECT 1 FROM sections AS s WHERE s.instructor_id = i.instructor_id)\n  AND NOT EXISTS (SELECT 1 FROM sections AS s\n                  WHERE s.instructor_id = i.instructor_id AND s.room IS NULL)\nORDER BY i.instructor_id",
+     "status": "ok",
+     "columns": [
+      "instructor_id",
+      "name"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       1001,
+       "Arjun Rossi"
+      ],
+      [
+       1002,
+       "Isabella Wang"
+      ],
+      [
+       1003,
+       "Omar Kim"
+      ],
+      [
+       1004,
+       "Chloe Lin"
+      ],
+      [
+       1005,
+       "Anika Wang"
+      ],
+      [
+       1006,
+       "Elena Haddad"
+      ],
+      [
+       1008,
+       "Fatima Kim"
+      ],
+      [
+       1009,
+       "Priya Wilson"
+      ],
+      [
+       1010,
+       "Samuel Lopez"
+      ],
+      [
+       1011,
+       "Noah Wilson"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:0b30f792df62": {
+   "statements": [
+    {
+     "sql": "SELECT 5 > ALL (SELECT credits FROM courses WHERE dept_id = 99)      AS all_over_empty,\n       5 > (SELECT MAX(credits) FROM courses WHERE dept_id = 99)    AS max_over_empty,\n       5 > ALL (SELECT credits FROM courses WHERE dept_id = 1)       AS all_over_cs,\n       5 > (SELECT MAX(credits) FROM courses WHERE dept_id = 1)     AS max_over_cs",
+     "status": "ok",
+     "columns": [
+      "all_over_empty",
+      "max_over_empty",
+      "all_over_cs",
+      "max_over_cs"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       null,
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:17442ca9d8af": {
+   "statements": [
+    {
+     "sql": "SELECT t.student_id, t.name\nFROM students AS t\nWHERE NOT EXISTS (\n  SELECT 1 FROM course_prereqs AS p\n  WHERE p.course_id = 'DATA-226'\n    AND NOT EXISTS (\n      SELECT 1 FROM enrollments AS e\n      JOIN sections AS s ON s.section_id = e.section_id\n      WHERE e.student_id = t.student_id AND s.course_id = p.prereq_id))\nORDER BY t.student_id",
+     "status": "ok",
+     "columns": [
+      "student_id",
+      "name"
+     ],
+     "row_count": 18,
+     "rows": [
+      [
+       20230005,
+       "Elena Moradi"
+      ],
+      [
+       20230009,
+       "Nina Moradi"
+      ],
+      [
+       20230010,
+       "Elena Novak"
+      ],
+      [
+       20230011,
+       "Chen Adeyemi"
+      ],
+      [
+       20230016,
+       "Ethan Adeyemi"
+      ],
+      [
+       20230017,
+       "Isabella Brown"
+      ],
+      [
+       20230019,
+       "Ethan Tanaka"
+      ],
+      [
+       20230020,
+       "Tomas Moradi"
+      ],
+      [
+       20230021,
+       "Jonas Wilson"
+      ],
+      [
+       20230022,
+       "Liam Nguyen"
+      ],
+      [
+       20230026,
+       "Sofia Smith"
+      ],
+      [
+       20230028,
+       "Aarav Nguyen"
+      ],
+      [
+       20230030,
+       "Sara Wang"
+      ],
+      [
+       20230031,
+       "Mei Sato"
+      ],
+      [
+       20230036,
+       "Mei Lin"
+      ],
+      [
+       20230037,
+       "Amara Silva"
+      ],
+      [
+       20230038,
+       "Tomas Ahmed"
+      ],
+      [
+       20230039,
+       "Victor Lopez"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:13808f3e234f": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE chain (course_id, depth) AS (\n  SELECT prereq_id, 1 FROM course_prereqs WHERE course_id = 'CS-157B'\n  UNION ALL\n  SELECT p.prereq_id, c.depth + 1\n  FROM course_prereqs AS p JOIN chain AS c ON p.course_id = c.course_id\n)\nSELECT course_id, depth FROM chain ORDER BY depth, course_id",
+     "status": "ok",
+     "columns": [
+      "course_id",
+      "depth"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "CS-157A",
+       1
+      ],
+      [
+       "CS-146",
+       2
+      ],
+      [
+       "CS-046",
+       3
+      ],
+      [
+       "MATH-042",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:bb59915724f6": {
+   "statements": [
+    {
+     "sql": "SELECT dept_id, name FROM departments ORDER BY dept_id",
+     "status": "ok",
+     "columns": [
+      "dept_id",
+      "name"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "Computer Science"
+      ],
+      [
+       2,
+       "Data Science"
+      ],
+      [
+       3,
+       "Mathematics"
+      ],
+      [
+       4,
+       "Business"
+      ],
+      [
+       5,
+       "Physics"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:3b7c3f676253": {
+   "statements": [
+    {
+     "sql": "SELECT d.dept_id, c.course_id, c.credits\nFROM departments AS d JOIN courses AS c ON c.dept_id = d.dept_id\nWHERE c.credits <> 3\nORDER BY d.dept_id, c.course_id",
+     "status": "ok",
+     "columns": [
+      "dept_id",
+      "course_id",
+      "credits"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "CS-046",
+       4
+      ],
+      [
+       5,
+       "PHYS-050",
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:a06b85356363": {
+   "statements": [
+    {
+     "sql": "SELECT d.dept_id, d.name\nFROM departments AS d\nWHERE NOT EXISTS (SELECT 1 FROM courses AS c\n                  WHERE c.dept_id = d.dept_id AND c.credits <> 3)\nORDER BY d.dept_id",
+     "status": "ok",
+     "columns": [
+      "dept_id",
+      "name"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       2,
+       "Data Science"
+      ],
+      [
+       3,
+       "Mathematics"
+      ],
+      [
+       4,
+       "Business"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:9a20e5aa91dd": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT d.dept_id FROM departments AS d\nWHERE 3 = ALL (SELECT c.credits FROM courses AS c WHERE c.dept_id = d.dept_id)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: <not>(<in_optimizer>(3,<exists>(select #2)))  (cost=0.75 rows=5)\n    -> Index scan on d using uq_departments_name  (cost=0.75 rows=5)\n    -> Select #2 (subquery in condition; dependent)\n        -> Limit: 1 row(s)  (cost=0.77 rows=1)\n            -> Filter: (<cache>(3) <> c.credits)  (cost=0.77 rows=2.7)\n                -> Index lookup on c using fk_courses_dept (dept_id=d.dept_id)  (cost=0.77 rows=3)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'd.dept_id' of SELECT #2 was resolved in SELECT #1"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:6cca3438fa39": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT d.dept_id FROM departments AS d\nWHERE NOT EXISTS (SELECT 1 FROM courses AS c\n                  WHERE c.dept_id = d.dept_id AND c.credits <> 3)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop antijoin  (cost=4.75 rows=15)\n    -> Index scan on d using uq_departments_name  (cost=0.75 rows=5)\n    -> Filter: (c.credits <> 3)  (cost=1.68 rows=3)\n        -> Index lookup on c using fk_courses_dept (dept_id=d.dept_id)  (cost=1.68 rows=3)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'd.dept_id' of SELECT #2 was resolved in SELECT #1"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:92251c8c4785": {
+   "statements": [
+    {
+     "sql": "-- 1. NOT EXISTS (¬∃¬): the direct calculus translation\nSELECT d.dept_id FROM departments AS d\nWHERE NOT EXISTS (SELECT 1 FROM courses AS c WHERE c.dept_id = d.dept_id AND c.credits <> 3)\nORDER BY d.dept_id",
+     "status": "ok",
+     "columns": [
+      "dept_id"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       2
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:eb349d542bb6": {
+   "statements": [
+    {
+     "sql": "-- 2. Aggregation: every course qualifies ⇔ the count of qualifying courses equals the count of courses\nSELECT c.dept_id FROM courses AS c\nGROUP BY c.dept_id\nHAVING SUM(c.credits = 3) = COUNT(*)\nORDER BY c.dept_id",
+     "status": "ok",
+     "columns": [
+      "dept_id"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       2
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:c2654f0cc08a": {
+   "statements": [
+    {
+     "sql": "-- 3. MIN/MAX as boolean aggregates (EVERY(cond) ≈ MIN(cond) = 1)\nSELECT c.dept_id FROM courses AS c\nGROUP BY c.dept_id\nHAVING MIN(c.credits = 3) = 1\nORDER BY c.dept_id",
+     "status": "ok",
+     "columns": [
+      "dept_id"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       2
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:5394ed44a899": {
+   "statements": [
+    {
+     "sql": "-- 4. Set difference: all departments minus departments with a counterexample\nSELECT dept_id FROM departments\nEXCEPT\nSELECT dept_id FROM courses WHERE credits <> 3\nORDER BY dept_id",
+     "status": "ok",
+     "columns": [
+      "dept_id"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       2
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:4f03c4d4af5e": {
+   "statements": [
+    {
+     "sql": "-- Wrong: departments with AT LEAST ONE 3-credit course\nSELECT DISTINCT d.dept_id\nFROM departments AS d JOIN courses AS c ON c.dept_id = d.dept_id\nWHERE c.credits = 3\nORDER BY d.dept_id",
+     "status": "ok",
+     "columns": [
+      "dept_id"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1
+      ],
+      [
+       2
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:b053170b3fb5": {
+   "statements": [
+    {
+     "sql": "-- Wrong: returns nothing, because one section has instructor_id NULL\nSELECT instructor_id FROM instructors\nWHERE instructor_id <> ALL (SELECT instructor_id FROM sections)\nORDER BY instructor_id",
+     "status": "ok",
+     "columns": [
+      "instructor_id"
+     ],
+     "row_count": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s17:1f50cdfd575b": {
+   "statements": [
+    {
+     "sql": "SELECT i.instructor_id FROM instructors AS i\nWHERE NOT EXISTS (SELECT 1 FROM sections AS s WHERE s.instructor_id = i.instructor_id)\nORDER BY i.instructor_id",
+     "status": "ok",
+     "columns": [
+      "instructor_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1012
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:e9484afcb1dd": {
+   "statements": [
+    {
+     "sql": "-- Wrong: the subquery ignores c, so EXISTS is TRUE for every course\nSELECT COUNT(*) AS courses_returned\nFROM courses AS c\nWHERE EXISTS (SELECT 1 FROM sections AS s WHERE s.year = 2024)",
+     "status": "ok",
+     "columns": [
+      "courses_returned"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       15
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

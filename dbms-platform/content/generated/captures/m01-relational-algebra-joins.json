@@ -1,0 +1,1281 @@
+{
+ "doc": "m01-relational-algebra-joins",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:7cf43924318c": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE dept (dept_id INT PRIMARY KEY, dname VARCHAR(10) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE emp  (eid INT PRIMARY KEY, name VARCHAR(10) NOT NULL,\n                   dept_id INT NULL, salary INT NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO dept VALUES (10, 'Sales'), (20, 'Ops'), (30, 'Legal')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO emp  VALUES (1, 'Ada', 10, 5000), (2, 'Bo', 20, 7000),\n                        (3, 'Cy', 20, 4000), (4, 'Di', NULL, 9000)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM emp ORDER BY eid",
+     "status": "ok",
+     "columns": [
+      "eid",
+      "name",
+      "dept_id",
+      "salary"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "Ada",
+       10,
+       5000
+      ],
+      [
+       2,
+       "Bo",
+       20,
+       7000
+      ],
+      [
+       3,
+       "Cy",
+       20,
+       4000
+      ],
+      [
+       4,
+       "Di",
+       null,
+       9000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:38995576009f": {
+   "statements": [
+    {
+     "sql": "SELECT e.eid, e.name, e.dept_id, d.dept_id AS d_dept_id, d.dname\nFROM emp AS e\nJOIN dept AS d ON d.dept_id = e.dept_id\nORDER BY e.eid",
+     "status": "ok",
+     "columns": [
+      "eid",
+      "name",
+      "dept_id",
+      "d_dept_id",
+      "dname"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "Ada",
+       10,
+       10,
+       "Sales"
+      ],
+      [
+       2,
+       "Bo",
+       20,
+       20,
+       "Ops"
+      ],
+      [
+       3,
+       "Cy",
+       20,
+       20,
+       "Ops"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:e20a88eaeca5": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM emp NATURAL JOIN dept ORDER BY eid",
+     "status": "ok",
+     "columns": [
+      "dept_id",
+      "eid",
+      "name",
+      "salary",
+      "dname"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       10,
+       1,
+       "Ada",
+       5000,
+       "Sales"
+      ],
+      [
+       20,
+       2,
+       "Bo",
+       7000,
+       "Ops"
+      ],
+      [
+       20,
+       3,
+       "Cy",
+       4000,
+       "Ops"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:c230e52814ad": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE band (band CHAR(2) PRIMARY KEY, lo INT NOT NULL, hi INT NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO band VALUES ('B1', 0, 4999), ('B2', 5000, 7999), ('B3', 8000, 99999)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- Emp ⋈ (salary ≥ lo ∧ salary ≤ hi) Band\nSELECT e.name, e.salary, b.band\nFROM emp AS e\nJOIN band AS b ON e.salary BETWEEN b.lo AND b.hi\nORDER BY e.eid",
+     "status": "ok",
+     "columns": [
+      "name",
+      "salary",
+      "band"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Ada",
+       5000,
+       "B2"
+      ],
+      [
+       "Bo",
+       7000,
+       "B2"
+      ],
+      [
+       "Cy",
+       4000,
+       "B1"
+      ],
+      [
+       "Di",
+       9000,
+       "B3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:97b7f65b8b31": {
+   "statements": [
+    {
+     "sql": "-- Emp ⟕ Dept: every employee, department columns NULL-padded when there is no match\nSELECT e.name, d.dname\nFROM emp AS e LEFT JOIN dept AS d ON d.dept_id = e.dept_id\nORDER BY e.eid",
+     "status": "ok",
+     "columns": [
+      "name",
+      "dname"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Ada",
+       "Sales"
+      ],
+      [
+       "Bo",
+       "Ops"
+      ],
+      [
+       "Cy",
+       "Ops"
+      ],
+      [
+       "Di",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:a2202ecb663d": {
+   "statements": [
+    {
+     "sql": "-- Emp ⟖ Dept: every department, employee columns NULL-padded when there is none\nSELECT e.name, d.dname\nFROM emp AS e RIGHT JOIN dept AS d ON d.dept_id = e.dept_id\nORDER BY d.dept_id, e.eid",
+     "status": "ok",
+     "columns": [
+      "name",
+      "dname"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Ada",
+       "Sales"
+      ],
+      [
+       "Bo",
+       "Ops"
+      ],
+      [
+       "Cy",
+       "Ops"
+      ],
+      [
+       null,
+       "Legal"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:bc96fc81a3b9": {
+   "statements": [
+    {
+     "sql": "-- Emp ⟗ Dept emulated as (left join) UNION (right join)\nSELECT e.name, d.dname FROM emp AS e LEFT  JOIN dept AS d ON d.dept_id = e.dept_id\nUNION\nSELECT e.name, d.dname FROM emp AS e RIGHT JOIN dept AS d ON d.dept_id = e.dept_id\nORDER BY dname IS NULL, dname, name",
+     "status": "ok",
+     "columns": [
+      "name",
+      "dname"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       null,
+       "Legal"
+      ],
+      [
+       "Bo",
+       "Ops"
+      ],
+      [
+       "Cy",
+       "Ops"
+      ],
+      [
+       "Ada",
+       "Sales"
+      ],
+      [
+       "Di",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:bd8d0369bac0": {
+   "statements": [
+    {
+     "sql": "-- Dept ⋉ Emp: departments that have at least one employee\nSELECT d.* FROM dept AS d\nWHERE EXISTS (SELECT 1 FROM emp AS e WHERE e.dept_id = d.dept_id)\nORDER BY d.dept_id",
+     "status": "ok",
+     "columns": [
+      "dept_id",
+      "dname"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       10,
+       "Sales"
+      ],
+      [
+       20,
+       "Ops"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:ce6a346d1de0": {
+   "statements": [
+    {
+     "sql": "-- Dept ▷ Emp: departments with no employee\nSELECT d.* FROM dept AS d\nWHERE NOT EXISTS (SELECT 1 FROM emp AS e WHERE e.dept_id = d.dept_id)\nORDER BY d.dept_id",
+     "status": "ok",
+     "columns": [
+      "dept_id",
+      "dname"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       30,
+       "Legal"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:7f3dc2e39ec0": {
+   "statements": [
+    {
+     "sql": "SELECT d.dept_id, d.dname FROM dept AS d JOIN emp AS e ON e.dept_id = d.dept_id\nORDER BY d.dept_id",
+     "status": "ok",
+     "columns": [
+      "dept_id",
+      "dname"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       10,
+       "Sales"
+      ],
+      [
+       20,
+       "Ops"
+      ],
+      [
+       20,
+       "Ops"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:92f3f37da496": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE took     (student VARCHAR(10), course VARCHAR(10), PRIMARY KEY (student, course))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE required (course VARCHAR(10) PRIMARY KEY)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO took VALUES\n  ('Ana','DB'), ('Ana','OS'), ('Ana','ML'),\n  ('Ben','DB'), ('Ben','ML'),\n  ('Cara','DB'), ('Cara','OS'), ('Cara','ML'), ('Cara','AI'),\n  ('Dev','OS')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 10,
+     "info": "Records: 10  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO required VALUES ('DB'), ('ML')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- Took ÷ Required: students s such that no required course is missing from s's courses\nSELECT DISTINCT t.student\nFROM took AS t\nWHERE NOT EXISTS (\n  SELECT 1 FROM required AS r\n  WHERE NOT EXISTS (\n    SELECT 1 FROM took AS t2\n    WHERE t2.student = t.student AND t2.course = r.course))\nORDER BY t.student",
+     "status": "ok",
+     "columns": [
+      "student"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Ana"
+      ],
+      [
+       "Ben"
+      ],
+      [
+       "Cara"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:ca2ff99c68cd": {
+   "statements": [
+    {
+     "sql": "SELECT DISTINCT s.student_id, s.name\nFROM students AS s\nJOIN enrollments AS e ON e.student_id = s.student_id\nJOIN sections    AS sec ON sec.section_id = e.section_id\nJOIN courses     AS c ON c.course_id = sec.course_id\nWHERE c.dept_id = 2 AND sec.year = 2024\nORDER BY s.student_id",
+     "status": "ok",
+     "columns": [
+      "student_id",
+      "name"
+     ],
+     "row_count": 19,
+     "rows": [
+      [
+       20230002,
+       "Samuel Okafor"
+      ],
+      [
+       20230005,
+       "Elena Moradi"
+      ],
+      [
+       20230008,
+       "Daniel Martin"
+      ],
+      [
+       20230009,
+       "Nina Moradi"
+      ],
+      [
+       20230010,
+       "Elena Novak"
+      ],
+      [
+       20230011,
+       "Chen Adeyemi"
+      ],
+      [
+       20230017,
+       "Isabella Brown"
+      ],
+      [
+       20230018,
+       "Ingrid Nguyen"
+      ],
+      [
+       20230020,
+       "Tomas Moradi"
+      ],
+      [
+       20230021,
+       "Jonas Wilson"
+      ],
+      [
+       20230022,
+       "Liam Nguyen"
+      ],
+      [
+       20230030,
+       "Sara Wang"
+      ],
+      [
+       20230031,
+       "Mei Sato"
+      ],
+      [
+       20230032,
+       "Nina Mensah"
+      ],
+      [
+       20230033,
+       "Yuki Patel"
+      ],
+      [
+       20230036,
+       "Mei Lin"
+      ],
+      [
+       20230037,
+       "Amara Silva"
+      ],
+      [
+       20230038,
+       "Tomas Ahmed"
+      ],
+      [
+       20230039,
+       "Victor Lopez"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:57d7da03ed58": {
+   "statements": [
+    {
+     "sql": "SELECT s.student_id, s.name\nFROM students AS s\nWHERE EXISTS (SELECT 1\n              FROM enrollments AS e\n              JOIN sections AS sec ON sec.section_id = e.section_id\n              JOIN courses  AS c   ON c.course_id = sec.course_id\n              WHERE e.student_id = s.student_id\n                AND c.dept_id = 2 AND sec.year = 2024)\nORDER BY s.student_id",
+     "status": "ok",
+     "columns": [
+      "student_id",
+      "name"
+     ],
+     "row_count": 19,
+     "rows": [
+      [
+       20230002,
+       "Samuel Okafor"
+      ],
+      [
+       20230005,
+       "Elena Moradi"
+      ],
+      [
+       20230008,
+       "Daniel Martin"
+      ],
+      [
+       20230009,
+       "Nina Moradi"
+      ],
+      [
+       20230010,
+       "Elena Novak"
+      ],
+      [
+       20230011,
+       "Chen Adeyemi"
+      ],
+      [
+       20230017,
+       "Isabella Brown"
+      ],
+      [
+       20230018,
+       "Ingrid Nguyen"
+      ],
+      [
+       20230020,
+       "Tomas Moradi"
+      ],
+      [
+       20230021,
+       "Jonas Wilson"
+      ],
+      [
+       20230022,
+       "Liam Nguyen"
+      ],
+      [
+       20230030,
+       "Sara Wang"
+      ],
+      [
+       20230031,
+       "Mei Sato"
+      ],
+      [
+       20230032,
+       "Nina Mensah"
+      ],
+      [
+       20230033,
+       "Yuki Patel"
+      ],
+      [
+       20230036,
+       "Mei Lin"
+      ],
+      [
+       20230037,
+       "Amara Silva"
+      ],
+      [
+       20230038,
+       "Tomas Ahmed"
+      ],
+      [
+       20230039,
+       "Victor Lopez"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:6a0a6374b99b": {
+   "statements": [
+    {
+     "sql": "SELECT s.student_id, s.name\nFROM students AS s\nWHERE NOT EXISTS (SELECT 1 FROM advisors AS a WHERE a.student_id = s.student_id)\nORDER BY s.student_id",
+     "status": "ok",
+     "columns": [
+      "student_id",
+      "name"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       20230004,
+       "Tomas Silva"
+      ],
+      [
+       20230008,
+       "Daniel Martin"
+      ],
+      [
+       20230012,
+       "Fatima Lopez"
+      ],
+      [
+       20230016,
+       "Ethan Adeyemi"
+      ],
+      [
+       20230020,
+       "Tomas Moradi"
+      ],
+      [
+       20230024,
+       "Tomas Rossi"
+      ],
+      [
+       20230028,
+       "Aarav Nguyen"
+      ],
+      [
+       20230032,
+       "Nina Mensah"
+      ],
+      [
+       20230036,
+       "Mei Lin"
+      ],
+      [
+       20230040,
+       "Leila Silva"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:1f92038673c9": {
+   "statements": [
+    {
+     "sql": "SELECT s.student_id, s.name\nFROM students AS s\nWHERE NOT EXISTS (\n  SELECT 1 FROM courses AS c\n  WHERE c.dept_id = 3\n    AND NOT EXISTS (\n      SELECT 1 FROM enrollments AS e\n      JOIN sections AS sec ON sec.section_id = e.section_id\n      WHERE e.student_id = s.student_id AND sec.course_id = c.course_id))\nORDER BY s.student_id",
+     "status": "ok",
+     "columns": [
+      "student_id",
+      "name"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       20230004,
+       "Tomas Silva"
+      ],
+      [
+       20230018,
+       "Ingrid Nguyen"
+      ],
+      [
+       20230019,
+       "Ethan Tanaka"
+      ],
+      [
+       20230020,
+       "Tomas Moradi"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:8ec4284d5193": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT t.name, d.name AS dept\nFROM (SELECT * FROM students WHERE enrollment_year = 2023) AS t\nJOIN departments AS d ON d.dept_id = t.dept_id\nWHERE d.budget > 1000000",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=3.11 rows=1.11)\n    -> Filter: (d.budget > 1000000.00)  (cost=0.75 rows=1.67)\n        -> Table scan on d  (cost=0.75 rows=5)\n    -> Filter: (students.enrollment_year = 2023)  (cost=0.79 rows=0.667)\n        -> Index lookup on students using fk_students_dept (dept_id=d.dept_id)  (cost=0.79 rows=6.67)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:af11cf037b2e": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM students) AS students,\n       (SELECT COUNT(*) FROM enrollments) AS enrollments,\n       (SELECT COUNT(*) FROM sections) AS sections,\n       (SELECT COUNT(*) FROM courses) AS courses",
+     "status": "ok",
+     "columns": [
+      "students",
+      "enrollments",
+      "sections",
+      "courses"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       40,
+       146,
+       24,
+       15
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:08917885fffb": {
+   "statements": [
+    {
+     "sql": "SELECT 'sections, year = 2024' AS leaf, COUNT(*) AS rows_left FROM sections WHERE year = 2024\nUNION ALL\nSELECT 'courses, dept_id = 2', COUNT(*) FROM courses WHERE dept_id = 2",
+     "status": "ok",
+     "columns": [
+      "leaf",
+      "rows_left"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "sections, year = 2024",
+       12
+      ],
+      [
+       "courses, dept_id = 2",
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:744337bfb7a4": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT DISTINCT s.student_id, s.name\nFROM students AS s\nJOIN enrollments AS e ON e.student_id = s.student_id\nJOIN sections    AS sec ON sec.section_id = e.section_id\nJOIN courses     AS c ON c.course_id = sec.course_id\nWHERE c.dept_id = 2 AND sec.year = 2024",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (cost=5.63..7.61 rows=4.49)\n    -> Temporary table with deduplication  (cost=5.06..5.06 rows=4.49)\n        -> Nested loop inner join  (cost=4.61 rows=4.49)\n            -> Nested loop inner join  (cost=3.04 rows=4.49)\n                -> Nested loop inner join  (cost=2.41 rows=0.738)\n                    -> Covering index lookup on c using fk_courses_dept (dept_id=2)  (cost=0.654 rows=4)\n                    -> Filter: (sec.`year` = 2024)  (cost=0.258 rows=0.185)\n                        -> Covering index lookup on sec using uq_sections_offering (course_id=c.course_id)  (cost=0.258 rows=1.85)\n                -> Covering index lookup on e using idx_enrollments_section (section_id=sec.section_id)  (cost=1.08 rows=6.08)\n            -> Single-row index lookup on s using PRIMARY (student_id=e.student_id)  (cost=0.272 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:fa095e8a122c": {
+   "statements": [
+    {
+     "sql": "SELECT s.student_id, s.name, sec.section_id, sec.course_id\nFROM sections AS sec\nJOIN courses AS c ON c.course_id = sec.course_id AND c.dept_id = 2\nJOIN enrollments AS e ON e.section_id = sec.section_id\nJOIN students AS s ON s.student_id = e.student_id\nWHERE sec.year = 2024\nORDER BY s.student_id, sec.section_id",
+     "status": "ok",
+     "columns": [
+      "student_id",
+      "name",
+      "section_id",
+      "course_id"
+     ],
+     "row_count": 21,
+     "rows": [
+      [
+       20230002,
+       "Samuel Okafor",
+       16,
+       "DATA-226"
+      ],
+      [
+       20230005,
+       "Elena Moradi",
+       20,
+       "DATA-225"
+      ],
+      [
+       20230008,
+       "Daniel Martin",
+       16,
+       "DATA-226"
+      ],
+      [
+       20230009,
+       "Nina Moradi",
+       16,
+       "DATA-226"
+      ],
+      [
+       20230010,
+       "Elena Novak",
+       16,
+       "DATA-226"
+      ],
+      [
+       20230011,
+       "Chen Adeyemi",
+       15,
+       "DATA-225"
+      ],
+      [
+       20230017,
+       "Isabella Brown",
+       15,
+       "DATA-225"
+      ],
+      [
+       20230018,
+       "Ingrid Nguyen",
+       13,
+       "DATA-245"
+      ],
+      [
+       20230020,
+       "Tomas Moradi",
+       15,
+       "DATA-225"
+      ],
+      [
+       20230021,
+       "Jonas Wilson",
+       15,
+       "DATA-225"
+      ],
+      [
+       20230022,
+       "Liam Nguyen",
+       16,
+       "DATA-226"
+      ],
+      [
+       20230030,
+       "Sara Wang",
+       15,
+       "DATA-225"
+      ],
+      [
+       20230031,
+       "Mei Sato",
+       16,
+       "DATA-226"
+      ],
+      [
+       20230031,
+       "Mei Sato",
+       20,
+       "DATA-225"
+      ],
+      [
+       20230032,
+       "Nina Mensah",
+       13,
+       "DATA-245"
+      ],
+      [
+       20230033,
+       "Yuki Patel",
+       13,
+       "DATA-245"
+      ],
+      [
+       20230036,
+       "Mei Lin",
+       16,
+       "DATA-226"
+      ],
+      [
+       20230037,
+       "Amara Silva",
+       15,
+       "DATA-225"
+      ],
+      [
+       20230038,
+       "Tomas Ahmed",
+       15,
+       "DATA-225"
+      ],
+      [
+       20230038,
+       "Tomas Ahmed",
+       16,
+       "DATA-226"
+      ],
+      [
+       20230039,
+       "Victor Lopez",
+       20,
+       "DATA-225"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:92994a6b1b20": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT s.student_id FROM students AS s\nWHERE EXISTS (SELECT 1 FROM advisors AS a WHERE a.student_id = s.student_id)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=13.8 rows=30)\n    -> Index scan on a using fk_advisors_instructor  (cost=3.25 rows=30)\n    -> Single-row covering index lookup on s using PRIMARY (student_id=a.student_id)  (cost=0.253 rows=1)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 's.student_id' of SELECT #2 was resolved in SELECT #1"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:8f15b4624b80": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT s.student_id FROM students AS s\nWHERE NOT EXISTS (SELECT 1 FROM advisors AS a WHERE a.student_id = s.student_id)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop antijoin  (cost=128 rows=1200)\n    -> Index scan on s using fk_students_dept  (cost=4.25 rows=40)\n    -> Single-row index lookup on <subquery2> using <auto_distinct_key> (student_id=s.student_id)  (cost=6.39..6.39 rows=1)\n        -> Materialize with deduplication  (cost=6.25..6.25 rows=30)\n            -> Filter: (a.student_id is not null)  (cost=3.25 rows=30)\n                -> Index scan on a using fk_advisors_instructor  (cost=3.25 rows=30)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 's.student_id' of SELECT #2 was resolved in SELECT #1"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:a633dad4deaa": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT s.student_id, a.instructor_id\nFROM students AS s LEFT JOIN advisors AS a ON a.student_id = s.student_id\nWHERE a.instructor_id = 1001",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=1.6 rows=3)\n    -> Filter: (a.student_id is not null)  (cost=0.55 rows=3)\n        -> Covering index lookup on a using fk_advisors_instructor (instructor_id=1001)  (cost=0.55 rows=3)\n    -> Single-row covering index lookup on s using PRIMARY (student_id=a.student_id)  (cost=0.283 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:9452197fb662": {
+   "statements": [
+    {
+     "sql": "-- Dept ▷ Emp three ways; all return Legal\nSELECT d.dname FROM dept AS d LEFT JOIN emp AS e ON e.dept_id = d.dept_id WHERE e.eid IS NULL\nUNION ALL\nSELECT d.dname FROM dept AS d WHERE d.dept_id IN (SELECT dept_id FROM dept EXCEPT SELECT dept_id FROM emp)\nUNION ALL\nSELECT d.dname FROM dept AS d WHERE NOT EXISTS (SELECT 1 FROM emp AS e WHERE e.dept_id = d.dept_id)",
+     "status": "ok",
+     "columns": [
+      "dname"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Legal"
+      ],
+      [
+       "Legal"
+      ],
+      [
+       "Legal"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:2eaf66cfdfcb": {
+   "statements": [
+    {
+     "sql": "SELECT e.name, d.dname FROM emp AS e LEFT JOIN dept AS d ON d.dept_id = e.dept_id\nUNION ALL\nSELECT NULL, d.dname FROM dept AS d\nWHERE NOT EXISTS (SELECT 1 FROM emp AS e WHERE e.dept_id = d.dept_id)\nORDER BY dname IS NULL, dname, name",
+     "status": "ok",
+     "columns": [
+      "name",
+      "dname"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       null,
+       "Legal"
+      ],
+      [
+       "Bo",
+       "Ops"
+      ],
+      [
+       "Cy",
+       "Ops"
+      ],
+      [
+       "Ada",
+       "Sales"
+      ],
+      [
+       "Di",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:09aef0368da2": {
+   "statements": [
+    {
+     "sql": "SELECT t.student\nFROM took AS t\nJOIN required AS r ON r.course = t.course\nGROUP BY t.student\nHAVING COUNT(DISTINCT t.course) = (SELECT COUNT(*) FROM required)\nORDER BY t.student",
+     "status": "ok",
+     "columns": [
+      "student"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Ana"
+      ],
+      [
+       "Ben"
+      ],
+      [
+       "Cara"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:67cec68729e7": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS natural_join_rows FROM students NATURAL JOIN departments",
+     "status": "ok",
+     "columns": [
+      "natural_join_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s24:fd88d6e0e26a": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS using_rows FROM students JOIN departments USING (dept_id)",
+     "status": "ok",
+     "columns": [
+      "using_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       38
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s25:a2b5bea423d5": {
+   "statements": [
+    {
+     "sql": "-- Looks like a full outer join; actually \"emp AS full INNER JOIN dept\"\nSELECT * FROM emp FULL JOIN dept USING (dept_id) ORDER BY eid",
+     "status": "ok",
+     "columns": [
+      "dept_id",
+      "eid",
+      "name",
+      "salary",
+      "dname"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       10,
+       1,
+       "Ada",
+       5000,
+       "Sales"
+      ],
+      [
+       20,
+       2,
+       "Bo",
+       7000,
+       "Ops"
+      ],
+      [
+       20,
+       3,
+       "Cy",
+       4000,
+       "Ops"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 4119,
+       "message": "Using FULL as unquoted identifier is deprecated, please use quotes or rename the identifier."
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s26:37111568bc5e": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM emp FULL OUTER JOIN dept USING (dept_id)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OUTER JOIN dept USING (dept_id)' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s27:bea626ba373d": {
+   "statements": [
+    {
+     "sql": "-- Intended: all employees, with their department if it is 'Ops'\nSELECT e.name, d.dname\nFROM emp AS e LEFT JOIN dept AS d ON d.dept_id = e.dept_id\nWHERE d.dname = 'Ops'\nORDER BY e.eid",
+     "status": "ok",
+     "columns": [
+      "name",
+      "dname"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Bo",
+       "Ops"
+      ],
+      [
+       "Cy",
+       "Ops"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s28:244119c7ecd0": {
+   "statements": [
+    {
+     "sql": "-- Correct: the condition belongs to the matching (ON), so non-Ops employees are kept with NULL\nSELECT e.name, d.dname\nFROM emp AS e LEFT JOIN dept AS d ON d.dept_id = e.dept_id AND d.dname = 'Ops'\nORDER BY e.eid",
+     "status": "ok",
+     "columns": [
+      "name",
+      "dname"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Ada",
+       null
+      ],
+      [
+       "Bo",
+       "Ops"
+      ],
+      [
+       "Cy",
+       "Ops"
+      ],
+      [
+       "Di",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s29:4d67e2cb67ae": {
+   "statements": [
+    {
+     "sql": "-- Wrong: counts (department, employee) pairs, not departments\nSELECT COUNT(*) AS depts_with_staff FROM dept AS d JOIN emp AS e ON e.dept_id = d.dept_id",
+     "status": "ok",
+     "columns": [
+      "depts_with_staff"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s30:2fca6311adaf": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS depts_with_staff FROM dept AS d\nWHERE EXISTS (SELECT 1 FROM emp AS e WHERE e.dept_id = d.dept_id)",
+     "status": "ok",
+     "columns": [
+      "depts_with_staff"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

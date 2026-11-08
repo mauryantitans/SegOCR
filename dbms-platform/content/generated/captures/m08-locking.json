@@ -1,0 +1,2061 @@
+{
+ "doc": "m08-locking",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:07bc7c021aac": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE slots (id INT PRIMARY KEY, k INT NOT NULL, note VARCHAR(20), KEY idx_k (k))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO slots VALUES (10, 10, 'a'), (20, 20, 'b'), (30, 30, 'c')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM slots WHERE id = 20 FOR UPDATE",
+     "status": "ok",
+     "columns": [
+      "id",
+      "k",
+      "note"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20,
+       20,
+       "b"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT * FROM slots WHERE k BETWEEN 10 AND 20 ORDER BY id FOR SHARE",
+     "status": "ok",
+     "columns": [
+      "id",
+      "k",
+      "note"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       10,
+       10,
+       "a"
+      ],
+      [
+       20,
+       20,
+       "b"
+      ]
+     ]
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s4:515b65de9380": {
+   "volatile": true,
+   "statements": [
+    {
+     "sql": "SHOW GLOBAL STATUS LIKE 'Innodb_row_lock%'",
+     "status": "ok"
+    }
+   ]
+  },
+  "s5:262f853473b8": {
+   "statements": [
+    {
+     "sql": "LOCK TABLES slots READ",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE slots SET note = 'x' WHERE id = 10",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1099,
+      "message": "Table 'slots' was locked with a READ lock and can't be updated"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:4d4b2feacf7b": {
+   "statements": [
+    {
+     "sql": "UNLOCK TABLES",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "c1:12beba968d40": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT * FROM slots WHERE id = 20 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "id",
+        "k",
+        "note"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         20,
+         20,
+         "b"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "155224",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "20"
+       }
+      ]
+     }
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE slots SET note = 'B' WHERE id = 10",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT * FROM slots WHERE id = 20 FOR SHARE",
+       "status": "ok",
+       "columns": [
+        "id",
+        "k",
+        "note"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         20,
+         20,
+         "b"
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c2:c9aa1e0046e2": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT * FROM slots WHERE id = 10 FOR SHARE",
+       "status": "ok",
+       "columns": [
+        "id",
+        "k",
+        "note"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         10,
+         10,
+         "a"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT * FROM slots WHERE id = 10 FOR SHARE",
+       "status": "ok",
+       "columns": [
+        "id",
+        "k",
+        "note"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         10,
+         10,
+         "a"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "C",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT * FROM slots WHERE id = 10 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "id",
+        "k",
+        "note"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         10,
+         10,
+         "a"
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 5,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "421279494828840",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "C",
+        "trxId": "155272",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "B",
+        "trxId": "421279494829648",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "10"
+       },
+       {
+        "session": "B",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "10"
+       },
+       {
+        "session": "C",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "C",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "10"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c3:eab42b5c2cc9": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT * FROM slots WHERE id = 15 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "id",
+        "k",
+        "note"
+       ],
+       "row_count": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT * FROM slots WHERE id = 15 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "id",
+        "k",
+        "note"
+       ],
+       "row_count": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "INSERT INTO slots VALUES (12, 12, 'B')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 6,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "C",
+        "trxId": "155311",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "A",
+        "trxId": "155309",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "B",
+        "trxId": "155314",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,GAP",
+        "status": "GRANTED",
+        "lockData": "20"
+       },
+       {
+        "session": "C",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "C",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,GAP",
+        "status": "GRANTED",
+        "lockData": "20"
+       },
+       {
+        "session": "B",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,GAP,INSERT_INTENTION",
+        "status": "WAITING",
+        "lockData": "20"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "C",
+        "trxId": "155311",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "B",
+        "trxId": "155314",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "C",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "C",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,GAP",
+        "status": "GRANTED",
+        "lockData": "20"
+       },
+       {
+        "session": "B",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,GAP,INSERT_INTENTION",
+        "status": "WAITING",
+        "lockData": "20"
+       }
+      ]
+     }
+    },
+    {
+     "step": 6,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 7,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT * FROM slots ORDER BY id",
+       "status": "ok",
+       "columns": [
+        "id",
+        "k",
+        "note"
+       ],
+       "row_count": 4,
+       "rows": [
+        [
+         10,
+         10,
+         "a"
+        ],
+        [
+         12,
+         12,
+         "B"
+        ],
+        [
+         20,
+         20,
+         "b"
+        ],
+        [
+         30,
+         30,
+         "c"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c4:c23791fd7966": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT * FROM slots WHERE id BETWEEN 15 AND 25 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "id",
+        "k",
+        "note"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         20,
+         20,
+         "b"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE slots SET note = 'C' WHERE id = 30",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO slots VALUES (35, 35, 'C')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO slots VALUES (5, 5, 'C')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "INSERT INTO slots VALUES (25, 25, 'B')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "155356",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 2,
+        "rowsModified": 0,
+        "lockStructs": 3
+       },
+       {
+        "session": "B",
+        "trxId": "155364",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "20"
+       },
+       {
+        "session": "A",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,GAP",
+        "status": "GRANTED",
+        "lockData": "30"
+       },
+       {
+        "session": "B",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,GAP,INSERT_INTENTION",
+        "status": "WAITING",
+        "lockData": "30"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c5:7321e8735dce": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT * FROM slots WHERE k = 20 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "id",
+        "k",
+        "note"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         20,
+         20,
+         "b"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "155408",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 3,
+        "rowsModified": 0,
+        "lockStructs": 4
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "slots",
+        "index": "idx_k",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "20, 20"
+       },
+       {
+        "session": "A",
+        "table": "slots",
+        "index": "idx_k",
+        "lockType": "RECORD",
+        "lockMode": "X,GAP",
+        "status": "GRANTED",
+        "lockData": "30, 30"
+       },
+       {
+        "session": "A",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "20"
+       }
+      ]
+     }
+    },
+    {
+     "step": 2,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "INSERT INTO slots VALUES (40, 5, 'C')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO slots VALUES (41, 35, 'C')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "INSERT INTO slots VALUES (15, 15, 'B')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 5,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 4,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "155408",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 3,
+        "rowsModified": 0,
+        "lockStructs": 4
+       },
+       {
+        "session": "B",
+        "trxId": "155414",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "slots",
+        "index": "idx_k",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "20, 20"
+       },
+       {
+        "session": "A",
+        "table": "slots",
+        "index": "idx_k",
+        "lockType": "RECORD",
+        "lockMode": "X,GAP",
+        "status": "GRANTED",
+        "lockData": "30, 30"
+       },
+       {
+        "session": "A",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "20"
+       },
+       {
+        "session": "B",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "slots",
+        "index": "idx_k",
+        "lockType": "RECORD",
+        "lockMode": "X,GAP,INSERT_INTENTION",
+        "status": "WAITING",
+        "lockData": "20, 20"
+       }
+      ]
+     }
+    },
+    {
+     "step": 5,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c6:d4156a0ddc30": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO slots VALUES (12, 12, 'A')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO slots VALUES (14, 14, 'B')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "155450",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 0,
+        "rowsModified": 1,
+        "lockStructs": 1
+       },
+       {
+        "session": "B",
+        "trxId": "155453",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 0,
+        "rowsModified": 1,
+        "lockStructs": 1
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       }
+      ]
+     }
+    },
+    {
+     "step": 3,
+     "session": "C",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT * FROM slots WHERE id = 12 FOR SHARE",
+       "status": "ok",
+       "columns": [
+        "id",
+        "k",
+        "note"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         12,
+         12,
+         "A"
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 5,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 4,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "155450",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
+        "lockStructs": 2
+       },
+       {
+        "session": "B",
+        "trxId": "155453",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 0,
+        "rowsModified": 1,
+        "lockStructs": 1
+       },
+       {
+        "session": "C",
+        "trxId": "421279494831264",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "C",
+        "table": "slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "C",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "12"
+       },
+       {
+        "session": "C",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "12"
+       }
+      ]
+     }
+    },
+    {
+     "step": 5,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c7:1b9757d158bb": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT COUNT(*) AS n FROM slots",
+       "status": "ok",
+       "columns": [
+        "n"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "ALTER TABLE slots ADD COLUMN reserved_by VARCHAR(20) NULL",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Records: 0  Duplicates: 0  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 2,
+     "session": "C",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS n FROM slots",
+       "status": "ok",
+       "columns": [
+        "n"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "421279494828840",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 0,
+        "rowsModified": 0,
+        "lockStructs": 0
+       }
+      ],
+      "locks": []
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT * FROM slots ORDER BY id",
+       "status": "ok",
+       "columns": [
+        "id",
+        "k",
+        "note",
+        "reserved_by"
+       ],
+       "row_count": 3,
+       "rows": [
+        [
+         10,
+         10,
+         "a",
+         null
+        ],
+        [
+         20,
+         20,
+         "b",
+         null
+        ],
+        [
+         30,
+         30,
+         "c",
+         null
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c8:d2ecd7e04656": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT id FROM jobs WHERE status = 'queued' ORDER BY id LIMIT 2 FOR UPDATE SKIP LOCKED",
+       "status": "ok",
+       "columns": [
+        "id"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         1
+        ],
+        [
+         2
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT id FROM jobs WHERE status = 'queued' ORDER BY id LIMIT 2 FOR UPDATE SKIP LOCKED",
+       "status": "ok",
+       "columns": [
+        "id"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         3
+        ],
+        [
+         4
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "B",
+        "trxId": "155546",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 4,
+        "rowsModified": 0,
+        "lockStructs": 3
+       },
+       {
+        "session": "A",
+        "trxId": "155544",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 4,
+        "rowsModified": 0,
+        "lockStructs": 3
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "jobs",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "jobs",
+        "index": "idx_status",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "'queued', 1"
+       },
+       {
+        "session": "A",
+        "table": "jobs",
+        "index": "idx_status",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "'queued', 2"
+       },
+       {
+        "session": "A",
+        "table": "jobs",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "A",
+        "table": "jobs",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "2"
+       },
+       {
+        "session": "B",
+        "table": "jobs",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "jobs",
+        "index": "idx_status",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "'queued', 3"
+       },
+       {
+        "session": "B",
+        "table": "jobs",
+        "index": "idx_status",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "'queued', 4"
+       },
+       {
+        "session": "B",
+        "table": "jobs",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "3"
+       },
+       {
+        "session": "B",
+        "table": "jobs",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "4"
+       }
+      ]
+     }
+    },
+    {
+     "step": 3,
+     "session": "C",
+     "status": "error",
+     "statements": [
+      {
+       "sql": "SELECT id FROM jobs WHERE id = 1 FOR UPDATE NOWAIT",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 3572,
+        "message": "Statement aborted because lock(s) could not be acquired immediately and NOWAIT is set."
+       }
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE jobs SET status = 'running' WHERE id IN (1, 2)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 2,
+       "info": "Rows matched: 2  Changed: 2  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE jobs SET status = 'running' WHERE id IN (3, 4)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 2,
+       "info": "Rows matched: 2  Changed: 2  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT * FROM jobs ORDER BY id",
+       "status": "ok",
+       "columns": [
+        "id",
+        "status"
+       ],
+       "row_count": 4,
+       "rows": [
+        [
+         1,
+         "running"
+        ],
+        [
+         2,
+         "running"
+        ],
+        [
+         3,
+         "running"
+        ],
+        [
+         4,
+         "running"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "w1.0:22241f608d24": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM slots WHERE id = 20 FOR UPDATE",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "slots",
+       null,
+       "const",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "const",
+       1,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select '20' AS `id`,'20' AS `k`,'b' AS `note` from `slots` where true"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:6d03c6183f01": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM slots WHERE id BETWEEN 15 AND 25 FOR UPDATE",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "slots",
+       null,
+       "range",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       null,
+       1,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `slots`.`id` AS `id`,`slots`.`k` AS `k`,`slots`.`note` AS `note` from `slots` where (`slots`.`id` between 15 and 25)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:b162ae93d6ba": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM slots WHERE k = 20 FOR UPDATE",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "slots",
+       null,
+       "ref",
+       "idx_k",
+       "idx_k",
+       "4",
+       "const",
+       1,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `slots`.`id` AS `id`,`slots`.`k` AS `k`,`slots`.`note` AS `note` from `slots` where (`slots`.`k` = 20)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:a3c3741d2fd2": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM slots WHERE note = 'b' FOR UPDATE",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "slots",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       3,
+       33.33,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `slots`.`id` AS `id`,`slots`.`k` AS `k`,`slots`.`note` AS `note` from `slots` where (`slots`.`note` = 'b')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:2f7f014269cb": {
+   "volatile": true,
+   "statements": [
+    {
+     "sql": "SELECT GET_LOCK('nightly_interest_run', 0) AS acquired,\n       IS_USED_LOCK('nightly_interest_run') IS NOT NULL AS in_use,\n       RELEASE_LOCK('nightly_interest_run') AS released",
+     "status": "ok"
+    }
+   ]
+  },
+  "s8:38455066280f": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM slots WHERE id = 10 FOR UPDATE",
+     "status": "ok",
+     "columns": [
+      "id",
+      "k",
+      "note"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10,
+       10,
+       "a"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT @@autocommit AS autocommit_still_on",
+     "status": "ok",
+     "columns": [
+      "autocommit_still_on"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:3ce984641c08": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM slots WHERE id = 10 FOR UPDATE NOWAIT SKIP LOCKED",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SKIP LOCKED' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s10:053a464f6fbc": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_lock_wait_timeout AS row_lock_wait_s, @@lock_wait_timeout AS metadata_lock_wait_s",
+     "status": "ok",
+     "columns": [
+      "row_lock_wait_s",
+      "metadata_lock_wait_s"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       50,
+       31536000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

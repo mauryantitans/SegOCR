@@ -1,0 +1,662 @@
+{
+ "doc": "m01-relational-model",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:2932bba34ad6": {
+   "statements": [
+    {
+     "sql": "SELECT ORDINAL_POSITION AS pos, COLUMN_NAME AS attribute, COLUMN_TYPE AS domain_type, IS_NULLABLE\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'books'\nORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "pos",
+      "attribute",
+      "domain_type",
+      "IS_NULLABLE"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "book_id",
+       "int unsigned",
+       "NO"
+      ],
+      [
+       2,
+       "isbn",
+       "char(13)",
+       "NO"
+      ],
+      [
+       3,
+       "title",
+       "varchar(200)",
+       "NO"
+      ],
+      [
+       4,
+       "genre",
+       "varchar(40)",
+       "NO"
+      ],
+      [
+       5,
+       "published_year",
+       "smallint",
+       "NO"
+      ],
+      [
+       6,
+       "publisher",
+       "varchar(80)",
+       "NO"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:268e30d341f2": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM information_schema.COLUMNS\n        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'books') AS degree,\n       (SELECT COUNT(*) FROM books) AS cardinality",
+     "status": "ok",
+     "columns": [
+      "degree",
+      "cardinality"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       6,
+       12
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:db2eeaa2fd96": {
+   "statements": [
+    {
+     "sql": "SELECT book_id, isbn, title, genre, published_year\nFROM books\nWHERE genre = 'Fiction'\nORDER BY published_year",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "isbn",
+      "title",
+      "genre",
+      "published_year"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       8,
+       "9780441478125",
+       "The Left Hand of Darkness",
+       "Fiction",
+       1969
+      ],
+      [
+       11,
+       "9780553382563",
+       "The Dispossessed",
+       "Fiction",
+       1974
+      ],
+      [
+       12,
+       "9781400095100",
+       "Kafka on the Shore",
+       "Fiction",
+       2005
+      ],
+      [
+       10,
+       "9780307593313",
+       "1Q84",
+       "Fiction",
+       2011
+      ],
+      [
+       9,
+       "9780307455925",
+       "Americanah",
+       "Fiction",
+       2013
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:61ac68a0d701": {
+   "statements": [
+    {
+     "sql": "INSERT INTO members (member_id, name, email, joined_on, membership)\nVALUES (21, 'Rina Patel', 'rina.patel@reader.example', '2024-09-01', 'platinum')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1265,
+      "message": "Data truncated for column 'membership' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s5:5208fa4c4923": {
+   "statements": [
+    {
+     "sql": "INSERT INTO loans (loan_id, copy_id, member_id, loaned_at, due_at)\nVALUES (53, 1, 1, '2024-09-10', '2024-09-01')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_loans_due' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:0f260b9c8429": {
+   "statements": [
+    {
+     "sql": "SELECT author_id, name, country,\n       country = 'Germany'          AS eq_germany,\n       country <> 'Germany'         AS ne_germany,\n       country IS NULL              AS country_is_null\nFROM authors\nWHERE author_id IN (1, 7, 16)\nORDER BY author_id",
+     "status": "ok",
+     "columns": [
+      "author_id",
+      "name",
+      "country",
+      "eq_germany",
+      "ne_germany",
+      "country_is_null"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "Alex Petrov",
+       "Germany",
+       1,
+       0,
+       0
+      ],
+      [
+       7,
+       "Abraham Silberschatz",
+       "Israel",
+       0,
+       1,
+       0
+      ],
+      [
+       16,
+       "Unpublished Author",
+       null,
+       null,
+       null,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:c3c942a1be0d": {
+   "statements": [
+    {
+     "sql": "CREATE DOMAIN year_domain AS SMALLINT CHECK (VALUE BETWEEN 1450 AND 2100)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DOMAIN year_domain AS SMALLINT CHECK (VALUE BETWEEN 1450 AND 2100)' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:4aeefd0fada1": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE genre_tags (\n  book_id INT UNSIGNED NOT NULL,\n  tag     VARCHAR(30)  NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO genre_tags VALUES (8, 'sci-fi'), (8, 'sci-fi'), (8, 'classic'), (11, 'sci-fi')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT book_id, tag FROM genre_tags ORDER BY book_id, tag",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "tag"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       8,
+       "classic"
+      ],
+      [
+       8,
+       "sci-fi"
+      ],
+      [
+       8,
+       "sci-fi"
+      ],
+      [
+       11,
+       "sci-fi"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:64cd24ca7c5d": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS rows_in_table,\n       (SELECT COUNT(*) FROM (SELECT DISTINCT book_id, tag FROM genre_tags) AS s) AS distinct_tuples,\n       SUM(tag = 'sci-fi') AS sci_fi_rows\nFROM genre_tags",
+     "status": "ok",
+     "columns": [
+      "rows_in_table",
+      "distinct_tuples",
+      "sci_fi_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4,
+       3,
+       "3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:75481bda0539": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE genre_tags ADD PRIMARY KEY (book_id, tag)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '8-sci-fi' for key 'genre_tags.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:6c3b2a26e787": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE genre_tags_clean AS SELECT DISTINCT book_id, tag FROM genre_tags",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE genre_tags_clean ADD PRIMARY KEY (book_id, tag)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT book_id, tag FROM genre_tags_clean ORDER BY book_id, tag",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "tag"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       8,
+       "classic"
+      ],
+      [
+       8,
+       "sci-fi"
+      ],
+      [
+       11,
+       "sci-fi"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:f77036f4906a": {
+   "statements": [
+    {
+     "sql": "INSERT INTO genre_tags_clean (tag, book_id) VALUES ('magical-realism', 12)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT book_id, tag FROM genre_tags_clean WHERE book_id = 12",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "tag"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       12,
+       "magical-realism"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:4a58157f2eeb": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE book_tags_csv (book_id INT UNSIGNED PRIMARY KEY, tags VARCHAR(200))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO book_tags_csv VALUES (8, 'sci-fi,classic'), (11, 'sci-fi'), (12, 'magical-realism,classic-ish')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT book_id, tags,\n       tags LIKE '%classic%'         AS like_match,\n       FIND_IN_SET('classic', tags) > 0 AS exact_match\nFROM book_tags_csv ORDER BY book_id",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "tags",
+      "like_match",
+      "exact_match"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       8,
+       "sci-fi,classic",
+       1,
+       1
+      ],
+      [
+       11,
+       "sci-fi",
+       0,
+       0
+      ],
+      [
+       12,
+       "magical-realism,classic-ish",
+       1,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:313710c40afa": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS all_authors,\n       SUM(country = 'United States') AS us,\n       SUM(country <> 'United States') AS not_us_by_comparison,\n       SUM(country <> 'United States' OR country IS NULL) AS not_us_or_unknown\nFROM authors",
+     "status": "ok",
+     "columns": [
+      "all_authors",
+      "us",
+      "not_us_by_comparison",
+      "not_us_or_unknown"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       16,
+       "4",
+       "11",
+       "12"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:a935b1ab46db": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM (VALUES ROW('standard'), ROW('student'), ROW('premium')) AS d1",
+     "status": "ok",
+     "columns": [
+      "column_0"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "standard"
+      ],
+      [
+       "student"
+      ],
+      [
+       "premium"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:9c1f487db8f1": {
+   "statements": [
+    {
+     "sql": "SELECT d1.column_0 AS membership, d2.column_0 AS joined_year\nFROM (VALUES ROW('standard'), ROW('student'), ROW('premium')) AS d1\nCROSS JOIN (VALUES ROW(2021), ROW(2022), ROW(2023), ROW(2024)) AS d2\nORDER BY membership, joined_year",
+     "status": "ok",
+     "columns": [
+      "membership",
+      "joined_year"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       "premium",
+       2021
+      ],
+      [
+       "premium",
+       2022
+      ],
+      [
+       "premium",
+       2023
+      ],
+      [
+       "premium",
+       2024
+      ],
+      [
+       "standard",
+       2021
+      ],
+      [
+       "standard",
+       2022
+      ],
+      [
+       "standard",
+       2023
+      ],
+      [
+       "standard",
+       2024
+      ],
+      [
+       "student",
+       2021
+      ],
+      [
+       "student",
+       2022
+      ],
+      [
+       "student",
+       2023
+      ],
+      [
+       "student",
+       2024
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:68612dd83033": {
+   "statements": [
+    {
+     "sql": "SELECT DISTINCT membership, YEAR(joined_on) AS joined_year\nFROM members\nORDER BY membership, joined_year",
+     "status": "ok",
+     "columns": [
+      "membership",
+      "joined_year"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "standard",
+       2021
+      ],
+      [
+       "standard",
+       2022
+      ],
+      [
+       "standard",
+       2023
+      ],
+      [
+       "student",
+       2022
+      ],
+      [
+       "premium",
+       2021
+      ],
+      [
+       "premium",
+       2022
+      ],
+      [
+       "premium",
+       2023
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:5b7b338331a0": {
+   "statements": [
+    {
+     "sql": "SELECT 2 AS degree, COUNT(*) AS cardinality\nFROM (SELECT DISTINCT membership, YEAR(joined_on) AS joined_year FROM members) AS r",
+     "status": "ok",
+     "columns": [
+      "degree",
+      "cardinality"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2,
+       7
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:feffbe90b581": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS wrong_count FROM authors WHERE country = NULL",
+     "status": "ok",
+     "columns": [
+      "wrong_count"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:9b6522bbab60": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS right_count FROM authors WHERE country IS NULL",
+     "status": "ok",
+     "columns": [
+      "right_count"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:6b19bb3aad3b": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS authors_not_in_list\nFROM authors\nWHERE country NOT IN ('Germany', NULL)",
+     "status": "ok",
+     "columns": [
+      "authors_not_in_list"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

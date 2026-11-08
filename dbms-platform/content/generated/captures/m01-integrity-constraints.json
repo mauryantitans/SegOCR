@@ -1,0 +1,963 @@
+{
+ "doc": "m01-integrity-constraints",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:eae8d554aeea": {
+   "statements": [
+    {
+     "sql": "SELECT CONSTRAINT_NAME, TABLE_NAME, REFERENCED_TABLE_NAME, UPDATE_RULE, DELETE_RULE\nFROM information_schema.REFERENTIAL_CONSTRAINTS\nWHERE CONSTRAINT_SCHEMA = DATABASE()\nORDER BY TABLE_NAME, CONSTRAINT_NAME",
+     "status": "ok",
+     "columns": [
+      "CONSTRAINT_NAME",
+      "TABLE_NAME",
+      "REFERENCED_TABLE_NAME",
+      "UPDATE_RULE",
+      "DELETE_RULE"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "fk_categories_parent",
+       "categories",
+       "categories",
+       "NO ACTION",
+       "NO ACTION"
+      ],
+      [
+       "fk_items_order",
+       "order_items",
+       "orders",
+       "NO ACTION",
+       "NO ACTION"
+      ],
+      [
+       "fk_items_product",
+       "order_items",
+       "products",
+       "NO ACTION",
+       "NO ACTION"
+      ],
+      [
+       "fk_orders_customer",
+       "orders",
+       "customers",
+       "NO ACTION",
+       "NO ACTION"
+      ],
+      [
+       "fk_payments_order",
+       "payments",
+       "orders",
+       "NO ACTION",
+       "NO ACTION"
+      ],
+      [
+       "fk_products_category",
+       "products",
+       "categories",
+       "NO ACTION",
+       "NO ACTION"
+      ],
+      [
+       "fk_reviews_customer",
+       "reviews",
+       "customers",
+       "NO ACTION",
+       "NO ACTION"
+      ],
+      [
+       "fk_reviews_product",
+       "reviews",
+       "products",
+       "NO ACTION",
+       "NO ACTION"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:a6da6fc2b97b": {
+   "statements": [
+    {
+     "sql": "SELECT tc.TABLE_NAME, cc.CONSTRAINT_NAME, cc.CHECK_CLAUSE, tc.ENFORCED\nFROM information_schema.CHECK_CONSTRAINTS AS cc\nJOIN information_schema.TABLE_CONSTRAINTS AS tc\n  ON tc.CONSTRAINT_SCHEMA = cc.CONSTRAINT_SCHEMA AND tc.CONSTRAINT_NAME = cc.CONSTRAINT_NAME\nWHERE cc.CONSTRAINT_SCHEMA = DATABASE()\nORDER BY tc.TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "CONSTRAINT_NAME",
+      "CHECK_CLAUSE",
+      "ENFORCED"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "order_items",
+       "chk_items_qty",
+       "(`quantity` > 0)",
+       "YES"
+      ],
+      [
+       "products",
+       "chk_products_price",
+       "(`price` >= 0)",
+       "YES"
+      ],
+      [
+       "reviews",
+       "chk_reviews_rating",
+       "(`rating` between 1 and 5)",
+       "YES"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:a0284cec7cf1": {
+   "statements": [
+    {
+     "sql": "INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (1, 2, -1, 999.00)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1264,
+      "message": "Out of range value for column 'quantity' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s4:742befe32314": {
+   "statements": [
+    {
+     "sql": "INSERT INTO customers (first_name, last_name, email, city, state, signup_date)\nVALUES ('Lena', NULL, 'lena@example.com', 'Fresno', 'CA', '2024-12-01')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1048,
+      "message": "Column 'last_name' cannot be null"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s5:ef2685313cd2": {
+   "statements": [
+    {
+     "sql": "INSERT INTO products (product_id, sku, name, price, cost, created_at)\nVALUES (1, 'SKU-9999', 'Duplicate id', 10.00, 5.00, '2024-12-01 00:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '1' for key 'products.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:fad6ea9ace10": {
+   "statements": [
+    {
+     "sql": "UPDATE products SET price = -5.00 WHERE product_id = 5",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_products_price' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:a52ecdf70035": {
+   "statements": [
+    {
+     "sql": "INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (1, 999, 1, 10.00)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`order_items`, CONSTRAINT `fk_items_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`product_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:4a40caae7875": {
+   "statements": [
+    {
+     "sql": "DELETE FROM customers WHERE customer_id = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1451,
+      "message": "Cannot delete or update a parent row: a foreign key constraint fails (`orders`, CONSTRAINT `fk_orders_customer` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`customer_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s10:cb41dc5ba9b3": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE promotions (\n  promo_id  INT UNSIGNED PRIMARY KEY,\n  starts_on DATE NOT NULL,\n  CHECK (starts_on >= CURDATE())\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3814,
+      "message": "An expression of a check constraint 'promotions_chk_1' contains disallowed function: curdate."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:dd028c7bcdde": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE product_badges (\n  product_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  category_id INT UNSIGNED NOT NULL,\n  CONSTRAINT fk_badge_category FOREIGN KEY (category_id) REFERENCES categories (category_id) ON DELETE SET NULL\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1830,
+      "message": "Column 'category_id' cannot be NOT NULL: needed in a foreign key constraint 'fk_badge_category' SET NULL"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:78e767413077": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE wishlists (\n  wishlist_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  customer_id INT UNSIGNED NOT NULL,\n  name        VARCHAR(60)  NOT NULL,\n  CONSTRAINT fk_wishlists_customer FOREIGN KEY (customer_id)\n    REFERENCES customers (customer_id) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE wishlist_items (\n  wishlist_id INT UNSIGNED NOT NULL,\n  product_id  INT UNSIGNED NOT NULL,\n  added_on    DATE NOT NULL,\n  PRIMARY KEY (wishlist_id, product_id),\n  CONSTRAINT fk_witems_wishlist FOREIGN KEY (wishlist_id)\n    REFERENCES wishlists (wishlist_id) ON DELETE CASCADE,\n  CONSTRAINT fk_witems_product FOREIGN KEY (product_id)\n    REFERENCES products (product_id) ON DELETE RESTRICT\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO wishlists VALUES (1, 24, 'Home office'), (2, 24, 'Gifts'), (3, 25, 'Coffee gear')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO wishlist_items VALUES\n  (1, 1, '2024-11-02'), (1, 5, '2024-11-02'), (1, 6, '2024-11-03'),\n  (2, 21, '2024-12-01'), (3, 14, '2024-12-05'), (3, 15, '2024-12-05')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 6,
+     "info": "Records: 6  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT w.customer_id, COUNT(DISTINCT w.wishlist_id) AS wishlists, COUNT(*) AS items\nFROM wishlists AS w JOIN wishlist_items AS i ON i.wishlist_id = w.wishlist_id\nGROUP BY w.customer_id\nORDER BY w.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "wishlists",
+      "items"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       24,
+       2,
+       4
+      ],
+      [
+       25,
+       1,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:4fbeed1f776b": {
+   "statements": [
+    {
+     "sql": "DELETE FROM customers WHERE customer_id = 24",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM customers WHERE customer_id = 24) AS customer_rows,\n       (SELECT COUNT(*) FROM wishlists WHERE customer_id = 24) AS wishlist_rows,\n       (SELECT COUNT(*) FROM wishlist_items WHERE wishlist_id IN (1, 2)) AS item_rows,\n       (SELECT COUNT(*) FROM wishlist_items) AS items_remaining",
+     "status": "ok",
+     "columns": [
+      "customer_rows",
+      "wishlist_rows",
+      "item_rows",
+      "items_remaining"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       0,
+       0,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:3ef2ef3fae70": {
+   "statements": [
+    {
+     "sql": "DELETE FROM products WHERE product_id = 14",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1451,
+      "message": "Cannot delete or update a parent row: a foreign key constraint fails (`order_items`, CONSTRAINT `fk_items_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`product_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s15:37cef677d3c7": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE promo_categories (\n  promo_category_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  label             VARCHAR(40)  NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE featured_products (\n  product_id        INT UNSIGNED NOT NULL PRIMARY KEY,\n  promo_category_id INT UNSIGNED NULL,\n  CONSTRAINT fk_featured_product  FOREIGN KEY (product_id) REFERENCES products (product_id) ON DELETE CASCADE,\n  CONSTRAINT fk_featured_promocat FOREIGN KEY (promo_category_id)\n    REFERENCES promo_categories (promo_category_id) ON DELETE SET NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO promo_categories VALUES (1, 'Black Friday'), (2, 'Back to school')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO featured_products VALUES (1, 1), (2, 2), (6, 1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM promo_categories WHERE promo_category_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id, promo_category_id FROM featured_products ORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "promo_category_id"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       null
+      ],
+      [
+       2,
+       2
+      ],
+      [
+       6,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:418870d2fdd7": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE promo_codes (\n  code        VARCHAR(20) NOT NULL PRIMARY KEY,\n  percent_off TINYINT UNSIGNED NOT NULL CHECK (percent_off BETWEEN 1 AND 90)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO promo_codes VALUES ('VIP20', 20), ('WELCOME10', 10)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE promo_redemptions (\n  order_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  code     VARCHAR(20)  NOT NULL,\n  CONSTRAINT fk_redemption_order FOREIGN KEY (order_id) REFERENCES orders (order_id),\n  CONSTRAINT fk_redemption_code  FOREIGN KEY (code) REFERENCES promo_codes (code) ON UPDATE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO promo_redemptions VALUES (2, 'VIP20'), (3, 'WELCOME10'), (6, 'VIP20')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE promo_codes SET code = 'VIP25', percent_off = 25 WHERE code = 'VIP20'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT r.order_id, r.code, p.percent_off\nFROM promo_redemptions AS r JOIN promo_codes AS p ON p.code = r.code\nORDER BY r.order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "code",
+      "percent_off"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       2,
+       "VIP25",
+       25
+      ],
+      [
+       3,
+       "WELCOME10",
+       10
+      ],
+      [
+       6,
+       "VIP25",
+       25
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:1715d6473dc7": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE price_overrides (\n  product_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  override_price DECIMAL(10,2) NULL,\n  CONSTRAINT chk_override_positive CHECK (override_price > 0)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO price_overrides VALUES (1, 999.00), (2, NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id, override_price, override_price > 0 AS condition_value\nFROM price_overrides ORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "override_price",
+      "condition_value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "999.00",
+       1
+      ],
+      [
+       2,
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:896b9c4d5ad7": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO reviews (product_id, customer_id, rating, comment, created_at) VALUES (5, 23, 4, 'Solid mouse', '2024-12-20 10:00:00')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "DELETE FROM customers WHERE customer_id = 23",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1451,
+        "message": "Cannot delete or update a parent row: a foreign key constraint fails (`reviews`, CONSTRAINT `fk_reviews_customer` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`customer_id`))"
+       }
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "error"
+    },
+    {
+     "step": 2,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "174599",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 2,
+        "rowsModified": 1,
+        "lockStructs": 5
+       },
+       {
+        "session": "B",
+        "trxId": "174609",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "customers",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "customers",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "23"
+       },
+       {
+        "session": "A",
+        "table": "products",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "products",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "5"
+       },
+       {
+        "session": "A",
+        "table": "reviews",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "customers",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "customers",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "23"
+       }
+      ]
+     }
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS reviews_by_23 FROM reviews WHERE customer_id = 23",
+       "status": "ok",
+       "columns": [
+        "reviews_by_23"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "w1.0:23f87a1e721e": {
+   "statements": [
+    {
+     "sql": "SELECT 'customer' AS level, COUNT(*) AS n FROM customers WHERE customer_id = 25\nUNION ALL SELECT 'wishlists', COUNT(*) FROM wishlists WHERE customer_id = 25\nUNION ALL SELECT 'wishlist_items', COUNT(*) FROM wishlist_items WHERE wishlist_id IN (SELECT wishlist_id FROM wishlists WHERE customer_id = 25)",
+     "status": "ok",
+     "columns": [
+      "level",
+      "n"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "customer",
+       1
+      ],
+      [
+       "wishlists",
+       1
+      ],
+      [
+       "wishlist_items",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:3dea8217bf19": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM orders  WHERE customer_id = 25) AS orders,\n       (SELECT COUNT(*) FROM reviews WHERE customer_id = 25) AS reviews",
+     "status": "ok",
+     "columns": [
+      "orders",
+      "reviews"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:661b85ffe85c": {
+   "statements": [
+    {
+     "sql": "DELETE FROM customers WHERE customer_id = 25",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:f5b656ba9b52": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM wishlists w WHERE NOT EXISTS (SELECT 1 FROM customers c WHERE c.customer_id = w.customer_id)) AS orphan_wishlists,\n       (SELECT COUNT(*) FROM wishlist_items i WHERE NOT EXISTS (SELECT 1 FROM wishlists w WHERE w.wishlist_id = i.wishlist_id)) AS orphan_items,\n       (SELECT COUNT(*) FROM wishlist_items) AS items_left",
+     "status": "ok",
+     "columns": [
+      "orphan_wishlists",
+      "orphan_items",
+      "items_left"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:166225c24083": {
+   "statements": [
+    {
+     "sql": "SET SESSION sql_mode = ''",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE import_staging (qty TINYINT UNSIGNED, code VARCHAR(3))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO import_staging VALUES (300, 'ABCDEF')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1264,
+       "message": "Out of range value for column 'qty' at row 1"
+      },
+      {
+       "level": "Warning",
+       "code": 1265,
+       "message": "Data truncated for column 'code' at row 1"
+      }
+     ]
+    },
+    {
+     "sql": "SHOW WARNINGS",
+     "status": "ok",
+     "columns": [
+      "Level",
+      "Code",
+      "Message"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Warning",
+       1264,
+       "Out of range value for column 'qty' at row 1"
+      ],
+      [
+       "Warning",
+       1265,
+       "Data truncated for column 'code' at row 1"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT qty, code FROM import_staging",
+     "status": "ok",
+     "columns": [
+      "qty",
+      "code"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       255,
+       "ABC"
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION sql_mode = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s19:89f565233549": {
+   "statements": [
+    {
+     "sql": "SET SESSION foreign_key_checks = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (1, 999, 1, 10.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION foreign_key_checks = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT i.order_id, i.product_id\nFROM order_items AS i\nLEFT JOIN products AS p ON p.product_id = i.product_id\nWHERE p.product_id IS NULL",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "product_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       999
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:75dcf2d7a996": {
+   "statements": [
+    {
+     "sql": "DELETE FROM order_items WHERE order_id = 1 AND product_id = 999",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s21:57917ebb943e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE shelf_labels (\n  label_id    INT UNSIGNED NOT NULL PRIMARY KEY,\n  category_id INT UNSIGNED NULL DEFAULT 10,\n  CONSTRAINT fk_label_category FOREIGN KEY (category_id) REFERENCES categories (category_id) ON DELETE SET DEFAULT\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO categories (category_id, name, parent_id) VALUES (11, 'Clearance', NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO shelf_labels VALUES (1, 11)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT CONSTRAINT_NAME, DELETE_RULE FROM information_schema.REFERENTIAL_CONSTRAINTS\nWHERE CONSTRAINT_SCHEMA = DATABASE() AND CONSTRAINT_NAME = 'fk_label_category'",
+     "status": "ok",
+     "columns": [
+      "CONSTRAINT_NAME",
+      "DELETE_RULE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "fk_label_category",
+       "SET DEFAULT"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:5d3342590a60": {
+   "statements": [
+    {
+     "sql": "DELETE FROM categories WHERE category_id = 11",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1451,
+      "message": "Cannot delete or update a parent row: a foreign key constraint fails (`shelf_labels`, CONSTRAINT `fk_label_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`category_id`))"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

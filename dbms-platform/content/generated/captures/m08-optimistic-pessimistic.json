@@ -1,0 +1,1387 @@
+{
+ "doc": "m08-optimistic-pessimistic",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s3:40a04d24c30f": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance, version FROM accounts WHERE account_id = 5",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       "6998.91",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:5099e9e57117": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET balance = 7098.91, version = version + 1 WHERE account_id = 5 AND version = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS rows_updated",
+     "status": "ok",
+     "columns": [
+      "rows_updated"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:2dda4e9f0a52": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET balance = 7198.91, version = version + 1 WHERE account_id = 5 AND version = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS rows_updated",
+     "status": "ok",
+     "columns": [
+      "rows_updated"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT account_id, balance, version FROM accounts WHERE account_id = 5",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       "7098.91",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:12b5bef793d2": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET balance = balance - 100.00, version = version + 1\nWHERE account_id = 23 AND status = 'active' AND balance >= 100.00",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS withdrawn",
+     "status": "ok",
+     "columns": [
+      "withdrawn"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance - 100.00, version = version + 1\nWHERE account_id = 23 AND status = 'active' AND balance >= 100.00",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS withdrawn_again",
+     "status": "ok",
+     "columns": [
+      "withdrawn_again"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT account_id, balance, version FROM accounts WHERE account_id = 23",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       23,
+       "44.47",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:a66d3a093653": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "492.57"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "592.57"
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = 592.57, version = version + 1 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = 542.57, version = version + 1 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance, version FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "542.57",
+         2
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:323a439f40f1": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance, version FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "492.57",
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance, version FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "492.57",
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = 592.57, version = version + 1 WHERE account_id = 1 AND version = 0",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "SELECT ROW_COUNT() AS rows_updated",
+       "status": "ok",
+       "columns": [
+        "rows_updated"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = 442.57, version = version + 1 WHERE account_id = 1 AND version = 0",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "SELECT ROW_COUNT() AS rows_updated",
+       "status": "ok",
+       "columns": [
+        "rows_updated"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance, version FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "592.57",
+         1
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = 542.57, version = version + 1 WHERE account_id = 1 AND version = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "SELECT ROW_COUNT() AS rows_updated",
+       "status": "ok",
+       "columns": [
+        "rows_updated"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance, version FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "542.57",
+         2
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c3:4a9456b46443": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance + 100.00, version = version + 1 WHERE account_id = 1 AND version = 0",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance - 50.00, version = version + 1 WHERE account_id = 1 AND version = 0",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 2,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT ROW_COUNT() AS rows_updated_by_previous_statement",
+       "status": "ok",
+       "columns": [
+        "rows_updated_by_previous_statement"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance, version FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "592.57",
+         1
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c4:18e0604cce94": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance - 400.00, version = version + 1 WHERE account_id = 1 AND balance >= 400.00",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance - 400.00, version = version + 1 WHERE account_id = 1 AND balance >= 400.00",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 2,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance, version FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "92.57",
+         1
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c5:5332cea3cf62": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT job_id, amount FROM payout_jobs WHERE status = 'queued' ORDER BY job_id LIMIT 1 FOR UPDATE SKIP LOCKED",
+       "status": "ok",
+       "columns": [
+        "job_id",
+        "amount"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1,
+         "250.00"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT job_id, amount FROM payout_jobs WHERE status = 'queued' ORDER BY job_id LIMIT 1 FOR UPDATE SKIP LOCKED",
+       "status": "ok",
+       "columns": [
+        "job_id",
+        "amount"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         2,
+         "900.00"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE payout_jobs SET status = 'done', worker = 'B' WHERE job_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "B",
+        "trxId": "179839",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 3,
+        "rowsModified": 1,
+        "lockStructs": 4
+       },
+       {
+        "session": "A",
+        "trxId": "179837",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 2,
+        "rowsModified": 0,
+        "lockStructs": 3
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "payout_jobs",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "payout_jobs",
+        "index": "idx_status",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "'queued', 1"
+       },
+       {
+        "session": "A",
+        "table": "payout_jobs",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "B",
+        "table": "payout_jobs",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "payout_jobs",
+        "index": "idx_status",
+        "lockType": "RECORD",
+        "lockMode": "X,GAP,INSERT_INTENTION",
+        "status": "WAITING",
+        "lockData": "'queued', 1"
+       },
+       {
+        "session": "B",
+        "table": "payout_jobs",
+        "index": "idx_status",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "'queued', 2"
+       },
+       {
+        "session": "B",
+        "table": "payout_jobs",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "2"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT job_id, amount FROM payout_jobs WHERE status = 'queued' ORDER BY job_id LIMIT 1 FOR UPDATE SKIP LOCKED",
+       "status": "ok",
+       "columns": [
+        "job_id",
+        "amount"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1,
+         "250.00"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 7,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE payout_jobs SET status = 'done', worker = 'C' WHERE job_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT job_id, status, worker FROM payout_jobs ORDER BY job_id",
+       "status": "ok",
+       "columns": [
+        "job_id",
+        "status",
+        "worker"
+       ],
+       "row_count": 3,
+       "rows": [
+        [
+         1,
+         "done",
+         "C"
+        ],
+        [
+         2,
+         "done",
+         "B"
+        ],
+        [
+         3,
+         "queued",
+         null
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c6:96e869ea081e": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT job_id, amount FROM payout_jobs WHERE status = 'queued' ORDER BY job_id LIMIT 1 FOR UPDATE SKIP LOCKED",
+       "status": "ok",
+       "columns": [
+        "job_id",
+        "amount"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1,
+         "250.00"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT job_id, amount FROM payout_jobs WHERE status = 'queued' ORDER BY job_id LIMIT 1 FOR UPDATE SKIP LOCKED",
+       "status": "ok",
+       "columns": [
+        "job_id",
+        "amount"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         2,
+         "900.00"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "179888",
+        "state": "RUNNING",
+        "isolation": "READ COMMITTED",
+        "rowsLocked": 2,
+        "rowsModified": 0,
+        "lockStructs": 3
+       },
+       {
+        "session": "B",
+        "trxId": "179891",
+        "state": "RUNNING",
+        "isolation": "READ COMMITTED",
+        "rowsLocked": 2,
+        "rowsModified": 0,
+        "lockStructs": 3
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "payout_jobs",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "payout_jobs",
+        "index": "idx_status",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "'queued', 1"
+       },
+       {
+        "session": "A",
+        "table": "payout_jobs",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "B",
+        "table": "payout_jobs",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "payout_jobs",
+        "index": "idx_status",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "'queued', 2"
+       },
+       {
+        "session": "B",
+        "table": "payout_jobs",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "2"
+       }
+      ]
+     }
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE payout_jobs SET status = 'done', worker = 'B' WHERE job_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT job_id, amount FROM payout_jobs WHERE status = 'queued' ORDER BY job_id LIMIT 1 FOR UPDATE SKIP LOCKED",
+       "status": "ok",
+       "columns": [
+        "job_id",
+        "amount"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1,
+         "250.00"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE payout_jobs SET status = 'done', worker = 'C' WHERE job_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT job_id, status, worker FROM payout_jobs ORDER BY job_id",
+       "status": "ok",
+       "columns": [
+        "job_id",
+        "status",
+        "worker"
+       ],
+       "row_count": 3,
+       "rows": [
+        [
+         1,
+         "done",
+         "C"
+        ],
+        [
+         2,
+         "done",
+         "B"
+        ],
+        [
+         3,
+         "queued",
+         null
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "w1.0:e18cba97c5e0": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, status, balance, version FROM accounts WHERE account_id = 15",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "status",
+      "balance",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       15,
+       "active",
+       "3526.15",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:e5f471eee252": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET status = 'frozen', version = version + 1 WHERE account_id = 15",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, status, version FROM accounts WHERE account_id = 15",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "status",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       15,
+       "frozen",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:fd14b833e64b": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET status = 'active', version = version + 1 WHERE account_id = 15 AND version = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS rows_updated",
+     "status": "ok",
+     "columns": [
+      "rows_updated"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:55d389bf85e0": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, status, version FROM accounts WHERE account_id = 15",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "status",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       15,
+       "frozen",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:97213975a6a9": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE payout_jobs (\n  job_id INT PRIMARY KEY, account_id INT NOT NULL, amount DECIMAL(14,2) NOT NULL,\n  status VARCHAR(10) NOT NULL DEFAULT 'queued', worker VARCHAR(10) NULL,\n  claimed_at DATETIME NULL, KEY idx_status (status, job_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO payout_jobs (job_id, account_id, amount) VALUES (1, 3, 250.00), (2, 6, 900.00), (3, 8, 75.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE payout_jobs SET status = 'running', worker = 'w1', claimed_at = '2024-12-31 08:00:00'\nWHERE status = 'queued' ORDER BY job_id LIMIT 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS claimed",
+     "status": "ok",
+     "columns": [
+      "claimed"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT job_id, status, worker FROM payout_jobs WHERE worker = 'w1' AND status = 'running'",
+     "status": "ok",
+     "columns": [
+      "job_id",
+      "status",
+      "worker"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "running",
+       "w1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:9392bf537c3d": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET status = 'closed', version = version + 1 WHERE account_id = 2 AND version = 99",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS rows_updated",
+     "status": "ok",
+     "columns": [
+      "rows_updated"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

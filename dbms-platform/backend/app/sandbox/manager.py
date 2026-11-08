@@ -222,11 +222,15 @@ class LabSession:
 
     def scrub(self, v):
         """Remove the private lab schema name from server text (EXPLAIN notes, ANALYZE output, warnings)."""
-        if not isinstance(v, str) or self.schema not in v:
+        if not isinstance(v, str):
+            return v
+        escaped = self.schema.replace("_", "\\_")  # SHOW GRANTS prints `lab\_...`
+        if self.schema not in v and escaped not in v:
             return v
         for qualified in (f"`{self.schema}`.", f"{self.schema}."):
             v = v.replace(qualified, "")
-        return v.replace(f"`{self.schema}`", "`your_lab`").replace(self.schema, "your_lab")
+        return (v.replace(f"`{self.schema}`", "`your_lab`").replace(self.schema, "your_lab")
+                .replace(escaped, "your_lab"))
 
     def close_conn_only(self):
         try:
