@@ -1,0 +1,882 @@
+{
+ "doc": "m03-insert",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:41670ef09eb6": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE signups (\n  signup_id  INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  email      VARCHAR(100) NOT NULL,\n  name       VARCHAR(40)  NOT NULL,\n  source     VARCHAR(20)  NOT NULL DEFAULT 'web',\n  created_at DATETIME     NOT NULL DEFAULT '2024-01-01 00:00:00',\n  UNIQUE KEY uq_signups_email (email)\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s2:76e714a6d003": {
+   "statements": [
+    {
+     "sql": "INSERT INTO signups (email, name)\nVALUES ('ana@example.com', 'Ana')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM signups",
+     "status": "ok",
+     "columns": [
+      "signup_id",
+      "email",
+      "name",
+      "source",
+      "created_at"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "ana@example.com",
+       "Ana",
+       "web",
+       "2024-01-01 00:00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:511fc38929bb": {
+   "statements": [
+    {
+     "sql": "INSERT INTO signups (email, name, source)\nVALUES ('ben@example.com',  'Ben',  'app'),\n       ('caro@example.com', 'Caro', 'web'),\n       ('dev@example.com',  'Dev',  'partner')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT LAST_INSERT_ID() AS first_id_of_last_insert",
+     "status": "ok",
+     "columns": [
+      "first_id_of_last_insert"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:72e139255a1e": {
+   "statements": [
+    {
+     "sql": "INSERT INTO signups SET email = 'eve@example.com', name = 'Eve', source = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT signup_id, email, name, source FROM signups ORDER BY signup_id",
+     "status": "ok",
+     "columns": [
+      "signup_id",
+      "email",
+      "name",
+      "source"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "ana@example.com",
+       "Ana",
+       "web"
+      ],
+      [
+       2,
+       "ben@example.com",
+       "Ben",
+       "app"
+      ],
+      [
+       3,
+       "caro@example.com",
+       "Caro",
+       "web"
+      ],
+      [
+       4,
+       "dev@example.com",
+       "Dev",
+       "partner"
+      ],
+      [
+       5,
+       "eve@example.com",
+       "Eve",
+       "web"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:ad5336059f8f": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE customer_snapshot (\n  customer_id INT UNSIGNED PRIMARY KEY,\n  full_name   VARCHAR(101) NOT NULL,\n  city        VARCHAR(60)  NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO customer_snapshot (customer_id, full_name, city)\nSELECT customer_id, CONCAT(first_name, ' ', last_name), city\nFROM customers\nWHERE state = 'CA'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 12,
+     "info": "Records: 12  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_copied FROM customer_snapshot",
+     "status": "ok",
+     "columns": [
+      "rows_copied"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       12
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:5b90a50123a0": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE inventory (\n  sku        VARCHAR(20) PRIMARY KEY,\n  qty        INT NOT NULL,\n  updated_at DATETIME NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO inventory VALUES\n  ('SKU-1001', 10, '2024-06-01 08:00:00'),\n  ('SKU-1002',  4, '2024-06-01 08:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s8:6328966209ec": {
+   "statements": [
+    {
+     "sql": "INSERT INTO inventory (sku, qty, updated_at)\nVALUES ('SKU-1001', 12, '2024-06-02 08:00:00'),\n       ('SKU-1003',  7, '2024-06-02 08:00:00') AS new\nON DUPLICATE KEY UPDATE qty = new.qty, updated_at = new.updated_at",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 2  Duplicates: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM inventory ORDER BY sku",
+     "status": "ok",
+     "columns": [
+      "sku",
+      "qty",
+      "updated_at"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "SKU-1001",
+       12,
+       "2024-06-02 08:00:00"
+      ],
+      [
+       "SKU-1002",
+       4,
+       "2024-06-01 08:00:00"
+      ],
+      [
+       "SKU-1003",
+       7,
+       "2024-06-02 08:00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:37b50735b24c": {
+   "statements": [
+    {
+     "sql": "INSERT INTO inventory (sku, qty, updated_at)\nVALUES ('SKU-1001', 12, '2024-06-02 08:00:00') AS new\nON DUPLICATE KEY UPDATE qty = new.qty, updated_at = new.updated_at",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s10:fcd17539d083": {
+   "statements": [
+    {
+     "sql": "INSERT INTO inventory (sku, qty, updated_at)\nVALUES ('SKU-1002', 5, '2024-06-03 09:00:00') AS d\nON DUPLICATE KEY UPDATE qty = inventory.qty + d.qty, updated_at = d.updated_at",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM inventory ORDER BY sku",
+     "status": "ok",
+     "columns": [
+      "sku",
+      "qty",
+      "updated_at"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "SKU-1001",
+       12,
+       "2024-06-02 08:00:00"
+      ],
+      [
+       "SKU-1002",
+       9,
+       "2024-06-03 09:00:00"
+      ],
+      [
+       "SKU-1003",
+       7,
+       "2024-06-02 08:00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:ce985a18dbf7": {
+   "statements": [
+    {
+     "sql": "INSERT INTO inventory (sku, qty, updated_at)\nVALUES ('SKU-1003', 8, '2024-06-04 10:00:00')\nON DUPLICATE KEY UPDATE qty = VALUES(qty), updated_at = VALUES(updated_at)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'VALUES function' is deprecated and will be removed in a future release. Please use an alias (INSERT INTO ... VALUES (...) AS alias) and replace VALUES(col) in the ON DUPLICATE KEY UPDATE clause with alias.col instead"
+      },
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'VALUES function' is deprecated and will be removed in a future release. Please use an alias (INSERT INTO ... VALUES (...) AS alias) and replace VALUES(col) in the ON DUPLICATE KEY UPDATE clause with alias.col instead"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:a0a255180a5c": {
+   "statements": [
+    {
+     "sql": "INSERT IGNORE INTO signups (email, name)\nVALUES ('ana@example.com',  'Ana Again'),\n       ('fay@example.com',  'Fay')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 2  Duplicates: 1  Warnings: 1",
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1062,
+       "message": "Duplicate entry 'ana@example.com' for key 'signups.uq_signups_email'"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT signup_id, email, name FROM signups ORDER BY signup_id",
+     "status": "ok",
+     "columns": [
+      "signup_id",
+      "email",
+      "name"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "ana@example.com",
+       "Ana"
+      ],
+      [
+       2,
+       "ben@example.com",
+       "Ben"
+      ],
+      [
+       3,
+       "caro@example.com",
+       "Caro"
+      ],
+      [
+       4,
+       "dev@example.com",
+       "Dev"
+      ],
+      [
+       5,
+       "eve@example.com",
+       "Eve"
+      ],
+      [
+       6,
+       "fay@example.com",
+       "Fay"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:602acb9dffdb": {
+   "statements": [
+    {
+     "sql": "INSERT IGNORE INTO signups (email, name, source)\nVALUES ('gus@example.com', 'Augustus Maximilian Fitzgerald-Montgomery III', NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1265,
+       "message": "Data truncated for column 'name' at row 1"
+      },
+      {
+       "level": "Warning",
+       "code": 1048,
+       "message": "Column 'source' cannot be null"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT signup_id, email, name, source FROM signups WHERE email = 'gus@example.com'",
+     "status": "ok",
+     "columns": [
+      "signup_id",
+      "email",
+      "name",
+      "source"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       8,
+       "gus@example.com",
+       "Augustus Maximilian Fitzgerald-Montgomer",
+       ""
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:d1f1e942d2f2": {
+   "statements": [
+    {
+     "sql": "SELECT signup_id, email, name, source FROM signups WHERE email = 'ben@example.com'",
+     "status": "ok",
+     "columns": [
+      "signup_id",
+      "email",
+      "name",
+      "source"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2,
+       "ben@example.com",
+       "Ben",
+       "app"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:b6e6b0cd5b0c": {
+   "statements": [
+    {
+     "sql": "REPLACE INTO signups (email, name, source)\nVALUES ('ben@example.com', 'Benjamin', 'app')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "rows": []
+    },
+    {
+     "sql": "SELECT signup_id, email, name, source FROM signups WHERE email = 'ben@example.com'",
+     "status": "ok",
+     "columns": [
+      "signup_id",
+      "email",
+      "name",
+      "source"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       9,
+       "ben@example.com",
+       "Benjamin",
+       "app"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:ae604a0205af": {
+   "statements": [
+    {
+     "sql": "REPLACE INTO signups (signup_id, email, name)\nVALUES (1, 'caro@example.com', 'Merged')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "rows": []
+    },
+    {
+     "sql": "SELECT signup_id, email, name FROM signups ORDER BY signup_id",
+     "status": "ok",
+     "columns": [
+      "signup_id",
+      "email",
+      "name"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "caro@example.com",
+       "Merged"
+      ],
+      [
+       4,
+       "dev@example.com",
+       "Dev"
+      ],
+      [
+       5,
+       "eve@example.com",
+       "Eve"
+      ],
+      [
+       6,
+       "fay@example.com",
+       "Fay"
+      ],
+      [
+       8,
+       "gus@example.com",
+       "Augustus Maximilian Fitzgerald-Montgomer"
+      ],
+      [
+       9,
+       "ben@example.com",
+       "Benjamin"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:c27d2b78adf9": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE warehouses (\n  warehouse_id INT PRIMARY KEY,\n  name         VARCHAR(40) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE bins (\n  bin_id       INT PRIMARY KEY,\n  warehouse_id INT NOT NULL,\n  label        VARCHAR(20) NOT NULL,\n  FOREIGN KEY (warehouse_id) REFERENCES warehouses (warehouse_id) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO warehouses VALUES (1, 'Austin DC'), (2, 'Boston DC')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO bins VALUES (10, 1, 'A-01'), (11, 1, 'A-02'), (20, 2, 'B-01')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "REPLACE INTO warehouses VALUES (1, 'Austin Distribution Center')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "rows": []
+    },
+    {
+     "sql": "SELECT b.bin_id, b.label, w.name\nFROM warehouses AS w LEFT JOIN bins AS b ON b.warehouse_id = w.warehouse_id\nORDER BY w.warehouse_id, b.bin_id",
+     "status": "ok",
+     "columns": [
+      "bin_id",
+      "label",
+      "name"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       null,
+       null,
+       "Austin Distribution Center"
+      ],
+      [
+       20,
+       "B-01",
+       "Boston DC"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:9fe3c59f0bb3": {
+   "statements": [
+    {
+     "sql": "REPLACE INTO customers (customer_id, first_name, last_name, email, city, state, signup_date)\nVALUES (1, 'Amara', 'Sharma', 'amara.sharma1@example.com', 'Dallas', 'TX', '2023-04-15')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1451,
+      "message": "Cannot delete or update a parent row: a foreign key constraint fails (`lab_2a65190acb7e8cdaf702`.`orders`, CONSTRAINT `fk_orders_customer` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`customer_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:b4d08478c721": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM inventory ORDER BY sku",
+     "status": "ok",
+     "columns": [
+      "sku",
+      "qty",
+      "updated_at"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "SKU-1001",
+       12,
+       "2024-06-02 08:00:00"
+      ],
+      [
+       "SKU-1002",
+       9,
+       "2024-06-03 09:00:00"
+      ],
+      [
+       "SKU-1003",
+       8,
+       "2024-06-04 10:00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:67f93ace336b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO inventory (sku, qty, updated_at)\nVALUES ('SKU-1001', 15, '2024-06-05 08:00:00'),\n       ('SKU-1002',  9, '2024-06-03 09:00:00'),\n       ('SKU-1004',  3, '2024-06-05 08:00:00') AS new\nON DUPLICATE KEY UPDATE qty = new.qty, updated_at = new.updated_at",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 1  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:b4d08478c721": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM inventory ORDER BY sku",
+     "status": "ok",
+     "columns": [
+      "sku",
+      "qty",
+      "updated_at"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "SKU-1001",
+       15,
+       "2024-06-05 08:00:00"
+      ],
+      [
+       "SKU-1002",
+       9,
+       "2024-06-03 09:00:00"
+      ],
+      [
+       "SKU-1003",
+       8,
+       "2024-06-04 10:00:00"
+      ],
+      [
+       "SKU-1004",
+       3,
+       "2024-06-05 08:00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:f0376f9bb07c": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS signups_before FROM signups",
+     "status": "ok",
+     "columns": [
+      "signups_before"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:47a7db9becca": {
+   "statements": [
+    {
+     "sql": "INSERT INTO signups (email, name)\nVALUES ('hal@example.com', 'Hal'),\n       ('dev@example.com', 'Dev Duplicate'),\n       ('ivy@example.com', 'Ivy')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'dev@example.com' for key 'signups.uq_signups_email'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s21:b4ab2dad8e13": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS signups_after,\n       SUM(email = 'hal@example.com') AS hal_present\nFROM signups",
+     "status": "ok",
+     "columns": [
+      "signups_after",
+      "hal_present"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       6,
+       "0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:f1f1c5963ea5": {
+   "statements": [
+    {
+     "sql": "SELECT signup_id, email, name, source FROM signups ORDER BY signup_id",
+     "status": "ok",
+     "columns": [
+      "signup_id",
+      "email",
+      "name",
+      "source"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "caro@example.com",
+       "Merged",
+       "web"
+      ],
+      [
+       4,
+       "dev@example.com",
+       "Dev",
+       "partner"
+      ],
+      [
+       5,
+       "eve@example.com",
+       "Eve",
+       "web"
+      ],
+      [
+       6,
+       "fay@example.com",
+       "Fay",
+       "web"
+      ],
+      [
+       8,
+       "gus@example.com",
+       "Augustus Maximilian Fitzgerald-Montgomer",
+       ""
+      ],
+      [
+       9,
+       "ben@example.com",
+       "Benjamin",
+       "app"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:8adc73780fc0": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE readings (\n  reading_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  sensor_id  INT NOT NULL,\n  value      DECIMAL(6,2) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": [],
+     "elapsed_ms": 5.78
+    },
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 50000",
+     "status": "ok",
+     "columns": [],
+     "rows": [],
+     "elapsed_ms": 0.4
+    },
+    {
+     "sql": "INSERT INTO readings (sensor_id, value)\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 50000)\nSELECT n % 100, (n * 37) % 1000 / 10 FROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Records: 50000  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 183.73
+    }
+   ],
+   "measured": true
+  },
+  "s24:0bdfa595669c": {
+   "statements": [
+    {
+     "sql": "INSERT INTO signups VALUES ('jo@example.com', 'Jo')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1136,
+      "message": "Column count doesn't match value count at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s25:d6ed305134d2": {
+   "statements": [
+    {
+     "sql": "INSERT INTO order_items (order_id, product_id, quantity, unit_price)\nVALUES (1, 30, 0, 69.99)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_items_qty' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s26:5c7a2f4a15b4": {
+   "statements": [
+    {
+     "sql": "INSERT INTO order_items (order_id, product_id, quantity, unit_price)\nVALUES (999, 5, 1, 29.99)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`lab_2a65190acb7e8cdaf702`.`order_items`, CONSTRAINT `fk_items_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s27:c8212a1ac6d5": {
+   "statements": [
+    {
+     "sql": "INSERT INTO signups (email, name) VALUES ('kim@example.com', 'A name that is definitely longer than forty characters')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1406,
+      "message": "Data too long for column 'name' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s28:890d446404ef": {
+   "statements": [
+    {
+     "sql": "INSERT INTO inventory (sku, qty, updated_at)\nVALUES ('SKU-1002', 1, '2024-06-06 09:00:00') AS d\nON DUPLICATE KEY UPDATE qty = qty + d.qty",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1052,
+      "message": "Column 'qty' in field list is ambiguous"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

@@ -1,0 +1,649 @@
+{
+ "doc": "m03-aggregate-functions",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-07"
+ },
+ "blocks": {
+  "s2:c01b950e722a": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)      AS customers,\n       COUNT(phone)  AS customers_with_phone,\n       COUNT(*) - COUNT(phone) AS customers_without_phone\nFROM customers",
+     "status": "ok",
+     "columns": [
+      "customers",
+      "customers_with_phone",
+      "customers_without_phone"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25,
+       20,
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:9ef6cbd66302": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)                      AS orders,\n       COUNT(discount_code)          AS orders_with_code,\n       COUNT(DISTINCT discount_code) AS distinct_codes_used\nFROM orders",
+     "status": "ok",
+     "columns": [
+      "orders",
+      "orders_with_code",
+      "distinct_codes_used"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       80,
+       44,
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:c3ce7972ef29": {
+   "statements": [
+    {
+     "sql": "SELECT MIN(price)        AS cheapest,\n       MAX(price)        AS most_expensive,\n       AVG(price)        AS average_price,\n       SUM(stock_qty)    AS units_in_stock,\n       MIN(created_at)   AS first_product_added,\n       MIN(name)         AS first_name_alphabetically\nFROM products",
+     "status": "ok",
+     "columns": [
+      "cheapest",
+      "most_expensive",
+      "average_price",
+      "units_in_stock",
+      "first_product_added",
+      "first_name_alphabetically"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "18.99",
+       "1799.00",
+       "240.045000",
+       "3423",
+       "2022-06-22 20:04:00",
+       "27\" 4K Monitor"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:9a6d5410230c": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)    AS delivered_orders,\n       MIN(order_date) AS first_delivered_order_date,\n       MAX(order_date) AS last_delivered_order_date\nFROM orders\nWHERE status = 'delivered'",
+     "status": "ok",
+     "columns": [
+      "delivered_orders",
+      "first_delivered_order_date",
+      "last_delivered_order_date"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       45,
+       "2024-01-05 15:56:00",
+       "2024-12-21 13:06:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:27aee27b22c7": {
+   "statements": [
+    {
+     "sql": "SELECT first_name, COUNT(*) FROM customers",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1140,
+      "message": "In aggregated query without GROUP BY, expression #1 of SELECT list contains nonaggregated column 'customers.first_name'; this is incompatible with sql_mode=only_full_group_by"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:490e82682f6c": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE sensor_readings (\n  reading_id INT PRIMARY KEY,\n  sensor     VARCHAR(10) NOT NULL,\n  celsius    DECIMAL(5,2) NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sensor_readings VALUES\n  (1, 'north', 20.00),\n  (2, 'north', 22.00),\n  (3, 'south', NULL),\n  (4, 'south', 24.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT AVG(celsius)                  AS avg_ignoring_null,\n       SUM(celsius) / COUNT(*)       AS sum_over_all_rows,\n       AVG(COALESCE(celsius, 0))     AS avg_null_as_zero\nFROM sensor_readings",
+     "status": "ok",
+     "columns": [
+      "avg_ignoring_null",
+      "sum_over_all_rows",
+      "avg_null_as_zero"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "22.000000",
+       "16.500000",
+       "16.500000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:5de430c20171": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)   AS n,\n       SUM(price) AS total,\n       AVG(price) AS average,\n       MAX(price) AS highest\nFROM products\nWHERE price > 5000",
+     "status": "ok",
+     "columns": [
+      "n",
+      "total",
+      "average",
+      "highest"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       null,
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:b95b15fa97c3": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE ten(n) AS (\n  SELECT 1 UNION ALL SELECT n + 1 FROM ten WHERE n < 10\n)\nSELECT SUM(CAST(0.1 AS DOUBLE))        AS double_sum,\n       SUM(CAST(0.1 AS DECIMAL(10,2))) AS decimal_sum\nFROM ten",
+     "status": "ok",
+     "columns": [
+      "double_sum",
+      "decimal_sum"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0.9999999999999999,
+       "1.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:f06673f79545": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)                                            AS all_orders,\n       SUM(status = 'delivered')                           AS delivered,\n       SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled,\n       COUNT(CASE WHEN status IN ('refunded') THEN 1 END)  AS refunded,\n       ROUND(100 * AVG(discount_code IS NOT NULL), 1)      AS pct_with_discount\nFROM orders",
+     "status": "ok",
+     "columns": [
+      "all_orders",
+      "delivered",
+      "cancelled",
+      "refunded",
+      "pct_with_discount"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       80,
+       "45",
+       "8",
+       5,
+       "55.0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:e3a2374ea9ef": {
+   "statements": [
+    {
+     "sql": "SELECT SUM(quantity * unit_price)       AS gross_item_revenue,\n       SUM(quantity)                    AS units_sold,\n       ROUND(SUM(quantity * unit_price) / SUM(quantity), 2) AS avg_price_per_unit\nFROM order_items",
+     "status": "ok",
+     "columns": [
+      "gross_item_revenue",
+      "units_sold",
+      "avg_price_per_unit"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "68697.85",
+       "302",
+       "227.48"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:c5acaece0d73": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM sensor_readings ORDER BY reading_id",
+     "status": "ok",
+     "columns": [
+      "reading_id",
+      "sensor",
+      "celsius"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "north",
+       "20.00"
+      ],
+      [
+       2,
+       "north",
+       "22.00"
+      ],
+      [
+       3,
+       "south",
+       null
+      ],
+      [
+       4,
+       "south",
+       "24.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:de7edcc55b1b": {
+   "statements": [
+    {
+     "sql": "SELECT reading_id, celsius,\n       COUNT(*)       OVER w AS count_star,\n       COUNT(celsius) OVER w AS count_celsius,\n       SUM(celsius)   OVER w AS running_sum,\n       MAX(celsius)   OVER w AS running_max\nFROM sensor_readings\nWINDOW w AS (ORDER BY reading_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)",
+     "status": "ok",
+     "columns": [
+      "reading_id",
+      "celsius",
+      "count_star",
+      "count_celsius",
+      "running_sum",
+      "running_max"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "20.00",
+       1,
+       1,
+       "20.00",
+       "20.00"
+      ],
+      [
+       2,
+       "22.00",
+       2,
+       2,
+       "42.00",
+       "22.00"
+      ],
+      [
+       3,
+       null,
+       3,
+       2,
+       "42.00",
+       "22.00"
+      ],
+      [
+       4,
+       "24.00",
+       4,
+       3,
+       "66.00",
+       "24.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:31856415f716": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*), COUNT(celsius), SUM(celsius), AVG(celsius), MAX(celsius)\nFROM sensor_readings",
+     "status": "ok",
+     "columns": [
+      "COUNT(*)",
+      "COUNT(celsius)",
+      "SUM(celsius)",
+      "AVG(celsius)",
+      "MAX(celsius)"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4,
+       3,
+       "66.00",
+       "22.000000",
+       "24.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:077cea8e9cae": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT COUNT(*), SUM(stock_qty) FROM products WHERE is_active = TRUE",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), sum(products.stock_qty)  (cost=3.55 rows=1)\n    -> Filter: (products.is_active = true)  (cost=3.25 rows=3)\n        -> Table scan on products  (cost=3.25 rows=30)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:78d61777e1d7": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT MIN(order_date), MAX(order_date) FROM orders",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       "Select tables optimized away"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select min(`lab_85feb281674c601cffb1`.`orders`.`order_date`) AS `MIN(order_date)`,max(`lab_85feb281674c601cffb1`.`orders`.`order_date`) AS `MAX(order_date)` from `lab_85feb281674c601cffb1`.`orders`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:9171976de2fb": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS rows_read,\n       COUNT(celsius) AS readings,\n       AVG(celsius) AS avg_of_readings,\n       AVG(COALESCE(celsius, 0)) AS avg_if_missing_were_zero\nFROM sensor_readings",
+     "status": "ok",
+     "columns": [
+      "rows_read",
+      "readings",
+      "avg_of_readings",
+      "avg_if_missing_were_zero"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4,
+       3,
+       "22.000000",
+       "16.500000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:8ecca47a334b": {
+   "statements": [
+    {
+     "sql": "-- A: filter, then count rows (clearest when you need only this number)\nSELECT COUNT(*) AS cancelled FROM orders WHERE status = 'cancelled'",
+     "status": "ok",
+     "columns": [
+      "cancelled"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       8
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:36c88a53a53d": {
+   "statements": [
+    {
+     "sql": "-- B: conditional aggregation (best when you need several counts in one pass)\nSELECT SUM(status = 'cancelled') AS cancelled,\n       SUM(status = 'refunded')  AS refunded\nFROM orders",
+     "status": "ok",
+     "columns": [
+      "cancelled",
+      "refunded"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "8",
+       "5"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:55c7ae3903b1": {
+   "statements": [
+    {
+     "sql": "-- C: GROUP BY (best when you need the count for every status — next lesson)\nSELECT status, COUNT(*) AS n FROM orders GROUP BY status ORDER BY n DESC",
+     "status": "ok",
+     "columns": [
+      "status",
+      "n"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "delivered",
+       45
+      ],
+      [
+       "shipped",
+       14
+      ],
+      [
+       "cancelled",
+       8
+      ],
+      [
+       "paid",
+       6
+      ],
+      [
+       "refunded",
+       5
+      ],
+      [
+       "pending",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:2702f2772562": {
+   "statements": [
+    {
+     "sql": "SELECT EXISTS (SELECT 1 FROM orders WHERE customer_id = 23) AS has_orders,\n       EXISTS (SELECT 1 FROM orders WHERE customer_id = 1)  AS customer_1_has_orders",
+     "status": "ok",
+     "columns": [
+      "has_orders",
+      "customer_1_has_orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:9683d71e2733": {
+   "statements": [
+    {
+     "sql": "-- Wrong question answered: counts only orders that have shipped\nSELECT COUNT(shipped_at) AS \"orders?\" FROM orders",
+     "status": "ok",
+     "columns": [
+      "orders?"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       64
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:39eae1911dda": {
+   "statements": [
+    {
+     "sql": "-- Correct: count rows; count shipped orders separately and label it\nSELECT COUNT(*) AS orders, COUNT(shipped_at) AS shipped_orders FROM orders",
+     "status": "ok",
+     "columns": [
+      "orders",
+      "shipped_orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       80,
+       64
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:2d0fd7c19466": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM products WHERE price > AVG(price)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1111,
+      "message": "Invalid use of group function"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s22:6fe06a54bb17": {
+   "statements": [
+    {
+     "sql": "SELECT name, price\nFROM products\nWHERE price > (SELECT AVG(price) FROM products)\nORDER BY price DESC",
+     "status": "ok",
+     "columns": [
+      "name",
+      "price"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "Gaming Laptop 16",
+       "1799.00"
+      ],
+      [
+       "Ultrabook 14 Pro",
+       "1299.00"
+      ],
+      [
+       "Ultrabook 13 Air",
+       "999.00"
+      ],
+      [
+       "Espresso Machine",
+       "499.00"
+      ],
+      [
+       "27\" 4K Monitor",
+       "379.00"
+      ],
+      [
+       "Adjustable Dumbbells",
+       "299.00"
+      ],
+      [
+       "Noise-Cancelling Headphones",
+       "249.99"
+      ],
+      [
+       "Chromebook 11",
+       "249.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

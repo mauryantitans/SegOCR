@@ -1,0 +1,980 @@
+{
+ "doc": "m03-where-filtering",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:c81d87b3695b": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name, price\nFROM products\nWHERE price >= 300\nORDER BY price DESC",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       3,
+       "Gaming Laptop 16",
+       "1799.00"
+      ],
+      [
+       1,
+       "Ultrabook 14 Pro",
+       "1299.00"
+      ],
+      [
+       2,
+       "Ultrabook 13 Air",
+       "999.00"
+      ],
+      [
+       14,
+       "Espresso Machine",
+       "499.00"
+      ],
+      [
+       8,
+       "27\" 4K Monitor",
+       "379.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:a16f032ec0ed": {
+   "statements": [
+    {
+     "sql": "SELECT NULL = NULL      AS equals,\n       NULL <=> NULL    AS null_safe_equals,\n       1 <=> NULL       AS one_null_safe,\n       NULL IS NULL     AS is_null,\n       'Austin' = 'austin' AS case_insensitive",
+     "status": "ok",
+     "columns": [
+      "equals",
+      "null_safe_equals",
+      "one_null_safe",
+      "is_null",
+      "case_insensitive"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       null,
+       1,
+       0,
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:d50eae86263e": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, first_name, last_name, city, phone\nFROM customers\nWHERE state = 'CA'\n  AND phone IS NULL\nORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "last_name",
+      "city",
+      "phone"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       15,
+       "Fatima",
+       "Brown",
+       "Los Angeles",
+       null
+      ],
+      [
+       25,
+       "Chloe",
+       "Adeyemi",
+       "San Francisco",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:61339532c2b5": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, status, order_date\nFROM orders\nWHERE status IN ('pending', 'paid')\nORDER BY order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "order_date"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       4,
+       "paid",
+       "2024-11-09 19:09:00"
+      ],
+      [
+       11,
+       "paid",
+       "2024-06-28 18:56:00"
+      ],
+      [
+       18,
+       "paid",
+       "2024-08-25 19:23:00"
+      ],
+      [
+       29,
+       "pending",
+       "2024-11-29 12:36:00"
+      ],
+      [
+       36,
+       "pending",
+       "2024-08-14 13:04:00"
+      ],
+      [
+       44,
+       "paid",
+       "2024-01-28 11:12:00"
+      ],
+      [
+       69,
+       "paid",
+       "2024-12-01 19:06:00"
+      ],
+      [
+       72,
+       "paid",
+       "2024-02-23 17:51:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:7d22a00ac184": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name, price\nFROM products\nWHERE price BETWEEN 50 AND 100\nORDER BY price, product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       29,
+       "Gift Card $50",
+       "50.00"
+      ],
+      [
+       20,
+       "Database Internals (Book)",
+       "54.99"
+      ],
+      [
+       16,
+       "Pour-Over Kettle",
+       "59.00"
+      ],
+      [
+       22,
+       "High Performance MySQL",
+       "59.99"
+      ],
+      [
+       30,
+       "Webcam 1080p",
+       "69.99"
+      ],
+      [
+       11,
+       "Bluetooth Speaker",
+       "79.99"
+      ],
+      [
+       18,
+       "Chef's Knife",
+       "89.00"
+      ],
+      [
+       6,
+       "Mechanical Keyboard",
+       "89.99"
+      ],
+      [
+       28,
+       "Fitness Tracker",
+       "99.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:a797ec8f5c4a": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS n\nFROM orders\nWHERE status = 'delivered' OR status = 'shipped' AND discount_code = 'VIP20'",
+     "status": "ok",
+     "columns": [
+      "n"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       48
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:2ff4f663b153": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS n\nFROM orders\nWHERE status IN ('delivered', 'shipped')\n  AND discount_code = 'VIP20'",
+     "status": "ok",
+     "columns": [
+      "n"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       11
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:aa0c4c43b051": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)                                        AS all_orders,\n       SUM(discount_code = 'VIP20')                    AS vip20,\n       (SELECT COUNT(*) FROM orders WHERE discount_code <> 'VIP20') AS not_vip20_naive,\n       SUM(discount_code IS NULL)                      AS no_code\nFROM orders",
+     "status": "ok",
+     "columns": [
+      "all_orders",
+      "vip20",
+      "not_vip20_naive",
+      "no_code"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       80,
+       "15",
+       29,
+       "36"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:6d71a4d7d465": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS not_vip20_including_no_code\nFROM orders\nWHERE discount_code <> 'VIP20' OR discount_code IS NULL",
+     "status": "ok",
+     "columns": [
+      "not_vip20_including_no_code"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       65
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:25e560919136": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM products WHERE category_id NOT IN (3, 4))       AS not_in_3_4,\n       (SELECT COUNT(*) FROM products WHERE category_id NOT IN (3, 4, NULL)) AS with_null_in_list,\n       (SELECT COUNT(*) FROM products WHERE category_id IS NULL)              AS null_category",
+     "status": "ok",
+     "columns": [
+      "not_in_3_4",
+      "with_null_in_list",
+      "null_category"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20,
+       0,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:262c75327263": {
+   "statements": [
+    {
+     "sql": "SELECT CAST('2024-10-31' AS DATETIME) AS how_mysql_reads_the_bound",
+     "status": "ok",
+     "columns": [
+      "how_mysql_reads_the_bound"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-10-31 00:00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:8f1691bf4daa": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM orders\n        WHERE order_date BETWEEN '2024-10-01' AND '2024-10-31')            AS between_oct,\n       (SELECT COUNT(*) FROM orders\n        WHERE order_date >= '2024-10-01' AND order_date < '2024-11-01')    AS half_open_oct",
+     "status": "ok",
+     "columns": [
+      "between_oct",
+      "half_open_oct"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2,
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:3164f43b07bf": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, order_date\nFROM orders\nWHERE order_date >= '2024-10-31' AND order_date < '2024-11-01'",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_date"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "2024-10-31 09:09:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:d71735c45399": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, order_date, status\nFROM orders\nWHERE YEAR(order_date) = 2024 AND MONTH(order_date) = 12\nORDER BY order_date",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_date",
+      "status"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       69,
+       "2024-12-01 19:06:00",
+       "paid"
+      ],
+      [
+       48,
+       "2024-12-03 16:21:00",
+       "delivered"
+      ],
+      [
+       28,
+       "2024-12-04 14:19:00",
+       "delivered"
+      ],
+      [
+       9,
+       "2024-12-08 12:14:00",
+       "delivered"
+      ],
+      [
+       51,
+       "2024-12-20 14:47:00",
+       "cancelled"
+      ],
+      [
+       53,
+       "2024-12-21 13:06:00",
+       "delivered"
+      ],
+      [
+       17,
+       "2024-12-22 14:33:00",
+       "shipped"
+      ],
+      [
+       61,
+       "2024-12-24 13:09:00",
+       "cancelled"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:1bad290cfc53": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, order_date, status\nFROM orders\nWHERE order_date >= '2024-12-01'\n  AND order_date <  '2024-12-01' + INTERVAL 1 MONTH\nORDER BY order_date",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_date",
+      "status"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       69,
+       "2024-12-01 19:06:00",
+       "paid"
+      ],
+      [
+       48,
+       "2024-12-03 16:21:00",
+       "delivered"
+      ],
+      [
+       28,
+       "2024-12-04 14:19:00",
+       "delivered"
+      ],
+      [
+       9,
+       "2024-12-08 12:14:00",
+       "delivered"
+      ],
+      [
+       51,
+       "2024-12-20 14:47:00",
+       "cancelled"
+      ],
+      [
+       53,
+       "2024-12-21 13:06:00",
+       "delivered"
+      ],
+      [
+       17,
+       "2024-12-22 14:33:00",
+       "shipped"
+      ],
+      [
+       61,
+       "2024-12-24 13:09:00",
+       "cancelled"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:b3141bf24606": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, first_name, city, state\nFROM customers\nWHERE (city, state) IN (('Austin', 'TX'), ('Boston', 'MA'))\n  AND NOT (loyalty_tier = 'bronze')\nORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "city",
+      "state"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       4,
+       "Diego",
+       "Austin",
+       "TX"
+      ],
+      [
+       12,
+       "Nina",
+       "Austin",
+       "TX"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:5f0dc67d2a48": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS input_rows FROM orders",
+     "status": "ok",
+     "columns": [
+      "input_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       80
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:5d24ed1d7c53": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, status, order_date\nFROM orders\nWHERE order_date >= '2024-12-01' AND order_date < '2025-01-01'\nORDER BY order_date",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "order_date"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       69,
+       "paid",
+       "2024-12-01 19:06:00"
+      ],
+      [
+       48,
+       "delivered",
+       "2024-12-03 16:21:00"
+      ],
+      [
+       28,
+       "delivered",
+       "2024-12-04 14:19:00"
+      ],
+      [
+       9,
+       "delivered",
+       "2024-12-08 12:14:00"
+      ],
+      [
+       51,
+       "cancelled",
+       "2024-12-20 14:47:00"
+      ],
+      [
+       53,
+       "delivered",
+       "2024-12-21 13:06:00"
+      ],
+      [
+       17,
+       "shipped",
+       "2024-12-22 14:33:00"
+      ],
+      [
+       61,
+       "cancelled",
+       "2024-12-24 13:09:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:65b3604315fe": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, status, status IN ('delivered', 'shipped') AS predicate_value\nFROM orders\nWHERE order_date >= '2024-12-01' AND order_date < '2025-01-01'\nORDER BY order_date",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "predicate_value"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       69,
+       "paid",
+       0
+      ],
+      [
+       48,
+       "delivered",
+       1
+      ],
+      [
+       28,
+       "delivered",
+       1
+      ],
+      [
+       9,
+       "delivered",
+       1
+      ],
+      [
+       51,
+       "cancelled",
+       0
+      ],
+      [
+       53,
+       "delivered",
+       1
+      ],
+      [
+       17,
+       "shipped",
+       1
+      ],
+      [
+       61,
+       "cancelled",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:e9a59918b776": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, status, order_date\nFROM orders\nWHERE status IN ('delivered', 'shipped')\n  AND order_date >= '2024-12-01' AND order_date < '2025-01-01'\nORDER BY order_date",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "order_date"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       48,
+       "delivered",
+       "2024-12-03 16:21:00"
+      ],
+      [
+       28,
+       "delivered",
+       "2024-12-04 14:19:00"
+      ],
+      [
+       9,
+       "delivered",
+       "2024-12-08 12:14:00"
+      ],
+      [
+       53,
+       "delivered",
+       "2024-12-21 13:06:00"
+      ],
+      [
+       17,
+       "shipped",
+       "2024-12-22 14:33:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:f7c93541a63d": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id, status, order_date\nFROM orders\nWHERE status IN ('delivered', 'shipped')\n  AND order_date >= '2024-12-01' AND order_date < '2025-01-01'\nORDER BY order_date",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (orders.`status` in ('delivered','shipped'))  (cost=3.86 rows=2.67)\n    -> Index range scan on orders using idx_orders_date over ('2024-12-01 00:00:00' <= order_date < '2025-01-01 00:00:00'), with index condition: ((orders.order_date >= TIMESTAMP'2024-12-01 00:00:00') and (orders.order_date < TIMESTAMP'2025-01-01 00:00:00'))  (cost=3.86 rows=8)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:b107e9df8a95": {
+   "statements": [
+    {
+     "sql": "SELECT SUM(discount_code = 'VIP20')               AS p_true,\n       SUM(NOT (discount_code = 'VIP20'))         AS p_false,\n       SUM((discount_code = 'VIP20') IS NULL)     AS p_unknown,\n       COUNT(*)                                   AS total\nFROM orders",
+     "status": "ok",
+     "columns": [
+      "p_true",
+      "p_false",
+      "p_unknown",
+      "total"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "15",
+       "29",
+       "36",
+       80
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:241dd3ed7dcc": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT order_id FROM orders\nWHERE YEAR(order_date) = 2024 AND MONTH(order_date) = 12",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "index",
+       null,
+       "idx_orders_date",
+       "5",
+       null,
+       80,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_95955c983b430cedc485`.`orders`.`order_id` AS `order_id` from `lab_95955c983b430cedc485`.`orders` where ((year(`lab_95955c983b430cedc485`.`orders`.`order_date`) = 2024) and (month(`lab_95955c983b430cedc485`.`orders`.`order_date`) = 12))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:e37aa56e9940": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT order_id FROM orders\nWHERE order_date >= '2024-12-01' AND order_date < '2025-01-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "range",
+       "idx_orders_date",
+       "idx_orders_date",
+       "5",
+       null,
+       8,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_95955c983b430cedc485`.`orders`.`order_id` AS `order_id` from `lab_95955c983b430cedc485`.`orders` where ((`lab_95955c983b430cedc485`.`orders`.`order_date` >= TIMESTAMP'2024-12-01 00:00:00') and (`lab_95955c983b430cedc485`.`orders`.`order_date` < TIMESTAMP'2025-01-01 00:00:00'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:3d86ea5f673c": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS wrong FROM customers WHERE phone = NULL",
+     "status": "ok",
+     "columns": [
+      "wrong"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s24:8baad56ec216": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS customers_without_phone FROM customers WHERE phone IS NULL",
+     "status": "ok",
+     "columns": [
+      "customers_without_phone"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s25:71c367d73ff2": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS matches FROM customers WHERE first_name = 0",
+     "status": "ok",
+     "columns": [
+      "matches"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'Amara'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'Kwame'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'Diego'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'Diego'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'Grace'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'Sofia'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'Nina'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'Hiro'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'Diego'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'Lucas'"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s26:9e2f0e534cf5": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS n FROM products WHERE price BETWEEN 100 AND 50",
+     "status": "ok",
+     "columns": [
+      "n"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s27:1b90962e033b": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id FROM orders WHERE COUNT(*) > 3",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1111,
+      "message": "Invalid use of group function"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

@@ -1,0 +1,1213 @@
+{
+ "doc": "m03-select-basics",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:bf5d4905dd52": {
+   "statements": [
+    {
+     "sql": "SELECT last_name, first_name, city\nFROM customers\nORDER BY customer_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "last_name",
+      "first_name",
+      "city"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Sharma",
+       "Amara",
+       "Austin"
+      ],
+      [
+       "Garcia",
+       "Kwame",
+       "Boston"
+      ],
+      [
+       "Haddad",
+       "Diego",
+       "San Jose"
+      ],
+      [
+       "Lopez",
+       "Diego",
+       "Austin"
+      ],
+      [
+       "Smith",
+       "Grace",
+       "Seattle"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:7eb76021b8b6": {
+   "statements": [
+    {
+     "sql": "SELECT name,\n       price,\n       cost,\n       price - cost                          AS unit_margin,\n       ROUND((price - cost) / price * 100, 1) AS margin_pct,\n       price * 1.0825                        AS price_with_tax\nFROM products\nORDER BY product_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "name",
+      "price",
+      "cost",
+      "unit_margin",
+      "margin_pct",
+      "price_with_tax"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Ultrabook 14 Pro",
+       "1299.00",
+       "841.65",
+       "457.35",
+       "35.2",
+       "1406.167500"
+      ],
+      [
+       "Ultrabook 13 Air",
+       "999.00",
+       "528.99",
+       "470.01",
+       "47.0",
+       "1081.417500"
+      ],
+      [
+       "Gaming Laptop 16",
+       "1799.00",
+       "1310.88",
+       "488.12",
+       "27.1",
+       "1947.417500"
+      ],
+      [
+       "Chromebook 11",
+       "249.00",
+       "141.85",
+       "107.15",
+       "43.0",
+       "269.542500"
+      ],
+      [
+       "Wireless Mouse",
+       "29.99",
+       "21.59",
+       "8.40",
+       "28.0",
+       "32.464175"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:bb20a7028cec": {
+   "statements": [
+    {
+     "sql": "SELECT CONCAT(first_name, ' ', last_name)    AS full_name,\n       CONCAT_WS(', ', city, state)         AS location,\n       UPPER(state)                         AS state_code,\n       LOWER(email)                         AS email\nFROM customers\nORDER BY customer_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "full_name",
+      "location",
+      "state_code",
+      "email"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Amara Sharma",
+       "Austin, TX",
+       "TX",
+       "amara.sharma1@example.com"
+      ],
+      [
+       "Kwame Garcia",
+       "Boston, MA",
+       "MA",
+       "kwame.garcia2@example.com"
+      ],
+      [
+       "Diego Haddad",
+       "San Jose, CA",
+       "CA",
+       "diego.haddad3@example.com"
+      ],
+      [
+       "Diego Lopez",
+       "Austin, TX",
+       "TX",
+       "diego.lopez4@example.com"
+      ],
+      [
+       "Grace Smith",
+       "Seattle, WA",
+       "WA",
+       "grace.smith5@example.com"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:af0a8707052d": {
+   "statements": [
+    {
+     "sql": "SELECT 7 / 2 AS decimal_division,\n       7 DIV 2 AS integer_division,\n       7 % 2 AS remainder,\n       NULL + 1 AS null_arithmetic,\n       CONCAT('a', NULL) AS null_concat",
+     "status": "ok",
+     "columns": [
+      "decimal_division",
+      "integer_division",
+      "remainder",
+      "null_arithmetic",
+      "null_concat"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "3.5000",
+       3,
+       1,
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:582d98cc03e6": {
+   "statements": [
+    {
+     "sql": "SELECT DISTINCT state\nFROM customers\nORDER BY state",
+     "status": "ok",
+     "columns": [
+      "state"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "CA"
+      ],
+      [
+       "IL"
+      ],
+      [
+       "MA"
+      ],
+      [
+       "NY"
+      ],
+      [
+       "TX"
+      ],
+      [
+       "WA"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:34f0e417da5e": {
+   "statements": [
+    {
+     "sql": "SELECT product_id AS id,\n       sku,\n       name       AS title,\n       price      AS list_price,\n       stock_qty > 0 AS in_stock\nFROM products\nORDER BY product_id\nLIMIT 6",
+     "status": "ok",
+     "columns": [
+      "id",
+      "sku",
+      "title",
+      "list_price",
+      "in_stock"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "SKU-1001",
+       "Ultrabook 14 Pro",
+       "1299.00",
+       1
+      ],
+      [
+       2,
+       "SKU-1002",
+       "Ultrabook 13 Air",
+       "999.00",
+       1
+      ],
+      [
+       3,
+       "SKU-1003",
+       "Gaming Laptop 16",
+       "1799.00",
+       1
+      ],
+      [
+       4,
+       "SKU-1004",
+       "Chromebook 11",
+       "249.00",
+       0
+      ],
+      [
+       5,
+       "SKU-1005",
+       "Wireless Mouse",
+       "29.99",
+       1
+      ],
+      [
+       6,
+       "SKU-1006",
+       "Mechanical Keyboard",
+       "89.99",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:081906634569": {
+   "statements": [
+    {
+     "sql": "SELECT o.order_id,\n       o.order_date,\n       c.first_name,\n       c.last_name,\n       o.status\nFROM orders AS o\nJOIN customers AS c ON c.customer_id = o.customer_id\nORDER BY o.order_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_date",
+      "first_name",
+      "last_name",
+      "status"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "2024-10-31 09:09:00",
+       "Diego",
+       "Haddad",
+       "cancelled"
+      ],
+      [
+       2,
+       "2024-10-16 16:55:00",
+       "Lucia",
+       "Moradi",
+       "delivered"
+      ],
+      [
+       3,
+       "2024-04-19 16:38:00",
+       "Leila",
+       "Martin",
+       "delivered"
+      ],
+      [
+       4,
+       "2024-11-09 19:09:00",
+       "Lucas",
+       "Lin",
+       "paid"
+      ],
+      [
+       5,
+       "2024-04-14 19:43:00",
+       "Grace",
+       "Berg",
+       "cancelled"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:760f1b0bf6f2": {
+   "statements": [
+    {
+     "sql": "SELECT DISTINCT city, state\nFROM customers\nORDER BY state, city",
+     "status": "ok",
+     "columns": [
+      "city",
+      "state"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "Los Angeles",
+       "CA"
+      ],
+      [
+       "San Francisco",
+       "CA"
+      ],
+      [
+       "San Jose",
+       "CA"
+      ],
+      [
+       "Chicago",
+       "IL"
+      ],
+      [
+       "Boston",
+       "MA"
+      ],
+      [
+       "New York",
+       "NY"
+      ],
+      [
+       "Austin",
+       "TX"
+      ],
+      [
+       "Seattle",
+       "WA"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:31932418703e": {
+   "statements": [
+    {
+     "sql": "SELECT DISTINCT loyalty_tier\nFROM customers\nORDER BY loyalty_tier",
+     "status": "ok",
+     "columns": [
+      "loyalty_tier"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       null
+      ],
+      [
+       "bronze"
+      ],
+      [
+       "silver"
+      ],
+      [
+       "gold"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:13192ccbd96d": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(DISTINCT loyalty_tier) AS distinct_non_null_tiers,\n       (SELECT COUNT(*) FROM (SELECT DISTINCT loyalty_tier FROM customers) AS d) AS distinct_rows_including_null\nFROM customers",
+     "status": "ok",
+     "columns": [
+      "distinct_non_null_tiers",
+      "distinct_rows_including_null"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3,
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:2a041f0a8e6a": {
+   "statements": [
+    {
+     "sql": "SELECT DISTINCT status\nFROM orders\nORDER BY status",
+     "status": "ok",
+     "columns": [
+      "status"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "pending"
+      ],
+      [
+       "paid"
+      ],
+      [
+       "shipped"
+      ],
+      [
+       "delivered"
+      ],
+      [
+       "cancelled"
+      ],
+      [
+       "refunded"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:b0ee509fa4d9": {
+   "statements": [
+    {
+     "sql": "TABLE categories ORDER BY category_id LIMIT 4",
+     "status": "ok",
+     "columns": [
+      "category_id",
+      "name",
+      "parent_id"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "Electronics",
+       null
+      ],
+      [
+       2,
+       "Computers",
+       1
+      ],
+      [
+       3,
+       "Laptops",
+       2
+      ],
+      [
+       4,
+       "Accessories",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:7b1da63afb3d": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, first_name, city, state, loyalty_tier FROM customers ORDER BY customer_id LIMIT 8",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "city",
+      "state",
+      "loyalty_tier"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       1,
+       "Amara",
+       "Austin",
+       "TX",
+       "bronze"
+      ],
+      [
+       2,
+       "Kwame",
+       "Boston",
+       "MA",
+       "bronze"
+      ],
+      [
+       3,
+       "Diego",
+       "San Jose",
+       "CA",
+       null
+      ],
+      [
+       4,
+       "Diego",
+       "Austin",
+       "TX",
+       "gold"
+      ],
+      [
+       5,
+       "Grace",
+       "Seattle",
+       "WA",
+       "silver"
+      ],
+      [
+       6,
+       "Sofia",
+       "San Francisco",
+       "CA",
+       "silver"
+      ],
+      [
+       7,
+       "Nina",
+       "San Francisco",
+       "CA",
+       "silver"
+      ],
+      [
+       8,
+       "Hiro",
+       "San Francisco",
+       "CA",
+       "silver"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:ac79f2024271": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, first_name, city, state, loyalty_tier FROM customers WHERE loyalty_tier = 'silver' ORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "city",
+      "state",
+      "loyalty_tier"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       5,
+       "Grace",
+       "Seattle",
+       "WA",
+       "silver"
+      ],
+      [
+       6,
+       "Sofia",
+       "San Francisco",
+       "CA",
+       "silver"
+      ],
+      [
+       7,
+       "Nina",
+       "San Francisco",
+       "CA",
+       "silver"
+      ],
+      [
+       8,
+       "Hiro",
+       "San Francisco",
+       "CA",
+       "silver"
+      ],
+      [
+       12,
+       "Nina",
+       "Austin",
+       "TX",
+       "silver"
+      ],
+      [
+       13,
+       "Diego",
+       "San Jose",
+       "CA",
+       "silver"
+      ],
+      [
+       19,
+       "Lucia",
+       "San Jose",
+       "CA",
+       "silver"
+      ],
+      [
+       23,
+       "Victor",
+       "Chicago",
+       "IL",
+       "silver"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:2e30ce0e25e7": {
+   "statements": [
+    {
+     "sql": "SELECT city, state AS st FROM customers WHERE loyalty_tier = 'silver' ORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "city",
+      "st"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "Seattle",
+       "WA"
+      ],
+      [
+       "San Francisco",
+       "CA"
+      ],
+      [
+       "San Francisco",
+       "CA"
+      ],
+      [
+       "San Francisco",
+       "CA"
+      ],
+      [
+       "Austin",
+       "TX"
+      ],
+      [
+       "San Jose",
+       "CA"
+      ],
+      [
+       "San Jose",
+       "CA"
+      ],
+      [
+       "Chicago",
+       "IL"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:390f0ab1e817": {
+   "statements": [
+    {
+     "sql": "SELECT DISTINCT city, state AS st FROM customers WHERE loyalty_tier = 'silver'",
+     "status": "ok",
+     "columns": [
+      "city",
+      "st"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Seattle",
+       "WA"
+      ],
+      [
+       "San Francisco",
+       "CA"
+      ],
+      [
+       "Austin",
+       "TX"
+      ],
+      [
+       "San Jose",
+       "CA"
+      ],
+      [
+       "Chicago",
+       "IL"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:d6d37cbbb3ae": {
+   "statements": [
+    {
+     "sql": "SELECT DISTINCT city, state AS st FROM customers WHERE loyalty_tier = 'silver' ORDER BY st, city",
+     "status": "ok",
+     "columns": [
+      "city",
+      "st"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "San Francisco",
+       "CA"
+      ],
+      [
+       "San Jose",
+       "CA"
+      ],
+      [
+       "Chicago",
+       "IL"
+      ],
+      [
+       "Austin",
+       "TX"
+      ],
+      [
+       "Seattle",
+       "WA"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:44b7e8ad1763": {
+   "statements": [
+    {
+     "sql": "SELECT DISTINCT city, state AS st FROM customers WHERE loyalty_tier = 'silver' ORDER BY st, city LIMIT 4",
+     "status": "ok",
+     "columns": [
+      "city",
+      "st"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "San Francisco",
+       "CA"
+      ],
+      [
+       "San Jose",
+       "CA"
+      ],
+      [
+       "Chicago",
+       "IL"
+      ],
+      [
+       "Austin",
+       "TX"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:6dcabf6d7f71": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT DISTINCT city, state AS st\nFROM customers\nWHERE loyalty_tier = 'silver'\nORDER BY st, city\nLIMIT 4",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 4 row(s)\n    -> Sort: customers.state, customers.city, limit input to 4 row(s) per chunk\n        -> Table scan on <temporary>  (cost=3.9..6.18 rows=8.33)\n            -> Temporary table with deduplication  (cost=3.58..3.58 rows=8.33)\n                -> Filter: (customers.loyalty_tier = 'silver')  (cost=2.75 rows=8.33)\n                    -> Table scan on customers  (cost=2.75 rows=25)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:8e5138adc301": {
+   "statements": [
+    {
+     "sql": "SELECT price - cost, price - cost AS unit_margin\nFROM products\nORDER BY product_id\nLIMIT 3",
+     "status": "ok",
+     "columns": [
+      "price - cost",
+      "unit_margin"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "457.35",
+       "457.35"
+      ],
+      [
+       "470.01",
+       "470.01"
+      ],
+      [
+       "488.12",
+       "488.12"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:8e7e85052d12": {
+   "statements": [
+    {
+     "sql": "SELECT city, state FROM customers GROUP BY city, state ORDER BY state, city LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "city",
+      "state"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Los Angeles",
+       "CA"
+      ],
+      [
+       "San Francisco",
+       "CA"
+      ],
+      [
+       "San Jose",
+       "CA"
+      ],
+      [
+       "Chicago",
+       "IL"
+      ],
+      [
+       "Boston",
+       "MA"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:f68fed0fd3bc": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT order_id, customer_id FROM orders WHERE customer_id = 18",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "ref",
+       "idx_orders_customer",
+       "idx_orders_customer",
+       "4",
+       "const",
+       8,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_ccb011cae666282e2d74`.`orders`.`order_id` AS `order_id`,`lab_ccb011cae666282e2d74`.`orders`.`customer_id` AS `customer_id` from `lab_ccb011cae666282e2d74`.`orders` where (`lab_ccb011cae666282e2d74`.`orders`.`customer_id` = 18)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:1753c2d07e63": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM orders WHERE customer_id = 18",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "ref",
+       "idx_orders_customer",
+       "idx_orders_customer",
+       "4",
+       "const",
+       8,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_ccb011cae666282e2d74`.`orders`.`order_id` AS `order_id`,`lab_ccb011cae666282e2d74`.`orders`.`customer_id` AS `customer_id`,`lab_ccb011cae666282e2d74`.`orders`.`order_date` AS `order_date`,`lab_ccb011cae666282e2d74`.`orders`.`status` AS `status`,`lab_ccb011cae666282e2d74`.`orders`.`shipped_at` AS `shipped_at`,`lab_ccb011cae666282e2d74`.`orders`.`discount_code` AS `discount_code` from `lab_ccb011cae666282e2d74`.`orders` where (`lab_ccb011cae666282e2d74`.`orders`.`customer_id` = 18)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:fd98027a3d0c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT DISTINCT customer_id FROM orders",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "range",
+       "idx_orders_customer",
+       "idx_orders_customer",
+       "4",
+       null,
+       21,
+       100.0,
+       "Using index for group-by"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select distinct `lab_ccb011cae666282e2d74`.`orders`.`customer_id` AS `customer_id` from `lab_ccb011cae666282e2d74`.`orders`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:7efd16d0c16b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT DISTINCT city FROM customers",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "customers",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       25,
+       100.0,
+       "Using temporary"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select distinct `lab_ccb011cae666282e2d74`.`customers`.`city` AS `city` from `lab_ccb011cae666282e2d74`.`customers`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:886818adb49d": {
+   "statements": [
+    {
+     "sql": "-- Intended: first_name and last_name. Actual: first_name, labelled \"last_name\"\nSELECT first_name last_name\nFROM customers\nORDER BY customer_id\nLIMIT 3",
+     "status": "ok",
+     "columns": [
+      "last_name"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Amara"
+      ],
+      [
+       "Kwame"
+      ],
+      [
+       "Diego"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:876289dc568d": {
+   "statements": [
+    {
+     "sql": "SELECT first_name || ' ' || last_name AS full_name\nFROM customers\nORDER BY customer_id\nLIMIT 2",
+     "status": "ok",
+     "columns": [
+      "full_name"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       0
+      ],
+      [
+       0
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'|| as a synonym for OR' is deprecated and will be removed in a future release. Please use OR instead"
+      },
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'|| as a synonym for OR' is deprecated and will be removed in a future release. Please use OR instead"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'Amara'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'Sharma'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'Kwame'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'Garcia'"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s24:a95f000eb971": {
+   "statements": [
+    {
+     "sql": "SELECT CONCAT(first_name, ' ', last_name) AS full_name\nFROM customers\nORDER BY customer_id\nLIMIT 2",
+     "status": "ok",
+     "columns": [
+      "full_name"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Amara Sharma"
+      ],
+      [
+       "Kwame Garcia"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s25:cc530aafba1d": {
+   "statements": [
+    {
+     "sql": "SELECT name, price - cost AS unit_margin\nFROM products\nWHERE unit_margin > 100",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1054,
+      "message": "Unknown column 'unit_margin' in 'where clause'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s26:f7ff3a6f6a5a": {
+   "statements": [
+    {
+     "sql": "SELECT price - cost AS unit_margin,\n       unit_margin / price AS margin_ratio\nFROM products",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1054,
+      "message": "Unknown column 'unit_margin' in 'field list'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s27:0e5a40cd125c": {
+   "statements": [
+    {
+     "sql": "SELECT orders.order_id FROM orders AS o",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1054,
+      "message": "Unknown column 'orders.order_id' in 'field list'"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

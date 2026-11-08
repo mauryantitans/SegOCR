@@ -1,0 +1,712 @@
+{
+ "doc": "m04-multi-table-joins",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:1433a1215228": {
+   "statements": [
+    {
+     "sql": "SELECT c.state, ca.name AS category,\n       SUM(oi.quantity * oi.unit_price) AS revenue,\n       COUNT(DISTINCT o.order_id)       AS orders\nFROM customers   AS c\nJOIN orders      AS o  ON o.customer_id  = c.customer_id\nJOIN order_items AS oi ON oi.order_id    = o.order_id\nJOIN products    AS p  ON p.product_id   = oi.product_id\nJOIN categories  AS ca ON ca.category_id = p.category_id\nWHERE ca.name = 'Coffee'\nGROUP BY c.state, ca.name\nORDER BY revenue DESC",
+     "status": "ok",
+     "columns": [
+      "state",
+      "category",
+      "revenue",
+      "orders"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "CA",
+       "Coffee",
+       "6166.85",
+       10
+      ],
+      [
+       "NY",
+       "Coffee",
+       "1413.10",
+       6
+      ],
+      [
+       "TX",
+       "Coffee",
+       "748.50",
+       3
+      ],
+      [
+       "WA",
+       "Coffee",
+       "163.50",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:34d4673a08fe": {
+   "statements": [
+    {
+     "sql": "-- WRONG: joins two independent one-to-many relationships of orders\nSELECT o.customer_id,\n       SUM(oi.quantity * oi.unit_price) AS item_revenue,\n       SUM(p.amount)                    AS amount_paid,\n       COUNT(*)                         AS joined_rows\nFROM orders AS o\nJOIN order_items AS oi ON oi.order_id = o.order_id\nJOIN payments    AS p  ON p.order_id  = o.order_id AND p.status = 'succeeded'\nWHERE o.customer_id IN (18, 19)\nGROUP BY o.customer_id\nORDER BY o.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "item_revenue",
+      "amount_paid",
+      "joined_rows"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       18,
+       "5713.27",
+       "13655.75",
+       14
+      ],
+      [
+       19,
+       "8448.82",
+       "21207.57",
+       17
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:9892fdd04b3b": {
+   "statements": [
+    {
+     "sql": "SELECT o.customer_id, SUM(p.amount) AS amount_paid, COUNT(*) AS payments\nFROM orders AS o\nJOIN payments AS p ON p.order_id = o.order_id AND p.status = 'succeeded'\nWHERE o.customer_id IN (18, 19)\nGROUP BY o.customer_id\nORDER BY o.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "amount_paid",
+      "payments"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       18,
+       "5713.27",
+       8
+      ],
+      [
+       19,
+       "8448.82",
+       7
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:5b1b1fe3ca85": {
+   "statements": [
+    {
+     "sql": "SELECT o.customer_id,\n       SUM(it.item_revenue)              AS item_revenue,\n       SUM(COALESCE(pay.amount_paid, 0)) AS amount_paid\nFROM orders AS o\nJOIN (SELECT order_id, SUM(quantity * unit_price) AS item_revenue\n      FROM order_items\n      GROUP BY order_id) AS it ON it.order_id = o.order_id\nLEFT JOIN (SELECT order_id, SUM(amount) AS amount_paid\n           FROM payments\n           WHERE status = 'succeeded'\n           GROUP BY order_id) AS pay ON pay.order_id = o.order_id\nWHERE o.customer_id IN (18, 19)\nGROUP BY o.customer_id\nORDER BY o.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "item_revenue",
+      "amount_paid"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       18,
+       "5713.27",
+       "5713.27"
+      ],
+      [
+       19,
+       "8528.80",
+       "8448.82"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:29eb6a7dff07": {
+   "statements": [
+    {
+     "sql": "SELECT p.product_id, p.name,\n       ca.name                     AS category,\n       COALESCE(s.units_sold, 0)   AS units_sold,\n       r.avg_rating,\n       COALESCE(r.reviews, 0)      AS reviews\nFROM products AS p\nLEFT JOIN categories AS ca ON ca.category_id = p.category_id\nLEFT JOIN (SELECT product_id, SUM(quantity) AS units_sold\n           FROM order_items GROUP BY product_id) AS s ON s.product_id = p.product_id\nLEFT JOIN (SELECT product_id, ROUND(AVG(rating), 2) AS avg_rating, COUNT(*) AS reviews\n           FROM reviews GROUP BY product_id) AS r ON r.product_id = p.product_id\nWHERE p.product_id IN (1, 4, 7, 14, 29)\nORDER BY p.product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "category",
+      "units_sold",
+      "avg_rating",
+      "reviews"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "Ultrabook 14 Pro",
+       "Laptops",
+       "19",
+       "3.00",
+       2
+      ],
+      [
+       4,
+       "Chromebook 11",
+       "Laptops",
+       "0",
+       null,
+       0
+      ],
+      [
+       7,
+       "USB-C Hub 7-in-1",
+       "Accessories",
+       "0",
+       null,
+       0
+      ],
+      [
+       14,
+       "Espresso Machine",
+       "Coffee",
+       "13",
+       "4.50",
+       2
+      ],
+      [
+       29,
+       "Gift Card $50",
+       null,
+       "13",
+       "3.33",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:2bc3ebaa0ee8": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE price_bands (\n  band      VARCHAR(10) PRIMARY KEY,\n  min_price DECIMAL(10,2) NOT NULL,\n  max_price DECIMAL(10,2) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO price_bands VALUES\n  ('budget', 0.00, 49.99), ('mid', 50.00, 199.99), ('premium', 200.00, 999.99), ('luxury', 1000.00, 99999.99)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT b.band, COUNT(*) AS products, MIN(p.price) AS cheapest, MAX(p.price) AS dearest\nFROM products AS p\nJOIN price_bands AS b ON p.price BETWEEN b.min_price AND b.max_price\nGROUP BY b.band, b.min_price\nORDER BY b.min_price",
+     "status": "ok",
+     "columns": [
+      "band",
+      "products",
+      "cheapest",
+      "dearest"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "budget",
+       10,
+       "18.99",
+       "49.99"
+      ],
+      [
+       "mid",
+       12,
+       "50.00",
+       "149.00"
+      ],
+      [
+       "premium",
+       6,
+       "249.00",
+       "999.00"
+      ],
+      [
+       "luxury",
+       2,
+       "1299.00",
+       "1799.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:dfa6eee16104": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS products,\n       COUNT(b.band) AS products_with_a_band,\n       COUNT(*) - COUNT(DISTINCT p.product_id) AS duplicated_by_overlap\nFROM products AS p\nLEFT JOIN price_bands AS b ON p.price BETWEEN b.min_price AND b.max_price",
+     "status": "ok",
+     "columns": [
+      "products",
+      "products_with_a_band",
+      "duplicated_by_overlap"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       30,
+       30,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:8ab7db82519f": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS items_below_list_price\nFROM order_items AS oi\nJOIN products AS p ON p.product_id = oi.product_id AND oi.unit_price < p.price",
+     "status": "ok",
+     "columns": [
+      "items_below_list_price"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       26
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:a12f920b5542": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, product_id, quantity, unit_price, quantity * unit_price AS line_total\nFROM order_items WHERE order_id = 2 ORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "product_id",
+      "quantity",
+      "unit_price",
+      "line_total"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       2,
+       9,
+       1,
+       "39.99",
+       "39.99"
+      ],
+      [
+       2,
+       10,
+       1,
+       "224.99",
+       "224.99"
+      ],
+      [
+       2,
+       12,
+       1,
+       "129.99",
+       "129.99"
+      ],
+      [
+       2,
+       14,
+       3,
+       "499.00",
+       "1497.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:be17aa867e9c": {
+   "statements": [
+    {
+     "sql": "SELECT payment_id, order_id, amount, status FROM payments WHERE order_id = 2",
+     "status": "ok",
+     "columns": [
+      "payment_id",
+      "order_id",
+      "amount",
+      "status"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       2,
+       "1891.97",
+       "succeeded"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:c0e6380ff31a": {
+   "statements": [
+    {
+     "sql": "SELECT oi.order_id, oi.product_id, oi.quantity * oi.unit_price AS line_total, p.payment_id, p.amount\nFROM order_items oi JOIN payments p ON p.order_id = oi.order_id\nWHERE oi.order_id = 2\nORDER BY oi.product_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "product_id",
+      "line_total",
+      "payment_id",
+      "amount"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       2,
+       9,
+       "39.99",
+       1,
+       "1891.97"
+      ],
+      [
+       2,
+       10,
+       "224.99",
+       1,
+       "1891.97"
+      ],
+      [
+       2,
+       12,
+       "129.99",
+       1,
+       "1891.97"
+      ],
+      [
+       2,
+       14,
+       "1497.00",
+       1,
+       "1891.97"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:fc4f49ea140b": {
+   "statements": [
+    {
+     "sql": "SELECT SUM(oi.quantity * oi.unit_price) AS item_revenue,\n       SUM(p.amount) AS inflated_paid,\n       COUNT(*) AS joined_rows,\n       (SELECT SUM(amount) FROM payments WHERE order_id = 2) AS true_paid\nFROM order_items oi JOIN payments p ON p.order_id = oi.order_id\nWHERE oi.order_id = 2",
+     "status": "ok",
+     "columns": [
+      "item_revenue",
+      "inflated_paid",
+      "joined_rows",
+      "true_paid"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "1891.97",
+       "7567.88",
+       4,
+       "1891.97"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:acfdbce29aac": {
+   "statements": [
+    {
+     "sql": "SELECT it.order_id, it.item_revenue, pay.amount_paid\nFROM (SELECT order_id, SUM(quantity * unit_price) AS item_revenue FROM order_items WHERE order_id = 2 GROUP BY order_id) it\nJOIN (SELECT order_id, SUM(amount) AS amount_paid FROM payments WHERE order_id = 2 GROUP BY order_id) pay\n  ON pay.order_id = it.order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "item_revenue",
+      "amount_paid"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2,
+       "1891.97",
+       "1891.97"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:40cc41c2b27d": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT c.state, SUM(oi.quantity * oi.unit_price) AS revenue\nFROM customers   AS c\nJOIN orders      AS o  ON o.customer_id  = c.customer_id\nJOIN order_items AS oi ON oi.order_id    = o.order_id\nJOIN products    AS p  ON p.product_id   = oi.product_id\nJOIN categories  AS ca ON ca.category_id = p.category_id\nWHERE ca.name = 'Coffee'\nGROUP BY c.state",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "ca",
+       null,
+       "const",
+       "PRIMARY,uq_categories_name",
+       "uq_categories_name",
+       "242",
+       "const",
+       1,
+       100.0,
+       "Using index; Using temporary"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "oi",
+       null,
+       "ALL",
+       "PRIMARY,idx_order_items_product",
+       null,
+       null,
+       null,
+       182,
+       100.0,
+       null
+      ],
+      [
+       1,
+       "SIMPLE",
+       "p",
+       null,
+       "eq_ref",
+       "PRIMARY,idx_products_category",
+       "PRIMARY",
+       "4",
+       "lab_b318b274fd4fe640bb01.oi.product_id",
+       1,
+       13.33,
+       "Using where"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "o",
+       null,
+       "eq_ref",
+       "PRIMARY,idx_orders_customer",
+       "PRIMARY",
+       "4",
+       "lab_b318b274fd4fe640bb01.oi.order_id",
+       1,
+       100.0,
+       null
+      ],
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "eq_ref",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "lab_b318b274fd4fe640bb01.o.customer_id",
+       1,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_b318b274fd4fe640bb01`.`c`.`state` AS `state`,sum((`lab_b318b274fd4fe640bb01`.`oi`.`quantity` * `lab_b318b274fd4fe640bb01`.`oi`.`unit_price`)) AS `revenue` from `lab_b318b274fd4fe640bb01`.`customers` `c` join `lab_b318b274fd4fe640bb01`.`orders` `o` join `lab_b318b274fd4fe640bb01`.`order_items` `oi` join `lab_b318b274fd4fe640bb01`.`products` `p` join `lab_b318b274fd4fe640bb01`.`categories` `ca` where ((`lab_b318b274fd4fe640bb01`.`c`.`customer_id` = `lab_b318b274fd4fe640bb01`.`o`.`customer_id`) and (`lab_b318b274fd4fe640bb01`.`o`.`order_id` = `lab_b318b274fd4fe640bb01`.`oi`.`order_id`) and (`lab_b318b274fd4fe640bb01`.`p`.`product_id` = `lab_b318b274fd4fe640bb01`.`oi`.`product_id`) and (`lab_b318b274fd4fe640bb01`.`p`.`category_id` = '7')) group by `lab_b318b274fd4fe640bb01`.`c`.`state`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:c2ad1e122a90": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT c.state, SUM(oi.quantity * oi.unit_price) AS revenue\nFROM customers   AS c\nJOIN orders      AS o  ON o.customer_id  = c.customer_id\nJOIN order_items AS oi ON oi.order_id    = o.order_id\nJOIN products    AS p  ON p.product_id   = oi.product_id\nJOIN categories  AS ca ON ca.category_id = p.category_id\nWHERE ca.name = 'Coffee'\nGROUP BY c.state",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Nested loop inner join  (cost=99.1 rows=24.3)\n            -> Nested loop inner join  (cost=90.6 rows=24.3)\n                -> Nested loop inner join  (cost=82.2 rows=24.3)\n                    -> Table scan on oi  (cost=18.4 rows=182)\n                    -> Filter: (p.category_id = '7')  (cost=0.25 rows=0.133)\n                        -> Single-row index lookup on p using PRIMARY (product_id=oi.product_id)  (cost=0.25 rows=1)\n                -> Single-row index lookup on o using PRIMARY (order_id=oi.order_id)  (cost=0.254 rows=1)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.254 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:a13d5a2c95ac": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT STRAIGHT_JOIN c.state, SUM(oi.quantity * oi.unit_price) AS revenue\nFROM customers   AS c\nJOIN orders      AS o  ON o.customer_id  = c.customer_id\nJOIN order_items AS oi ON oi.order_id    = o.order_id\nJOIN products    AS p  ON p.product_id   = oi.product_id\nJOIN categories  AS ca ON ca.category_id = p.category_id\nWHERE ca.name = 'Coffee'\nGROUP BY c.state",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Nested loop inner join  (cost=5570 rows=1820)\n            -> Nested loop inner join  (cost=3705 rows=18200)\n                -> Inner hash join (oi.order_id = o.order_id)  (cost=1839 rows=18200)\n                    -> Table scan on oi  (cost=0.185 rows=182)\n                    -> Hash\n                        -> Nested loop inner join  (cost=19 rows=100)\n                            -> Table scan on c  (cost=2.75 rows=25)\n                            -> Covering index lookup on o using idx_orders_customer (customer_id=c.customer_id)  (cost=0.267 rows=4)\n                -> Filter: (p.category_id is not null)  (cost=0.00251 rows=1)\n                    -> Single-row index lookup on p using PRIMARY (product_id=oi.product_id)  (cost=0.00251 rows=1)\n            -> Filter: (ca.`name` = 'Coffee')  (cost=0.0025 rows=0.1)\n                -> Single-row index lookup on ca using PRIMARY (category_id=p.category_id)  (cost=0.0025 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:0970a45ca0d8": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ JOIN_ORDER(o, c) */ c.state, COUNT(*) AS orders\nFROM orders AS o JOIN customers AS c ON c.customer_id = o.customer_id\nGROUP BY c.state",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Nested loop inner join  (cost=36.2 rows=80)\n            -> Index scan on o using idx_orders_customer  (cost=8.25 rows=80)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.251 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:c3754c7b9f35": {
+   "statements": [
+    {
+     "sql": "SELECT o.customer_id,\n       SUM((SELECT SUM(oi.quantity * oi.unit_price) FROM order_items oi WHERE oi.order_id = o.order_id)) AS item_revenue,\n       SUM((SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.order_id = o.order_id AND p.status = 'succeeded')) AS amount_paid\nFROM orders AS o\nWHERE o.customer_id IN (18, 19)\nGROUP BY o.customer_id\nORDER BY o.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "item_revenue",
+      "amount_paid"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       18,
+       "5713.27",
+       "5713.27"
+      ],
+      [
+       19,
+       "8528.80",
+       "8448.82"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:8be0d7f387f8": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT b.band, COUNT(*) FROM products p\nJOIN price_bands b ON p.price BETWEEN b.min_price AND b.max_price\nGROUP BY b.band",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Filter: (p.price between b.min_price and b.max_price)  (cost=12.9 rows=13.3)\n            -> Inner hash join (no condition)  (cost=12.9 rows=13.3)\n                -> Table scan on p  (cost=0.146 rows=30)\n                -> Hash\n                    -> Table scan on b  (cost=0.65 rows=4)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:3a3d8170c36a": {
+   "statements": [
+    {
+     "sql": "SELECT SUM(amount)          AS true_total,\n       SUM(DISTINCT amount) AS sum_distinct_values\nFROM payments\nWHERE status = 'succeeded'",
+     "status": "ok",
+     "columns": [
+      "true_total",
+      "sum_distinct_values"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "62962.08",
+       "62343.11"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:fde47280eb0e": {
+   "statements": [
+    {
+     "sql": "SELECT o.order_id, p.name\nFROM orders AS o\nJOIN order_items AS oi ON oi.order_id = o.order_id AND p.is_active = 1\nJOIN products    AS p  ON p.product_id = oi.product_id",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1054,
+      "message": "Unknown column 'p.is_active' in 'on clause'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s18:37b741c1ad79": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM products) AS all_products,\n       COUNT(*) AS products_after_inner_join_to_categories\nFROM products p JOIN categories ca ON ca.category_id = p.category_id",
+     "status": "ok",
+     "columns": [
+      "all_products",
+      "products_after_inner_join_to_categories"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       30,
+       29
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

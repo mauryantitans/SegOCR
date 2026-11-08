@@ -1,0 +1,1090 @@
+{
+ "doc": "m04-cross-self-join",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:a348a323a533": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE sizes  (size_code VARCHAR(3) PRIMARY KEY, sort_order INT NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE colors (color VARCHAR(10) PRIMARY KEY)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sizes  VALUES ('S', 1), ('M', 2), ('L', 3)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO colors VALUES ('black'), ('navy'), ('red'), ('white')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT c.color, s.size_code, CONCAT('TSHIRT-', UPPER(c.color), '-', s.size_code) AS sku\nFROM colors AS c\nCROSS JOIN sizes AS s\nORDER BY c.color, s.sort_order",
+     "status": "ok",
+     "columns": [
+      "color",
+      "size_code",
+      "sku"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       "black",
+       "S",
+       "TSHIRT-BLACK-S"
+      ],
+      [
+       "black",
+       "M",
+       "TSHIRT-BLACK-M"
+      ],
+      [
+       "black",
+       "L",
+       "TSHIRT-BLACK-L"
+      ],
+      [
+       "navy",
+       "S",
+       "TSHIRT-NAVY-S"
+      ],
+      [
+       "navy",
+       "M",
+       "TSHIRT-NAVY-M"
+      ],
+      [
+       "navy",
+       "L",
+       "TSHIRT-NAVY-L"
+      ],
+      [
+       "red",
+       "S",
+       "TSHIRT-RED-S"
+      ],
+      [
+       "red",
+       "M",
+       "TSHIRT-RED-M"
+      ],
+      [
+       "red",
+       "L",
+       "TSHIRT-RED-L"
+      ],
+      [
+       "white",
+       "S",
+       "TSHIRT-WHITE-S"
+      ],
+      [
+       "white",
+       "M",
+       "TSHIRT-WHITE-M"
+      ],
+      [
+       "white",
+       "L",
+       "TSHIRT-WHITE-L"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:1adb527f75e2": {
+   "statements": [
+    {
+     "sql": "SELECT e.employee_id, e.first_name, e.last_name,\n       m.employee_id AS manager_id, m.first_name AS manager_first, m.last_name AS manager_last\nFROM employees AS e\nJOIN employees AS m ON m.employee_id = e.manager_id\nORDER BY e.employee_id\nLIMIT 10",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "last_name",
+      "manager_id",
+      "manager_first",
+      "manager_last"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       101,
+       "Diego",
+       "Mensah",
+       100,
+       "Kofi",
+       "Smith"
+      ],
+      [
+       102,
+       "Mei",
+       "Nguyen",
+       100,
+       "Kofi",
+       "Smith"
+      ],
+      [
+       103,
+       "Anika",
+       "Wang",
+       100,
+       "Kofi",
+       "Smith"
+      ],
+      [
+       104,
+       "Mei",
+       "Berg",
+       101,
+       "Diego",
+       "Mensah"
+      ],
+      [
+       105,
+       "Chloe",
+       "Ahmed",
+       101,
+       "Diego",
+       "Mensah"
+      ],
+      [
+       106,
+       "Kofi",
+       "Silva",
+       104,
+       "Mei",
+       "Berg"
+      ],
+      [
+       107,
+       "Grace",
+       "Sato",
+       104,
+       "Mei",
+       "Berg"
+      ],
+      [
+       108,
+       "Lucas",
+       "Martin",
+       104,
+       "Mei",
+       "Berg"
+      ],
+      [
+       109,
+       "Leila",
+       "Moradi",
+       104,
+       "Mei",
+       "Berg"
+      ],
+      [
+       110,
+       "Diego",
+       "Smith",
+       105,
+       "Chloe",
+       "Ahmed"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:60cc2f09edd5": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS employees,\n       (SELECT COUNT(*) FROM employees e JOIN employees m ON m.employee_id = e.manager_id) AS inner_self_join_rows,\n       (SELECT COUNT(*) FROM employees e LEFT JOIN employees m ON m.employee_id = e.manager_id) AS left_self_join_rows\nFROM employees",
+     "status": "ok",
+     "columns": [
+      "employees",
+      "inner_self_join_rows",
+      "left_self_join_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       30,
+       29,
+       30
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:14f816de0f8d": {
+   "statements": [
+    {
+     "sql": "SELECT d.name AS department, y.yr,\n       COUNT(e.employee_id) AS hires\nFROM departments AS d\nCROSS JOIN (SELECT 2020 AS yr UNION ALL SELECT 2021 UNION ALL SELECT 2022 UNION ALL SELECT 2023) AS y\nLEFT JOIN employees AS e\n       ON e.department_id = d.department_id\n      AND YEAR(e.hire_date) = y.yr\nWHERE d.department_id IN (20, 40, 70)\nGROUP BY d.department_id, d.name, y.yr\nORDER BY d.department_id, y.yr",
+     "status": "ok",
+     "columns": [
+      "department",
+      "yr",
+      "hires"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       "Engineering",
+       2020,
+       0
+      ],
+      [
+       "Engineering",
+       2021,
+       1
+      ],
+      [
+       "Engineering",
+       2022,
+       1
+      ],
+      [
+       "Engineering",
+       2023,
+       0
+      ],
+      [
+       "Sales",
+       2020,
+       3
+      ],
+      [
+       "Sales",
+       2021,
+       0
+      ],
+      [
+       "Sales",
+       2022,
+       1
+      ],
+      [
+       "Sales",
+       2023,
+       1
+      ],
+      [
+       "Research",
+       2020,
+       0
+      ],
+      [
+       "Research",
+       2021,
+       0
+      ],
+      [
+       "Research",
+       2022,
+       0
+      ],
+      [
+       "Research",
+       2023,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:8d09a87145f2": {
+   "statements": [
+    {
+     "sql": "SELECT m.employee_id, m.first_name, m.last_name, COUNT(*) AS direct_reports\nFROM employees AS m\nJOIN employees AS e ON e.manager_id = m.employee_id\nGROUP BY m.employee_id, m.first_name, m.last_name\nORDER BY direct_reports DESC, m.employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "last_name",
+      "direct_reports"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       104,
+       "Mei",
+       "Berg",
+       7
+      ],
+      [
+       105,
+       "Chloe",
+       "Ahmed",
+       5
+      ],
+      [
+       114,
+       "Amara",
+       "Moradi",
+       5
+      ],
+      [
+       100,
+       "Kofi",
+       "Smith",
+       3
+      ],
+      [
+       101,
+       "Diego",
+       "Mensah",
+       3
+      ],
+      [
+       102,
+       "Mei",
+       "Nguyen",
+       2
+      ],
+      [
+       103,
+       "Anika",
+       "Wang",
+       2
+      ],
+      [
+       119,
+       "Jonas",
+       "Lin",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:cbe62d2f0cc4": {
+   "statements": [
+    {
+     "sql": "SELECT e.employee_id, e.first_name,\n       m.first_name  AS manager,\n       mm.first_name AS skip_level_manager\nFROM employees AS e\nLEFT JOIN employees AS m  ON m.employee_id  = e.manager_id\nLEFT JOIN employees AS mm ON mm.employee_id = m.manager_id\nWHERE e.employee_id IN (100, 101, 104, 110, 115)\nORDER BY e.employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "manager",
+      "skip_level_manager"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       100,
+       "Kofi",
+       null,
+       null
+      ],
+      [
+       101,
+       "Diego",
+       "Kofi",
+       null
+      ],
+      [
+       104,
+       "Mei",
+       "Diego",
+       "Kofi"
+      ],
+      [
+       110,
+       "Diego",
+       "Chloe",
+       "Diego"
+      ],
+      [
+       115,
+       "Lucas",
+       "Amara",
+       "Mei"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:c14aa75042c8": {
+   "statements": [
+    {
+     "sql": "SELECT e.employee_id, e.first_name, e.salary,\n       m.employee_id AS manager_id, m.first_name AS manager, m.salary AS manager_salary\nFROM employees AS e\nJOIN employees AS m ON m.employee_id = e.manager_id\nWHERE e.salary > m.salary\nORDER BY e.employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "salary",
+      "manager_id",
+      "manager",
+      "manager_salary"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       111,
+       "Noah",
+       "179500.00",
+       105,
+       "Chloe",
+       "162500.00"
+      ],
+      [
+       120,
+       "Amara",
+       "84500.00",
+       119,
+       "Jonas",
+       "69000.00"
+      ],
+      [
+       125,
+       "Ingrid",
+       "177000.00",
+       105,
+       "Chloe",
+       "162500.00"
+      ],
+      [
+       128,
+       "Marcus",
+       "91500.00",
+       119,
+       "Jonas",
+       "69000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:04960282cace": {
+   "statements": [
+    {
+     "sql": "SELECT a.employee_id AS emp_a, b.employee_id AS emp_b, a.salary\nFROM employees AS a\nJOIN employees AS b\n  ON b.salary = a.salary\n AND a.employee_id < b.employee_id\nORDER BY a.employee_id",
+     "status": "ok",
+     "columns": [
+      "emp_a",
+      "emp_b",
+      "salary"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       107,
+       108,
+       "150000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:3635438f2e7a": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS pairs_without_id_condition,\n       SUM(a.employee_id = b.employee_id) AS self_pairs,\n       SUM(a.employee_id <> b.employee_id) AS ordered_pairs_of_distinct_employees\nFROM employees a JOIN employees b ON b.salary = a.salary",
+     "status": "ok",
+     "columns": [
+      "pairs_without_id_condition",
+      "self_pairs",
+      "ordered_pairs_of_distinct_employees"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       32,
+       "30",
+       "2"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:009eea36c36c": {
+   "statements": [
+    {
+     "sql": "SELECT cur.employee_id, cur.effective_date, cur.salary,\n       nxt.effective_date AS next_date, nxt.salary AS next_salary,\n       nxt.salary - cur.salary AS raise\nFROM salary_history AS cur\nJOIN salary_history AS nxt\n  ON nxt.employee_id = cur.employee_id\n AND nxt.effective_date = cur.effective_date + INTERVAL 1 YEAR\nWHERE cur.employee_id = 107\nORDER BY cur.effective_date",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "effective_date",
+      "salary",
+      "next_date",
+      "next_salary",
+      "raise"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       107,
+       "2015-09-24",
+       "106400.00",
+       "2016-09-24",
+       "114000.00",
+       "7600.00"
+      ],
+      [
+       107,
+       "2016-09-24",
+       "114000.00",
+       "2017-09-24",
+       "121900.00",
+       "7900.00"
+      ],
+      [
+       107,
+       "2017-09-24",
+       "121900.00",
+       "2018-09-24",
+       "132800.00",
+       "10900.00"
+      ],
+      [
+       107,
+       "2018-09-24",
+       "132800.00",
+       "2019-09-24",
+       "143300.00",
+       "10500.00"
+      ],
+      [
+       107,
+       "2019-09-24",
+       "143300.00",
+       "2020-09-24",
+       "150000.00",
+       "6700.00"
+      ],
+      [
+       107,
+       "2020-09-24",
+       "150000.00",
+       "2021-09-24",
+       "150000.00",
+       "0.00"
+      ],
+      [
+       107,
+       "2021-09-24",
+       "150000.00",
+       "2022-09-24",
+       "150000.00",
+       "0.00"
+      ],
+      [
+       107,
+       "2022-09-24",
+       "150000.00",
+       "2023-09-24",
+       "150000.00",
+       "0.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:93ade1ef6e99": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM salary_history) - (SELECT COUNT(DISTINCT employee_id) FROM salary_history) AS consecutive_pairs_expected,\n       COUNT(*) AS pairs_found_by_plus_one_year\nFROM salary_history AS cur\nJOIN salary_history AS nxt\n  ON nxt.employee_id = cur.employee_id\n AND nxt.effective_date = cur.effective_date + INTERVAL 1 YEAR",
+     "status": "ok",
+     "columns": [
+      "consecutive_pairs_expected",
+      "pairs_found_by_plus_one_year"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       141,
+       138
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:b4772fe5c3da": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, first_name, salary FROM employees\nWHERE employee_id IN (100, 104, 106, 107, 108) ORDER BY employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "salary"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       100,
+       "Kofi",
+       "309000.00"
+      ],
+      [
+       104,
+       "Mei",
+       "214500.00"
+      ],
+      [
+       106,
+       "Kofi",
+       "165500.00"
+      ],
+      [
+       107,
+       "Grace",
+       "150000.00"
+      ],
+      [
+       108,
+       "Lucas",
+       "150000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:af26e1d87514": {
+   "statements": [
+    {
+     "sql": "SELECT a.employee_id AS a_id, b.employee_id AS b_id,\n       a.salary = b.salary AS same_salary,\n       a.employee_id < b.employee_id AS a_before_b\nFROM employees a CROSS JOIN employees b\nWHERE a.employee_id IN (100, 104, 106, 107, 108)\n  AND b.employee_id IN (100, 104, 106, 107, 108)\nORDER BY a.employee_id, b.employee_id",
+     "status": "ok",
+     "columns": [
+      "a_id",
+      "b_id",
+      "same_salary",
+      "a_before_b"
+     ],
+     "row_count": 25,
+     "rows": [
+      [
+       100,
+       100,
+       1,
+       0
+      ],
+      [
+       100,
+       104,
+       0,
+       1
+      ],
+      [
+       100,
+       106,
+       0,
+       1
+      ],
+      [
+       100,
+       107,
+       0,
+       1
+      ],
+      [
+       100,
+       108,
+       0,
+       1
+      ],
+      [
+       104,
+       100,
+       0,
+       0
+      ],
+      [
+       104,
+       104,
+       1,
+       0
+      ],
+      [
+       104,
+       106,
+       0,
+       1
+      ],
+      [
+       104,
+       107,
+       0,
+       1
+      ],
+      [
+       104,
+       108,
+       0,
+       1
+      ],
+      [
+       106,
+       100,
+       0,
+       0
+      ],
+      [
+       106,
+       104,
+       0,
+       0
+      ],
+      [
+       106,
+       106,
+       1,
+       0
+      ],
+      [
+       106,
+       107,
+       0,
+       1
+      ],
+      [
+       106,
+       108,
+       0,
+       1
+      ],
+      [
+       107,
+       100,
+       0,
+       0
+      ],
+      [
+       107,
+       104,
+       0,
+       0
+      ],
+      [
+       107,
+       106,
+       0,
+       0
+      ],
+      [
+       107,
+       107,
+       1,
+       0
+      ],
+      [
+       107,
+       108,
+       1,
+       1
+      ],
+      [
+       108,
+       100,
+       0,
+       0
+      ],
+      [
+       108,
+       104,
+       0,
+       0
+      ],
+      [
+       108,
+       106,
+       0,
+       0
+      ],
+      [
+       108,
+       107,
+       1,
+       0
+      ],
+      [
+       108,
+       108,
+       1,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:f81304ba9a38": {
+   "statements": [
+    {
+     "sql": "SELECT a.employee_id AS a_id, b.employee_id AS b_id, a.salary\nFROM employees a JOIN employees b ON b.salary = a.salary\nWHERE a.employee_id IN (100, 104, 106, 107, 108)\n  AND b.employee_id IN (100, 104, 106, 107, 108)\nORDER BY a.employee_id, b.employee_id",
+     "status": "ok",
+     "columns": [
+      "a_id",
+      "b_id",
+      "salary"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       100,
+       100,
+       "309000.00"
+      ],
+      [
+       104,
+       104,
+       "214500.00"
+      ],
+      [
+       106,
+       106,
+       "165500.00"
+      ],
+      [
+       107,
+       107,
+       "150000.00"
+      ],
+      [
+       107,
+       108,
+       "150000.00"
+      ],
+      [
+       108,
+       107,
+       "150000.00"
+      ],
+      [
+       108,
+       108,
+       "150000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:2226b4f7f6cd": {
+   "statements": [
+    {
+     "sql": "SELECT a.employee_id AS a_id, b.employee_id AS b_id, a.salary\nFROM employees a JOIN employees b ON b.salary = a.salary AND a.employee_id < b.employee_id\nWHERE a.employee_id IN (100, 104, 106, 107, 108)\n  AND b.employee_id IN (100, 104, 106, 107, 108)\nORDER BY a.employee_id",
+     "status": "ok",
+     "columns": [
+      "a_id",
+      "b_id",
+      "salary"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       107,
+       108,
+       "150000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:4ab96911b402": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT c.color, s.size_code FROM colors c CROSS JOIN sizes s",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Inner hash join (no condition)  (cost=2 rows=12)\n    -> Index scan on c using PRIMARY  (cost=0.217 rows=4)\n    -> Hash\n        -> Index scan on s using PRIMARY  (cost=0.55 rows=3)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:795bc74ca649": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT e.first_name, m.first_name AS manager\nFROM employees e JOIN employees m ON m.employee_id = e.manager_id",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=13.8 rows=30)\n    -> Filter: (e.manager_id is not null)  (cost=3.25 rows=30)\n        -> Table scan on e  (cost=3.25 rows=30)\n    -> Single-row index lookup on m using PRIMARY (employee_id=e.manager_id)  (cost=0.253 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:df6b1f1cf657": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT m.first_name, e.first_name AS report\nFROM employees m JOIN employees e ON e.manager_id = m.employee_id\nWHERE m.employee_id = 104",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Index lookup on e using idx_employees_manager (manager_id=104)  (cost=1.45 rows=7)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:21b81af98aa8": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, effective_date, salary,\n       salary - LAG(salary) OVER (PARTITION BY employee_id ORDER BY effective_date) AS raise\nFROM salary_history\nWHERE employee_id = 108\nORDER BY effective_date",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "effective_date",
+      "salary",
+      "raise"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       108,
+       "2015-08-30",
+       "109900.00",
+       null
+      ],
+      [
+       108,
+       "2016-08-28",
+       "115100.00",
+       "5200.00"
+      ],
+      [
+       108,
+       "2017-08-28",
+       "123700.00",
+       "8600.00"
+      ],
+      [
+       108,
+       "2018-08-28",
+       "130300.00",
+       "6600.00"
+      ],
+      [
+       108,
+       "2019-08-28",
+       "141400.00",
+       "11100.00"
+      ],
+      [
+       108,
+       "2020-08-28",
+       "149800.00",
+       "8400.00"
+      ],
+      [
+       108,
+       "2021-08-28",
+       "150000.00",
+       "200.00"
+      ],
+      [
+       108,
+       "2022-08-28",
+       "150000.00",
+       "0.00"
+      ],
+      [
+       108,
+       "2023-08-28",
+       "150000.00",
+       "0.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:d076c8e4bfb2": {
+   "statements": [
+    {
+     "sql": "SELECT employees.first_name, employees.first_name\nFROM employees JOIN employees ON employees.employee_id = employees.manager_id",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1066,
+      "message": "Not unique table/alias: 'employees'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s18:91bfd57790a2": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS rows_in_org_chart\nFROM employees e JOIN employees m ON m.employee_id = e.manager_id",
+     "status": "ok",
+     "columns": [
+      "rows_in_org_chart"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       29
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:bc9812cec395": {
+   "statements": [
+    {
+     "sql": "SELECT SUM(a.employee_id <> b.employee_id) AS with_not_equal,\n       SUM(a.employee_id <  b.employee_id) AS with_less_than\nFROM employees a JOIN employees b ON b.department_id = a.department_id",
+     "status": "ok",
+     "columns": [
+      "with_not_equal",
+      "with_less_than"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "156",
+       "78"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

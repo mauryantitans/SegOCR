@@ -9,3 +9,7 @@ __pycache__/
 frontend/test-results/
 backend/test_app.db
 backend/dev_app.db
+
+# The repository root ignores generated/ folders; captured MySQL outputs are source content here.
+!content/generated/
+!content/generated/**

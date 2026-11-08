@@ -1,0 +1,1363 @@
+{
+ "doc": "m03-update-delete",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:a60f6ff9e4cb": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name, price, stock_qty\nFROM products\nWHERE category_id = 7\nORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price",
+      "stock_qty"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       14,
+       "Espresso Machine",
+       "499.00",
+       111
+      ],
+      [
+       15,
+       "Burr Coffee Grinder",
+       "129.00",
+       16
+      ],
+      [
+       16,
+       "Pour-Over Kettle",
+       "59.00",
+       89
+      ],
+      [
+       17,
+       "Single-Origin Beans 1kg",
+       "34.50",
+       140
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:1a8367434b9f": {
+   "statements": [
+    {
+     "sql": "UPDATE products\nSET price = price * 1.05\nWHERE category_id = 7",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Rows matched: 4  Changed: 4  Warnings: 1",
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1265,
+       "message": "Data truncated for column 'price' at row 4"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:5c4c010ce8e0": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name, price FROM products WHERE category_id = 7 ORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       14,
+       "Espresso Machine",
+       "523.95"
+      ],
+      [
+       15,
+       "Burr Coffee Grinder",
+       "135.45"
+      ],
+      [
+       16,
+       "Pour-Over Kettle",
+       "61.95"
+      ],
+      [
+       17,
+       "Single-Origin Beans 1kg",
+       "36.23"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:064fa363a97c": {
+   "statements": [
+    {
+     "sql": "UPDATE products SET is_active = TRUE WHERE category_id = 7",
+     "status": "ok",
+     "columns": [],
+     "info": "Rows matched: 4  Changed: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s6:b66611dec191": {
+   "statements": [
+    {
+     "sql": "SELECT review_id, product_id, rating FROM reviews WHERE rating = 1 ORDER BY review_id",
+     "status": "ok",
+     "columns": [
+      "review_id",
+      "product_id",
+      "rating"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       23,
+       3,
+       1
+      ],
+      [
+       24,
+       26,
+       1
+      ],
+      [
+       28,
+       9,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:0631a0a72ba1": {
+   "statements": [
+    {
+     "sql": "DELETE FROM reviews WHERE rating = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS reviews_left FROM reviews",
+     "status": "ok",
+     "columns": [
+      "reviews_left"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       42
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:4a40caae7875": {
+   "statements": [
+    {
+     "sql": "DELETE FROM customers WHERE customer_id = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1451,
+      "message": "Cannot delete or update a parent row: a foreign key constraint fails (`lab_f3b29aa0b34caa2756bd`.`orders`, CONSTRAINT `fk_orders_customer` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`customer_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:5d1f52257c36": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE swap_demo (id INT PRIMARY KEY, a INT, b INT)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO swap_demo VALUES (1, 10, 20)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE swap_demo SET a = b, b = a WHERE id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM swap_demo",
+     "status": "ok",
+     "columns": [
+      "id",
+      "a",
+      "b"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       20,
+       20
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:c975a2e06d75": {
+   "statements": [
+    {
+     "sql": "UPDATE products AS p\nJOIN categories AS c ON c.category_id = p.category_id\nSET p.is_active = FALSE\nWHERE c.name = 'Fitness'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Rows matched: 4  Changed: 4  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT p.product_id, p.name, p.is_active\nFROM products AS p JOIN categories AS c ON c.category_id = p.category_id\nWHERE c.name = 'Fitness'\nORDER BY p.product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "is_active"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       25,
+       "Yoga Mat",
+       0
+      ],
+      [
+       26,
+       "Adjustable Dumbbells",
+       0
+      ],
+      [
+       27,
+       "Resistance Bands Set",
+       0
+      ],
+      [
+       28,
+       "Fitness Tracker",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:de40366cefa4": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE products ADD COLUMN avg_rating DECIMAL(3,2) NULL",
+     "status": "ok",
+     "columns": [],
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s12:baf87e70be57": {
+   "statements": [
+    {
+     "sql": "UPDATE products\nSET avg_rating = (SELECT AVG(rating) FROM reviews WHERE reviews.product_id = products.product_id)\nWHERE product_id IN (SELECT product_id FROM products WHERE stock_qty > 100)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1093,
+      "message": "You can't specify target table 'products' for update in FROM clause"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s13:49ae77038bb7": {
+   "statements": [
+    {
+     "sql": "UPDATE products AS p\nJOIN (SELECT product_id, AVG(rating) AS r FROM reviews GROUP BY product_id) AS agg\n  ON agg.product_id = p.product_id\nSET p.avg_rating = agg.r",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 22,
+     "info": "Rows matched: 22  Changed: 22  Warnings: 8",
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1265,
+       "message": "Data truncated for column 'r' at row 1"
+      },
+      {
+       "level": "Note",
+       "code": 1265,
+       "message": "Data truncated for column 'r' at row 1"
+      },
+      {
+       "level": "Note",
+       "code": 1265,
+       "message": "Data truncated for column 'r' at row 1"
+      },
+      {
+       "level": "Note",
+       "code": 1265,
+       "message": "Data truncated for column 'r' at row 1"
+      },
+      {
+       "level": "Note",
+       "code": 1265,
+       "message": "Data truncated for column 'avg_rating' at row 15"
+      },
+      {
+       "level": "Note",
+       "code": 1265,
+       "message": "Data truncated for column 'avg_rating' at row 16"
+      },
+      {
+       "level": "Note",
+       "code": 1265,
+       "message": "Data truncated for column 'avg_rating' at row 18"
+      },
+      {
+       "level": "Note",
+       "code": 1265,
+       "message": "Data truncated for column 'avg_rating' at row 21"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT product_id, name, avg_rating FROM products WHERE avg_rating IS NOT NULL ORDER BY avg_rating DESC, product_id LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "avg_rating"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       9,
+       "Laptop Stand",
+       "5.00"
+      ],
+      [
+       18,
+       "Chef's Knife",
+       "5.00"
+      ],
+      [
+       30,
+       "Webcam 1080p",
+       "5.00"
+      ],
+      [
+       14,
+       "Espresso Machine",
+       "4.50"
+      ],
+      [
+       25,
+       "Yoga Mat",
+       "4.40"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:9dbcefefd7cd": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS items_of_cancelled_orders\nFROM order_items AS oi JOIN orders AS o ON o.order_id = oi.order_id\nWHERE o.status = 'cancelled'",
+     "status": "ok",
+     "columns": [
+      "items_of_cancelled_orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       13
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:84d6afddd176": {
+   "statements": [
+    {
+     "sql": "DELETE oi\nFROM order_items AS oi\nJOIN orders AS o ON o.order_id = oi.order_id\nWHERE o.status = 'cancelled'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 13,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s16:31f75c251c97": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE playlist (\n  track_id INT PRIMARY KEY,\n  title    VARCHAR(40) NOT NULL,\n  position INT NOT NULL,\n  UNIQUE KEY uq_playlist_position (position)\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO playlist VALUES (101, 'Intro', 1), (102, 'Verse', 2), (103, 'Chorus', 3), (104, 'Outro', 4)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s17:7742e73d20c5": {
+   "statements": [
+    {
+     "sql": "UPDATE playlist SET position = position + 1 WHERE position >= 2",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '3' for key 'playlist.uq_playlist_position'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s18:4fc2815c4484": {
+   "statements": [
+    {
+     "sql": "UPDATE playlist SET position = position + 1 WHERE position >= 2 ORDER BY position DESC",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Rows matched: 3  Changed: 3  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO playlist VALUES (105, 'Bridge', 2)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM playlist ORDER BY position",
+     "status": "ok",
+     "columns": [
+      "track_id",
+      "title",
+      "position"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       101,
+       "Intro",
+       1
+      ],
+      [
+       105,
+       "Bridge",
+       2
+      ],
+      [
+       102,
+       "Verse",
+       3
+      ],
+      [
+       103,
+       "Chorus",
+       4
+      ],
+      [
+       104,
+       "Outro",
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:d689a5d01d31": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE audit_log (\n  log_id     INT PRIMARY KEY,\n  created_at DATETIME NOT NULL,\n  message    VARCHAR(40) NOT NULL,\n  KEY idx_audit_created (created_at)\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO audit_log\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 25)\nSELECT n, '2024-01-01' + INTERVAL n DAY, CONCAT('event ', n) FROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "info": "Records: 25  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM audit_log\nWHERE created_at < '2024-01-21'\nORDER BY created_at\nLIMIT 10",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 10,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS remaining, MIN(created_at) AS oldest_remaining FROM audit_log",
+     "status": "ok",
+     "columns": [
+      "remaining",
+      "oldest_remaining"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       15,
+       "2024-01-12 00:00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:a484bd47c25d": {
+   "statements": [
+    {
+     "sql": "SELECT oi.product_id, SUM(oi.quantity) AS units\nFROM order_items AS oi JOIN orders AS o ON o.order_id = oi.order_id\nWHERE o.status = 'delivered'\nGROUP BY oi.product_id\nHAVING units > 15\nORDER BY oi.product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "units"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       12,
+       "16"
+      ],
+      [
+       24,
+       "16"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:e3f31e989f35": {
+   "statements": [
+    {
+     "sql": "SELECT p.product_id, p.name, p.price, ROUND(p.price * 1.10, 2) AS new_price\nFROM products AS p\nJOIN (SELECT oi.product_id, SUM(oi.quantity) AS units\n      FROM order_items AS oi JOIN orders AS o ON o.order_id = oi.order_id\n      WHERE o.status = 'delivered'\n      GROUP BY oi.product_id\n      HAVING units > 15) AS hot ON hot.product_id = p.product_id\nORDER BY p.product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price",
+      "new_price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       12,
+       "Wireless Earbuds",
+       "129.99",
+       "142.99"
+      ],
+      [
+       24,
+       "Fiction Bestseller",
+       "18.99",
+       "20.89"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:45deee29c97b": {
+   "statements": [
+    {
+     "sql": "UPDATE products AS p\nJOIN (SELECT oi.product_id, SUM(oi.quantity) AS units\n      FROM order_items AS oi JOIN orders AS o ON o.order_id = oi.order_id\n      WHERE o.status = 'delivered'\n      GROUP BY oi.product_id\n      HAVING units > 15) AS hot ON hot.product_id = p.product_id\nSET p.price = ROUND(p.price * 1.10, 2)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Rows matched: 2  Changed: 2  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:87bed3ccf597": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name, price FROM products\nWHERE product_id IN (SELECT product_id FROM order_items GROUP BY product_id)\nORDER BY price DESC LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       3,
+       "Gaming Laptop 16",
+       "1799.00"
+      ],
+      [
+       1,
+       "Ultrabook 14 Pro",
+       "1299.00"
+      ],
+      [
+       2,
+       "Ultrabook 13 Air",
+       "999.00"
+      ],
+      [
+       14,
+       "Espresso Machine",
+       "523.95"
+      ],
+      [
+       8,
+       "27\" 4K Monitor",
+       "379.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:2a0ac73a4307": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM payments WHERE method = 'card'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 40,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS payments_inside_txn FROM payments",
+     "status": "ok",
+     "columns": [
+      "payments_inside_txn"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       36
+      ]
+     ]
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS payments_after_rollback FROM payments",
+     "status": "ok",
+     "columns": [
+      "payments_after_rollback"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       76
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:908f922a0621": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "rows": []
+      },
+      {
+       "sql": "UPDATE tickets SET status = 'closed' WHERE assignee = 'ann'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 2,
+       "info": "Rows matched: 2  Changed: 2  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "30552",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 5,
+        "rowsModified": 2,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "tickets",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "tickets",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "A",
+        "table": "tickets",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "2"
+       },
+       {
+        "session": "A",
+        "table": "tickets",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "3"
+       },
+       {
+        "session": "A",
+        "table": "tickets",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "4"
+       },
+       {
+        "session": "A",
+        "table": "tickets",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "supremum pseudo-record"
+       }
+      ]
+     }
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE tickets SET status = 'open' WHERE ticket_id = 4",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT * FROM tickets ORDER BY ticket_id",
+       "status": "ok",
+       "columns": [
+        "ticket_id",
+        "assignee",
+        "status"
+       ],
+       "row_count": 4,
+       "rows": [
+        [
+         1,
+         "ann",
+         "closed"
+        ],
+        [
+         2,
+         "bob",
+         "open"
+        ],
+        [
+         3,
+         "ann",
+         "closed"
+        ],
+        [
+         4,
+         "bob",
+         "open"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:a9ca21b04271": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "rows": []
+      },
+      {
+       "sql": "UPDATE tickets SET status = 'closed' WHERE assignee = 'ann'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 2,
+       "info": "Rows matched: 2  Changed: 2  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "30705",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 5,
+        "rowsModified": 2,
+        "lockStructs": 4
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "tickets",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "tickets",
+        "index": "idx_assignee",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "'ann', 1"
+       },
+       {
+        "session": "A",
+        "table": "tickets",
+        "index": "idx_assignee",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "'ann', 3"
+       },
+       {
+        "session": "A",
+        "table": "tickets",
+        "index": "idx_assignee",
+        "lockType": "RECORD",
+        "lockMode": "X,GAP",
+        "status": "GRANTED",
+        "lockData": "'bob', 2"
+       },
+       {
+        "session": "A",
+        "table": "tickets",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "A",
+        "table": "tickets",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "3"
+       }
+      ]
+     }
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE tickets SET status = 'open' WHERE ticket_id = 4",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "s21:2f8b5b0351b7": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM playlist)  AS playlist_tracks,\n       (SELECT COUNT(*) FROM audit_log) AS audit_rows,\n       (SELECT COUNT(*) FROM reviews)   AS reviews,\n       (SELECT COUNT(*) FROM order_items) AS order_items",
+     "status": "ok",
+     "columns": [
+      "playlist_tracks",
+      "audit_rows",
+      "reviews",
+      "order_items"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       15,
+       42,
+       169
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:3ec6169166af": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE app_users (\n  user_id    INT PRIMARY KEY,\n  email      VARCHAR(100) NOT NULL,\n  deleted_at DATETIME NULL,\n  active_email VARCHAR(100) AS (IF(deleted_at IS NULL, email, NULL)) STORED,\n  UNIQUE KEY uq_active_email (active_email)\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO app_users (user_id, email) VALUES (1, 'ana@example.com'), (2, 'ben@example.com')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE app_users SET deleted_at = '2024-06-01 12:00:00' WHERE user_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO app_users (user_id, email) VALUES (3, 'ana@example.com')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT user_id, email, deleted_at, active_email FROM app_users ORDER BY user_id",
+     "status": "ok",
+     "columns": [
+      "user_id",
+      "email",
+      "deleted_at",
+      "active_email"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "ana@example.com",
+       "2024-06-01 12:00:00",
+       null
+      ],
+      [
+       2,
+       "ben@example.com",
+       null,
+       "ben@example.com"
+      ],
+      [
+       3,
+       "ana@example.com",
+       null,
+       "ana@example.com"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:f12fd9f6cee3": {
+   "statements": [
+    {
+     "sql": "EXPLAIN DELETE FROM orders WHERE order_date < '2024-02-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "DELETE",
+       "orders",
+       null,
+       "range",
+       "idx_orders_date",
+       "idx_orders_date",
+       "5",
+       "const",
+       3,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "delete from `lab_f3b29aa0b34caa2756bd`.`orders` where (`lab_f3b29aa0b34caa2756bd`.`orders`.`order_date` < TIMESTAMP'2024-02-01 00:00:00')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s24:42596ad5bf79": {
+   "statements": [
+    {
+     "sql": "EXPLAIN UPDATE orders SET status = 'cancelled' WHERE discount_code = 'NOPE'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "UPDATE",
+       "orders",
+       null,
+       "index",
+       null,
+       "PRIMARY",
+       "4",
+       null,
+       80,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "update `lab_f3b29aa0b34caa2756bd`.`orders` set `lab_f3b29aa0b34caa2756bd`.`orders`.`status` = 'cancelled' where (`lab_f3b29aa0b34caa2756bd`.`orders`.`discount_code` = 'NOPE')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s25:9f5404d46983": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE scratch (id INT AUTO_INCREMENT PRIMARY KEY, v INT)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO scratch (v) VALUES (1), (2), (3)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "TRUNCATE TABLE scratch",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_after_rollback FROM scratch",
+     "status": "ok",
+     "columns": [
+      "rows_after_rollback"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO scratch (v) VALUES (4)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM scratch",
+     "status": "ok",
+     "columns": [
+      "id",
+      "v"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s26:91d7703f18e2": {
+   "statements": [
+    {
+     "sql": "TRUNCATE TABLE orders",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1701,
+      "message": "Cannot truncate a table referenced in a foreign key constraint (`lab_f3b29aa0b34caa2756bd`.`order_items`, CONSTRAINT `fk_items_order`)"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s27:6e26499ed69c": {
+   "statements": [
+    {
+     "sql": "SET SESSION sql_safe_updates = 1",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "UPDATE customers SET loyalty_tier = 'gold'",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1175,
+      "message": "You are using safe update mode and you tried to update a table without a WHERE that uses a KEY column. "
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s28:e7863e453494": {
+   "statements": [
+    {
+     "sql": "DELETE FROM reviews WHERE comment IS NULL",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1175,
+      "message": "You are using safe update mode and you tried to update a table without a WHERE that uses a KEY column. "
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s29:5438ecc06ef6": {
+   "statements": [
+    {
+     "sql": "UPDATE customers SET loyalty_tier = 'gold' WHERE customer_id = 3",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE customers SET loyalty_tier = 'bronze' WHERE loyalty_tier IS NULL LIMIT 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Rows matched: 2  Changed: 2  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION sql_safe_updates = 0",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s31:32d34c08b2cc": {
+   "statements": [
+    {
+     "sql": "UPDATE products AS p JOIN categories AS c ON c.category_id = p.category_id\nSET p.stock_qty = p.stock_qty + 1\nWHERE c.name = 'Audio'\nORDER BY p.product_id LIMIT 2",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1221,
+      "message": "Incorrect usage of UPDATE and ORDER BY"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

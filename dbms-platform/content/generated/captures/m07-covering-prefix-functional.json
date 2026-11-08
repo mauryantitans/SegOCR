@@ -1,0 +1,1141 @@
+{
+ "doc": "m07-covering-prefix-functional",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:5c57b4925866": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 300000",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE orders_big (\n  order_id    INT UNSIGNED  NOT NULL,\n  customer_id INT UNSIGNED  NOT NULL,\n  status      VARCHAR(10)   NOT NULL,\n  order_date  DATE          NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  country     CHAR(2)       NOT NULL,\n  PRIMARY KEY (order_id),\n  INDEX idx_cust_date (customer_id, order_date)\n) ENGINE=InnoDB",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders_big\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 200000)\nSELECT n,\n       1 + (n * 7919) % 19997,\n       ELT(1 + (n % 20 > 0) + (n % 20 > 2) + (n % 20 > 15), 'cancelled', 'pending', 'shipped', 'delivered'),\n       DATE '2023-01-01' + INTERVAL (n * 37) % 731 DAY,\n       ROUND(5 + (n * 104729 % 99500) / 100, 2),\n       ELT(1 + n % 7, 'US', 'IN', 'DE', 'BR', 'JP', 'FR', 'MX')\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders_big",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_ed917aa2524e8148fb38.orders_big",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:c85abd72af13": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "range",
+       "idx_cust_date",
+       "idx_cust_date",
+       "4",
+       null,
+       18350,
+       100.0,
+       "Using index condition"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select sum(`lab_ed917aa2524e8148fb38`.`orders_big`.`amount`) AS `SUM(amount)` from `lab_ed917aa2524e8148fb38`.`orders_big` where (`lab_ed917aa2524e8148fb38`.`orders_big`.`customer_id` between 1000 and 1999)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:bde662d86338": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_cust_date_amount ON orders_big (customer_id, order_date, amount)",
+     "status": "ok",
+     "columns": [],
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "range",
+       "idx_cust_date,idx_cust_date_amount",
+       "idx_cust_date_amount",
+       "4",
+       null,
+       18564,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select sum(`lab_ed917aa2524e8148fb38`.`orders_big`.`amount`) AS `SUM(amount)` from `lab_ed917aa2524e8148fb38`.`orders_big` where (`lab_ed917aa2524e8148fb38`.`orders_big`.`customer_id` between 1000 and 1999)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:45be3eaa5e97": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big IGNORE INDEX (idx_cust_date_amount) WHERE customer_id BETWEEN 1000 AND 1999",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: sum(orders_big.amount)  (cost=10093 rows=1) (actual time=17.8..17.8 rows=1 loops=1)\n    -> Index range scan on orders_big using idx_cust_date over (1000 <= customer_id <= 1999), with index condition: (orders_big.customer_id between 1000 and 1999)  (cost=8258 rows=18350) (actual time=4.3..17 rows=10001 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 18.96
+    },
+    {
+     "sql": "EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: sum(orders_big.amount)  (cost=5606 rows=1) (actual time=39.6..39.6 rows=1 loops=1)\n    -> Filter: (orders_big.customer_id between 1000 and 1999)  (cost=3750 rows=18564) (actual time=7..38.9 rows=10001 loops=1)\n        -> Covering index range scan on orders_big using idx_cust_date_amount over (1000 <= customer_id <= 1999)  (cost=3750 rows=18564) (actual time=7..38.3 rows=10001 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 40.77
+    }
+   ],
+   "measured": true
+  },
+  "s6:c3619c1af661": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE customers_big (\n  customer_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  email       VARCHAR(100) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO customers_big\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 100000)\nSELECT n,\n       CONCAT(ELT(1 + n % 8, 'anna', 'ben', 'carlos', 'dmitri', 'emma', 'farah', 'george', 'hana'), '.',\n              ELT(1 + (n DIV 8) % 10, 'smith', 'patel', 'garcia', 'kim', 'chen', 'nguyen', 'silva', 'mueller', 'rossi', 'tanaka'),\n              n, '@', ELT(1 + n % 4, 'gmail.com', 'yahoo.com', 'outlook.com', 'sjsu.edu'))\nFROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT email FROM customers_big ORDER BY customer_id LIMIT 3",
+     "status": "ok",
+     "columns": [
+      "email"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "ben.smith1@yahoo.com"
+      ],
+      [
+       "carlos.smith2@outlook.com"
+      ],
+      [
+       "dmitri.smith3@sjsu.edu"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:37277a2befc8": {
+   "statements": [
+    {
+     "sql": "SELECT ROUND(COUNT(DISTINCT LEFT(email, 4))  / COUNT(*), 4) AS sel_4,\n       ROUND(COUNT(DISTINCT LEFT(email, 8))  / COUNT(*), 4) AS sel_8,\n       ROUND(COUNT(DISTINCT LEFT(email, 12)) / COUNT(*), 4) AS sel_12,\n       ROUND(COUNT(DISTINCT LEFT(email, 16)) / COUNT(*), 4) AS sel_16,\n       ROUND(COUNT(DISTINCT LEFT(email, 20)) / COUNT(*), 4) AS sel_20,\n       ROUND(COUNT(DISTINCT email)           / COUNT(*), 4) AS sel_full\nFROM customers_big",
+     "status": "ok",
+     "columns": [
+      "sel_4",
+      "sel_8",
+      "sel_12",
+      "sel_16",
+      "sel_20",
+      "sel_full"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "0.0001",
+       "0.0009",
+       "0.1536",
+       "0.9303",
+       "1.0000",
+       "1.0000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:0b0689511f1d": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_email_16 ON customers_big (email(16))",
+     "status": "ok",
+     "columns": [],
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE customers_big",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_ed917aa2524e8148fb38.customers_big",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT customer_id FROM customers_big WHERE email = 'ben.smith1@yahoo.com'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "customers_big",
+       null,
+       "ref",
+       "idx_email_16",
+       "idx_email_16",
+       "66",
+       "const",
+       1,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`customers_big`.`customer_id` AS `customer_id` from `lab_ed917aa2524e8148fb38`.`customers_big` where (`lab_ed917aa2524e8148fb38`.`customers_big`.`email` = 'ben.smith1@yahoo.com')"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT email FROM customers_big ORDER BY email LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "customers_big",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       99931,
+       100.0,
+       "Using filesort"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`customers_big`.`email` AS `email` from `lab_ed917aa2524e8148fb38`.`customers_big` order by `lab_ed917aa2524e8148fb38`.`customers_big`.`email` limit 5"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:35fbe9c49480": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM orders_big WHERE YEAR(order_date) = 2024",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "index",
+       null,
+       "idx_cust_date",
+       "7",
+       null,
+       199677,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_ed917aa2524e8148fb38`.`orders_big` where (year(`lab_ed917aa2524e8148fb38`.`orders_big`.`order_date`) = 2024)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:4e116e3ee4f8": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_order_year ON orders_big ((YEAR(order_date)))",
+     "status": "ok",
+     "columns": [],
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders_big",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_ed917aa2524e8148fb38.orders_big",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM orders_big WHERE YEAR(order_date) = 2024",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ref",
+       "idx_order_year",
+       "idx_order_year",
+       "5",
+       "const",
+       99762,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_ed917aa2524e8148fb38`.`orders_big` where (year(`order_date`) = 2024)"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT INDEX_NAME, COLUMN_NAME, EXPRESSION\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders_big' AND INDEX_NAME = 'idx_order_year'",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "COLUMN_NAME",
+      "EXPRESSION"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "idx_order_year",
+       null,
+       "year(`order_date`)"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:35607f737f0d": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM orders_big WHERE YEAR(order_date) + 0 = 2024",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "index",
+       null,
+       "idx_cust_date",
+       "7",
+       null,
+       199525,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_ed917aa2524e8148fb38`.`orders_big` where ((year(`lab_ed917aa2524e8148fb38`.`orders_big`.`order_date`) + 0) = 2024)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:258001494858": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE products_json (\n  product_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  attrs      JSON NOT NULL,\n  INDEX idx_sku ((CAST(attrs->>'$.sku' AS CHAR(20)) COLLATE utf8mb4_bin))\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO products_json\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 30000)\nSELECT n, JSON_OBJECT(\n         'sku',   CONCAT('SKU-', LPAD(n, 6, '0')),\n         'price', n % 500,\n         'tags',  JSON_ARRAY(ELT(1 + n % 10, 'red', 'blue', 'green', 'black', 'white', 'sale', 'new', 'eco', 'kids', 'pro'),\n                             ELT(1 + (n DIV 10) % 7, 'xs', 's', 'm', 'l', 'xl', 'sale', 'gift')))\nFROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 30000,
+     "info": "Records: 30000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE products_json",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_ed917aa2524e8148fb38.products_json",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT product_id FROM products_json\nWHERE CAST(attrs->>'$.sku' AS CHAR(20)) COLLATE utf8mb4_bin = 'SKU-004242'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "products_json",
+       null,
+       "ref",
+       "idx_sku",
+       "idx_sku",
+       "83",
+       "const",
+       1,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`products_json`.`product_id` AS `product_id` from `lab_ed917aa2524e8148fb38`.`products_json` where ((cast(json_unquote(json_extract(`attrs`,_utf8mb4'$.sku')) as char(20) charset utf8mb4) collate utf8mb4_bin) = 'SKU-004242')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:5b90ece4bc12": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_country_amount ON orders_big (country, amount)",
+     "status": "ok",
+     "columns": [],
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT order_id, country, amount FROM orders_big ORDER BY country ASC, amount DESC LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "index",
+       null,
+       "idx_country_amount",
+       "13",
+       null,
+       199525,
+       100.0,
+       "Using index; Using filesort"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`orders_big`.`order_id` AS `order_id`,`lab_ed917aa2524e8148fb38`.`orders_big`.`country` AS `country`,`lab_ed917aa2524e8148fb38`.`orders_big`.`amount` AS `amount` from `lab_ed917aa2524e8148fb38`.`orders_big` order by `lab_ed917aa2524e8148fb38`.`orders_big`.`country`,`lab_ed917aa2524e8148fb38`.`orders_big`.`amount` desc limit 10"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:3397dbd97e49": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_country_amount_desc ON orders_big (country ASC, amount DESC)",
+     "status": "ok",
+     "columns": [],
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT order_id, country, amount FROM orders_big ORDER BY country ASC, amount DESC LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "index",
+       null,
+       "idx_country_amount_desc",
+       "13",
+       null,
+       10,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`orders_big`.`order_id` AS `order_id`,`lab_ed917aa2524e8148fb38`.`orders_big`.`country` AS `country`,`lab_ed917aa2524e8148fb38`.`orders_big`.`amount` AS `amount` from `lab_ed917aa2524e8148fb38`.`orders_big` order by `lab_ed917aa2524e8148fb38`.`orders_big`.`country`,`lab_ed917aa2524e8148fb38`.`orders_big`.`amount` desc limit 10"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:9e5c65119108": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT product_id FROM products_json WHERE 'gift' MEMBER OF (attrs->'$.tags')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "products_json",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       30006,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`products_json`.`product_id` AS `product_id` from `lab_ed917aa2524e8148fb38`.`products_json` where <cache>('gift') member of (json_extract(`lab_ed917aa2524e8148fb38`.`products_json`.`attrs`,'$.tags'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:b08b58353870": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE products_json ADD INDEX idx_tags ((CAST(attrs->'$.tags' AS CHAR(20) ARRAY)))",
+     "status": "ok",
+     "columns": [],
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE products_json",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_ed917aa2524e8148fb38.products_json",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT product_id FROM products_json WHERE 'gift' MEMBER OF (attrs->'$.tags')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "products_json",
+       null,
+       "ref",
+       "idx_tags",
+       "idx_tags",
+       "83",
+       "const",
+       4280,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`products_json`.`product_id` AS `product_id` from `lab_ed917aa2524e8148fb38`.`products_json` where json'\"gift\"' member of (cast(json_extract(`attrs`,_utf8mb4'$.tags') as char(20) array))"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT product_id FROM products_json WHERE JSON_OVERLAPS(attrs->'$.tags', '[\"eco\", \"kids\"]')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "products_json",
+       null,
+       "range",
+       "idx_tags",
+       "idx_tags",
+       "83",
+       null,
+       6000,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`products_json`.`product_id` AS `product_id` from `lab_ed917aa2524e8148fb38`.`products_json` where json_overlaps(cast(json_extract(`attrs`,_utf8mb4'$.tags') as char(20) array),json'[\"eco\", \"kids\"]')"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT product_id FROM products_json WHERE JSON_CONTAINS(attrs->'$.tags', '[\"eco\", \"xl\"]')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "products_json",
+       null,
+       "range",
+       "idx_tags",
+       "idx_tags",
+       "83",
+       null,
+       7281,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`products_json`.`product_id` AS `product_id` from `lab_ed917aa2524e8148fb38`.`products_json` where json_contains(cast(json_extract(`attrs`,_utf8mb4'$.tags') as char(20) array),json'[\"eco\", \"xl\"]')"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS gift_products FROM products_json WHERE 'gift' MEMBER OF (attrs->'$.tags')",
+     "status": "ok",
+     "columns": [
+      "gift_products"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4280
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:9da86aac061d": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: sum(orders_big.amount)  (cost=5606 rows=1)\n    -> Filter: (orders_big.customer_id between 1000 and 1999)  (cost=3750 rows=18564)\n        -> Covering index range scan on orders_big using idx_cust_date_amount over (1000 <= customer_id <= 1999)  (cost=3750 rows=18564)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:dec6d74a1082": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, order_date, amount, order_id\nFROM orders_big FORCE INDEX (idx_cust_date_amount)\nWHERE customer_id BETWEEN 1000 AND 1999\nORDER BY customer_id, order_date, amount, order_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "order_date",
+      "amount",
+      "order_id"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1000,
+       "2023-01-02",
+       "887.95",
+       156355
+      ],
+      [
+       1000,
+       "2023-01-31",
+       "504.17",
+       36373
+      ],
+      [
+       1000,
+       "2023-04-29",
+       "786.08",
+       176352
+      ],
+      [
+       1000,
+       "2023-05-28",
+       "402.30",
+       56370
+      ],
+      [
+       1000,
+       "2023-08-24",
+       "684.21",
+       196349
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:4064e78222c9": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS entries_read, SUM(amount) AS total\nFROM orders_big WHERE customer_id BETWEEN 1000 AND 1999",
+     "status": "ok",
+     "columns": [
+      "entries_read",
+      "total"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10001,
+       "5023519.02"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:65850e69362e": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: sum(orders_big.amount)  (cost=5606 rows=1) (actual time=37.3..37.3 rows=1 loops=1)\n    -> Filter: (orders_big.customer_id between 1000 and 1999)  (cost=3750 rows=18564) (actual time=8.46..36.5 rows=10001 loops=1)\n        -> Covering index range scan on orders_big using idx_cust_date_amount over (1000 <= customer_id <= 1999)  (cost=3750 rows=18564) (actual time=8.45..35.4 rows=10001 loops=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:fe42ba018812": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE urls (id INT PRIMARY KEY, url VARCHAR(300) NOT NULL, UNIQUE KEY uq_url_prefix (url(20)))",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO urls VALUES (1, 'https://example.com/products/1')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s19:af8b54e97104": {
+   "statements": [
+    {
+     "sql": "INSERT INTO urls VALUES (2, 'https://example.com/products/2')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'https://example.com/' for key 'urls.uq_url_prefix'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s20:7cd61d92c195": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT product_id FROM products_json WHERE attrs->>'$.sku' = 'SKU-004242'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "products_json",
+       null,
+       "ref",
+       "idx_sku",
+       "idx_sku",
+       "83",
+       "const",
+       1,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`products_json`.`product_id` AS `product_id` from `lab_ed917aa2524e8148fb38`.`products_json` where ((cast(json_unquote(json_extract(`attrs`,_utf8mb4'$.sku')) as char(20) charset utf8mb4) collate utf8mb4_bin) = 'SKU-004242')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

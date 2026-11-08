@@ -1,0 +1,890 @@
+{
+ "doc": "m07-clustered-secondary",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:07c37e0f82e4": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 300000",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE orders_big (\n  order_id    INT UNSIGNED  NOT NULL,\n  customer_id INT UNSIGNED  NOT NULL,\n  status      VARCHAR(10)   NOT NULL,\n  order_date  DATE          NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  country     CHAR(2)       NOT NULL,\n  PRIMARY KEY (order_id),\n  INDEX idx_customer (customer_id)\n) ENGINE=InnoDB",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders_big\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 200000)\nSELECT n,\n       1 + (n * 7919) % 20000,\n       ELT(1 + (n % 20 > 0) + (n % 20 > 2) + (n % 20 > 15), 'cancelled', 'pending', 'shipped', 'delivered'),\n       DATE '2023-01-01' + INTERVAL (n * 37) % 730 DAY,\n       ROUND(5 + (n * 104729 % 99500) / 100, 2),\n       ELT(1 + n % 5, 'US', 'IN', 'DE', 'BR', 'JP')\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders_big",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_441f98a00946ccf6a56b.orders_big",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:4a4d857ef622": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE order_id = 16639",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "const",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "const",
+       1,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select '16639' AS `order_id`,'4242' AS `customer_id`,'delivered' AS `status`,'2023-09-11' AS `order_date`,'428.31' AS `amount`,'JP' AS `country` from `lab_441f98a00946ccf6a56b`.`orders_big` where true"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:ac95258582f2": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE customer_id = 4242",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ref",
+       "idx_customer",
+       "idx_customer",
+       "4",
+       "const",
+       10,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_441f98a00946ccf6a56b`.`orders_big`.`order_id` AS `order_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` AS `customer_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`status` AS `status`,`lab_441f98a00946ccf6a56b`.`orders_big`.`order_date` AS `order_date`,`lab_441f98a00946ccf6a56b`.`orders_big`.`amount` AS `amount`,`lab_441f98a00946ccf6a56b`.`orders_big`.`country` AS `country` from `lab_441f98a00946ccf6a56b`.`orders_big` where (`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` = 4242)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:567227eb5cc7": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT customer_id, order_id FROM orders_big WHERE customer_id = 4242",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ref",
+       "idx_customer",
+       "idx_customer",
+       "4",
+       "const",
+       10,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` AS `customer_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`order_id` AS `order_id` from `lab_441f98a00946ccf6a56b`.`orders_big` where (`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` = 4242)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:cd7435d00e17": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT * FROM orders_big WHERE customer_id = 4242",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Index lookup on orders_big using idx_customer (customer_id=4242)  (cost=3.5 rows=10) (actual time=0.0382..0.0401 rows=10 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 0.56
+    },
+    {
+     "sql": "EXPLAIN ANALYZE SELECT customer_id, order_id FROM orders_big WHERE customer_id = 4242",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Covering index lookup on orders_big using idx_customer (customer_id=4242)  (cost=1.25 rows=10) (actual time=0.00467..0.00626 rows=10 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 0.47
+    }
+   ],
+   "measured": true
+  },
+  "s6:6df20f7c9563": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE customer_id BETWEEN 1 AND 200",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "range",
+       "idx_customer",
+       "idx_customer",
+       "4",
+       null,
+       2000,
+       100.0,
+       "Using index condition"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_441f98a00946ccf6a56b`.`orders_big`.`order_id` AS `order_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` AS `customer_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`status` AS `status`,`lab_441f98a00946ccf6a56b`.`orders_big`.`order_date` AS `order_date`,`lab_441f98a00946ccf6a56b`.`orders_big`.`amount` AS `amount`,`lab_441f98a00946ccf6a56b`.`orders_big`.`country` AS `country` from `lab_441f98a00946ccf6a56b`.`orders_big` where (`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` between 1 and 200)"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE customer_id BETWEEN 1 AND 3000",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ALL",
+       "idx_customer",
+       null,
+       null,
+       null,
+       199555,
+       29.74,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_441f98a00946ccf6a56b`.`orders_big`.`order_id` AS `order_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` AS `customer_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`status` AS `status`,`lab_441f98a00946ccf6a56b`.`orders_big`.`order_date` AS `order_date`,`lab_441f98a00946ccf6a56b`.`orders_big`.`amount` AS `amount`,`lab_441f98a00946ccf6a56b`.`orders_big`.`country` AS `country` from `lab_441f98a00946ccf6a56b`.`orders_big` where (`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` between 1 and 3000)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:e1186bc16cd7": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*), MIN(order_id) FROM orders_big WHERE customer_id BETWEEN 1 AND 3000",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "range",
+       "idx_customer",
+       "idx_customer",
+       "4",
+       null,
+       59340,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)`,min(`lab_441f98a00946ccf6a56b`.`orders_big`.`order_id`) AS `MIN(order_id)` from `lab_441f98a00946ccf6a56b`.`orders_big` where (`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` between 1 and 3000)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:d79c7d1cf237": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE orders_by_customer (\n  customer_id INT UNSIGNED  NOT NULL,\n  order_id    INT UNSIGNED  NOT NULL,\n  status      VARCHAR(10)   NOT NULL,\n  order_date  DATE          NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  country     CHAR(2)       NOT NULL,\n  PRIMARY KEY (customer_id, order_id),\n  UNIQUE KEY uq_order_id (order_id)\n) ENGINE=InnoDB",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders_by_customer\nSELECT customer_id, order_id, status, order_date, amount, country FROM orders_big ORDER BY customer_id, order_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders_by_customer",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_441f98a00946ccf6a56b.orders_by_customer",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_by_customer WHERE customer_id BETWEEN 1 AND 3000",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_by_customer",
+       null,
+       "range",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       null,
+       57888,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_441f98a00946ccf6a56b`.`orders_by_customer`.`customer_id` AS `customer_id`,`lab_441f98a00946ccf6a56b`.`orders_by_customer`.`order_id` AS `order_id`,`lab_441f98a00946ccf6a56b`.`orders_by_customer`.`status` AS `status`,`lab_441f98a00946ccf6a56b`.`orders_by_customer`.`order_date` AS `order_date`,`lab_441f98a00946ccf6a56b`.`orders_by_customer`.`amount` AS `amount`,`lab_441f98a00946ccf6a56b`.`orders_by_customer`.`country` AS `country` from `lab_441f98a00946ccf6a56b`.`orders_by_customer` where (`lab_441f98a00946ccf6a56b`.`orders_by_customer`.`customer_id` between 1 and 3000)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:d02c818f36d9": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE pk_int (\n  id INT UNSIGNED NOT NULL PRIMARY KEY,\n  customer_id INT UNSIGNED NOT NULL, order_date DATE NOT NULL,\n  INDEX idx_c (customer_id), INDEX idx_d (order_date)\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE pk_uuid (\n  id CHAR(36) CHARACTER SET ascii NOT NULL PRIMARY KEY,\n  customer_id INT UNSIGNED NOT NULL, order_date DATE NOT NULL,\n  INDEX idx_c (customer_id), INDEX idx_d (order_date)\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO pk_int  SELECT order_id, customer_id, order_date FROM orders_big WHERE order_id <= 100000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO pk_uuid\nSELECT CONCAT_WS('-', SUBSTR(h, 1, 8), SUBSTR(h, 9, 4), SUBSTR(h, 13, 4), SUBSTR(h, 17, 4), SUBSTR(h, 21, 12)),\n       customer_id, order_date\nFROM (SELECT MD5(order_id) AS h, customer_id, order_date FROM orders_big WHERE order_id <= 100000) src",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE pk_int, pk_uuid",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "lab_441f98a00946ccf6a56b.pk_int",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_441f98a00946ccf6a56b.pk_uuid",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT TABLE_NAME,\n       DATA_LENGTH  / @@innodb_page_size AS clustered_pages,\n       INDEX_LENGTH / @@innodb_page_size AS secondary_pages\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('pk_int', 'pk_uuid')\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "clustered_pages",
+      "secondary_pages"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "pk_int",
+       "225.0000",
+       "322.0000"
+      ],
+      [
+       "pk_uuid",
+       "675.0000",
+       "1222.0000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:bf08e82bf2ea": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE promoted (code INT NOT NULL, note VARCHAR(20), UNIQUE KEY uq_code (code))",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "DESCRIBE promoted",
+     "status": "ok",
+     "columns": [
+      "Field",
+      "Type",
+      "Null",
+      "Key",
+      "Default",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "code",
+       "int",
+       "NO",
+       "PRI",
+       null,
+       ""
+      ],
+      [
+       "note",
+       "varchar(20)",
+       "YES",
+       "",
+       null,
+       ""
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:61dfcbabf853": {
+   "statements": [
+    {
+     "sql": "INSERT INTO promoted VALUES (7, 'seven'), (3, 'three')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT _rowid, code, note FROM promoted ORDER BY _rowid",
+     "status": "ok",
+     "columns": [
+      "_rowid",
+      "code",
+      "note"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       3,
+       3,
+       "three"
+      ],
+      [
+       7,
+       7,
+       "seven"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:718884a76603": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE keyless (code INT NULL, note VARCHAR(20))",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO keyless VALUES (7, 'seven'), (7, 'seven again')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SHOW INDEX FROM keyless",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Non_unique",
+      "Key_name",
+      "Seq_in_index",
+      "Column_name",
+      "Collation",
+      "Cardinality",
+      "Sub_part",
+      "Packed",
+      "Null",
+      "Index_type",
+      "Comment",
+      "Index_comment",
+      "Visible",
+      "Expression"
+     ],
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s13:30b5bae10100": {
+   "statements": [
+    {
+     "sql": "SELECT _rowid FROM keyless",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1054,
+      "message": "Unknown column '_rowid' in 'field list'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:fb3290a5391f": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT order_id, amount FROM orders_big WHERE customer_id = 777",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ref",
+       "idx_customer",
+       "idx_customer",
+       "4",
+       "const",
+       10,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_441f98a00946ccf6a56b`.`orders_big`.`order_id` AS `order_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`amount` AS `amount` from `lab_441f98a00946ccf6a56b`.`orders_big` where (`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` = 777)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:a97261399beb": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, order_id FROM orders_big WHERE customer_id = 777 ORDER BY order_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "order_id"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       777,
+       18904
+      ],
+      [
+       777,
+       38904
+      ],
+      [
+       777,
+       58904
+      ],
+      [
+       777,
+       78904
+      ],
+      [
+       777,
+       98904
+      ],
+      [
+       777,
+       118904
+      ],
+      [
+       777,
+       138904
+      ],
+      [
+       777,
+       158904
+      ],
+      [
+       777,
+       178904
+      ],
+      [
+       777,
+       198904
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:f2e44acf0d94": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, amount FROM orders_big WHERE customer_id = 777 ORDER BY order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "amount"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       18904,
+       "460.16"
+      ],
+      [
+       38904,
+       "515.16"
+      ],
+      [
+       58904,
+       "570.16"
+      ],
+      [
+       78904,
+       "625.16"
+      ],
+      [
+       98904,
+       "680.16"
+      ],
+      [
+       118904,
+       "735.16"
+      ],
+      [
+       138904,
+       "790.16"
+      ],
+      [
+       158904,
+       "845.16"
+      ],
+      [
+       178904,
+       "900.16"
+      ],
+      [
+       198904,
+       "955.16"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:bf6f5e861ea4": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_customer_amount ON orders_big (customer_id, amount)",
+     "status": "ok",
+     "columns": [],
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT order_id, amount FROM orders_big WHERE customer_id = 777",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ref",
+       "idx_customer,idx_customer_amount",
+       "idx_customer_amount",
+       "4",
+       "const",
+       10,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_441f98a00946ccf6a56b`.`orders_big`.`order_id` AS `order_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`amount` AS `amount` from `lab_441f98a00946ccf6a56b`.`orders_big` where (`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` = 777)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:9ac91ebc1192": {
+   "statements": [
+    {
+     "sql": "SELECT t.TABLE_NAME\nFROM information_schema.TABLES t\nLEFT JOIN information_schema.TABLE_CONSTRAINTS c\n       ON c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME\n      AND c.CONSTRAINT_TYPE = 'PRIMARY KEY'\nWHERE t.TABLE_SCHEMA = DATABASE() AND t.TABLE_TYPE = 'BASE TABLE' AND c.CONSTRAINT_NAME IS NULL\nORDER BY t.TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "keyless"
+      ],
+      [
+       "promoted"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

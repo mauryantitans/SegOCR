@@ -1,0 +1,1072 @@
+{
+ "doc": "m03-sorting-pagination",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:5b96d35b78c1": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name, price\nFROM products\nORDER BY price DESC\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       3,
+       "Gaming Laptop 16",
+       "1799.00"
+      ],
+      [
+       1,
+       "Ultrabook 14 Pro",
+       "1299.00"
+      ],
+      [
+       2,
+       "Ultrabook 13 Air",
+       "999.00"
+      ],
+      [
+       14,
+       "Espresso Machine",
+       "499.00"
+      ],
+      [
+       8,
+       "27\" 4K Monitor",
+       "379.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:3db406be40c8": {
+   "statements": [
+    {
+     "sql": "SELECT state, city, last_name, first_name\nFROM customers\nORDER BY state, city, last_name\nLIMIT 8",
+     "status": "ok",
+     "columns": [
+      "state",
+      "city",
+      "last_name",
+      "first_name"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "CA",
+       "Los Angeles",
+       "Brown",
+       "Fatima"
+      ],
+      [
+       "CA",
+       "San Francisco",
+       "Adeyemi",
+       "Chloe"
+      ],
+      [
+       "CA",
+       "San Francisco",
+       "Berg",
+       "Grace"
+      ],
+      [
+       "CA",
+       "San Francisco",
+       "Kim",
+       "Nina"
+      ],
+      [
+       "CA",
+       "San Francisco",
+       "Martin",
+       "Leila"
+      ],
+      [
+       "CA",
+       "San Francisco",
+       "Miller",
+       "Sofia"
+      ],
+      [
+       "CA",
+       "San Francisco",
+       "Moradi",
+       "Diego"
+      ],
+      [
+       "CA",
+       "San Francisco",
+       "Wang",
+       "Hiro"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:f8bf8633901d": {
+   "statements": [
+    {
+     "sql": "SELECT state, city, last_name\nFROM customers\nORDER BY state DESC, city\nLIMIT 6",
+     "status": "ok",
+     "columns": [
+      "state",
+      "city",
+      "last_name"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "WA",
+       "Seattle",
+       "Johnson"
+      ],
+      [
+       "WA",
+       "Seattle",
+       "Smith"
+      ],
+      [
+       "WA",
+       "Seattle",
+       "Martin"
+      ],
+      [
+       "TX",
+       "Austin",
+       "Sharma"
+      ],
+      [
+       "TX",
+       "Austin",
+       "Rahman"
+      ],
+      [
+       "TX",
+       "Austin",
+       "Miller"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:cca45d5b160b": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name, price\nFROM products\nORDER BY price DESC, product_id\nLIMIT 5 OFFSET 5",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       26,
+       "Adjustable Dumbbells",
+       "299.00"
+      ],
+      [
+       10,
+       "Noise-Cancelling Headphones",
+       "249.99"
+      ],
+      [
+       4,
+       "Chromebook 11",
+       "249.00"
+      ],
+      [
+       13,
+       "Studio Microphone",
+       "149.00"
+      ],
+      [
+       12,
+       "Wireless Earbuds",
+       "129.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:d1122eeaedbf": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, status, shipped_at\nFROM orders\nORDER BY shipped_at\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "shipped_at"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "cancelled",
+       null
+      ],
+      [
+       18,
+       "paid",
+       null
+      ],
+      [
+       4,
+       "paid",
+       null
+      ],
+      [
+       5,
+       "cancelled",
+       null
+      ],
+      [
+       11,
+       "paid",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:385e9eebcfbc": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, status, shipped_at\nFROM orders\nORDER BY shipped_at IS NULL, shipped_at, order_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "shipped_at"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       55,
+       "delivered",
+       "2024-01-07 16:56:00"
+      ],
+      [
+       25,
+       "delivered",
+       "2024-01-23 08:31:00"
+      ],
+      [
+       27,
+       "refunded",
+       "2024-02-10 19:06:00"
+      ],
+      [
+       54,
+       "shipped",
+       "2024-02-13 01:24:00"
+      ],
+      [
+       20,
+       "delivered",
+       "2024-02-13 16:21:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:3a7caa183f0f": {
+   "statements": [
+    {
+     "sql": "SELECT name, price, cost, price - cost AS unit_margin\nFROM products\nORDER BY unit_margin DESC, product_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "name",
+      "price",
+      "cost",
+      "unit_margin"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Gaming Laptop 16",
+       "1799.00",
+       "1310.88",
+       "488.12"
+      ],
+      [
+       "Ultrabook 13 Air",
+       "999.00",
+       "528.99",
+       "470.01"
+      ],
+      [
+       "Ultrabook 14 Pro",
+       "1299.00",
+       "841.65",
+       "457.35"
+      ],
+      [
+       "Espresso Machine",
+       "499.00",
+       "289.08",
+       "209.92"
+      ],
+      [
+       "27\" 4K Monitor",
+       "379.00",
+       "178.62",
+       "200.38"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:a4da25c748f2": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, status\nFROM orders\nWHERE order_id <= 12\nORDER BY CASE status\n           WHEN 'pending'   THEN 1\n           WHEN 'paid'      THEN 2\n           WHEN 'shipped'   THEN 3\n           ELSE 4\n         END,\n         order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       4,
+       "paid"
+      ],
+      [
+       11,
+       "paid"
+      ],
+      [
+       8,
+       "shipped"
+      ],
+      [
+       1,
+       "cancelled"
+      ],
+      [
+       2,
+       "delivered"
+      ],
+      [
+       3,
+       "delivered"
+      ],
+      [
+       5,
+       "cancelled"
+      ],
+      [
+       6,
+       "refunded"
+      ],
+      [
+       7,
+       "delivered"
+      ],
+      [
+       9,
+       "delivered"
+      ],
+      [
+       10,
+       "delivered"
+      ],
+      [
+       12,
+       "delivered"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:c93040bf30d7": {
+   "statements": [
+    {
+     "sql": "SELECT DISTINCT status,\n       CAST(status AS CHAR) AS status_text\nFROM orders\nORDER BY status",
+     "status": "ok",
+     "columns": [
+      "status",
+      "status_text"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "pending",
+       "pending"
+      ],
+      [
+       "paid",
+       "paid"
+      ],
+      [
+       "shipped",
+       "shipped"
+      ],
+      [
+       "delivered",
+       "delivered"
+      ],
+      [
+       "cancelled",
+       "cancelled"
+      ],
+      [
+       "refunded",
+       "refunded"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:0399300037a6": {
+   "statements": [
+    {
+     "sql": "SELECT DISTINCT status\nFROM orders\nORDER BY CAST(status AS CHAR)",
+     "status": "ok",
+     "columns": [
+      "status"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "cancelled"
+      ],
+      [
+       "delivered"
+      ],
+      [
+       "paid"
+      ],
+      [
+       "pending"
+      ],
+      [
+       "refunded"
+      ],
+      [
+       "shipped"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:a33f74203f40": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name, stock_qty\nFROM products\nORDER BY stock_qty\nLIMIT 6",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "stock_qty"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       13,
+       "Studio Microphone",
+       0
+      ],
+      [
+       4,
+       "Chromebook 11",
+       0
+      ],
+      [
+       9,
+       "Laptop Stand",
+       11
+      ],
+      [
+       15,
+       "Burr Coffee Grinder",
+       16
+      ],
+      [
+       27,
+       "Resistance Bands Set",
+       17
+      ],
+      [
+       19,
+       "Cast Iron Skillet",
+       22
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:14a3186393f4": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name, stock_qty\nFROM products\nORDER BY stock_qty, product_id\nLIMIT 6",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "stock_qty"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       4,
+       "Chromebook 11",
+       0
+      ],
+      [
+       13,
+       "Studio Microphone",
+       0
+      ],
+      [
+       9,
+       "Laptop Stand",
+       11
+      ],
+      [
+       15,
+       "Burr Coffee Grinder",
+       16
+      ],
+      [
+       27,
+       "Resistance Bands Set",
+       17
+      ],
+      [
+       19,
+       "Cast Iron Skillet",
+       22
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:3f9bf2cfc4a7": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name, price, is_active FROM products WHERE is_active ORDER BY product_id LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price",
+      "is_active"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       1,
+       "Ultrabook 14 Pro",
+       "1299.00",
+       1
+      ],
+      [
+       2,
+       "Ultrabook 13 Air",
+       "999.00",
+       1
+      ],
+      [
+       3,
+       "Gaming Laptop 16",
+       "1799.00",
+       1
+      ],
+      [
+       5,
+       "Wireless Mouse",
+       "29.99",
+       1
+      ],
+      [
+       6,
+       "Mechanical Keyboard",
+       "89.99",
+       1
+      ],
+      [
+       7,
+       "USB-C Hub 7-in-1",
+       "49.99",
+       1
+      ],
+      [
+       8,
+       "27\" 4K Monitor",
+       "379.00",
+       1
+      ],
+      [
+       9,
+       "Laptop Stand",
+       "39.99",
+       1
+      ],
+      [
+       10,
+       "Noise-Cancelling Headphones",
+       "249.99",
+       1
+      ],
+      [
+       11,
+       "Bluetooth Speaker",
+       "79.99",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:2f56cff4f13d": {
+   "statements": [
+    {
+     "sql": "SELECT ROW_NUMBER() OVER (ORDER BY price, product_id) AS position, product_id, name, price\nFROM products WHERE is_active\nORDER BY price, product_id\nLIMIT 8",
+     "status": "ok",
+     "columns": [
+      "position",
+      "product_id",
+      "name",
+      "price"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       1,
+       24,
+       "Fiction Bestseller",
+       "18.99"
+      ],
+      [
+       2,
+       27,
+       "Resistance Bands Set",
+       "24.99"
+      ],
+      [
+       3,
+       5,
+       "Wireless Mouse",
+       "29.99"
+      ],
+      [
+       4,
+       17,
+       "Single-Origin Beans 1kg",
+       "34.50"
+      ],
+      [
+       5,
+       25,
+       "Yoga Mat",
+       "35.00"
+      ],
+      [
+       6,
+       9,
+       "Laptop Stand",
+       "39.99"
+      ],
+      [
+       7,
+       23,
+       "SQL Antipatterns",
+       "39.99"
+      ],
+      [
+       8,
+       19,
+       "Cast Iron Skillet",
+       "44.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:2bc3d597b61c": {
+   "statements": [
+    {
+     "sql": "SELECT name, price FROM products WHERE is_active ORDER BY price, product_id LIMIT 4 OFFSET 4",
+     "status": "ok",
+     "columns": [
+      "name",
+      "price"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Yoga Mat",
+       "35.00"
+      ],
+      [
+       "Laptop Stand",
+       "39.99"
+      ],
+      [
+       "SQL Antipatterns",
+       "39.99"
+      ],
+      [
+       "Cast Iron Skillet",
+       "44.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:50b52162135f": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT name, price FROM products WHERE is_active ORDER BY price, product_id LIMIT 4 OFFSET 4",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit/Offset: 4/4 row(s)  (cost=3.25 rows=4)\n    -> Sort: products.price, products.product_id, limit input to 8 row(s) per chunk  (cost=3.25 rows=30)\n        -> Filter: (0 <> products.is_active)  (cost=3.25 rows=30)\n            -> Table scan on products  (cost=3.25 rows=30)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:fc38891a4fa5": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id, order_date FROM orders ORDER BY order_date DESC LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 5 row(s)  (cost=0.0469 rows=5)\n    -> Index scan on orders using idx_orders_date (reverse)  (cost=0.0469 rows=5)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:9ff16b3bad0a": {
+   "statements": [
+    {
+     "sql": "-- Boundary check for pages of 5 products ordered by stock: rows 5 and 6 straddle the page break\nSELECT product_id, stock_qty\nFROM products\nORDER BY stock_qty, product_id\nLIMIT 2 OFFSET 4",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "stock_qty"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       27,
+       17
+      ],
+      [
+       19,
+       22
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:b4df0b5cfadb": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 200000",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE events (\n  event_id   INT PRIMARY KEY,\n  created_at DATETIME    NOT NULL,\n  kind       VARCHAR(10) NOT NULL,\n  payload    VARCHAR(50) NOT NULL,\n  KEY idx_events_created (created_at, event_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO events (event_id, created_at, kind, payload)\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 200000)\nSELECT n, '2024-01-01' + INTERVAL (n DIV 3) MINUTE, ELT(1 + n % 3, 'click', 'view', 'buy'), REPEAT('x', 40)\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE events",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_e0939dd473accc3dffc7.events",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS events FROM events",
+     "status": "ok",
+     "columns": [
+      "events"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       200000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:bfe765f8ab23": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT * FROM events ORDER BY created_at, event_id LIMIT 10 OFFSET 100",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit/Offset: 10/100 row(s)  (cost=0.143 rows=10) (actual time=0.12..0.158 rows=10 loops=1)\n    -> Index scan on events using idx_events_created  (cost=0.143 rows=110) (actual time=0.0413..0.154 rows=110 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.01
+    }
+   ],
+   "measured": true
+  },
+  "s19:55e9b6b59af4": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT * FROM events ORDER BY created_at, event_id LIMIT 10 OFFSET 150000",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit/Offset: 10/150000 row(s)  (cost=20168 rows=10) (actual time=103..103 rows=10 loops=1)\n    -> Sort: `events`.created_at, `events`.event_id, limit input to 150010 row(s) per chunk  (cost=20168 rows=199202) (actual time=91.7..99.1 rows=150010 loops=1)\n        -> Table scan on events  (cost=20168 rows=199202) (actual time=0.0885..40.5 rows=200000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 105.07
+    }
+   ],
+   "measured": true
+  },
+  "s20:18b82457eeac": {
+   "statements": [
+    {
+     "sql": "SELECT created_at, event_id\nFROM events\nORDER BY created_at, event_id\nLIMIT 1 OFFSET 149999",
+     "status": "ok",
+     "columns": [
+      "created_at",
+      "event_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-02-04 17:20:00",
+       150000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:d694a6d833f5": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT * FROM events\nWHERE created_at > '2024-02-04 17:20:00'\n   OR (created_at = '2024-02-04 17:20:00' AND event_id > 150000)\nORDER BY created_at, event_id\nLIMIT 10",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 10 row(s)  (cost=20168 rows=10) (actual time=0.0687..0.45 rows=10 loops=1)\n    -> Index range scan on events using idx_events_created over (created_at = '2024-02-04 17:20:00' AND 150000 < event_id) OR ('2024-02-04 17:20:00' < created_at), with index condition: ((`events`.created_at > TIMESTAMP'2024-02-04 17:20:00') or ((`events`.created_at = TIMESTAMP'2024-02-04 17:20:00') and (`events`.event_id > 150000)))  (cost=20168 rows=95014) (actual time=0.0676..0.448 rows=10 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.37
+    }
+   ],
+   "measured": true
+  },
+  "s22:fdc2314cbc5a": {
+   "statements": [
+    {
+     "sql": "SELECT event_id, created_at FROM events ORDER BY created_at, event_id LIMIT 3 OFFSET 150000",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "created_at"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       150001,
+       "2024-02-04 17:20:00"
+      ],
+      [
+       150002,
+       "2024-02-04 17:20:00"
+      ],
+      [
+       150003,
+       "2024-02-04 17:21:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:31185baf280e": {
+   "statements": [
+    {
+     "sql": "SELECT event_id, created_at FROM events\nWHERE created_at > '2024-02-04 17:20:00'\n   OR (created_at = '2024-02-04 17:20:00' AND event_id > 150000)\nORDER BY created_at, event_id\nLIMIT 3",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "created_at"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       150001,
+       "2024-02-04 17:20:00"
+      ],
+      [
+       150002,
+       "2024-02-04 17:20:00"
+      ],
+      [
+       150003,
+       "2024-02-04 17:21:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s24:f38bfd8d8082": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT * FROM events\nWHERE (created_at, event_id) > ('2024-02-04 17:20:00', 150000)\nORDER BY created_at, event_id\nLIMIT 10",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 10 row(s)  (cost=0.0125 rows=10) (actual time=111..111 rows=10 loops=1)\n    -> Filter: ((`events`.created_at,`events`.event_id) > ('2024-02-04 17:20:00',150000))  (cost=0.0125 rows=10) (actual time=111..111 rows=10 loops=1)\n        -> Index scan on events using idx_events_created  (cost=0.0125 rows=10) (actual time=0.0533..103 rows=150010 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 111.75
+    }
+   ],
+   "measured": true
+  },
+  "s25:7b754bba8a4b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT * FROM events ORDER BY created_at, event_id DESC LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 10 row(s)  (cost=20168 rows=10)\n    -> Sort: `events`.created_at, `events`.event_id DESC, limit input to 10 row(s) per chunk  (cost=20168 rows=199202)\n        -> Table scan on events  (cost=20168 rows=199202)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s26:5be76a0a8e6a": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE events ADD INDEX idx_events_created_mixed (created_at ASC, event_id DESC)",
+     "status": "ok",
+     "columns": [],
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT * FROM events ORDER BY created_at, event_id DESC LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 10 row(s)  (cost=0.0125 rows=10)\n    -> Index scan on events using idx_events_created_mixed  (cost=0.0125 rows=10)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s27:8f18cfd8b3e0": {
+   "statements": [
+    {
+     "sql": "SELECT product_id FROM products ORDER BY product_id LIMIT 2 + 3",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '+ 3' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

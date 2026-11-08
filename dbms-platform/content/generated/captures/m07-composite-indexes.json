@@ -1,0 +1,1108 @@
+{
+ "doc": "m07-composite-indexes",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:bc167c04cb32": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 300000",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE orders_big (\n  order_id    INT UNSIGNED  NOT NULL,\n  customer_id INT UNSIGNED  NOT NULL,\n  status      VARCHAR(10)   NOT NULL,\n  order_date  DATE          NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  country     CHAR(2)       NOT NULL,\n  PRIMARY KEY (order_id)\n) ENGINE=InnoDB",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders_big\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 200000)\nSELECT n,\n       1 + (n * 7919) % 19997,\n       ELT(1 + (n % 20 > 0) + (n % 20 > 2) + (n % 20 > 15), 'cancelled', 'pending', 'shipped', 'delivered'),\n       DATE '2023-01-01' + INTERVAL (n * 37) % 731 DAY,\n       ROUND(5 + (n * 104729 % 99500) / 100, 2),\n       ELT(1 + n % 7, 'US', 'IN', 'DE', 'BR', 'JP', 'FR', 'MX')\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE INDEX idx_cust_status_date ON orders_big (customer_id, status, order_date)",
+     "status": "ok",
+     "columns": [],
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders_big",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_d12fc1fe961319d54048.orders_big",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:86e8d5448bc2": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE customer_id = 4242",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ref",
+       "idx_cust_status_date",
+       "idx_cust_status_date",
+       "4",
+       "const",
+       10,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` AS `customer_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`status` AS `status`,`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` AS `order_date`,`lab_d12fc1fe961319d54048`.`orders_big`.`amount` AS `amount`,`lab_d12fc1fe961319d54048`.`orders_big`.`country` AS `country` from `lab_d12fc1fe961319d54048`.`orders_big` where (`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` = 4242)"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE customer_id = 4242 AND status = 'shipped'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ref",
+       "idx_cust_status_date",
+       "idx_cust_status_date",
+       "46",
+       "const,const",
+       7,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` AS `customer_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`status` AS `status`,`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` AS `order_date`,`lab_d12fc1fe961319d54048`.`orders_big`.`amount` AS `amount`,`lab_d12fc1fe961319d54048`.`orders_big`.`country` AS `country` from `lab_d12fc1fe961319d54048`.`orders_big` where ((`lab_d12fc1fe961319d54048`.`orders_big`.`status` = 'shipped') and (`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` = 4242))"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE customer_id = 4242 AND status = 'shipped' AND order_date >= '2024-01-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "range",
+       "idx_cust_status_date",
+       "idx_cust_status_date",
+       "49",
+       null,
+       1,
+       100.0,
+       "Using index condition"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` AS `customer_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`status` AS `status`,`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` AS `order_date`,`lab_d12fc1fe961319d54048`.`orders_big`.`amount` AS `amount`,`lab_d12fc1fe961319d54048`.`orders_big`.`country` AS `country` from `lab_d12fc1fe961319d54048`.`orders_big` where ((`lab_d12fc1fe961319d54048`.`orders_big`.`status` = 'shipped') and (`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` = 4242) and (`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` >= DATE'2024-01-01'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:3db80d4ae049": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE customer_id = 4242 AND order_date >= '2024-01-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ref",
+       "idx_cust_status_date",
+       "idx_cust_status_date",
+       "4",
+       "const",
+       10,
+       33.33,
+       "Using index condition"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` AS `customer_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`status` AS `status`,`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` AS `order_date`,`lab_d12fc1fe961319d54048`.`orders_big`.`amount` AS `amount`,`lab_d12fc1fe961319d54048`.`orders_big`.`country` AS `country` from `lab_d12fc1fe961319d54048`.`orders_big` where ((`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` = 4242) and (`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` >= DATE'2024-01-01'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:3cb0479c8bfd": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE status = 'shipped' AND order_date = '2024-01-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       199767,
+       1.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` AS `customer_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`status` AS `status`,`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` AS `order_date`,`lab_d12fc1fe961319d54048`.`orders_big`.`amount` AS `amount`,`lab_d12fc1fe961319d54048`.`orders_big`.`country` AS `country` from `lab_d12fc1fe961319d54048`.`orders_big` where ((`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` = DATE'2024-01-01') and (`lab_d12fc1fe961319d54048`.`orders_big`.`status` = 'shipped'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:a384c80e0fb9": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE app_users (\n  user_id  INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  email    VARCHAR(100) NOT NULL,\n  phone    VARCHAR(20)  NULL,\n  UNIQUE KEY uq_app_users_email (email),\n  UNIQUE KEY uq_app_users_phone (phone)\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO app_users (email, phone) VALUES\n  ('ana@example.com', NULL), ('ben@example.com', NULL), ('caro@example.com', '555-0100')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM app_users ORDER BY user_id",
+     "status": "ok",
+     "columns": [
+      "user_id",
+      "email",
+      "phone"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "ana@example.com",
+       null
+      ],
+      [
+       2,
+       "ben@example.com",
+       null
+      ],
+      [
+       3,
+       "caro@example.com",
+       "555-0100"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:90e66c6c3f36": {
+   "statements": [
+    {
+     "sql": "INSERT INTO app_users (email, phone) VALUES ('ANA@example.com', '555-0199')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'ANA@example.com' for key 'app_users.uq_app_users_email'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:b7f1c0515a16": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE product_reviews (\n  review_id   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  product_id  INT UNSIGNED NOT NULL,\n  customer_id INT UNSIGNED NOT NULL,\n  rating      TINYINT NOT NULL,\n  UNIQUE KEY uq_review_product_customer (product_id, customer_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO product_reviews (product_id, customer_id, rating) VALUES (1, 10, 5), (1, 11, 4), (2, 10, 3)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT rating FROM product_reviews WHERE product_id = 1 AND customer_id = 10",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "product_reviews",
+       null,
+       "const",
+       "uq_review_product_customer",
+       "uq_review_product_customer",
+       "8",
+       "const,const",
+       1,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select '5' AS `rating` from `lab_d12fc1fe961319d54048`.`product_reviews` where true"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT customer_id FROM product_reviews WHERE product_id = 1",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "product_reviews",
+       null,
+       "ref",
+       "uq_review_product_customer",
+       "uq_review_product_customer",
+       "4",
+       "const",
+       2,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`product_reviews`.`customer_id` AS `customer_id` from `lab_d12fc1fe961319d54048`.`product_reviews` where (`lab_d12fc1fe961319d54048`.`product_reviews`.`product_id` = 1)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:79c84669c949": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE orders_big\n  ADD INDEX idx_date_status (order_date, status),\n  ADD INDEX idx_status_date (status, order_date)",
+     "status": "ok",
+     "columns": [],
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders_big",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_d12fc1fe961319d54048.orders_big",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM orders_big FORCE INDEX (idx_date_status)\nWHERE status = 'cancelled' AND order_date BETWEEN '2024-01-01' AND '2024-03-31'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "range",
+       "idx_date_status",
+       "idx_date_status",
+       "45",
+       null,
+       47286,
+       33.33,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_d12fc1fe961319d54048`.`orders_big` FORCE INDEX (`idx_date_status`) where ((`lab_d12fc1fe961319d54048`.`orders_big`.`status` = 'cancelled') and (`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` between '2024-01-01' and '2024-03-31'))"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM orders_big FORCE INDEX (idx_status_date)\nWHERE status = 'cancelled' AND order_date BETWEEN '2024-01-01' AND '2024-03-31'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "range",
+       "idx_status_date",
+       "idx_status_date",
+       "45",
+       null,
+       1244,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_d12fc1fe961319d54048`.`orders_big` FORCE INDEX (`idx_status_date`) where ((`lab_d12fc1fe961319d54048`.`orders_big`.`status` = 'cancelled') and (`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` between '2024-01-01' and '2024-03-31'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:2df9f814f2f2": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM orders_big FORCE INDEX (idx_date_status)\nWHERE status = 'cancelled' AND order_date BETWEEN '2024-01-01' AND '2024-03-31'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=11316 rows=1) (actual time=4.71..4.71 rows=1 loops=1)\n    -> Filter: ((orders_big.`status` = 'cancelled') and (orders_big.order_date between '2024-01-01' and '2024-03-31'))  (cost=9740 rows=15762) (actual time=0.191..4.67 rows=1244 loops=1)\n        -> Covering index range scan on orders_big using idx_date_status over ('2024-01-01' <= order_date <= '2024-03-31' AND status = 'cancelled')  (cost=9740 rows=47286) (actual time=0.187..3.24 rows=24640 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 5.53
+    },
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM orders_big FORCE INDEX (idx_status_date)\nWHERE status = 'cancelled' AND order_date BETWEEN '2024-01-01' AND '2024-03-31'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=382 rows=1) (actual time=0.617..0.617 rows=1 loops=1)\n    -> Filter: ((orders_big.`status` = 'cancelled') and (orders_big.order_date between '2024-01-01' and '2024-03-31'))  (cost=257 rows=1244) (actual time=0.0271..0.571 rows=1244 loops=1)\n        -> Covering index range scan on orders_big using idx_status_date over (status = 'cancelled' AND '2024-01-01' <= order_date <= '2024-03-31')  (cost=257 rows=1244) (actual time=0.0254..0.245 rows=1244 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.33
+    }
+   ],
+   "measured": true
+  },
+  "s11:78f3d61d6d06": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE orders_big\n  DROP INDEX idx_date_status,\n  ADD INDEX idx_customer (customer_id),\n  ADD INDEX idx_country (country),\n  ADD INDEX idx_status (status)",
+     "status": "ok",
+     "columns": [],
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders_big",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_d12fc1fe961319d54048.orders_big",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE customer_id = 42 OR status = 'cancelled'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "index_merge",
+       "idx_cust_status_date,idx_status_date,idx_customer,idx_status",
+       "idx_customer,idx_status",
+       "4,42",
+       null,
+       18342,
+       100.0,
+       "Using union(idx_customer,idx_status); Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` AS `customer_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`status` AS `status`,`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` AS `order_date`,`lab_d12fc1fe961319d54048`.`orders_big`.`amount` AS `amount`,`lab_d12fc1fe961319d54048`.`orders_big`.`country` AS `country` from `lab_d12fc1fe961319d54048`.`orders_big` where ((`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` = 42) or (`lab_d12fc1fe961319d54048`.`orders_big`.`status` = 'cancelled'))"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT order_id FROM orders_big WHERE country = 'JP' AND status = 'cancelled'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "index_merge",
+       "idx_status_date,idx_country,idx_status",
+       "idx_status,idx_country",
+       "42,8",
+       null,
+       5002,
+       99.99,
+       "Using intersect(idx_status,idx_country); Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id` from `lab_d12fc1fe961319d54048`.`orders_big` where ((`lab_d12fc1fe961319d54048`.`orders_big`.`status` = 'cancelled') and (`lab_d12fc1fe961319d54048`.`orders_big`.`country` = 'JP'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:442ce955a91c": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE orders_big ALTER INDEX idx_customer INVISIBLE",
+     "status": "ok",
+     "columns": [],
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE customer_id = 4242",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ref",
+       "idx_cust_status_date",
+       "idx_cust_status_date",
+       "4",
+       "const",
+       10,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` AS `customer_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`status` AS `status`,`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` AS `order_date`,`lab_d12fc1fe961319d54048`.`orders_big`.`amount` AS `amount`,`lab_d12fc1fe961319d54048`.`orders_big`.`country` AS `country` from `lab_d12fc1fe961319d54048`.`orders_big` where (`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` = 4242)"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT INDEX_NAME, IS_VISIBLE\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders_big' AND SEQ_IN_INDEX = 1\nORDER BY INDEX_NAME",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "IS_VISIBLE"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "idx_country",
+       "YES"
+      ],
+      [
+       "idx_cust_status_date",
+       "YES"
+      ],
+      [
+       "idx_customer",
+       "NO"
+      ],
+      [
+       "idx_status",
+       "YES"
+      ],
+      [
+       "idx_status_date",
+       "YES"
+      ],
+      [
+       "PRIMARY",
+       "YES"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:a811cf910a98": {
+   "statements": [
+    {
+     "sql": "SET SESSION optimizer_switch = 'use_invisible_indexes=on'",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE customer_id = 4242",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ref",
+       "idx_cust_status_date,idx_customer",
+       "idx_cust_status_date",
+       "4",
+       "const",
+       10,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` AS `customer_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`status` AS `status`,`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` AS `order_date`,`lab_d12fc1fe961319d54048`.`orders_big`.`amount` AS `amount`,`lab_d12fc1fe961319d54048`.`orders_big`.`country` AS `country` from `lab_d12fc1fe961319d54048`.`orders_big` where (`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` = 4242)"
+      }
+     ]
+    },
+    {
+     "sql": "SET SESSION optimizer_switch = 'use_invisible_indexes=off'",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s14:2473cfc4b9ab": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE orders_big ALTER INDEX `PRIMARY` INVISIBLE",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3522,
+      "message": "A primary key index cannot be invisible"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:fc94ef5e652f": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, status, order_date, order_id\nFROM orders_big FORCE INDEX (idx_cust_status_date)\nWHERE customer_id = 4242\nORDER BY customer_id, status, order_date",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "status",
+      "order_date",
+      "order_id"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       4242,
+       "cancelled",
+       "2024-05-25",
+       69360
+      ],
+      [
+       4242,
+       "delivered",
+       "2024-09-19",
+       89357
+      ],
+      [
+       4242,
+       "pending",
+       "2024-04-26",
+       189342
+      ],
+      [
+       4242,
+       "shipped",
+       "2023-01-14",
+       109354
+      ],
+      [
+       4242,
+       "shipped",
+       "2023-05-11",
+       129351
+      ],
+      [
+       4242,
+       "shipped",
+       "2023-06-09",
+       9369
+      ],
+      [
+       4242,
+       "shipped",
+       "2023-09-05",
+       149348
+      ],
+      [
+       4242,
+       "shipped",
+       "2023-10-04",
+       29366
+      ],
+      [
+       4242,
+       "shipped",
+       "2023-12-31",
+       169345
+      ],
+      [
+       4242,
+       "shipped",
+       "2024-01-29",
+       49363
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:10632af0a898": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, status, order_date, order_id\nFROM orders_big FORCE INDEX (idx_cust_status_date)\nWHERE customer_id = 4242 AND status = 'shipped'\nORDER BY order_date",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "status",
+      "order_date",
+      "order_id"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       4242,
+       "shipped",
+       "2023-01-14",
+       109354
+      ],
+      [
+       4242,
+       "shipped",
+       "2023-05-11",
+       129351
+      ],
+      [
+       4242,
+       "shipped",
+       "2023-06-09",
+       9369
+      ],
+      [
+       4242,
+       "shipped",
+       "2023-09-05",
+       149348
+      ],
+      [
+       4242,
+       "shipped",
+       "2023-10-04",
+       29366
+      ],
+      [
+       4242,
+       "shipped",
+       "2023-12-31",
+       169345
+      ],
+      [
+       4242,
+       "shipped",
+       "2024-01-29",
+       49363
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:980bf1e9022b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT * FROM orders_big WHERE customer_id = 4242 AND status = 'shipped' AND order_date >= '2024-01-01'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Index range scan on orders_big using idx_cust_status_date over (customer_id = 4242 AND status = 'shipped' AND '2024-01-01' <= order_date), with index condition: ((orders_big.`status` = 'shipped') and (orders_big.customer_id = 4242) and (orders_big.order_date >= DATE'2024-01-01'))  (cost=0.71 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:93ebd6aea9c4": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM orders_big\nWHERE customer_id = 4242 AND status = 'shipped' AND order_date >= '2024-01-01'\nORDER BY order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "status",
+      "order_date",
+      "amount",
+      "country"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       49363,
+       4242,
+       "shipped",
+       "2024-01-29",
+       "166.27",
+       "MX"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:658735dc8fc6": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE subscribers (id INT PRIMARY KEY, email VARCHAR(100) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO subscribers VALUES (1, 'x@example.com'), (2, 'y@example.com'), (3, 'X@example.com')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT email, COUNT(*) AS copies FROM subscribers GROUP BY email HAVING COUNT(*) > 1",
+     "status": "ok",
+     "columns": [
+      "email",
+      "copies"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "x@example.com",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:507f7c249f2c": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE subscribers ADD UNIQUE KEY uq_subscribers_email (email)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'x@example.com' for key 'subscribers.uq_subscribers_email'"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

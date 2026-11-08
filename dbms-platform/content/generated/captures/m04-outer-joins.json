@@ -1,0 +1,1113 @@
+{
+ "doc": "m04-outer-joins",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:0c4576300da7": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE j_depts (\n  department_id INT PRIMARY KEY,\n  name          VARCHAR(30) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE j_emps (\n  employee_id   INT PRIMARY KEY,\n  first_name    VARCHAR(20) NOT NULL,\n  department_id INT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO j_depts VALUES (10, 'Executive'), (20, 'Engineering'), (30, 'Data Platform'), (70, 'Research')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO j_emps VALUES (100, 'Kofi', 10), (101, 'Diego', 20), (104, 'Mei', 20), (110, 'Diego', 30), (124, 'Samuel', NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM j_emps ORDER BY employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "department_id"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       100,
+       "Kofi",
+       10
+      ],
+      [
+       101,
+       "Diego",
+       20
+      ],
+      [
+       104,
+       "Mei",
+       20
+      ],
+      [
+       110,
+       "Diego",
+       30
+      ],
+      [
+       124,
+       "Samuel",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:3e96dce94189": {
+   "statements": [
+    {
+     "sql": "SELECT d.department_id, d.name, e.employee_id, e.first_name\nFROM j_depts AS d\nLEFT JOIN j_emps AS e ON e.department_id = d.department_id\nORDER BY d.department_id, e.employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "name",
+      "employee_id",
+      "first_name"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       10,
+       "Executive",
+       100,
+       "Kofi"
+      ],
+      [
+       20,
+       "Engineering",
+       101,
+       "Diego"
+      ],
+      [
+       20,
+       "Engineering",
+       104,
+       "Mei"
+      ],
+      [
+       30,
+       "Data Platform",
+       110,
+       "Diego"
+      ],
+      [
+       70,
+       "Research",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:0e2c1d59e6ca": {
+   "statements": [
+    {
+     "sql": "SELECT e.employee_id, e.first_name, d.name AS department\nFROM j_depts AS d\nRIGHT JOIN j_emps AS e ON e.department_id = d.department_id\nORDER BY e.employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "department"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       100,
+       "Kofi",
+       "Executive"
+      ],
+      [
+       101,
+       "Diego",
+       "Engineering"
+      ],
+      [
+       104,
+       "Mei",
+       "Engineering"
+      ],
+      [
+       110,
+       "Diego",
+       "Data Platform"
+      ],
+      [
+       124,
+       "Samuel",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:57d906b433be": {
+   "statements": [
+    {
+     "sql": "SELECT e.employee_id, e.first_name, d.name AS department\nFROM j_emps AS e\nLEFT JOIN j_depts AS d ON d.department_id = e.department_id\nORDER BY e.employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "department"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       100,
+       "Kofi",
+       "Executive"
+      ],
+      [
+       101,
+       "Diego",
+       "Engineering"
+      ],
+      [
+       104,
+       "Mei",
+       "Engineering"
+      ],
+      [
+       110,
+       "Diego",
+       "Data Platform"
+      ],
+      [
+       124,
+       "Samuel",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:6607916d142f": {
+   "statements": [
+    {
+     "sql": "SELECT d.department_id, d.name,\n       COUNT(*)             AS rows_in_group,\n       COUNT(e.employee_id) AS employees\nFROM departments AS d\nLEFT JOIN employees AS e ON e.department_id = d.department_id\nGROUP BY d.department_id, d.name\nORDER BY d.department_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "name",
+      "rows_in_group",
+      "employees"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       10,
+       "Executive",
+       1,
+       1
+      ],
+      [
+       20,
+       "Engineering",
+       9,
+       9
+      ],
+      [
+       30,
+       "Data Platform",
+       6,
+       6
+      ],
+      [
+       40,
+       "Sales",
+       7,
+       7
+      ],
+      [
+       50,
+       "Marketing",
+       3,
+       3
+      ],
+      [
+       60,
+       "Finance",
+       3,
+       3
+      ],
+      [
+       70,
+       "Research",
+       1,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:1f28ddfdf150": {
+   "statements": [
+    {
+     "sql": "SELECT d.name AS department, e.employee_id, e.salary\nFROM departments AS d\nLEFT JOIN employees AS e\n       ON e.department_id = d.department_id\n      AND e.salary >= 170000\nORDER BY d.department_id, e.employee_id",
+     "status": "ok",
+     "columns": [
+      "department",
+      "employee_id",
+      "salary"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       "Executive",
+       100,
+       "309000.00"
+      ],
+      [
+       "Engineering",
+       101,
+       "242500.00"
+      ],
+      [
+       "Engineering",
+       104,
+       "214500.00"
+      ],
+      [
+       "Engineering",
+       123,
+       "170000.00"
+      ],
+      [
+       "Data Platform",
+       111,
+       "179500.00"
+      ],
+      [
+       "Data Platform",
+       125,
+       "177000.00"
+      ],
+      [
+       "Sales",
+       102,
+       "238000.00"
+      ],
+      [
+       "Marketing",
+       null,
+       null
+      ],
+      [
+       "Finance",
+       103,
+       "229500.00"
+      ],
+      [
+       "Research",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:33c1405327ba": {
+   "statements": [
+    {
+     "sql": "SELECT d.name AS department, e.employee_id, e.salary\nFROM departments AS d\nLEFT JOIN employees AS e\n       ON e.department_id = d.department_id\nWHERE e.salary >= 170000\nORDER BY d.department_id, e.employee_id",
+     "status": "ok",
+     "columns": [
+      "department",
+      "employee_id",
+      "salary"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "Executive",
+       100,
+       "309000.00"
+      ],
+      [
+       "Engineering",
+       101,
+       "242500.00"
+      ],
+      [
+       "Engineering",
+       104,
+       "214500.00"
+      ],
+      [
+       "Engineering",
+       123,
+       "170000.00"
+      ],
+      [
+       "Data Platform",
+       111,
+       "179500.00"
+      ],
+      [
+       "Data Platform",
+       125,
+       "177000.00"
+      ],
+      [
+       "Sales",
+       102,
+       "238000.00"
+      ],
+      [
+       "Finance",
+       103,
+       "229500.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:42fe8cb383b8": {
+   "statements": [
+    {
+     "sql": "SELECT d.name, COUNT(e.employee_id) AS employees\nFROM departments AS d\nLEFT JOIN employees AS e\n       ON e.department_id = d.department_id\n      AND d.location_id = 1          -- condition on the PRESERVED table inside ON\nGROUP BY d.department_id, d.name\nORDER BY d.department_id",
+     "status": "ok",
+     "columns": [
+      "name",
+      "employees"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "Executive",
+       1
+      ],
+      [
+       "Engineering",
+       9
+      ],
+      [
+       "Data Platform",
+       0
+      ],
+      [
+       "Sales",
+       0
+      ],
+      [
+       "Marketing",
+       0
+      ],
+      [
+       "Finance",
+       0
+      ],
+      [
+       "Research",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:832f3a3f22ea": {
+   "statements": [
+    {
+     "sql": "SELECT d.department_id, d.name, d.budget\nFROM departments AS d\nLEFT JOIN employees AS e ON e.department_id = d.department_id\nWHERE e.employee_id IS NULL",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "name",
+      "budget"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       70,
+       "Research",
+       "500000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:fea93c0b42be": {
+   "statements": [
+    {
+     "sql": "SELECT e.employee_id, e.first_name, e.last_name\nFROM employees AS e\nLEFT JOIN departments AS d ON d.department_id = e.department_id\nWHERE d.department_id IS NULL",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "last_name"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       124,
+       "Samuel",
+       "Adeyemi"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:ced90494f6ae": {
+   "statements": [
+    {
+     "sql": "SELECT d.name AS department, l.city, e.first_name, j.title\nFROM departments AS d\nJOIN      locations AS l ON l.location_id   = d.location_id      -- every department has a location\nLEFT JOIN employees AS e ON e.department_id = d.department_id\nLEFT JOIN jobs      AS j ON j.job_id        = e.job_id\nWHERE d.department_id IN (50, 70)\nORDER BY d.department_id, e.employee_id",
+     "status": "ok",
+     "columns": [
+      "department",
+      "city",
+      "first_name",
+      "title"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Marketing",
+       "London",
+       "Jonas",
+       "Marketing Specialist"
+      ],
+      [
+       "Marketing",
+       "London",
+       "Amara",
+       "Marketing Specialist"
+      ],
+      [
+       "Marketing",
+       "London",
+       "Marcus",
+       "Marketing Specialist"
+      ],
+      [
+       "Research",
+       "Toronto",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:e764302a5df0": {
+   "statements": [
+    {
+     "sql": "SELECT d.department_id, d.name, e.employee_id, e.first_name\nFROM j_depts AS d\nLEFT JOIN j_emps AS e ON e.department_id = d.department_id\nUNION ALL\nSELECT d.department_id, d.name, e.employee_id, e.first_name\nFROM j_depts AS d\nRIGHT JOIN j_emps AS e ON e.department_id = d.department_id\nWHERE d.department_id IS NULL\nORDER BY department_id IS NULL, department_id, employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "name",
+      "employee_id",
+      "first_name"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       10,
+       "Executive",
+       100,
+       "Kofi"
+      ],
+      [
+       20,
+       "Engineering",
+       101,
+       "Diego"
+      ],
+      [
+       20,
+       "Engineering",
+       104,
+       "Mei"
+      ],
+      [
+       30,
+       "Data Platform",
+       110,
+       "Diego"
+      ],
+      [
+       70,
+       "Research",
+       null,
+       null
+      ],
+      [
+       null,
+       null,
+       124,
+       "Samuel"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:e8687b67d7dd": {
+   "statements": [
+    {
+     "sql": "SELECT\n  (SELECT COUNT(*) FROM (\n      SELECT d.name, e.first_name FROM departments d LEFT  JOIN employees e ON e.department_id = d.department_id\n      UNION\n      SELECT d.name, e.first_name FROM departments d RIGHT JOIN employees e ON e.department_id = d.department_id\n   ) AS u) AS union_variant_rows,\n  (SELECT COUNT(*) FROM (\n      SELECT d.name, e.first_name FROM departments d LEFT  JOIN employees e ON e.department_id = d.department_id\n      UNION ALL\n      SELECT d.name, e.first_name FROM departments d RIGHT JOIN employees e ON e.department_id = d.department_id\n      WHERE d.department_id IS NULL\n   ) AS a) AS union_all_variant_rows",
+     "status": "ok",
+     "columns": [
+      "union_variant_rows",
+      "union_all_variant_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       30,
+       31
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:b36c3e7efa95": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM j_depts ORDER BY department_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "name"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       10,
+       "Executive"
+      ],
+      [
+       20,
+       "Engineering"
+      ],
+      [
+       30,
+       "Data Platform"
+      ],
+      [
+       70,
+       "Research"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:47a039147149": {
+   "statements": [
+    {
+     "sql": "SELECT d.department_id, d.name, e.employee_id, e.first_name\nFROM j_depts d LEFT JOIN j_emps e ON e.department_id = d.department_id\nORDER BY d.department_id, e.employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "name",
+      "employee_id",
+      "first_name"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       10,
+       "Executive",
+       100,
+       "Kofi"
+      ],
+      [
+       20,
+       "Engineering",
+       101,
+       "Diego"
+      ],
+      [
+       20,
+       "Engineering",
+       104,
+       "Mei"
+      ],
+      [
+       30,
+       "Data Platform",
+       110,
+       "Diego"
+      ],
+      [
+       70,
+       "Research",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:539db3f15ef9": {
+   "statements": [
+    {
+     "sql": "SELECT d.department_id, d.name, e.employee_id, e.first_name\nFROM j_depts d LEFT JOIN j_emps e ON e.department_id = d.department_id AND e.first_name = 'Diego'\nORDER BY d.department_id, e.employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "name",
+      "employee_id",
+      "first_name"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       10,
+       "Executive",
+       null,
+       null
+      ],
+      [
+       20,
+       "Engineering",
+       101,
+       "Diego"
+      ],
+      [
+       30,
+       "Data Platform",
+       110,
+       "Diego"
+      ],
+      [
+       70,
+       "Research",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:391b6fb7939b": {
+   "statements": [
+    {
+     "sql": "SELECT d.department_id, d.name, e.employee_id, e.first_name\nFROM j_depts d LEFT JOIN j_emps e ON e.department_id = d.department_id\nWHERE e.first_name = 'Diego'\nORDER BY d.department_id, e.employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "name",
+      "employee_id",
+      "first_name"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       20,
+       "Engineering",
+       101,
+       "Diego"
+      ],
+      [
+       30,
+       "Data Platform",
+       110,
+       "Diego"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:30e741db03fe": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT d.name, e.employee_id\nFROM departments d LEFT JOIN employees e ON e.department_id = d.department_id",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop left join  (cost=6.49 rows=34.3)\n    -> Index scan on d using uq_departments_name  (cost=1.05 rows=8)\n    -> Covering index lookup on e using idx_employees_department (department_id=d.department_id)  (cost=0.304 rows=4.29)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:8a63953bda8b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT d.name, e.employee_id\nFROM departments d LEFT JOIN employees e ON e.department_id = d.department_id\nWHERE e.salary >= 170000",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=6.75 rows=10)\n    -> Filter: ((e.salary >= 170000.00) and (e.department_id is not null))  (cost=3.25 rows=10)\n        -> Table scan on e  (cost=3.25 rows=30)\n    -> Single-row index lookup on d using PRIMARY (department_id=e.department_id)  (cost=0.26 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:7ba0a1231527": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT d.name\nFROM departments d LEFT JOIN employees e ON e.department_id = d.department_id\nWHERE e.employee_id IS NULL",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (e.employee_id is null)  (cost=37.3 rows=34.3)\n    -> Nested loop antijoin  (cost=37.3 rows=34.3)\n        -> Index scan on d using uq_departments_name  (cost=1.05 rows=8)\n        -> Covering index lookup on e using idx_employees_department (department_id=d.department_id)  (cost=0.256 rows=4.29)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:943009d3904b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT d.name, e.employee_id\nFROM employees e RIGHT JOIN departments d ON e.department_id = d.department_id",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop left join  (cost=6.49 rows=34.3)\n    -> Index scan on d using uq_departments_name  (cost=1.05 rows=8)\n    -> Covering index lookup on e using idx_employees_department (department_id=d.department_id)  (cost=0.304 rows=4.29)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:b5215b9cd384": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT d.name, e.employee_id\nFROM departments d\nLEFT JOIN employees e IGNORE INDEX (idx_employees_department)\n       ON e.department_id = d.department_id",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Left hash join (e.department_id = d.department_id)  (cost=24.7 rows=240)\n    -> Index scan on d using uq_departments_name  (cost=1.05 rows=8)\n    -> Hash\n        -> Table scan on e  (cost=0.406 rows=30)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:1ca71b12f1b9": {
+   "statements": [
+    {
+     "sql": "SELECT d.name,\n       CASE WHEN e.employee_id IS NULL THEN 'no match' ELSE 'matched' END AS match_status,\n       COUNT(e.employee_id) AS employees\nFROM departments d\nLEFT JOIN employees e ON e.department_id = d.department_id\nGROUP BY d.department_id, d.name, match_status\nORDER BY d.department_id",
+     "status": "ok",
+     "columns": [
+      "name",
+      "match_status",
+      "employees"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "Executive",
+       "matched",
+       1
+      ],
+      [
+       "Engineering",
+       "matched",
+       9
+      ],
+      [
+       "Data Platform",
+       "matched",
+       6
+      ],
+      [
+       "Sales",
+       "matched",
+       7
+      ],
+      [
+       "Marketing",
+       "matched",
+       3
+      ],
+      [
+       "Finance",
+       "matched",
+       3
+      ],
+      [
+       "Research",
+       "no match",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:e9a15e64945a": {
+   "statements": [
+    {
+     "sql": "-- A: LEFT JOIN anti-join\nSELECT d.name FROM departments d\nLEFT JOIN employees e ON e.department_id = d.department_id\nWHERE e.employee_id IS NULL",
+     "status": "ok",
+     "columns": [
+      "name"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Research"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:a01d8d7fb6ff": {
+   "statements": [
+    {
+     "sql": "-- B: NOT EXISTS (correlated subquery)\nSELECT d.name FROM departments d\nWHERE NOT EXISTS (SELECT 1 FROM employees e WHERE e.department_id = d.department_id)",
+     "status": "ok",
+     "columns": [
+      "name"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Research"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:30d10017181c": {
+   "statements": [
+    {
+     "sql": "-- C: NOT IN — correct here only because the subquery filters out NULLs\nSELECT d.name FROM departments d\nWHERE d.department_id NOT IN (SELECT e.department_id FROM employees e WHERE e.department_id IS NOT NULL)",
+     "status": "ok",
+     "columns": [
+      "name"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Research"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s24:fde40c56b13d": {
+   "statements": [
+    {
+     "sql": "-- Wrong: Research and any department without recent hires disappear\nSELECT d.name, COUNT(e.employee_id) AS hired_since_2020\nFROM departments d\nLEFT JOIN employees e ON e.department_id = d.department_id\nWHERE e.hire_date >= '2020-01-01'\nGROUP BY d.department_id, d.name\nORDER BY d.department_id",
+     "status": "ok",
+     "columns": [
+      "name",
+      "hired_since_2020"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Engineering",
+       2
+      ],
+      [
+       "Data Platform",
+       3
+      ],
+      [
+       "Sales",
+       5
+      ],
+      [
+       "Marketing",
+       2
+      ],
+      [
+       "Finance",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s25:267186f3ed10": {
+   "statements": [
+    {
+     "sql": "-- Correct: the date restricts what counts as a match\nSELECT d.name, COUNT(e.employee_id) AS hired_since_2020\nFROM departments d\nLEFT JOIN employees e ON e.department_id = d.department_id\n                     AND e.hire_date >= '2020-01-01'\nGROUP BY d.department_id, d.name\nORDER BY d.department_id",
+     "status": "ok",
+     "columns": [
+      "name",
+      "hired_since_2020"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "Executive",
+       0
+      ],
+      [
+       "Engineering",
+       2
+      ],
+      [
+       "Data Platform",
+       3
+      ],
+      [
+       "Sales",
+       5
+      ],
+      [
+       "Marketing",
+       2
+      ],
+      [
+       "Finance",
+       2
+      ],
+      [
+       "Research",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s26:f54cedcb9f1d": {
+   "statements": [
+    {
+     "sql": "SELECT d.name, e.first_name, j.title\nFROM departments d\nLEFT JOIN employees e ON e.department_id = d.department_id\nJOIN jobs j           ON j.job_id = e.job_id\nWHERE d.department_id IN (50, 70)\nORDER BY d.department_id, e.employee_id",
+     "status": "ok",
+     "columns": [
+      "name",
+      "first_name",
+      "title"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Marketing",
+       "Jonas",
+       "Marketing Specialist"
+      ],
+      [
+       "Marketing",
+       "Amara",
+       "Marketing Specialist"
+      ],
+      [
+       "Marketing",
+       "Marcus",
+       "Marketing Specialist"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s27:518f3cebc550": {
+   "statements": [
+    {
+     "sql": "SELECT d.name, e.first_name\nFROM j_depts d FULL OUTER JOIN j_emps e ON e.department_id = d.department_id",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FULL OUTER JOIN j_emps e ON e.department_id = d.department_id' at line 2"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s28:7130f7f5ee46": {
+   "statements": [
+    {
+     "sql": "SELECT department_id, first_name\nFROM j_depts FULL JOIN j_emps USING (department_id)\nORDER BY department_id, employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "first_name"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       10,
+       "Kofi"
+      ],
+      [
+       20,
+       "Diego"
+      ],
+      [
+       20,
+       "Mei"
+      ],
+      [
+       30,
+       "Diego"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 4119,
+       "message": "Using FULL as unquoted identifier is deprecated, please use quotes or rename the identifier."
+      }
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

@@ -1,0 +1,891 @@
+{
+ "doc": "m04-subqueries",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:6fe06a54bb17": {
+   "statements": [
+    {
+     "sql": "SELECT name, price\nFROM products\nWHERE price > (SELECT AVG(price) FROM products)\nORDER BY price DESC",
+     "status": "ok",
+     "columns": [
+      "name",
+      "price"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "Gaming Laptop 16",
+       "1799.00"
+      ],
+      [
+       "Ultrabook 14 Pro",
+       "1299.00"
+      ],
+      [
+       "Ultrabook 13 Air",
+       "999.00"
+      ],
+      [
+       "Espresso Machine",
+       "499.00"
+      ],
+      [
+       "27\" 4K Monitor",
+       "379.00"
+      ],
+      [
+       "Adjustable Dumbbells",
+       "299.00"
+      ],
+      [
+       "Noise-Cancelling Headphones",
+       "249.99"
+      ],
+      [
+       "Chromebook 11",
+       "249.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:b10817c661b6": {
+   "statements": [
+    {
+     "sql": "SELECT p.name, p.price,\n       ROUND(p.price - (SELECT AVG(price) FROM products), 2) AS diff_from_avg,\n       (SELECT c.name FROM categories c WHERE c.category_id = p.category_id) AS category\nFROM products AS p\nWHERE p.product_id IN (1, 5, 29)\nORDER BY p.product_id",
+     "status": "ok",
+     "columns": [
+      "name",
+      "price",
+      "diff_from_avg",
+      "category"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Ultrabook 14 Pro",
+       "1299.00",
+       "1058.96",
+       "Laptops"
+      ],
+      [
+       "Wireless Mouse",
+       "29.99",
+       "-210.06",
+       "Accessories"
+      ],
+      [
+       "Gift Card $50",
+       "50.00",
+       "-190.05",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:3b7a83eebca7": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, customer_id, status, order_date\nFROM orders\nWHERE (customer_id, status) = (SELECT customer_id, status FROM orders WHERE order_id = 2)\nORDER BY order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "status",
+      "order_date"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       2,
+       19,
+       "delivered",
+       "2024-10-16 16:55:00"
+      ],
+      [
+       48,
+       19,
+       "delivered",
+       "2024-12-03 16:21:00"
+      ],
+      [
+       60,
+       19,
+       "delivered",
+       "2024-07-14 18:53:00"
+      ],
+      [
+       66,
+       19,
+       "delivered",
+       "2024-06-14 08:16:00"
+      ],
+      [
+       75,
+       19,
+       "delivered",
+       "2024-11-01 09:26:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:b72d4699b008": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)                AS customers_with_orders,\n       ROUND(AVG(n_orders), 2) AS avg_orders_per_customer,\n       MAX(n_orders)           AS max_orders\nFROM (\n  SELECT customer_id, COUNT(*) AS n_orders\n  FROM orders\n  GROUP BY customer_id\n) AS per_customer",
+     "status": "ok",
+     "columns": [
+      "customers_with_orders",
+      "avg_orders_per_customer",
+      "max_orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20,
+       "4.00",
+       8
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:4846a7ea53e7": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, c.last_name, recent.order_id, recent.order_date\nFROM customers AS c\nLEFT JOIN LATERAL (\n  SELECT o.order_id, o.order_date\n  FROM orders AS o\n  WHERE o.customer_id = c.customer_id\n  ORDER BY o.order_date DESC, o.order_id DESC\n  LIMIT 2\n) AS recent ON TRUE\nWHERE c.customer_id IN (1, 2, 3)\nORDER BY c.customer_id, recent.order_date DESC",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "last_name",
+      "order_id",
+      "order_date"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "Sharma",
+       31,
+       "2024-09-21 11:15:00"
+      ],
+      [
+       1,
+       "Sharma",
+       65,
+       "2024-05-21 10:28:00"
+      ],
+      [
+       2,
+       "Garcia",
+       null,
+       null
+      ],
+      [
+       3,
+       "Haddad",
+       1,
+       "2024-10-31 09:09:00"
+      ],
+      [
+       3,
+       "Haddad",
+       35,
+       "2024-07-24 16:23:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:884e7bf0c3b7": {
+   "statements": [
+    {
+     "sql": "SELECT p.name, p.price, p.category_id\nFROM products AS p\nWHERE p.price > (SELECT AVG(p2.price) FROM products p2 WHERE p2.category_id = p.category_id)\nORDER BY p.category_id, p.price DESC",
+     "status": "ok",
+     "columns": [
+      "name",
+      "price",
+      "category_id"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       "Gaming Laptop 16",
+       "1799.00",
+       3
+      ],
+      [
+       "Ultrabook 14 Pro",
+       "1299.00",
+       3
+      ],
+      [
+       "Mechanical Keyboard",
+       "89.99",
+       4
+      ],
+      [
+       "Webcam 1080p",
+       "69.99",
+       4
+      ],
+      [
+       "Noise-Cancelling Headphones",
+       "249.99",
+       5
+      ],
+      [
+       "Chef's Knife",
+       "89.00",
+       6
+      ],
+      [
+       "Espresso Machine",
+       "499.00",
+       7
+      ],
+      [
+       "High Performance MySQL",
+       "59.99",
+       9
+      ],
+      [
+       "Database Internals (Book)",
+       "54.99",
+       9
+      ],
+      [
+       "Adjustable Dumbbells",
+       "299.00",
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:e036d27bab1c": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, c.last_name, c.loyalty_tier, t.spend\nFROM customers AS c\nJOIN (\n  SELECT o.customer_id, SUM(oi.quantity * oi.unit_price) AS spend\n  FROM orders o\n  JOIN order_items oi ON oi.order_id = o.order_id\n  WHERE o.status IN ('paid', 'shipped', 'delivered')\n  GROUP BY o.customer_id\n) AS t ON t.customer_id = c.customer_id\nWHERE t.spend > 5000\nORDER BY t.spend DESC",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "last_name",
+      "loyalty_tier",
+      "spend"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       19,
+       "Moradi",
+       "silver",
+       "8448.82"
+      ],
+      [
+       11,
+       "Berg",
+       "bronze",
+       "7657.55"
+      ],
+      [
+       10,
+       "Lin",
+       null,
+       "6893.02"
+      ],
+      [
+       3,
+       "Haddad",
+       null,
+       "5829.45"
+      ],
+      [
+       18,
+       "Martin",
+       "gold",
+       "5713.27"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:6b7f88320219": {
+   "statements": [
+    {
+     "sql": "SELECT name, price\nFROM products\nWHERE price > ALL (SELECT price FROM products WHERE category_id IN (8, 9))\n  AND price < 100\nORDER BY price",
+     "status": "ok",
+     "columns": [
+      "name",
+      "price"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Webcam 1080p",
+       "69.99"
+      ],
+      [
+       "Bluetooth Speaker",
+       "79.99"
+      ],
+      [
+       "Chef's Knife",
+       "89.00"
+      ],
+      [
+       "Mechanical Keyboard",
+       "89.99"
+      ],
+      [
+       "Fitness Tracker",
+       "99.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:7c33d5e14e24": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE product_flags AS\nSELECT product_id, category_id, price, 0 AS below_category_avg FROM products",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 30,
+     "info": "Records: 30  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE product_flags AS pf\nJOIN (SELECT category_id, AVG(price) AS avg_price\n      FROM product_flags\n      GROUP BY category_id) AS ca ON ca.category_id = pf.category_id\nSET pf.below_category_avg = 1\nWHERE pf.price < ca.avg_price",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 17,
+     "info": "Rows matched: 17  Changed: 17  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT SUM(below_category_avg) AS flagged, COUNT(*) AS products FROM product_flags",
+     "status": "ok",
+     "columns": [
+      "flagged",
+      "products"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "17",
+       30
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:4595d78f1679": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, c.last_name, big.order_id, big.order_value\nFROM customers AS c\nJOIN LATERAL (\n  SELECT oi.order_id, SUM(oi.quantity * oi.unit_price) AS order_value\n  FROM orders o\n  JOIN order_items oi ON oi.order_id = o.order_id\n  WHERE o.customer_id = c.customer_id\n  GROUP BY oi.order_id\n  ORDER BY order_value DESC, oi.order_id\n  LIMIT 1\n) AS big ON TRUE\nORDER BY big.order_value DESC\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "last_name",
+      "order_id",
+      "order_value"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       10,
+       "Lin",
+       74,
+       "6061.08"
+      ],
+      [
+       16,
+       "Ahmed",
+       56,
+       "4235.96"
+      ],
+      [
+       9,
+       "Moradi",
+       11,
+       "4157.98"
+      ],
+      [
+       19,
+       "Moradi",
+       60,
+       "4046.97"
+      ],
+      [
+       3,
+       "Haddad",
+       35,
+       "3797.96"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:e77683655bb3": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, customer_id FROM orders ORDER BY customer_id, order_id LIMIT 8",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       31,
+       1
+      ],
+      [
+       65,
+       1
+      ],
+      [
+       1,
+       3
+      ],
+      [
+       30,
+       3
+      ],
+      [
+       35,
+       3
+      ],
+      [
+       8,
+       4
+      ],
+      [
+       33,
+       4
+      ],
+      [
+       62,
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:555c5101211e": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, COUNT(*) AS n_orders\nFROM orders GROUP BY customer_id ORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "n_orders"
+     ],
+     "row_count": 20,
+     "rows": [
+      [
+       1,
+       2
+      ],
+      [
+       3,
+       3
+      ],
+      [
+       4,
+       4
+      ],
+      [
+       5,
+       2
+      ],
+      [
+       6,
+       3
+      ],
+      [
+       7,
+       4
+      ],
+      [
+       8,
+       3
+      ],
+      [
+       9,
+       1
+      ],
+      [
+       10,
+       5
+      ],
+      [
+       11,
+       5
+      ],
+      [
+       12,
+       2
+      ],
+      [
+       14,
+       6
+      ],
+      [
+       15,
+       5
+      ],
+      [
+       16,
+       4
+      ],
+      [
+       17,
+       2
+      ],
+      [
+       18,
+       8
+      ],
+      [
+       19,
+       8
+      ],
+      [
+       20,
+       5
+      ],
+      [
+       21,
+       2
+      ],
+      [
+       22,
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:d69c71906808": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT AVG(n_orders), MAX(n_orders)\nFROM (SELECT customer_id, COUNT(*) AS n_orders FROM orders GROUP BY customer_id) AS per_customer",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: avg(per_customer.n_orders), max(per_customer.n_orders)  (cost=23..23 rows=1)\n    -> Table scan on per_customer  (cost=18.4..21 rows=20)\n        -> Materialize  (cost=18.2..18.2 rows=20)\n            -> Group aggregate: count(0)  (cost=16.2 rows=20)\n                -> Index scan on orders using idx_orders_customer  (cost=8.25 rows=80)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:33d1a01e8663": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS customers_with_orders, ROUND(AVG(n_orders), 2) AS avg_orders, MAX(n_orders) AS max_orders\nFROM (SELECT customer_id, COUNT(*) AS n_orders FROM orders GROUP BY customer_id) AS per_customer",
+     "status": "ok",
+     "columns": [
+      "customers_with_orders",
+      "avg_orders",
+      "max_orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20,
+       "4.00",
+       8
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:b2fd97773e9a": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT name, price FROM products WHERE price > (SELECT AVG(price) FROM products)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (products.price > (select #2))  (cost=1.25 rows=10)\n    -> Table scan on products  (cost=1.25 rows=30)\n    -> Select #2 (subquery in condition; run only once)\n        -> Aggregate: avg(products.price)  (cost=6.25 rows=1)\n            -> Table scan on products  (cost=3.25 rows=30)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:b34261a16ee9": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT * FROM (SELECT * FROM orders WHERE status = 'delivered') AS d\nWHERE d.customer_id = 18",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (orders.`status` = 'delivered')  (cost=0.883 rows=1.33)\n    -> Index lookup on orders using idx_orders_customer (customer_id=18)  (cost=0.883 rows=8)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:270351d57a8e": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ NO_MERGE(d) */ * FROM (SELECT * FROM orders WHERE status = 'delivered') AS d\nWHERE d.customer_id = 18",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on d  (cost=2.9..3.53 rows=1.33)\n    -> Materialize  (cost=1.02..1.02 rows=1.33)\n        -> Filter: (orders.`status` = 'delivered')  (cost=0.883 rows=1.33)\n            -> Index lookup on orders using idx_orders_customer (customer_id=18)  (cost=0.883 rows=8)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:57740fcc088b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT * FROM (SELECT customer_id, COUNT(*) AS n FROM orders GROUP BY customer_id) AS t\nWHERE t.customer_id BETWEEN 18 AND 19",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on t  (cost=6.83..9.36 rows=16)\n    -> Materialize  (cost=6.66..6.66 rows=16)\n        -> Group aggregate: count(0)  (cost=5.06 rows=16)\n            -> Filter: (orders.customer_id between 18 and 19)  (cost=3.46 rows=16)\n                -> Covering index range scan on orders using idx_orders_customer over (18 <= customer_id <= 19)  (cost=3.46 rows=16)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:405324afdfa7": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT c.customer_id, lo.order_id\nFROM customers c\nJOIN LATERAL (SELECT o.order_id FROM orders o WHERE o.customer_id = c.customer_id\n              ORDER BY o.order_date DESC LIMIT 1) AS lo ON TRUE",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=69.7 rows=25)\n    -> Invalidate materialized tables (row from c)  (cost=2.75 rows=25)\n        -> Index scan on c using uq_customers_email  (cost=2.75 rows=25)\n    -> Table scan on lo  (cost=3.76..3.76 rows=1)\n        -> Materialize (invalidate on row from c)  (cost=1.25..1.25 rows=1)\n            -> Limit: 1 row(s)  (cost=1.15 rows=1)\n                -> Sort: o.order_date DESC, limit input to 1 row(s) per chunk  (cost=1.15 rows=4)\n                    -> Index lookup on o using idx_orders_customer (customer_id=c.customer_id)  (cost=1.15 rows=4)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'lab_a47b968370de1aaf6acb.c.customer_id' of SELECT #2 was resolved in SELECT #1"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:5a7e9d9c6094": {
+   "statements": [
+    {
+     "sql": "SELECT ROUND(AVG(n_orders), 2) AS avg_orders_all_customers\nFROM (\n  SELECT c.customer_id, COUNT(o.order_id) AS n_orders\n  FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id\n  GROUP BY c.customer_id\n) AS per_customer",
+     "status": "ok",
+     "columns": [
+      "avg_orders_all_customers"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "3.20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:f57c406c94db": {
+   "statements": [
+    {
+     "sql": "SELECT name, price, ROUND(avg_price, 2) AS avg_price\nFROM (SELECT name, price, AVG(price) OVER () AS avg_price FROM products) AS w\nWHERE price > avg_price\nORDER BY price DESC\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "name",
+      "price",
+      "avg_price"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Gaming Laptop 16",
+       "1799.00",
+       "240.05"
+      ],
+      [
+       "Ultrabook 14 Pro",
+       "1299.00",
+       "240.05"
+      ],
+      [
+       "Ultrabook 13 Air",
+       "999.00",
+       "240.05"
+      ],
+      [
+       "Espresso Machine",
+       "499.00",
+       "240.05"
+      ],
+      [
+       "27\" 4K Monitor",
+       "379.00",
+       "240.05"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:4a7a12ef92eb": {
+   "statements": [
+    {
+     "sql": "SELECT c.last_name,\n       (SELECT o.order_id FROM orders o WHERE o.customer_id = c.customer_id) AS order_id\nFROM customers c\nWHERE c.customer_id = 18",
+     "status": "error",
+     "columns": [
+      "last_name",
+      "order_id"
+     ],
+     "rows": [],
+     "error": {
+      "code": 1242,
+      "message": "Subquery returns more than 1 row"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s19:4a4c46be56bf": {
+   "statements": [
+    {
+     "sql": "SELECT name FROM products\nWHERE price = (SELECT price, cost FROM products WHERE product_id = 1)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1241,
+      "message": "Operand should contain 1 column(s)"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s20:1f88f17fd1af": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) FROM (SELECT customer_id FROM orders GROUP BY customer_id)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1248,
+      "message": "Every derived table must have its own alias"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s21:4abf928423fc": {
+   "statements": [
+    {
+     "sql": "UPDATE product_flags\nSET below_category_avg = 1\nWHERE price < (SELECT AVG(price) FROM product_flags)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1093,
+      "message": "You can't specify target table 'product_flags' for update in FROM clause"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s22:d6418a86fa8f": {
+   "statements": [
+    {
+     "sql": "UPDATE product_flags\nSET below_category_avg = 1\nWHERE price < (SELECT avg_price FROM (SELECT AVG(price) AS avg_price FROM product_flags) AS a)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 7,
+     "info": "Rows matched: 22  Changed: 7  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT SUM(below_category_avg) AS flagged FROM product_flags",
+     "status": "ok",
+     "columns": [
+      "flagged"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "24"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:43fc62d10a36": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, x.order_id\nFROM customers c\nJOIN (SELECT o.order_id FROM orders o WHERE o.customer_id = c.customer_id LIMIT 1) AS x ON TRUE",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1054,
+      "message": "Unknown column 'c.customer_id' in 'where clause'"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

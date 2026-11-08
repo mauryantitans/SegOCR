@@ -1,0 +1,582 @@
+{
+ "doc": "m07-btree-bplustree",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:c4f5f4d2f8b1": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE sizes(n) AS (\n  SELECT 1000 UNION ALL SELECT n * 1000 FROM sizes WHERE n < 1000000000000\n)\nSELECT n                                   AS leaf_entries,\n       CEIL(LOG(2, n))                     AS balanced_bst_levels,\n       CEIL(LOG(100, n))                   AS levels_fanout_100,\n       CEIL(LOG(1000, n))                  AS levels_fanout_1000\nFROM sizes\nORDER BY n",
+     "status": "ok",
+     "columns": [
+      "leaf_entries",
+      "balanced_bst_levels",
+      "levels_fanout_100",
+      "levels_fanout_1000"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1000,
+       10.0,
+       2.0,
+       1.0
+      ],
+      [
+       1000000,
+       20.0,
+       3.0,
+       2.0
+      ],
+      [
+       1000000000,
+       30.0,
+       5.0,
+       3.0
+      ],
+      [
+       1000000000000,
+       40.0,
+       6.0,
+       4.0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:300938c72ee4": {
+   "statements": [
+    {
+     "sql": "SELECT key_type, key_bytes,\n       key_bytes + 4 + 5                         AS approx_bytes_per_node_pointer,\n       FLOOR(16384 * 15 / 16 / (key_bytes + 4 + 5)) AS approx_fanout\nFROM (\n  SELECT 'INT'           AS key_type, 4  AS key_bytes UNION ALL\n  SELECT 'BIGINT',                    8              UNION ALL\n  SELECT 'BINARY(16) UUID',           16             UNION ALL\n  SELECT 'CHAR(36) UUID (ascii)',     36             UNION ALL\n  SELECT 'VARCHAR(255) utf8mb4 (avg 40 chars, ascii)', 42\n) k\nORDER BY key_bytes",
+     "status": "ok",
+     "columns": [
+      "key_type",
+      "key_bytes",
+      "approx_bytes_per_node_pointer",
+      "approx_fanout"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "INT",
+       4,
+       13,
+       1181
+      ],
+      [
+       "BIGINT",
+       8,
+       17,
+       903
+      ],
+      [
+       "BINARY(16) UUID",
+       16,
+       25,
+       614
+      ],
+      [
+       "CHAR(36) UUID (ascii)",
+       36,
+       45,
+       341
+      ],
+      [
+       "VARCHAR(255) utf8mb4 (avg 40 chars, ascii)",
+       42,
+       51,
+       301
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:b6d8127ea4fb": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 300000",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE seq_keys (\n  id      INT UNSIGNED NOT NULL,\n  payload CHAR(60)     NOT NULL,\n  PRIMARY KEY (id)\n) ENGINE=InnoDB",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO seq_keys\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 200000)\nSELECT n, CONCAT('row-', n) FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE seq_keys",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_3bd3873fc06fa5c1737e.seq_keys",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:22645fa8b55f": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*), MIN(payload) FROM seq_keys WHERE id BETWEEN 50001 AND 52000",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), min(seq_keys.payload)  (cost=1091 rows=1) (actual time=0.777..0.777 rows=1 loops=1)\n    -> Filter: (seq_keys.id between 50001 and 52000)  (cost=728 rows=3634) (actual time=0.0577..0.556 rows=2000 loops=1)\n        -> Index range scan on seq_keys using PRIMARY over (50001 <= id <= 52000)  (cost=728 rows=3634) (actual time=0.0559..0.438 rows=2000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.78
+    }
+   ],
+   "measured": true
+  },
+  "s5:7a5f22baff86": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_page_size AS page_size,\n       @@innodb_fill_factor AS fill_factor_pct",
+     "status": "ok",
+     "columns": [
+      "page_size",
+      "fill_factor_pct"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       16384,
+       100
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:17aedf0f6aa6": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE merge_demo (\n  id  INT UNSIGNED NOT NULL PRIMARY KEY,\n  v   INT NOT NULL,\n  INDEX idx_v (v) COMMENT 'MERGE_THRESHOLD=40'\n) COMMENT = 'MERGE_THRESHOLD=45'",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "SELECT INDEX_NAME, INDEX_TYPE, INDEX_COMMENT\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'merge_demo'\nORDER BY INDEX_NAME",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "INDEX_TYPE",
+      "INDEX_COMMENT"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "idx_v",
+       "BTREE",
+       "MERGE_THRESHOLD=40"
+      ],
+      [
+       "PRIMARY",
+       "BTREE",
+       ""
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:4092f52a9316": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE rnd_keys LIKE seq_keys",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO rnd_keys\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 200000)\nSELECT (n * 104729) % 200003, CONCAT('row-', n) FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE rnd_keys",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_3bd3873fc06fa5c1737e.rnd_keys",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT TABLE_NAME,\n       TABLE_ROWS                                  AS est_rows,\n       DATA_LENGTH / @@innodb_page_size            AS pages,\n       ROUND(200000 / (DATA_LENGTH / @@innodb_page_size)) AS rows_per_page\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('seq_keys', 'rnd_keys')\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "est_rows",
+      "pages",
+      "rows_per_page"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "rnd_keys",
+       194482,
+       "1891.0000",
+       "106"
+      ],
+      [
+       "seq_keys",
+       199100,
+       "1121.0000",
+       "178"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:e8a496cfc86c": {
+   "statements": [
+    {
+     "sql": "OPTIMIZE TABLE rnd_keys",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "lab_3bd3873fc06fa5c1737e.rnd_keys",
+       "optimize",
+       "note",
+       "Table does not support optimize, doing recreate + analyze instead"
+      ],
+      [
+       "lab_3bd3873fc06fa5c1737e.rnd_keys",
+       "optimize",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "ANALYZE TABLE rnd_keys",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_3bd3873fc06fa5c1737e.rnd_keys",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT DATA_LENGTH / @@innodb_page_size AS pages_after_rebuild\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'rnd_keys'",
+     "status": "ok",
+     "columns": [
+      "pages_after_rebuild"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "1313.0000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:84be965acc48": {
+   "statements": [
+    {
+     "sql": "DELETE FROM seq_keys WHERE id % 10 <> 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 180000,
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE seq_keys",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_3bd3873fc06fa5c1737e.seq_keys",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS remaining_rows FROM seq_keys",
+     "status": "ok",
+     "columns": [
+      "remaining_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20000
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT DATA_LENGTH / @@innodb_page_size AS pages_still_allocated\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'seq_keys'",
+     "status": "ok",
+     "columns": [
+      "pages_still_allocated"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "1121.0000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:72556ff9fa62": {
+   "statements": [
+    {
+     "sql": "OPTIMIZE TABLE seq_keys",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "lab_3bd3873fc06fa5c1737e.seq_keys",
+       "optimize",
+       "note",
+       "Table does not support optimize, doing recreate + analyze instead"
+      ],
+      [
+       "lab_3bd3873fc06fa5c1737e.seq_keys",
+       "optimize",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "ANALYZE TABLE seq_keys",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_3bd3873fc06fa5c1737e.seq_keys",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT DATA_LENGTH / @@innodb_page_size AS pages_after_rebuild\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'seq_keys'",
+     "status": "ok",
+     "columns": [
+      "pages_after_rebuild"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "161.0000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:6fe5c452e7ca": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT id FROM seq_keys ORDER BY id DESC LIMIT 3",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 3 row(s)  (cost=0.0243 rows=3)\n    -> Index scan on seq_keys using PRIMARY (reverse)  (cost=0.0243 rows=3)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:aed7f7382aa2": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT * FROM rnd_keys WHERE id BETWEEN 1000 AND 1004",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (rnd_keys.id between 1000 and 1004)  (cost=2.01 rows=5)\n    -> Index range scan on rnd_keys using PRIMARY over (1000 <= id <= 1004)  (cost=2.01 rows=5)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:0b2ccd0db79a": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM rnd_keys WHERE id BETWEEN 1000 AND 1004 ORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "payload"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1000,
+       "row-99420"
+      ],
+      [
+       1001,
+       "row-71519"
+      ],
+      [
+       1002,
+       "row-43618"
+      ],
+      [
+       1003,
+       "row-15717"
+      ],
+      [
+       1004,
+       "row-187819"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:bea45bef9b66": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT * FROM rnd_keys WHERE id BETWEEN 1000 AND 1004",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (rnd_keys.id between 1000 and 1004)  (cost=2.01 rows=5) (actual time=0.00796..0.00927 rows=5 loops=1)\n    -> Index range scan on rnd_keys using PRIMARY over (1000 <= id <= 1004)  (cost=2.01 rows=5) (actual time=0.00692..0.00786 rows=5 loops=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:c07e9c09013b": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE hash_request (k INT NOT NULL, INDEX idx_k (k) USING HASH) ENGINE=InnoDB",
+     "status": "ok",
+     "columns": [],
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 3502,
+       "message": "This storage engine does not support the HASH index algorithm, storage engine default was used instead."
+      }
+     ]
+    },
+    {
+     "sql": "SELECT INDEX_NAME, INDEX_TYPE\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'hash_request'",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "INDEX_TYPE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "idx_k",
+       "BTREE"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

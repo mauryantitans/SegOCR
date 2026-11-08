@@ -1,0 +1,1006 @@
+{
+ "doc": "m03-pattern-matching",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:767cd9694899": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, first_name, last_name, email\nFROM customers\nWHERE email LIKE 'diego%'\nORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "last_name",
+      "email"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       3,
+       "Diego",
+       "Haddad",
+       "diego.haddad3@example.com"
+      ],
+      [
+       4,
+       "Diego",
+       "Lopez",
+       "diego.lopez4@example.com"
+      ],
+      [
+       9,
+       "Diego",
+       "Moradi",
+       "diego.moradi9@example.com"
+      ],
+      [
+       13,
+       "Diego",
+       "Adeyemi",
+       "diego.adeyemi13@example.com"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:2990db854b34": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name\nFROM products\nWHERE name LIKE '%laptop%'\nORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       3,
+       "Gaming Laptop 16"
+      ],
+      [
+       9,
+       "Laptop Stand"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:48255f0a86c5": {
+   "statements": [
+    {
+     "sql": "SELECT first_name\nFROM customers\nWHERE first_name LIKE '____'\nORDER BY first_name",
+     "status": "ok",
+     "columns": [
+      "first_name"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "Hana"
+      ],
+      [
+       "Hiro"
+      ],
+      [
+       "Nina"
+      ],
+      [
+       "Nina"
+      ],
+      [
+       "Sara"
+      ],
+      [
+       "Zara"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:d1b9948a2ec4": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE promo_codes (\n  code VARCHAR(20) PRIMARY KEY,\n  description VARCHAR(60) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO promo_codes VALUES\n  ('SUMMER_10', '10% off in summer'),\n  ('SUMMER10',  'legacy summer code'),\n  ('SUMMERX10', 'test code'),\n  ('HALF%OFF',  '50% off one item')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT code FROM promo_codes WHERE code LIKE 'SUMMER_10' ORDER BY code",
+     "status": "ok",
+     "columns": [
+      "code"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "SUMMER_10"
+      ],
+      [
+       "SUMMERX10"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:226bc24a2515": {
+   "statements": [
+    {
+     "sql": "SELECT code FROM promo_codes WHERE code LIKE 'SUMMER\\\\_10' ORDER BY code",
+     "status": "ok",
+     "columns": [
+      "code"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "SUMMER_10"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:c3fe431b3d62": {
+   "statements": [
+    {
+     "sql": "SELECT code, description\nFROM promo_codes\nWHERE description LIKE '%!%%' ESCAPE '!'\nORDER BY code",
+     "status": "ok",
+     "columns": [
+      "code",
+      "description"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "HALF%OFF",
+       "50% off one item"
+      ],
+      [
+       "SUMMER_10",
+       "10% off in summer"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:dac2e9d6c99f": {
+   "statements": [
+    {
+     "sql": "SELECT REGEXP_LIKE('SKU-1001', 'SKU-[0-9]{4}')   AS contains_pattern,\n       REGEXP_LIKE('XSKU-10012', 'SKU-[0-9]{4}') AS contains_too,\n       REGEXP_LIKE('XSKU-10012', '^SKU-[0-9]{4}$') AS anchored",
+     "status": "ok",
+     "columns": [
+      "contains_pattern",
+      "contains_too",
+      "anchored"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:6ea72d97f86f": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS products,\n       SUM(REGEXP_LIKE(sku, '^SKU-[0-9]{4}$')) AS well_formed_skus\nFROM products",
+     "status": "ok",
+     "columns": [
+      "products",
+      "well_formed_skus"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       30,
+       "30"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:4abf76635bed": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name\nFROM products\nWHERE REGEXP_LIKE(name, '[0-9]')\nORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       1,
+       "Ultrabook 14 Pro"
+      ],
+      [
+       2,
+       "Ultrabook 13 Air"
+      ],
+      [
+       3,
+       "Gaming Laptop 16"
+      ],
+      [
+       4,
+       "Chromebook 11"
+      ],
+      [
+       7,
+       "USB-C Hub 7-in-1"
+      ],
+      [
+       8,
+       "27\" 4K Monitor"
+      ],
+      [
+       17,
+       "Single-Origin Beans 1kg"
+      ],
+      [
+       29,
+       "Gift Card $50"
+      ],
+      [
+       30,
+       "Webcam 1080p"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:3a765b0ef66f": {
+   "statements": [
+    {
+     "sql": "SELECT 'Austin' LIKE 'austin'                               AS ci_default,\n       'Austin' LIKE 'austin' COLLATE utf8mb4_0900_as_cs    AS case_sensitive,\n       'Café'   LIKE 'cafe'                                 AS accent_insensitive,\n       'Café'   LIKE 'cafe'   COLLATE utf8mb4_0900_as_cs    AS accent_sensitive",
+     "status": "ok",
+     "columns": [
+      "ci_default",
+      "case_sensitive",
+      "accent_insensitive",
+      "accent_sensitive"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       0,
+       1,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:b9c598d9b9d4": {
+   "statements": [
+    {
+     "sql": "SELECT 'Austin ' = 'Austin'    AS equals_with_trailing_space,\n       'Austin ' LIKE 'Austin' AS like_with_trailing_space,\n       'Austin ' LIKE 'Austin%' AS like_with_percent",
+     "status": "ok",
+     "columns": [
+      "equals_with_trailing_space",
+      "like_with_trailing_space",
+      "like_with_percent"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       0,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:8f16c353de99": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, email\nFROM customers\nWHERE REGEXP_LIKE(email, '[0-9]{2}@')\nORDER BY customer_id\nLIMIT 6",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "email"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       10,
+       "lucas.lin10@example.com"
+      ],
+      [
+       11,
+       "grace.berg11@example.com"
+      ],
+      [
+       12,
+       "nina.miller12@example.com"
+      ],
+      [
+       13,
+       "diego.adeyemi13@example.com"
+      ],
+      [
+       14,
+       "zara.novak14@example.com"
+      ],
+      [
+       15,
+       "fatima.brown15@example.com"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:f68cef99ed33": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id,\n       phone,\n       REGEXP_REPLACE(phone, '[^0-9]', '') AS digits_only\nFROM customers\nWHERE phone IS NOT NULL\nORDER BY customer_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "phone",
+      "digits_only"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "+1-450-555-4657",
+       "14505554657"
+      ],
+      [
+       2,
+       "+1-232-555-1488",
+       "12325551488"
+      ],
+      [
+       3,
+       "+1-774-555-4257",
+       "17745554257"
+      ],
+      [
+       4,
+       "+1-206-555-3615",
+       "12065553615"
+      ],
+      [
+       6,
+       "+1-567-555-6635",
+       "15675556635"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:4935f072640e": {
+   "statements": [
+    {
+     "sql": "SELECT phone,\n       REGEXP_REPLACE(phone, '^\\\\+1-([0-9]{3})-([0-9]{3})-([0-9]{4})$', '($1) $2-$3') AS us_format\nFROM customers\nWHERE phone IS NOT NULL\nORDER BY customer_id\nLIMIT 3",
+     "status": "ok",
+     "columns": [
+      "phone",
+      "us_format"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "+1-450-555-4657",
+       "(450) 555-4657"
+      ],
+      [
+       "+1-232-555-1488",
+       "(232) 555-1488"
+      ],
+      [
+       "+1-774-555-4257",
+       "(774) 555-4257"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:8ac80afaf83a": {
+   "statements": [
+    {
+     "sql": "SELECT email,\n       REGEXP_SUBSTR(email, '[0-9]+')              AS customer_number,\n       REGEXP_SUBSTR(phone, '[0-9]+', 1, 2)        AS area_code,\n       REGEXP_INSTR(email, '@')                    AS at_position\nFROM customers\nORDER BY customer_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "email",
+      "customer_number",
+      "area_code",
+      "at_position"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "amara.sharma1@example.com",
+       "1",
+       "450",
+       14
+      ],
+      [
+       "kwame.garcia2@example.com",
+       "2",
+       "232",
+       14
+      ],
+      [
+       "diego.haddad3@example.com",
+       "3",
+       "774",
+       14
+      ],
+      [
+       "diego.lopez4@example.com",
+       "4",
+       "206",
+       13
+      ],
+      [
+       "grace.smith5@example.com",
+       "5",
+       null,
+       13
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:8382094110ee": {
+   "statements": [
+    {
+     "sql": "SELECT name,\n       REGEXP_LIKE(name, 'pro')      AS ci_match,\n       REGEXP_LIKE(name, 'pro', 'c') AS cs_match\nFROM products\nWHERE REGEXP_LIKE(name, 'pro')\nORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "name",
+      "ci_match",
+      "cs_match"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Ultrabook 14 Pro",
+       1,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:ef5ed127bd8f": {
+   "statements": [
+    {
+     "sql": "SELECT name,\n       name LIKE '%book%'               AS like_contains,\n       REGEXP_LIKE(name, '\\\\bbook\\\\b')  AS whole_word\nFROM products\nWHERE name LIKE '%book%'\nORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "name",
+      "like_contains",
+      "whole_word"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Ultrabook 14 Pro",
+       1,
+       0
+      ],
+      [
+       "Ultrabook 13 Air",
+       1,
+       0
+      ],
+      [
+       "Chromebook 11",
+       1,
+       0
+      ],
+      [
+       "Database Internals (Book)",
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:2daaee05717a": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 60000",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE contacts (\n  contact_id INT PRIMARY KEY,\n  email      VARCHAR(100) NOT NULL,\n  city       VARCHAR(40)  NOT NULL,\n  KEY idx_contacts_email (email)\n)",
+     "status": "ok",
+     "columns": [],
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO contacts (contact_id, email, city)\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 50000)\nSELECT n, CONCAT('user', n, '@domain', n % 50, '.test'), ELT(1 + n % 4, 'Austin', 'Boston', 'Seattle', 'Chicago')\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Records: 50000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE contacts",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_757b01ad7fd437761db1.contacts",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_loaded FROM contacts",
+     "status": "ok",
+     "columns": [
+      "rows_loaded"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       50000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:a0d11416dade": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT contact_id, email FROM contacts WHERE email LIKE 'user4999%'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "contacts",
+       null,
+       "range",
+       "idx_contacts_email",
+       "idx_contacts_email",
+       "402",
+       null,
+       11,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_757b01ad7fd437761db1`.`contacts`.`contact_id` AS `contact_id`,`lab_757b01ad7fd437761db1`.`contacts`.`email` AS `email` from `lab_757b01ad7fd437761db1`.`contacts` where (`lab_757b01ad7fd437761db1`.`contacts`.`email` like 'user4999%')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:cb142c087665": {
+   "statements": [
+    {
+     "sql": "SELECT contact_id, email FROM contacts WHERE email LIKE 'user4999%' ORDER BY email",
+     "status": "ok",
+     "columns": [
+      "contact_id",
+      "email"
+     ],
+     "row_count": 11,
+     "rows": [
+      [
+       4999,
+       "user4999@domain49.test"
+      ],
+      [
+       49990,
+       "user49990@domain40.test"
+      ],
+      [
+       49991,
+       "user49991@domain41.test"
+      ],
+      [
+       49992,
+       "user49992@domain42.test"
+      ],
+      [
+       49993,
+       "user49993@domain43.test"
+      ],
+      [
+       49994,
+       "user49994@domain44.test"
+      ],
+      [
+       49995,
+       "user49995@domain45.test"
+      ],
+      [
+       49996,
+       "user49996@domain46.test"
+      ],
+      [
+       49997,
+       "user49997@domain47.test"
+      ],
+      [
+       49998,
+       "user49998@domain48.test"
+      ],
+      [
+       49999,
+       "user49999@domain49.test"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:e520ea132108": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT contact_id, email FROM contacts WHERE email LIKE '%@domain7.test'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "contacts",
+       null,
+       "index",
+       null,
+       "idx_contacts_email",
+       "402",
+       null,
+       50055,
+       11.11,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_757b01ad7fd437761db1`.`contacts`.`contact_id` AS `contact_id`,`lab_757b01ad7fd437761db1`.`contacts`.`email` AS `email` from `lab_757b01ad7fd437761db1`.`contacts` where (`lab_757b01ad7fd437761db1`.`contacts`.`email` like '%@domain7.test')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:d814f79784c6": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT contact_id, email, city FROM contacts WHERE email LIKE '%@domain7.test'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "contacts",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       50055,
+       11.11,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_757b01ad7fd437761db1`.`contacts`.`contact_id` AS `contact_id`,`lab_757b01ad7fd437761db1`.`contacts`.`email` AS `email`,`lab_757b01ad7fd437761db1`.`contacts`.`city` AS `city` from `lab_757b01ad7fd437761db1`.`contacts` where (`lab_757b01ad7fd437761db1`.`contacts`.`email` like '%@domain7.test')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:5934071d7ce2": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT contact_id, email FROM contacts WHERE REGEXP_LIKE(email, '^user4999')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "contacts",
+       null,
+       "index",
+       null,
+       "idx_contacts_email",
+       "402",
+       null,
+       50055,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_757b01ad7fd437761db1`.`contacts`.`contact_id` AS `contact_id`,`lab_757b01ad7fd437761db1`.`contacts`.`email` AS `email` from `lab_757b01ad7fd437761db1`.`contacts` where regexp_like(`lab_757b01ad7fd437761db1`.`contacts`.`email`,'^user4999')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:082ef69a3b3c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM contacts WHERE email LIKE 'user4999%'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=3.68 rows=1) (actual time=0.02..0.02 rows=1 loops=1)\n    -> Filter: (contacts.email like 'user4999%')  (cost=2.58 rows=11) (actual time=0.0146..0.0175 rows=11 loops=1)\n        -> Covering index range scan on contacts using idx_contacts_email over ('user4999' <= email <= 'user4999????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????')  (cost=2.58 rows=11) (actual time=0.013..0.0148 rows=11 loops=1)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1300,
+       "message": "Invalid utf8mb3 character string: 'F48FBF'"
+      }
+     ],
+     "elapsed_ms": 0.93
+    }
+   ],
+   "measured": true
+  },
+  "s21:78595b810033": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM contacts WHERE email LIKE '%@domain7.test'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=5618 rows=1) (actual time=14.9..14.9 rows=1 loops=1)\n    -> Filter: (contacts.email like '%@domain7.test')  (cost=5062 rows=5561) (actual time=0.0876..14.9 rows=1000 loops=1)\n        -> Covering index scan on contacts using idx_contacts_email  (cost=5062 rows=50055) (actual time=0.0821..5.31 rows=50000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 15.95
+    }
+   ],
+   "measured": true
+  },
+  "s22:f7bc4b635812": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS phones,\n       SUM(phone <> REGEXP_REPLACE(phone, '[^0-9]', '')) AS phones_changed_by_cleanup\nFROM customers\nWHERE phone IS NOT NULL",
+     "status": "ok",
+     "columns": [
+      "phones",
+      "phones_changed_by_cleanup"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20,
+       "20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:56491ae165b0": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE contacts\n  ADD COLUMN email_reversed VARCHAR(100) AS (REVERSE(email)) STORED,\n  ADD INDEX idx_contacts_email_rev (email_reversed)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Records: 50000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT contact_id, email\nFROM contacts\nWHERE email_reversed LIKE CONCAT(REVERSE('@domain7.test'), '%')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "contacts",
+       null,
+       "range",
+       "idx_contacts_email_rev",
+       "idx_contacts_email_rev",
+       "403",
+       null,
+       1000,
+       100.0,
+       "Using index condition"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_757b01ad7fd437761db1`.`contacts`.`contact_id` AS `contact_id`,`lab_757b01ad7fd437761db1`.`contacts`.`email` AS `email` from `lab_757b01ad7fd437761db1`.`contacts` where (`lab_757b01ad7fd437761db1`.`contacts`.`email_reversed` like <cache>(concat(reverse('@domain7.test'),'%')))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s24:30e3e0134228": {
+   "statements": [
+    {
+     "sql": "SELECT REGEXP_LIKE('Room 42', '\\d')  AS single_backslash,\n       REGEXP_LIKE('Room 42', '\\\\d') AS double_backslash,\n       REGEXP_LIKE('Room d', '\\d')   AS matches_letter_d",
+     "status": "ok",
+     "columns": [
+      "single_backslash",
+      "double_backslash",
+      "matches_letter_d"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s25:ae6998d0e164": {
+   "statements": [
+    {
+     "sql": "SELECT REGEXP_LIKE('Wireless Mouse', '[[:<:]]Mouse')",
+     "status": "error",
+     "columns": [
+      "REGEXP_LIKE('Wireless Mouse', '[[:<:]]Mouse')"
+     ],
+     "rows": [],
+     "error": {
+      "code": 3685,
+      "message": "Illegal argument to a regular expression."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}
