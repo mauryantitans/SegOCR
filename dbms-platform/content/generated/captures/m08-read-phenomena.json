@@ -596,20 +596,20 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "C",
-        "trxId": "133967",
-        "state": "LOCK WAIT",
+        "session": "B",
+        "trxId": "191885",
+        "state": "RUNNING",
         "isolation": "REPEATABLE READ",
-        "rowsLocked": 1,
+        "rowsLocked": 6,
         "rowsModified": 0,
         "lockStructs": 2
        },
        {
-        "session": "B",
-        "trxId": "133965",
-        "state": "RUNNING",
+        "session": "C",
+        "trxId": "191950",
+        "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
-        "rowsLocked": 6,
+        "rowsLocked": 1,
         "rowsModified": 0,
         "lockStructs": 2
        }

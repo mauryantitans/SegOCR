@@ -1,0 +1,384 @@
+id: m08-assessment
+module: m08
+title: "Module 8 Assessment — Transactions & Concurrency Control"
+passMark: 70
+description: >-
+  Covers the whole module: transaction boundaries, autocommit and implicit commits, savepoints, how InnoDB
+  implements ACID, read phenomena, isolation levels and InnoDB's deviations from the standard, MVCC and purge,
+  lock types (record, gap, next-key, insert-intention, metadata), deadlocks and retry logic, optimistic vs
+  pessimistic concurrency control, and the redo, undo and binary logs with their two-phase commit.
+questions:
+  - id: q1
+    question: "A session with default settings runs `DELETE FROM transactions WHERE account_id = 12;` followed by `ROLLBACK;`. What happens?"
+    options:
+      - "The rows are restored, because ROLLBACK undoes the last statement"
+      - "The rows stay deleted, because autocommit committed the DELETE; the ROLLBACK is a no-op"
+      - "ROLLBACK fails with an error because no transaction is open"
+      - "The DELETE is pending until the session disconnects"
+    answer: 1
+    explanation: "With autocommit = 1, each statement is its own transaction and commits on success. ROLLBACK without an open transaction succeeds silently and does nothing. Pending-until-disconnect would require autocommit = 0."
+    concepts: [autocommit]
+  - id: q2
+    question: "Which statements implicitly commit an open transaction in MySQL 8.4? (Select all that apply.)"
+    type: multi
+    options:
+      - "ALTER TABLE accounts ADD COLUMN note VARCHAR(20)"
+      - "START TRANSACTION"
+      - "SAVEPOINT s1"
+      - "TRUNCATE TABLE audit_log"
+      - "CREATE TEMPORARY TABLE tmp (x INT)"
+    answer: [0, 1, 3]
+    explanation: "DDL (ALTER, TRUNCATE) and a new START TRANSACTION commit implicitly. SAVEPOINT only marks a position, and CREATE TEMPORARY TABLE is an explicit exception that does not commit."
+    concepts: [implicit-commit]
+  - id: q3
+    question: "Inside a transaction, an INSERT fails with a duplicate-key error after two successful UPDATEs. What has InnoDB rolled back?"
+    options: ["All three statements", "Only the failed INSERT", "Nothing", "The whole transaction, and the session is disconnected"]
+    answer: 1
+    explanation: "A duplicate-key error rolls back only the failing statement (statement atomicity). The transaction stays open with the UPDATEs pending; the application must decide to commit or roll back. Whole-transaction rollback happens for deadlocks."
+    concepts: [statement-atomicity]
+  - id: q4
+    question: "After `ROLLBACK TO SAVEPOINT s`, what happens to row locks acquired (on existing rows) after `s`?"
+    options: ["They are released", "They are kept until the transaction ends", "They are downgraded to shared locks", "They are transferred to the next waiting transaction"]
+    answer: 1
+    explanation: "InnoDB keeps row locks stored in memory after the savepoint until COMMIT or ROLLBACK; the savepoints lesson showed other sessions still blocked after the partial rollback."
+    concepts: [savepoints]
+  - id: q5
+    question: "Which InnoDB mechanism provides atomicity and also supplies old row versions for consistent reads?"
+    options: ["Redo log", "Undo log", "Binary log", "Doublewrite buffer"]
+    answer: 1
+    explanation: "Undo records are applied in reverse for rollback and followed through DB_ROLL_PTR to rebuild older versions for MVCC. Redo is for crash recovery, the binary log for replication/PITR, and the doublewrite buffer against torn pages."
+    concepts: [undo-log, atomicity, mvcc]
+  - id: q6
+    question: "With `innodb_flush_log_at_trx_commit = 2`, which failure can lose acknowledged commits?"
+    options: ["A mysqld crash only", "An OS crash or power failure", "None — it is fully durable", "Only a disk failure"]
+    answer: 1
+    explanation: "Setting 2 writes the redo log to the OS at commit and flushes about once per second, so an OS crash or power loss can lose about a second of commits; a mysqld crash alone does not. Setting 0 can lose commits even on a mysqld crash."
+    concepts: [durability, innodb-flush-log-at-trx-commit]
+  - id: q7
+    question: "Two sessions read a balance with plain SELECTs, compute new balances in the application and write them back with `UPDATE … SET balance = ?`. At InnoDB's default isolation level, what can happen?"
+    options: ["Nothing bad — REPEATABLE READ prevents it", "A lost update: the second write overwrites the first", "A deadlock always occurs", "A dirty read"]
+    answer: 1
+    explanation: "This is the read-modify-write lost update. REPEATABLE READ protects reads, not writes based on stale reads; no lock cycle forms, and no uncommitted data is read."
+    concepts: [lost-update]
+  - id: q8
+    question: "Session A (REPEATABLE READ) counts accounts with balance > 10000 (result 3). Session B inserts a fourth such account and commits. A then runs the same COUNT, followed by the same COUNT with FOR SHARE. What are the results?"
+    options: ["3 and 3", "4 and 4", "3 and 4", "4 and 3"]
+    answer: 2
+    explanation: "The consistent read uses A's snapshot (3); the locking read reads the latest committed data (4). InnoDB REPEATABLE READ prevents phantoms only for consistent reads."
+    concepts: [phantom-read, consistent-read, locking-read]
+  - id: q9
+    question: "Which anomaly does InnoDB REPEATABLE READ allow even though both transactions use `UPDATE … SET balance = balance - x` on different rows?"
+    options: ["Dirty read", "Write skew", "Dirty write", "Non-repeatable read"]
+    answer: 1
+    explanation: "Write skew: each transaction checks a rule over the same rows and updates a different row; there is no write-write conflict to detect. Prevent it by locking all rows the rule reads, a common conflict row, or SERIALIZABLE."
+    concepts: [write-skew]
+  - id: q10
+    question: "Which statements correctly describe InnoDB's deviations from the SQL standard or from textbook snapshot isolation? (Select all that apply.)"
+    type: multi
+    options:
+      - "REPEATABLE READ prevents phantoms for consistent reads"
+      - "UPDATE at REPEATABLE READ aborts if the row changed after the transaction's snapshot"
+      - "SERIALIZABLE converts plain SELECTs inside transactions into SELECT … FOR SHARE"
+      - "READ UNCOMMITTED allows dirty writes"
+      - "READ COMMITTED disables gap locking for searches"
+    answer: [0, 2, 4]
+    explanation: "InnoDB RR is phantom-free for snapshot reads; there is no first-committer-wins abort (option B is false — UPDATE acts on the latest version); SERIALIZABLE adds implicit FOR SHARE; dirty writes are never allowed; READ COMMITTED takes no gap locks except for FK and duplicate checks."
+    concepts: [isolation-levels, snapshot-isolation]
+  - id: q11
+    question: "When is a REPEATABLE READ transaction's read view created?"
+    options: ["At START TRANSACTION", "At its first consistent read, or immediately with START TRANSACTION WITH CONSISTENT SNAPSHOT", "At every statement", "At COMMIT"]
+    answer: 1
+    explanation: "The read view is created lazily by the first consistent read unless WITH CONSISTENT SNAPSHOT is used. A new view per statement is READ COMMITTED behaviour."
+    concepts: [read-view]
+  - id: q12
+    question: "The InnoDB history list length has grown from 2,000 to 4 million over five hours while the write rate is normal. What is the most likely cause?"
+    options: ["The redo log is too small", "A long-running or idle open transaction is holding an old read view, blocking purge", "Too many indexes", "innodb_flush_log_at_trx_commit = 1"]
+    answer: 1
+    explanation: "Purge can only free undo that no open read view needs; one old transaction pins every newer version. Find it in INNODB_TRX ordered by trx_started. Redo size, indexes and flush settings do not block purge."
+    concepts: [purge, history-list-length, long-running-transactions]
+  - id: q13
+    question: "In performance_schema.data_locks, a lock on PRIMARY has LOCK_MODE `X` and LOCK_DATA `20` (ids 10, 20, 30 exist). What does it protect?"
+    options: ["Only record 20", "The gap (10, 20) only", "Record 20 and the gap before it — (10, 20]", "The whole table"]
+    answer: 2
+    explanation: "Plain X is a next-key lock: the record plus the preceding gap. X,REC_NOT_GAP would be the record only, X,GAP the gap only, and table locks have LOCK_TYPE TABLE."
+    concepts: [next-key-locks, data-locks]
+  - id: q14
+    question: "Two transactions each run `SELECT … WHERE id = 15 FOR UPDATE` on a table where id 15 does not exist (ids 10 and 20 do), then each inserts id 15. What happens?"
+    options:
+      - "Both inserts succeed"
+      - "The second SELECT blocks, so no conflict occurs"
+      - "Both hold compatible gap locks; each insert waits for the other's gap lock, and InnoDB rolls one back with 1213"
+      - "Both inserts fail with 1062"
+    answer: 2
+    explanation: "Gap locks are compatible with each other, so both SELECTs succeed; insert-intention locks conflict with the other transaction's gap lock, forming a cycle. The fix is to INSERT directly and handle 1062."
+    concepts: [gap-locks, insert-intention-locks, deadlocks]
+  - id: q15
+    question: "An idle connection has an open transaction that once read the accounts table. A migration runs ALTER TABLE accounts. What happens to new SELECTs on accounts issued afterwards?"
+    options:
+      - "They run normally because SELECTs take no locks"
+      - "They queue behind the ALTER, which waits for the idle transaction's metadata lock"
+      - "They fail immediately with 1205"
+      - "They read the new table definition"
+    answer: 1
+    explanation: "The idle transaction holds a shared metadata lock; the ALTER waits for an exclusive MDL; later statements queue behind the pending exclusive request. MDL waits use lock_wait_timeout, not innodb_lock_wait_timeout."
+    concepts: [metadata-locks]
+  - id: q16
+    question: "Which statement about InnoDB deadlock handling is correct?"
+    options:
+      - "The victim is always the transaction whose request closed the cycle"
+      - "The victim's entire transaction is rolled back and it receives error 1213; InnoDB tries to choose a small transaction"
+      - "Only the victim's last statement is rolled back"
+      - "Deadlocks are resolved only when innodb_lock_wait_timeout expires"
+    answer: 1
+    explanation: "InnoDB rolls back the whole victim transaction, preferring small transactions (rows inserted/updated/deleted); the deadlocks lesson showed the cycle-closing transaction surviving when it was larger. Timeouts are only the backstop when detection is off."
+    concepts: [deadlock-detection, victim-selection]
+  - id: q17
+    question: "After error 1205 (lock wait timeout) with default settings, what should the application do?"
+    options: ["Commit — the other statements succeeded", "Nothing — InnoDB rolled the transaction back", "Roll back (then retry the whole transaction or report)", "Reconnect"]
+    answer: 2
+    explanation: "With innodb_rollback_on_timeout = OFF only the waiting statement is rolled back; earlier changes and locks remain. Committing would persist a partial unit of work; the connection is still usable."
+    concepts: [lock-wait-timeout, retry-logic]
+  - id: q18
+    question: "Two sessions loaded account 18 at version 3. Session A saves with `UPDATE … SET status = 'frozen', version = version + 1 WHERE account_id = 18 AND version = 3` and commits. B then runs the same statement with its own change. What does B observe?"
+    options: ["An error 1213", "0 rows affected — the conflict is detected", "B's change overwrites A's", "B blocks until A disconnects"]
+    answer: 1
+    explanation: "The compare-and-set predicate no longer matches (version is 4), so 0 rows are affected; the application must re-read and retry or report the conflict. No error is raised and nothing blocks after A commits."
+    concepts: [optimistic-locking, compare-and-set]
+  - id: q19
+    question: "Why do queue workers using `FOR UPDATE SKIP LOCKED` on an index (status, id) often run at READ COMMITTED?"
+    options:
+      - "SKIP LOCKED does not work at REPEATABLE READ"
+      - "At REPEATABLE READ the claims take next-key locks whose gaps can make another worker's status update (a new index entry) wait"
+      - "READ COMMITTED makes SKIP LOCKED return consistent counts"
+      - "READ COMMITTED disables row locks"
+    answer: 1
+    explanation: "The optimistic/pessimistic lesson captured a worker's UPDATE of status waiting on another worker's next-key lock in the status index at REPEATABLE READ, and not at READ COMMITTED. SKIP LOCKED works at both levels and READ COMMITTED still takes record locks."
+    concepts: [skip-locked, job-queue, gap-locks]
+  - id: q20
+    question: "A crash occurs after a transaction's events and Xid were written and synced to the binary log, but before InnoDB's commit step. What does recovery do?"
+    options: ["Rolls it back", "Commits it, because the Xid is in the binary log", "Leaves it prepared indefinitely", "Asks the client"]
+    answer: 1
+    explanation: "Prepared transactions whose Xid is found in the binary log are committed so InnoDB and the binary log (and replicas) agree; those without an Xid are rolled back. The client may not have received OK — an unknown-outcome case."
+    concepts: [two-phase-commit, crash-recovery]
+
+challenges:
+  - id: c1
+    title: Deadlock-safe transfer with ledger rows
+    dataset: bank
+    difficulty: hard
+    kind: dml
+    concepts: [transactions, lock-ordering, atomic-update]
+    prompt: |
+      Transfer **300.00** from account **14** to account **13** as one transaction that cannot deadlock with
+      other transfers following the same convention and cannot overdraw:
+
+      1. lock both accounts with one locking read in ascending `account_id` order;
+      2. debit 14 with a guarded update (`balance >= 300.00`) and credit 13, incrementing `version` on both;
+      3. insert the two ledger rows (`transfer_out` for 14, `transfer_in` for 13), `amount` 300.00, correct
+         `balance_after`, `reference` `'ASMT-C1'`, `created_at` `'2024-12-31 18:00:00'`;
+      4. commit.
+
+      Account 13 holds 2860.42 and account 14 holds 2106.08. The checker compares both accounts and the ledger
+      rows with reference `'ASMT-C1'` (excluding `txn_id`).
+    hints:
+      - "Step 1: SELECT … FROM accounts WHERE account_id IN (13, 14) ORDER BY account_id FOR UPDATE;"
+      - "The guarded debit: UPDATE accounts SET balance = balance - 300.00, version = version + 1 WHERE account_id = 14 AND balance >= 300.00;"
+      - "balance_after: 2106.08 − 300.00 = 1806.08 for account 14; 2860.42 + 300.00 = 3160.42 for account 13. You can also use INSERT … SELECT from accounts to pick up the new balances."
+    solution: |
+      START TRANSACTION;
+      SELECT account_id, balance FROM accounts WHERE account_id IN (13, 14) ORDER BY account_id FOR UPDATE;
+      UPDATE accounts SET balance = balance - 300.00, version = version + 1 WHERE account_id = 14 AND balance >= 300.00;
+      UPDATE accounts SET balance = balance + 300.00, version = version + 1 WHERE account_id = 13;
+      INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)
+      SELECT account_id,
+             CASE account_id WHEN 14 THEN 'transfer_out' ELSE 'transfer_in' END,
+             300.00, balance, 'ASMT-C1', '2024-12-31 18:00:00'
+      FROM accounts WHERE account_id IN (13, 14);
+      COMMIT;
+    check: |
+      SELECT a.account_id, a.balance, a.version, t.txn_type, t.amount, t.balance_after, t.created_at
+      FROM accounts a
+      LEFT JOIN transactions t ON t.account_id = a.account_id AND t.reference = 'ASMT-C1'
+      WHERE a.account_id IN (13, 14)
+      ORDER BY a.account_id;
+    explanation: |
+      Locking both rows up front in a global order removes circular wait between transfers; the guard makes the
+      debit refuse (0 rows) instead of overdrawing; and the transaction makes the four writes atomic. In
+      application code you would check that the guarded UPDATE affected exactly 1 row and roll back otherwise,
+      and wrap the whole transaction in a retry loop for 1213/1205.
+
+  - id: c2
+    title: Find the lost update
+    dataset: bank
+    difficulty: hard
+    concepts: [lost-update, consistency]
+    setup: |
+      INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)
+      VALUES (1, 'deposit', 100.00, 592.57, 'TELLER-17', '2024-12-31 10:00:00'),
+             (16, 'withdrawal', 48.61, 2800.00, 'ATM-3', '2024-12-31 10:05:00');
+      UPDATE accounts SET balance = 2800.00 WHERE account_id = 16;
+    prompt: |
+      A concurrency bug overwrote some balance updates: ledger rows were written, but the account balance was
+      later overwritten by a stale value. Find every account whose stored `balance` differs from the
+      `balance_after` of its **latest** ledger row (latest `created_at`, ties broken by highest `txn_id`).
+
+      Return `account_id`, `balance`, `ledger_balance` and `difference` (`ledger_balance − balance`), ordered by
+      `account_id`.
+    hints:
+      - "Use ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY created_at DESC, txn_id DESC) to find each account's latest ledger row."
+      - "Join that row to accounts and keep only rows where balance <> balance_after."
+    solution: |
+      SELECT a.account_id, a.balance, l.balance_after AS ledger_balance, l.balance_after - a.balance AS difference
+      FROM accounts a
+      JOIN (
+        SELECT account_id, balance_after,
+               ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY created_at DESC, txn_id DESC) AS rn
+        FROM transactions
+      ) l ON l.account_id = a.account_id AND l.rn = 1
+      WHERE a.balance <> l.balance_after
+      ORDER BY a.account_id;
+    orderMatters: true
+    explanation: |
+      Account 1's deposit of 100.00 was recorded in the ledger but its balance still shows 492.57 — the classic
+      lost update (a teller's write was overwritten by another session's stale absolute write). Account 16 is
+      consistent: its ledger and balance were updated together. Reconciliation queries like this are the
+      detective control behind atomic updates, locking reads and version checks.
+
+  - id: c3
+    title: An atomic fee run with ledger rows
+    dataset: bank
+    difficulty: challenge
+    kind: dml
+    concepts: [atomicity, statement-atomicity, atomic-update]
+    prompt: |
+      Charge a **15.00** monthly fee to every **active checking** account whose balance is **at least 15.00**, in
+      one transaction, such that every charged account gets exactly one ledger row (`txn_type` `'fee'`,
+      `amount` 15.00, `balance_after` = the balance after the fee, `reference` `'FEE-2024-12'`, `created_at`
+      `'2024-12-31 23:00:00'`) and its `version` is incremented. Accounts that are frozen, closed, savings, or
+      below 15.00 must not be touched.
+
+      The checker compares all accounts and all `'FEE-2024-12'` ledger rows.
+    hints:
+      - "Use the same predicate (status = 'active' AND account_type = 'checking' AND balance >= 15.00) for both statements."
+      - "Either UPDATE first and then INSERT … SELECT the new balances using a predicate that still identifies the same accounts, or INSERT … SELECT balance − 15.00 first and then UPDATE."
+      - "Order matters: after the UPDATE, 'balance >= 15.00' may no longer identify the same accounts. Writing the ledger first avoids that trap."
+    solution: |
+      START TRANSACTION;
+      INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)
+      SELECT account_id, 'fee', 15.00, balance - 15.00, 'FEE-2024-12', '2024-12-31 23:00:00'
+      FROM accounts
+      WHERE status = 'active' AND account_type = 'checking' AND balance >= 15.00
+      FOR SHARE;
+      UPDATE accounts a
+      JOIN transactions t ON t.account_id = a.account_id AND t.reference = 'FEE-2024-12'
+      SET a.balance = a.balance - 15.00, a.version = a.version + 1;
+      COMMIT;
+    check: |
+      SELECT a.account_id, a.balance, a.version, t.amount, t.balance_after
+      FROM accounts a
+      LEFT JOIN transactions t ON t.account_id = a.account_id AND t.reference = 'FEE-2024-12'
+      ORDER BY a.account_id;
+    explanation: |
+      Writing the ledger rows first records exactly which accounts qualify; the UPDATE then charges precisely
+      those accounts by joining on the batch reference, so the two statements cannot disagree about the set.
+      Wrapping both in one transaction makes the fee run atomic. FOR SHARE (and, at REPEATABLE READ, the shared
+      locks INSERT … SELECT takes on its source rows anyway) stops concurrent changes to the qualifying accounts
+      between the two statements. Doing the UPDATE first and then re-selecting with `balance >= 15.00` would miss
+      accounts whose balance dropped below 15.00 because of the fee.
+
+interview:
+  - id: i1
+    question: "Explain how InnoDB implements each ACID property, naming the concrete mechanism and one configuration setting or behaviour that can weaken it."
+    answer: |
+      - **Atomicity — undo log.** Every change writes an undo record; ROLLBACK (and statement rollback) applies
+        them in reverse, and crash recovery rolls back unfinished transactions with them. Weakened by application
+        code that commits after a caught error (statement-level rollback only undid the failing statement).
+      - **Consistency — declared constraints plus correct transactions.** PK/UNIQUE/FK/CHECK/NOT NULL and strict
+        SQL mode are enforced row by row. Weakened by `sql_mode = ''` (silent truncation), `foreign_key_checks = 0`,
+        or invariants that exist only in application code.
+      - **Isolation — MVCC for consistent reads, locks for writes and locking reads.** Read views give snapshots;
+        record/gap/next-key locks serialise writers and prevent phantoms for locking reads. Weakened by lower
+        levels (READ COMMITTED/UNCOMMITTED) and, at any level below SERIALIZABLE, by read-modify-write code
+        (lost updates) and check-then-act across rows (write skew).
+      - **Durability — redo log with WAL and fsync at commit, doublewrite buffer, binary log 2PC.** Weakened by
+        `innodb_flush_log_at_trx_commit = 0/2`, `sync_binlog ≠ 1`, or storage that lies about flushes.
+    concepts: [acid, undo-log, redo-log]
+  - id: i2
+    question: "What is the difference between a consistent read and a locking read in InnoDB, and why does it matter when writing application code?"
+    answer: |
+      A **consistent read** (plain SELECT at READ COMMITTED/REPEATABLE READ) reads from a read view: it sees the
+      committed state as of the snapshot (per statement at RC, per transaction at RR), reconstructing old versions
+      from undo, and takes no locks. A **locking read** (FOR UPDATE / FOR SHARE) and every UPDATE/DELETE read the
+      **latest committed** version and lock it (plus gaps at RR).
+
+      Inside one REPEATABLE READ transaction they can disagree: after another session commits, a plain SELECT may
+      return 3 rows while FOR SHARE (or an UPDATE) sees 4. Therefore any read whose result drives a write must be
+      a locking read — or the write must be atomic (`SET x = x - ?` with a guard) or optimistic (`WHERE version = ?`).
+      Basing an absolute write on a snapshot read is the lost-update bug.
+    concepts: [consistent-read, locking-read, mvcc]
+  - id: i3
+    question: "A service sees frequent 1213 errors on a transfer endpoint. How do you diagnose and fix them?"
+    answer: |
+      **Diagnose**: enable `innodb_print_all_deadlocks` (or read LATEST DETECTED DEADLOCK in SHOW ENGINE INNODB
+      STATUS) and classify the deadlocks: which statements, which indexes, which lock modes. Correlate with
+      application logs to find the earlier statements that acquired the held locks (the report shows only the
+      waiting statements). Typical findings: transfers locking source then destination (opposite orders for
+      opposite directions), FOR SHARE followed by UPDATE (lock upgrade), check-then-insert with FOR UPDATE on a
+      missing key (gap locks), or scans without a usable index locking far more rows than needed.
+
+      **Fix**: lock both accounts up front in ascending id order (`… WHERE account_id IN (?, ?) ORDER BY account_id
+      FOR UPDATE`), use FOR UPDATE rather than FOR SHARE before writes, replace check-then-insert with insert +
+      1062 handling, add indexes, and keep transactions short. **Keep** a retry wrapper: retry the whole
+      transaction on 1213 (already rolled back) and 1205 (after ROLLBACK), with jittered backoff and bounded
+      attempts, and side effects moved outside the transaction.
+    concepts: [deadlocks, lock-ordering, retry-logic]
+  - id: i4
+    question: "When would you choose optimistic concurrency control over pessimistic locking, and how do you implement it in MySQL?"
+    answer: |
+      Choose **optimistic** when conflicts are rare and/or the read and the write are separated by think time or
+      multiple requests (edit forms, REST APIs with ETags, mobile sync). Holding database locks across user
+      interaction is unacceptable, and optimistic checks hold no locks between read and write. Choose
+      **pessimistic** (`SELECT … FOR UPDATE` in a short transaction) when conflicts are frequent and the
+      transaction is short — waiting is then cheaper than repeated aborts — or when several rows must be decided
+      on together. Prefer an **atomic UPDATE** when the new value can be computed in SQL.
+
+      Implementation: add a `version INT UNSIGNED` column; read it with the data; save with
+      `UPDATE t SET …, version = version + 1 WHERE id = ? AND version = ?`; treat affected rows = 0 as a conflict
+      (re-read and retry, or show the user). Every writer must increment the version. It works at any isolation
+      level because UPDATE evaluates the predicate on the current version under an exclusive lock. It does not
+      prevent write skew across rows unless all participants update a common row.
+    concepts: [optimistic-locking, pessimistic-locking]
+  - id: i5
+    question: "Explain the roles of the redo log, undo log and binary log, and why MySQL uses a two-phase commit between InnoDB and the binary log."
+    answer: |
+      - **Redo log** (InnoDB, physical, circular): records page changes ahead of the data pages (WAL); used only
+        for crash recovery to replay changes since the last checkpoint. Durability controlled by
+        `innodb_flush_log_at_trx_commit`.
+      - **Undo log** (InnoDB, logical per row): old column values for rollback, statement rollback and MVCC reads;
+        removed by purge once no read view needs it.
+      - **Binary log** (server, logical row events or statements): written at commit, in commit order; used by
+        replicas, point-in-time recovery and CDC. Durability controlled by `sync_binlog`.
+
+      Because the binary log and redo log are independent, a crash between writing one and the other could leave
+      them disagreeing (committed in InnoDB but missing from the binary log, or vice versa), corrupting replicas
+      and PITR. MySQL therefore runs an internal 2PC: InnoDB **prepares** (redo durable), the server writes and
+      syncs the transaction to the binary log with an Xid (the commit point), then InnoDB **commits**. On
+      recovery, prepared transactions whose Xid is in the binary log are committed; others are rolled back.
+    concepts: [redo-log, undo-log, binary-log, two-phase-commit]
+  - id: i6
+    question: "Your team is considering switching from REPEATABLE READ to READ COMMITTED. What do you gain, what do you risk, and what would you check first?"
+    answer: |
+      **Gain**: no gap/next-key locks for searches (fewer lock waits and deadlocks around inserts and ranges),
+      locks released on rows that do not match an UPDATE's WHERE (semi-consistent reads), and short-lived read
+      views (less purge pressure from long transactions).
+
+      **Risk**: non-repeatable reads and read skew in multi-statement reads (reports must use a single statement or
+      an explicit REPEATABLE READ snapshot transaction), and phantoms for locking reads — any check-then-insert or
+      range-based rule that relied on gap locks becomes a race. Statement-based binary logging is not allowed
+      with RC for InnoDB writes, so ensure `binlog_format = ROW`.
+
+      **Check first**: measure the actual problem (deadlock rate, lock waits, the statements involved) — often a
+      missing index or a long transaction is the real cause; review code paths for multi-query consistency and
+      gap-lock-dependent logic, protecting them with unique constraints or explicit locking; test the workload at
+      RC on staging and compare correctness and metrics before switching per service (session-level setting).
+    concepts: [isolation-levels, read-committed, gap-locks]

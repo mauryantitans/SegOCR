@@ -462,7 +462,7 @@
     }
    ]
   },
-  "c3:4a9456b46443": {
+  "c3:b5031762b376": {
    "steps": [
     {
      "step": 0,
@@ -725,7 +725,7 @@
       "transactions": [
        {
         "session": "B",
-        "trxId": "179839",
+        "trxId": "197351",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 3,
@@ -734,7 +734,7 @@
        },
        {
         "session": "A",
-        "trxId": "179837",
+        "trxId": "197349",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 2,
@@ -999,7 +999,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "179888",
+        "trxId": "197401",
         "state": "RUNNING",
         "isolation": "READ COMMITTED",
         "rowsLocked": 2,
@@ -1008,7 +1008,7 @@
        },
        {
         "session": "B",
-        "trxId": "179891",
+        "trxId": "197404",
         "state": "RUNNING",
         "isolation": "READ COMMITTED",
         "rowsLocked": 2,

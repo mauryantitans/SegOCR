@@ -131,22 +131,22 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "B",
-        "trxId": "160668",
-        "state": "RUNNING",
-        "isolation": "REPEATABLE READ",
-        "rowsLocked": 1,
-        "rowsModified": 1,
-        "lockStructs": 2
-       },
-       {
         "session": "A",
-        "trxId": "160663",
+        "trxId": "195984",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 2,
         "rowsModified": 1,
         "lockStructs": 3
+       },
+       {
+        "session": "B",
+        "trxId": "195990",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
+        "lockStructs": 2
        }
       ],
       "locks": [
@@ -598,7 +598,7 @@
       "transactions": [
        {
         "session": "B",
-        "trxId": "161005",
+        "trxId": "196331",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -607,7 +607,7 @@
        },
        {
         "session": "A",
-        "trxId": "161003",
+        "trxId": "196329",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 2,

@@ -1,0 +1,465 @@
+{
+ "doc": "m02-install-connect",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:e313c73a6b51": {
+   "statements": [
+    {
+     "sql": "SELECT VERSION()       AS server_version,\n       CURRENT_USER()  AS account_matched,\n       USER()          AS login_as_sent,\n       DATABASE()      AS default_schema",
+     "status": "ok",
+     "columns": [
+      "server_version",
+      "account_matched",
+      "login_as_sent",
+      "default_schema"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "8.0.46-0ubuntu0.24.04.4",
+       "your_lab@localhost",
+       "your_lab@localhost",
+       "your_lab"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:53fb40786086": {
+   "statements": [
+    {
+     "sql": "SHOW VARIABLES\nWHERE Variable_name IN ('port', 'socket', 'bind_address', 'mysqlx_port',\n                        'admin_port', 'max_connections', 'require_secure_transport', 'tls_version')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "admin_port",
+       "33062"
+      ],
+      [
+       "bind_address",
+       "127.0.0.1"
+      ],
+      [
+       "max_connections",
+       "151"
+      ],
+      [
+       "mysqlx_port",
+       "33060"
+      ],
+      [
+       "port",
+       "3306"
+      ],
+      [
+       "require_secure_transport",
+       "OFF"
+      ],
+      [
+       "socket",
+       "/var/run/mysqld/mysqld.sock"
+      ],
+      [
+       "tls_version",
+       "TLSv1.2,TLSv1.3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:7fed2060f295": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Ssl_version', 'Ssl_cipher')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Ssl_cipher",
+       "TLS_AES_256_GCM_SHA384"
+      ],
+      [
+       "Ssl_version",
+       "TLSv1.3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:81cfc3541d93": {
+   "statements": [
+    {
+     "sql": "SHOW CREATE USER CURRENT_USER()",
+     "status": "ok",
+     "columns": [
+      "CREATE USER for lab_99a2f0c37bf551aeed15@localhost"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "CREATE USER `your_lab`@`localhost` IDENTIFIED WITH 'caching_sha2_password' AS <secret> REQUIRE NONE WITH MAX_QUERIES_PER_HOUR 20000 MAX_USER_CONNECTIONS 6 PASSWORD EXPIRE DEFAULT ACCOUNT UNLOCK PASSWORD HISTORY DEFAULT PASSWORD REUSE INTERVAL DEFAULT PASSWORD REQUIRE CURRENT DEFAULT"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:b7f28618a376": {
+   "statements": [
+    {
+     "sql": "SELECT @@SESSION.sort_buffer_size AS session_before, @@GLOBAL.sort_buffer_size AS global_value",
+     "status": "ok",
+     "columns": [
+      "session_before",
+      "global_value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       262144,
+       262144
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION sort_buffer_size = 1048576",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @@SESSION.sort_buffer_size AS session_after,  @@GLOBAL.sort_buffer_size AS global_value",
+     "status": "ok",
+     "columns": [
+      "session_after",
+      "global_value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1048576,
+       262144
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:4963a7e55a57": {
+   "statements": [
+    {
+     "sql": "SET SESSION innodb_buffer_pool_size = 1073741824",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1229,
+      "message": "Variable 'innodb_buffer_pool_size' is a GLOBAL variable and should be set with SET GLOBAL"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:fb294ac645d3": {
+   "statements": [
+    {
+     "sql": "SET SESSION port = 3307",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1238,
+      "message": "Variable 'port' is a read only variable"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:c6114bba27b2": {
+   "statements": [
+    {
+     "sql": "SELECT @@character_set_client     AS client_sends,\n       @@character_set_connection AS literals_interpreted_as,\n       @@character_set_results    AS results_sent_as,\n       @@collation_connection     AS connection_collation",
+     "status": "ok",
+     "columns": [
+      "client_sends",
+      "literals_interpreted_as",
+      "results_sent_as",
+      "connection_collation"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "utf8mb4",
+       "utf8mb4",
+       "utf8mb4",
+       "utf8mb4_0900_ai_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:7d9c979a3dd3": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_buffer_pool_size / 1024 / 1024 AS buffer_pool_mb,\n       @@max_connections                        AS max_connections,\n       @@wait_timeout                           AS idle_timeout_s,\n       @@max_allowed_packet / 1024 / 1024       AS max_packet_mb",
+     "status": "ok",
+     "columns": [
+      "buffer_pool_mb",
+      "max_connections",
+      "idle_timeout_s",
+      "max_packet_mb"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "128.00000000",
+       151,
+       28800,
+       "64.00000000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:7cd7e229eeb4": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Com_select'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Com_select",
+       "5"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:52f34948d568": {
+   "statements": [
+    {
+     "sql": "SELECT 1",
+     "status": "ok",
+     "columns": [
+      "1"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT 2",
+     "status": "ok",
+     "columns": [
+      "2"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT 3",
+     "status": "ok",
+     "columns": [
+      "3"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Com_select'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Com_select",
+       "8"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:27a92e5b4a8d": {
+   "statements": [
+    {
+     "sql": "SELECT VERSION() AS greeting_version, @@port AS listening_port",
+     "status": "ok",
+     "columns": [
+      "greeting_version",
+      "listening_port"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "8.0.46-0ubuntu0.24.04.4",
+       3306
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:7fed2060f295": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Ssl_version', 'Ssl_cipher')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Ssl_cipher",
+       "TLS_AES_256_GCM_SHA384"
+      ],
+      [
+       "Ssl_version",
+       "TLSv1.3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:6ab06b892db0": {
+   "statements": [
+    {
+     "sql": "SELECT USER() AS sent, CURRENT_USER() AS matched",
+     "status": "ok",
+     "columns": [
+      "sent",
+      "matched"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "your_lab@localhost",
+       "your_lab@localhost"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:7a4ae9bd82ce": {
+   "statements": [
+    {
+     "sql": "SELECT DATABASE() AS default_schema, @@autocommit AS autocommit, @@transaction_isolation AS isolation",
+     "status": "ok",
+     "columns": [
+      "default_schema",
+      "autocommit",
+      "isolation"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "your_lab",
+       1,
+       "REPEATABLE-READ"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:35ad71476c3a": {
+   "statements": [
+    {
+     "sql": "SET SESSION sql_mode = 'STRICT_TRANS_TABLES'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 3135,
+       "message": "'NO_ZERO_DATE', 'NO_ZERO_IN_DATE' and 'ERROR_FOR_DIVISION_BY_ZERO' sql modes should be used with strict mode. They will be merged with strict mode in a future release."
+      }
+     ]
+    },
+    {
+     "sql": "SELECT @@SESSION.sql_mode AS now_in_effect",
+     "status": "ok",
+     "columns": [
+      "now_in_effect"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "STRICT_TRANS_TABLES"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:6757e7ee7bce": {
+   "statements": [
+    {
+     "sql": "SET SESSION sql_mode = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @@SESSION.sql_mode = @@GLOBAL.sql_mode AS restored",
+     "status": "ok",
+     "columns": [
+      "restored"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

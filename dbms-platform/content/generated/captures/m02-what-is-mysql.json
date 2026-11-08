@@ -1,0 +1,732 @@
+{
+ "doc": "m02-what-is-mysql",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:9be7dcb6bab6": {
+   "statements": [
+    {
+     "sql": "SELECT VERSION()            AS server_version,\n       @@version_comment    AS build,\n       @@version_compile_os AS os,\n       @@license            AS license",
+     "status": "ok",
+     "columns": [
+      "server_version",
+      "build",
+      "os",
+      "license"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "8.0.46-0ubuntu0.24.04.4",
+       "(Ubuntu)",
+       "Linux",
+       "GPL"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:7b5b7395d452": {
+   "statements": [
+    {
+     "sql": "SELECT ENGINE, SUPPORT, TRANSACTIONS, XA, SAVEPOINTS, COMMENT\nFROM information_schema.ENGINES\nORDER BY (SUPPORT = 'DEFAULT') DESC, ENGINE",
+     "status": "ok",
+     "columns": [
+      "ENGINE",
+      "SUPPORT",
+      "TRANSACTIONS",
+      "XA",
+      "SAVEPOINTS",
+      "COMMENT"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       "InnoDB",
+       "DEFAULT",
+       "YES",
+       "YES",
+       "YES",
+       "Supports transactions, row-level locking, and foreign keys"
+      ],
+      [
+       "ARCHIVE",
+       "YES",
+       "NO",
+       "NO",
+       "NO",
+       "Archive storage engine"
+      ],
+      [
+       "BLACKHOLE",
+       "YES",
+       "NO",
+       "NO",
+       "NO",
+       "/dev/null storage engine (anything you write to it disappears)"
+      ],
+      [
+       "CSV",
+       "YES",
+       "NO",
+       "NO",
+       "NO",
+       "CSV storage engine"
+      ],
+      [
+       "FEDERATED",
+       "NO",
+       null,
+       null,
+       null,
+       "Federated MySQL storage engine"
+      ],
+      [
+       "MEMORY",
+       "YES",
+       "NO",
+       "NO",
+       "NO",
+       "Hash based, stored in memory, useful for temporary tables"
+      ],
+      [
+       "MRG_MYISAM",
+       "YES",
+       "NO",
+       "NO",
+       "NO",
+       "Collection of identical MyISAM tables"
+      ],
+      [
+       "MyISAM",
+       "YES",
+       "NO",
+       "NO",
+       "NO",
+       "MyISAM storage engine"
+      ],
+      [
+       "PERFORMANCE_SCHEMA",
+       "YES",
+       "NO",
+       "NO",
+       "NO",
+       "Performance Schema"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:6be7e62b0b5f": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, ENGINE, ROW_FORMAT, TABLE_ROWS AS approx_rows\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE()\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "ENGINE",
+      "ROW_FORMAT",
+      "approx_rows"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "categories",
+       "InnoDB",
+       "Dynamic",
+       10
+      ],
+      [
+       "customers",
+       "InnoDB",
+       "Dynamic",
+       25
+      ],
+      [
+       "order_items",
+       "InnoDB",
+       "Dynamic",
+       182
+      ],
+      [
+       "orders",
+       "InnoDB",
+       "Dynamic",
+       80
+      ],
+      [
+       "payments",
+       "InnoDB",
+       "Dynamic",
+       76
+      ],
+      [
+       "products",
+       "InnoDB",
+       "Dynamic",
+       30
+      ],
+      [
+       "reviews",
+       "InnoDB",
+       "Dynamic",
+       45
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:146f59edad8f": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Handler_read%'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "Handler_read_first",
+       "1"
+      ],
+      [
+       "Handler_read_key",
+       "11"
+      ],
+      [
+       "Handler_read_last",
+       "0"
+      ],
+      [
+       "Handler_read_next",
+       "8"
+      ],
+      [
+       "Handler_read_prev",
+       "0"
+      ],
+      [
+       "Handler_read_rnd",
+       "0"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "10"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:a77d0f20acfe": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, first_name, city FROM customers WHERE customer_id = 7",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "city"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       7,
+       "Nina",
+       "San Francisco"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Handler_read%'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "Handler_read_first",
+       "1"
+      ],
+      [
+       "Handler_read_key",
+       "12"
+      ],
+      [
+       "Handler_read_last",
+       "0"
+      ],
+      [
+       "Handler_read_next",
+       "8"
+      ],
+      [
+       "Handler_read_prev",
+       "0"
+      ],
+      [
+       "Handler_read_rnd",
+       "0"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "10"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:cfc3796c847f": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS austin_customers FROM customers WHERE city = 'Austin'",
+     "status": "ok",
+     "columns": [
+      "austin_customers"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Handler_read%'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "Handler_read_first",
+       "2"
+      ],
+      [
+       "Handler_read_key",
+       "13"
+      ],
+      [
+       "Handler_read_last",
+       "0"
+      ],
+      [
+       "Handler_read_next",
+       "8"
+      ],
+      [
+       "Handler_read_prev",
+       "0"
+      ],
+      [
+       "Handler_read_rnd",
+       "0"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "36"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:0ee231ae34a2": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT c.city, COUNT(*) AS orders\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nWHERE o.status = 'delivered'\nGROUP BY c.city",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Nested loop inner join  (cost=12.9 rows=13.3)\n            -> Filter: (o.`status` = 'delivered')  (cost=8.25 rows=13.3)\n                -> Table scan on o  (cost=8.25 rows=80)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.257 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:fa320439755c": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE engine_demo_innodb (id INT NOT NULL, note VARCHAR(20) NOT NULL) ENGINE = InnoDB",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE engine_demo_memory (id INT NOT NULL, note VARCHAR(20) NOT NULL) ENGINE = MEMORY",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE engine_demo_csv    (id INT NOT NULL, note VARCHAR(20) NOT NULL) ENGINE = CSV",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO engine_demo_innodb VALUES (1, 'durable')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO engine_demo_memory VALUES (1, 'lost on restart')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO engine_demo_csv    VALUES (1, 'plain text file')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME, ENGINE\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'engine_demo%'\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "ENGINE"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "engine_demo_csv",
+       "CSV"
+      ],
+      [
+       "engine_demo_innodb",
+       "InnoDB"
+      ],
+      [
+       "engine_demo_memory",
+       "MEMORY"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:d8f12d8b66a1": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO engine_demo_innodb VALUES (2, 'rolled back?')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO engine_demo_memory VALUES (2, 'rolled back?')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1196,
+       "message": "Some non-transactional changed tables couldn't be rolled back"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT 'innodb' AS engine, COUNT(*) AS rows_after_rollback FROM engine_demo_innodb\nUNION ALL\nSELECT 'memory', COUNT(*) FROM engine_demo_memory",
+     "status": "ok",
+     "columns": [
+      "engine",
+      "rows_after_rollback"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "innodb",
+       1
+      ],
+      [
+       "memory",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:e570f8b34d93": {
+   "statements": [
+    {
+     "sql": "SELECT @@default_storage_engine          AS default_engine,\n       @@character_set_server            AS server_charset,\n       @@collation_server                AS server_collation,\n       @@sql_mode                        AS sql_mode,\n       @@transaction_isolation           AS isolation_level",
+     "status": "ok",
+     "columns": [
+      "default_engine",
+      "server_charset",
+      "server_collation",
+      "sql_mode",
+      "isolation_level"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "InnoDB",
+       "utf8mb4",
+       "utf8mb4_0900_ai_ci",
+       "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION",
+       "REPEATABLE-READ"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:37c084f370f0": {
+   "statements": [
+    {
+     "sql": "SELECT CURRENT_USER() AS authenticated_as, DATABASE() AS current_schema",
+     "status": "ok",
+     "columns": [
+      "authenticated_as",
+      "current_schema"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "your_lab@localhost",
+       "your_lab"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:4a8f76c1d069": {
+   "statements": [
+    {
+     "sql": "SELECT first_name FORM customers WHERE customer_id = 7",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'customers WHERE customer_id = 7' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:15f65adad280": {
+   "statements": [
+    {
+     "sql": "SELECT first_nam FROM customers WHERE customer_id = 7",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1054,
+      "message": "Unknown column 'first_nam' in 'field list'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:74fbb0fb58b4": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT first_name, city FROM customers WHERE customer_id = 7",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "customers",
+       null,
+       "const",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "const",
+       1,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select 'Nina' AS `first_name`,'San Francisco' AS `city` from `customers` where true"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:5d1b723f59bf": {
+   "statements": [
+    {
+     "sql": "SELECT first_name, city FROM customers WHERE customer_id = 7",
+     "status": "ok",
+     "columns": [
+      "first_name",
+      "city"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Nina",
+       "San Francisco"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:5695872f74dc": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE memory_orders (\n  order_id    INT PRIMARY KEY,\n  customer_id INT UNSIGNED NOT NULL,\n  FOREIGN KEY (customer_id) REFERENCES customers (customer_id)\n) ENGINE = MEMORY",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT CONSTRAINT_NAME, CONSTRAINT_TYPE\nFROM information_schema.TABLE_CONSTRAINTS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'memory_orders'",
+     "status": "ok",
+     "columns": [
+      "CONSTRAINT_NAME",
+      "CONSTRAINT_TYPE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "PRIMARY",
+       "PRIMARY KEY"
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO memory_orders VALUES (1, 999)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "-- customer 999 does not exist\nSELECT * FROM memory_orders",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       999
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:7f622848d7e1": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE innodb_orders (\n  order_id    INT PRIMARY KEY,\n  customer_id INT UNSIGNED NOT NULL,\n  FOREIGN KEY (customer_id) REFERENCES customers (customer_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT CONSTRAINT_NAME, CONSTRAINT_TYPE\nFROM information_schema.TABLE_CONSTRAINTS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'innodb_orders'\nORDER BY CONSTRAINT_TYPE",
+     "status": "ok",
+     "columns": [
+      "CONSTRAINT_NAME",
+      "CONSTRAINT_TYPE"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "innodb_orders_ibfk_1",
+       "FOREIGN KEY"
+      ],
+      [
+       "PRIMARY",
+       "PRIMARY KEY"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:d21377b36ae6": {
+   "statements": [
+    {
+     "sql": "INSERT INTO innodb_orders VALUES (1, 999)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`innodb_orders`, CONSTRAINT `innodb_orders_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`customer_id`))"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

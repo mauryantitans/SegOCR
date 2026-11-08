@@ -1,0 +1,580 @@
+{
+ "doc": "m01-design-process",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:d95cba144c12": {
+   "statements": [
+    {
+     "sql": "SHOW CREATE TABLE loans",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Create Table"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "loans",
+       "CREATE TABLE `loans` (\n  `loan_id` int unsigned NOT NULL,\n  `copy_id` int unsigned NOT NULL,\n  `member_id` int unsigned NOT NULL,\n  `loaned_at` date NOT NULL,\n  `due_at` date NOT NULL,\n  `returned_at` date DEFAULT NULL,\n  PRIMARY KEY (`loan_id`),\n  KEY `idx_loans_copy` (`copy_id`),\n  KEY `idx_loans_member` (`member_id`),\n  CONSTRAINT `fk_loans_copy` FOREIGN KEY (`copy_id`) REFERENCES `copies` (`copy_id`),\n  CONSTRAINT `fk_loans_member` FOREIGN KEY (`member_id`) REFERENCES `members` (`member_id`),\n  CONSTRAINT `chk_loans_due` CHECK ((`due_at` >= `loaned_at`))\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:6b852d16fa73": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME AS child_table, COLUMN_NAME AS fk_column,\n       REFERENCED_TABLE_NAME AS parent_table, REFERENCED_COLUMN_NAME AS parent_column,\n       CONSTRAINT_NAME\nFROM information_schema.KEY_COLUMN_USAGE\nWHERE TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL\nORDER BY child_table, fk_column",
+     "status": "ok",
+     "columns": [
+      "child_table",
+      "fk_column",
+      "parent_table",
+      "parent_column",
+      "CONSTRAINT_NAME"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "book_authors",
+       "author_id",
+       "authors",
+       "author_id",
+       "fk_book_authors_author"
+      ],
+      [
+       "book_authors",
+       "book_id",
+       "books",
+       "book_id",
+       "fk_book_authors_book"
+      ],
+      [
+       "copies",
+       "book_id",
+       "books",
+       "book_id",
+       "fk_copies_book"
+      ],
+      [
+       "loans",
+       "copy_id",
+       "copies",
+       "copy_id",
+       "fk_loans_copy"
+      ],
+      [
+       "loans",
+       "member_id",
+       "members",
+       "member_id",
+       "fk_loans_member"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:a39aefe9a72f": {
+   "statements": [
+    {
+     "sql": "SELECT tc.TABLE_NAME, tc.CONSTRAINT_TYPE, tc.CONSTRAINT_NAME,\n       GROUP_CONCAT(k.COLUMN_NAME ORDER BY k.ORDINAL_POSITION) AS key_columns\nFROM information_schema.TABLE_CONSTRAINTS AS tc\nJOIN information_schema.KEY_COLUMN_USAGE AS k\n  ON k.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA\n AND k.TABLE_NAME = tc.TABLE_NAME\n AND k.CONSTRAINT_NAME = tc.CONSTRAINT_NAME\nWHERE tc.TABLE_SCHEMA = DATABASE() AND tc.CONSTRAINT_TYPE IN ('PRIMARY KEY', 'UNIQUE')\nGROUP BY tc.TABLE_NAME, tc.CONSTRAINT_TYPE, tc.CONSTRAINT_NAME\nORDER BY tc.TABLE_NAME, tc.CONSTRAINT_TYPE",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "CONSTRAINT_TYPE",
+      "CONSTRAINT_NAME",
+      "key_columns"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "authors",
+       "PRIMARY KEY",
+       "PRIMARY",
+       "author_id"
+      ],
+      [
+       "book_authors",
+       "PRIMARY KEY",
+       "PRIMARY",
+       "book_id,author_id"
+      ],
+      [
+       "books",
+       "PRIMARY KEY",
+       "PRIMARY",
+       "book_id"
+      ],
+      [
+       "books",
+       "UNIQUE",
+       "uq_books_isbn",
+       "isbn"
+      ],
+      [
+       "copies",
+       "PRIMARY KEY",
+       "PRIMARY",
+       "copy_id"
+      ],
+      [
+       "loans",
+       "PRIMARY KEY",
+       "PRIMARY",
+       "loan_id"
+      ],
+      [
+       "members",
+       "PRIMARY KEY",
+       "PRIMARY",
+       "member_id"
+      ],
+      [
+       "members",
+       "UNIQUE",
+       "uq_members_email",
+       "email"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:c7c6908fa560": {
+   "statements": [
+    {
+     "sql": "SELECT CONSTRAINT_NAME, CHECK_CLAUSE\nFROM information_schema.CHECK_CONSTRAINTS\nWHERE CONSTRAINT_SCHEMA = DATABASE()\nORDER BY CONSTRAINT_NAME",
+     "status": "ok",
+     "columns": [
+      "CONSTRAINT_NAME",
+      "CHECK_CLAUSE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "chk_loans_due",
+       "(`due_at` >= `loaned_at`)"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:89c0f1172448": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND DATA_TYPE = 'enum'\nORDER BY TABLE_NAME, COLUMN_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "COLUMN_NAME",
+      "COLUMN_TYPE",
+      "IS_NULLABLE"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "copies",
+       "condition",
+       "enum('new','good','worn','damaged')",
+       "NO"
+      ],
+      [
+       "members",
+       "membership",
+       "enum('standard','student','premium')",
+       "NO"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:6e7323c5dbf7": {
+   "statements": [
+    {
+     "sql": "INSERT INTO loans (loan_id, copy_id, member_id, loaned_at, due_at)\nVALUES (9999, 1, 1, '2024-05-10', '2024-05-01')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_loans_due' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:5ce91b3f89dc": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, INDEX_NAME, NON_UNIQUE,\n       GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS columns_in_order\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE()\nGROUP BY TABLE_NAME, INDEX_NAME, NON_UNIQUE\nORDER BY TABLE_NAME, INDEX_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "INDEX_NAME",
+      "NON_UNIQUE",
+      "columns_in_order"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       "authors",
+       "PRIMARY",
+       0,
+       "author_id"
+      ],
+      [
+       "book_authors",
+       "idx_book_authors_author",
+       1,
+       "author_id"
+      ],
+      [
+       "book_authors",
+       "PRIMARY",
+       0,
+       "book_id,author_id"
+      ],
+      [
+       "books",
+       "PRIMARY",
+       0,
+       "book_id"
+      ],
+      [
+       "books",
+       "uq_books_isbn",
+       0,
+       "isbn"
+      ],
+      [
+       "copies",
+       "idx_copies_book",
+       1,
+       "book_id"
+      ],
+      [
+       "copies",
+       "PRIMARY",
+       0,
+       "copy_id"
+      ],
+      [
+       "loans",
+       "idx_loans_copy",
+       1,
+       "copy_id"
+      ],
+      [
+       "loans",
+       "idx_loans_member",
+       1,
+       "member_id"
+      ],
+      [
+       "loans",
+       "PRIMARY",
+       0,
+       "loan_id"
+      ],
+      [
+       "members",
+       "PRIMARY",
+       0,
+       "member_id"
+      ],
+      [
+       "members",
+       "uq_members_email",
+       0,
+       "email"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:3bfdfa970652": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE loans_no_idx AS SELECT * FROM loans",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 52,
+     "info": "Records: 52  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- copies columns and rows, not keys or indexes\nANALYZE TABLE loans_no_idx",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "loans_no_idx",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM loans WHERE member_id = 3)        AS with_index,\n       (SELECT COUNT(*) FROM loans_no_idx WHERE member_id = 3) AS without_index",
+     "status": "ok",
+     "columns": [
+      "with_index",
+      "without_index"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:2ca41ec62db7": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT * FROM loans WHERE member_id = 3",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Index lookup on loans using idx_loans_member (member_id=3)  (cost=1.25 rows=5)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:d19471ca6015": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT * FROM loans_no_idx WHERE member_id = 3",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (loans_no_idx.member_id = 3)  (cost=5.45 rows=5.2)\n    -> Table scan on loans_no_idx  (cost=5.45 rows=52)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:a94300185e16": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE reservations (\n  reservation_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  member_id      INT UNSIGNED NOT NULL,\n  book_id        INT UNSIGNED NOT NULL,\n  placed_at      DATETIME NOT NULL,\n  status         ENUM('active','fulfilled','cancelled') NOT NULL DEFAULT 'active',\n  active_book_id INT UNSIGNED AS (CASE WHEN status = 'active' THEN book_id END) VIRTUAL,\n  CONSTRAINT fk_res_member FOREIGN KEY (member_id) REFERENCES members (member_id),\n  CONSTRAINT fk_res_book   FOREIGN KEY (book_id)   REFERENCES books (book_id),\n  UNIQUE KEY uq_res_one_active (member_id, active_book_id),\n  KEY idx_res_queue (book_id, status, placed_at)\n) ENGINE=InnoDB",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:51b1037f191d": {
+   "statements": [
+    {
+     "sql": "INSERT INTO reservations (member_id, book_id, placed_at, status) VALUES\n  (1, 2, '2024-03-01 10:00:00', 'fulfilled'),\n  (1, 2, '2024-06-01 09:00:00', 'active'),\n  (5, 2, '2024-06-02 12:00:00', 'active')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT reservation_id, member_id, book_id, placed_at, status, active_book_id\nFROM reservations ORDER BY reservation_id",
+     "status": "ok",
+     "columns": [
+      "reservation_id",
+      "member_id",
+      "book_id",
+      "placed_at",
+      "status",
+      "active_book_id"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       1,
+       2,
+       "2024-03-01 10:00:00",
+       "fulfilled",
+       null
+      ],
+      [
+       2,
+       1,
+       2,
+       "2024-06-01 09:00:00",
+       "active",
+       2
+      ],
+      [
+       3,
+       5,
+       2,
+       "2024-06-02 12:00:00",
+       "active",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:39d06af9a890": {
+   "statements": [
+    {
+     "sql": "INSERT INTO reservations (member_id, book_id, placed_at) VALUES (1, 2, '2024-06-03 08:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '1-2' for key 'reservations.uq_res_one_active'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:dbda6817849d": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT reservation_id, member_id FROM reservations\nWHERE book_id = 2 AND status = 'active'\nORDER BY placed_at LIMIT 1",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 1 row(s)  (cost=0.7 rows=1)\n    -> Index lookup on reservations using idx_res_queue (book_id=2, status='active'), with index condition: (reservations.`status` = 'active')  (cost=0.7 rows=2)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:732d618cea02": {
+   "statements": [
+    {
+     "sql": "SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT, EXTRA\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'reservations'\nORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "COLUMN_TYPE",
+      "IS_NULLABLE",
+      "COLUMN_DEFAULT",
+      "EXTRA"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "reservation_id",
+       "int unsigned",
+       "NO",
+       null,
+       "auto_increment"
+      ],
+      [
+       "member_id",
+       "int unsigned",
+       "NO",
+       null,
+       ""
+      ],
+      [
+       "book_id",
+       "int unsigned",
+       "NO",
+       null,
+       ""
+      ],
+      [
+       "placed_at",
+       "datetime",
+       "NO",
+       null,
+       ""
+      ],
+      [
+       "status",
+       "enum('active','fulfilled','cancelled')",
+       "NO",
+       "active",
+       ""
+      ],
+      [
+       "active_book_id",
+       "int unsigned",
+       "YES",
+       null,
+       "VIRTUAL GENERATED"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:4df77ff7ecaa": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, COUNT(*) AS constraints_declared\nFROM information_schema.TABLE_CONSTRAINTS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('loans', 'loans_no_idx')\nGROUP BY TABLE_NAME\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "constraints_declared"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "loans",
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:3056004628a6": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE bad_holds (\n  hold_id   INT PRIMARY KEY,\n  member_id BIGINT NOT NULL,\n  CONSTRAINT fk_bad_member FOREIGN KEY (member_id) REFERENCES members (member_id)\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3780,
+      "message": "Referencing column 'member_id' and referenced column 'member_id' in foreign key constraint 'fk_bad_member' are incompatible."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

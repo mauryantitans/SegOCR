@@ -1,0 +1,565 @@
+{
+ "doc": "m08-transaction-logs",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:4a5309605287": {
+   "statements": [
+    {
+     "sql": "SELECT @@log_bin                         AS binary_log_enabled,\n       @@sync_binlog                     AS sync_binlog,\n       @@binlog_row_image                AS row_image,\n       @@binlog_expire_logs_seconds      AS binlog_retention_s,\n       @@max_binlog_size                 AS max_binlog_file_bytes,\n       @@binlog_order_commits            AS ordered_group_commit",
+     "status": "ok",
+     "columns": [
+      "binary_log_enabled",
+      "sync_binlog",
+      "row_image",
+      "binlog_retention_s",
+      "max_binlog_file_bytes",
+      "ordered_group_commit"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1,
+       "FULL",
+       2592000,
+       104857600,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:5c7eb2567278": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_flush_log_at_trx_commit  AS flush_log_at_trx_commit,\n       @@innodb_redo_log_capacity        AS redo_capacity_bytes,\n       @@innodb_log_buffer_size          AS log_buffer_bytes,\n       @@innodb_undo_log_truncate        AS undo_truncate",
+     "status": "ok",
+     "columns": [
+      "flush_log_at_trx_commit",
+      "redo_capacity_bytes",
+      "log_buffer_bytes",
+      "undo_truncate"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       104857600,
+       16777216,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:51f3090d1298": {
+   "statements": [
+    {
+     "sql": "SELECT @@binlog_format AS binlog_format",
+     "status": "ok",
+     "columns": [
+      "binlog_format"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "ROW"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'@@binlog_format' is deprecated and will be removed in a future release."
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:6c36d0a6f50f": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Handler_prepare', 'Handler_commit', 'Handler_rollback')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Handler_commit",
+       "0"
+      ],
+      [
+       "Handler_prepare",
+       "0"
+      ],
+      [
+       "Handler_rollback",
+       "0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:741e0804dfb3": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance - 10.00, version = version + 1 WHERE account_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance + 10.00, version = version + 1 WHERE account_id = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Handler_prepare', 'Handler_commit', 'Handler_rollback')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Handler_commit",
+       "6"
+      ],
+      [
+       "Handler_prepare",
+       "6"
+      ],
+      [
+       "Handler_rollback",
+       "0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:35978ef97531": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS branches FROM branches",
+     "status": "ok",
+     "columns": [
+      "branches"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Handler_prepare', 'Handler_commit', 'Handler_rollback')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Handler_commit",
+       "7"
+      ],
+      [
+       "Handler_prepare",
+       "6"
+      ],
+      [
+       "Handler_rollback",
+       "0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:ef737c1d8c2e": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE ledger_big SET amount = amount + 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 20000,
+       "info": "Rows matched: 20000  Changed: 20000  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS n, SUM(amount) AS total FROM ledger_big",
+       "status": "ok",
+       "columns": [
+        "n",
+        "total"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         20000,
+         "200000"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "C",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE ledger_big SET amount = 0 WHERE id = 777",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT SUM(amount) AS total, SUM(id = 777 AND amount = 0) AS row_777_zeroed FROM ledger_big",
+       "status": "ok",
+       "columns": [
+        "total",
+        "row_777_zeroed"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "199990",
+         "1"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:3a19a4635559": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance + 250.00, version = version + 1 WHERE account_id = 21",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\nSELECT account_id, 'deposit', 250.00, balance, 'LOG-DEMO', '2024-12-31 12:00:00' FROM accounts WHERE account_id = 21",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Records: 1  Duplicates: 0  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT (SELECT balance FROM accounts WHERE account_id = 21) AS balance, (SELECT COUNT(*) FROM transactions WHERE reference = 'LOG-DEMO') AS ledger_rows",
+       "status": "ok",
+       "columns": [
+        "balance",
+        "ledger_rows"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "1867.55",
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT (SELECT balance FROM accounts WHERE account_id = 21) AS balance, (SELECT COUNT(*) FROM transactions WHERE reference = 'LOG-DEMO') AS ledger_rows",
+       "status": "ok",
+       "columns": [
+        "balance",
+        "ledger_rows"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "2117.55",
+         1
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s8:5c90edfbb0b3": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET balance = balance - 5000.00 WHERE customer_id IN (1, 2, 3)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_accounts_balance' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:315fd871db8f": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE customer_id IN (1, 2, 3) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "482.57"
+      ],
+      [
+       2,
+       "4438.20"
+      ],
+      [
+       3,
+       "10232.88"
+      ],
+      [
+       4,
+       "7946.37"
+      ],
+      [
+       5,
+       "6998.91"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:f029607d9934": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance, version FROM accounts WHERE account_id = 22",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       22,
+       "5147.05",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:eb9633c96b2f": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance + 1000.00, version = version + 1 WHERE account_id = 22",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:5f6bd73748af": {
+   "statements": [
+    {
+     "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\nSELECT account_id, 'deposit', 1000.00, balance, 'WALK-1', '2024-12-31 16:00:00'\nFROM accounts WHERE account_id = 22",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:5be9cfb9ef50": {
+   "statements": [
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:933e4729d435": {
+   "statements": [
+    {
+     "sql": "SELECT a.account_id, a.balance, a.version, t.reference, t.balance_after\nFROM accounts a JOIN transactions t ON t.account_id = a.account_id AND t.reference = 'WALK-1'\nWHERE a.account_id = 22",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version",
+      "reference",
+      "balance_after"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       22,
+       "6147.05",
+       1,
+       "WALK-1",
+       "6147.05"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:3cf313ad966d": {
+   "statements": [
+    {
+     "sql": "SET SESSION sql_log_bin = 0",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1227,
+      "message": "Access denied; you need (at least one of) the SUPER, SYSTEM_VARIABLES_ADMIN or SESSION_VARIABLES_ADMIN privilege(s) for this operation"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

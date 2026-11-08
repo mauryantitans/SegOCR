@@ -871,7 +871,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "129764",
+        "trxId": "189579",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 3,
@@ -956,7 +956,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "129764",
+        "trxId": "189579",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 3,
