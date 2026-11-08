@@ -1,0 +1,524 @@
+{
+ "doc": "m07-slow-query-diagnostics",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:d8d928044e8c": {
+   "statements": [
+    {
+     "sql": "SHOW VARIABLES WHERE Variable_name IN\n  ('slow_query_log', 'long_query_time', 'log_output', 'log_queries_not_using_indexes',\n   'min_examined_row_limit', 'log_slow_extra', 'performance_schema', 'max_digest_length')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "log_output",
+       "FILE"
+      ],
+      [
+       "log_queries_not_using_indexes",
+       "OFF"
+      ],
+      [
+       "log_slow_extra",
+       "OFF"
+      ],
+      [
+       "long_query_time",
+       "10.000000"
+      ],
+      [
+       "max_digest_length",
+       "1024"
+      ],
+      [
+       "min_examined_row_limit",
+       "0"
+      ],
+      [
+       "performance_schema",
+       "ON"
+      ],
+      [
+       "slow_query_log",
+       "OFF"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:7ed3926dcd01": {
+   "statements": [
+    {
+     "sql": "SET SESSION long_query_time = 0.05",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @@SESSION.long_query_time AS session_threshold, @@GLOBAL.long_query_time AS global_threshold",
+     "status": "ok",
+     "columns": [
+      "session_threshold",
+      "global_threshold"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0.05,
+       10.0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:9e57e29d1b67": {
+   "statements": [
+    {
+     "sql": "SELECT STATEMENT_DIGEST_TEXT(\n  'SELECT order_id FROM orders WHERE customer_id = 42 AND status IN (''paid'', ''shipped'')') AS digest_text_1,\n       STATEMENT_DIGEST_TEXT(\n  'select order_id  from orders where customer_id=7 and status in (''paid'')') AS digest_text_2",
+     "status": "ok",
+     "columns": [
+      "digest_text_1",
+      "digest_text_2"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "SELECT `order_id` FROM `orders` WHERE `customer_id` = ? AND STATUS IN (...)",
+       "SELECT `order_id` FROM `orders` WHERE `customer_id` = ? AND STATUS IN (...)"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT STATEMENT_DIGEST('SELECT order_id FROM orders WHERE customer_id = 42')\n     = STATEMENT_DIGEST('select order_id from orders where customer_id = 7') AS same_digest",
+     "status": "ok",
+     "columns": [
+      "same_digest"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:0bd1fe2f6027": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 200000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE orders (\n  order_id    INT UNSIGNED  NOT NULL PRIMARY KEY,\n  customer_id INT UNSIGNED  NOT NULL,\n  status      VARCHAR(10)   NOT NULL,\n  created_at  DATETIME      NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  INDEX idx_customer (customer_id),\n  INDEX idx_created  (created_at)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 200000)\nSELECT n, 1 + (n * 7919) % 20000,\n       ELT(1 + n % 5, 'pending', 'paid', 'shipped', 'delivered', 'cancelled'),\n       TIMESTAMP '2024-01-01 00:00:00' + INTERVAL (n * 157) % (366 * 24 * 60) MINUTE,\n       ((n * 31) % 50000) / 100\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "orders",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:71747ef725c1": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN\n  ('Handler_read_key', 'Handler_read_next', 'Handler_read_rnd_next', 'Select_scan', 'Select_range')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Handler_read_key",
+       "60"
+      ],
+      [
+       "Handler_read_next",
+       "21"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "400010"
+      ],
+      [
+       "Select_range",
+       "1"
+      ],
+      [
+       "Select_scan",
+       "3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:a23f4fdcab2f": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS orders, SUM(amount) AS revenue FROM orders WHERE DATE(created_at) = '2024-03-15'",
+     "status": "ok",
+     "columns": [
+      "orders",
+      "revenue"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       549,
+       "139966.67"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN\n  ('Handler_read_key', 'Handler_read_next', 'Handler_read_rnd_next', 'Select_scan', 'Select_range')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Handler_read_key",
+       "61"
+      ],
+      [
+       "Handler_read_next",
+       "21"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "600011"
+      ],
+      [
+       "Select_range",
+       "1"
+      ],
+      [
+       "Select_scan",
+       "4"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:5e742ba19d1f": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, created_at, amount FROM orders WHERE customer_id = 4242 ORDER BY created_at DESC LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "created_at",
+      "amount"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       16639,
+       "2024-12-16 02:43:00",
+       "158.09"
+      ],
+      [
+       36639,
+       "2024-11-30 16:03:00",
+       "358.09"
+      ],
+      [
+       56639,
+       "2024-11-15 05:23:00",
+       "58.09"
+      ],
+      [
+       76639,
+       "2024-10-30 18:43:00",
+       "258.09"
+      ],
+      [
+       96639,
+       "2024-10-15 08:03:00",
+       "458.09"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN\n  ('Handler_read_key', 'Handler_read_next', 'Handler_read_rnd_next', 'Select_scan', 'Select_range')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Handler_read_key",
+       "62"
+      ],
+      [
+       "Handler_read_next",
+       "31"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "600011"
+      ],
+      [
+       "Select_range",
+       "1"
+      ],
+      [
+       "Select_scan",
+       "4"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:13335725ad4d": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*), SUM(amount) FROM orders WHERE DATE(created_at) = '2024-03-15'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       199671,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)`,sum(`orders`.`amount`) AS `SUM(amount)` from `orders` where (cast(`orders`.`created_at` as date) = '2024-03-15')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:cc7f420b8d90": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS orders, SUM(amount) AS revenue FROM orders\nWHERE created_at >= '2024-03-15' AND created_at < '2024-03-16'",
+     "status": "ok",
+     "columns": [
+      "orders",
+      "revenue"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       549,
+       "139966.67"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN\n  ('Handler_read_key', 'Handler_read_next', 'Handler_read_rnd_next', 'Select_scan', 'Select_range')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Handler_read_key",
+       "63"
+      ],
+      [
+       "Handler_read_next",
+       "580"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "600011"
+      ],
+      [
+       "Select_range",
+       "2"
+      ],
+      [
+       "Select_scan",
+       "4"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:98fae70440bd": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*), SUM(amount) FROM orders WHERE DATE(created_at) = '2024-03-15'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), sum(orders.amount)  (cost=40086 rows=1) (actual time=31.8..31.8 rows=1 loops=1)\n    -> Filter: (cast(orders.created_at as date) = '2024-03-15')  (cost=20119 rows=199671) (actual time=0.228..31.7 rows=549 loops=1)\n        -> Table scan on orders  (cost=20119 rows=199671) (actual time=0.162..21.5 rows=200000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 32.37
+    }
+   ],
+   "measured": true
+  },
+  "s9:455cb3d105f4": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*), SUM(amount) FROM orders\nWHERE created_at >= '2024-03-15' AND created_at < '2024-03-16'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), sum(orders.amount)  (cost=302 rows=1) (actual time=0.635..0.635 rows=1 loops=1)\n    -> Index range scan on orders using idx_created over ('2024-03-15 00:00:00' <= created_at < '2024-03-16 00:00:00'), with index condition: ((orders.created_at >= TIMESTAMP'2024-03-15 00:00:00') and (orders.created_at < TIMESTAMP'2024-03-16 00:00:00'))  (cost=247 rows=549) (actual time=0.131..0.598 rows=549 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.23
+    }
+   ],
+   "measured": true
+  },
+  "s10:aee162fd2d40": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*), SUM(amount) FROM orders WHERE DATE(created_at) = '2024-03-15'",
+     "status": "ok",
+     "columns": [
+      "COUNT(*)",
+      "SUM(amount)"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       549,
+       "139966.67"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Last_query_cost'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Last_query_cost",
+       "20119.349000"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*), SUM(amount) FROM orders WHERE created_at >= '2024-03-15' AND created_at < '2024-03-16'",
+     "status": "ok",
+     "columns": [
+      "COUNT(*)",
+      "SUM(amount)"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       549,
+       "139966.67"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Last_query_cost'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Last_query_cost",
+       "247.309000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

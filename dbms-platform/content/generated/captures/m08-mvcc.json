@@ -1,0 +1,669 @@
+{
+ "doc": "m08-mvcc",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:76870232dd78": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, DB_TRX_ID, DB_ROLL_PTR FROM accounts WHERE account_id = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1054,
+      "message": "Unknown column 'DB_TRX_ID' in 'field list'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s2:ada6434fb8e5": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance + 0.43, version = version + 1 WHERE account_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance, version FROM accounts WHERE account_id = 1",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "493.00",
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance, version FROM accounts WHERE account_id = 1",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "492.57",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:2f4f54ecd833": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_purge_threads     AS purge_threads,\n       @@innodb_purge_batch_size  AS purge_batch_size,\n       @@innodb_max_purge_lag     AS max_purge_lag,\n       @@innodb_undo_log_truncate AS undo_log_truncate,\n       @@innodb_max_undo_log_size AS max_undo_log_size_bytes",
+     "status": "ok",
+     "columns": [
+      "purge_threads",
+      "purge_batch_size",
+      "max_purge_lag",
+      "undo_log_truncate",
+      "max_undo_log_size_bytes"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4,
+       300,
+       0,
+       1,
+       1073741824
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:badff99bd1d7": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION WITH CONSISTENT SNAPSHOT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance + 100.00, version = version + 1 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION WITH CONSISTENT SNAPSHOT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance + 200.00, version = version + 1 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance, version FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "492.57",
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance, version FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "592.57",
+         1
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance, version FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "792.57",
+         2
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 7,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 8,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c2:386862005b53": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION WITH CONSISTENT SNAPSHOT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance - 28.20, version = version + 1 WHERE account_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 2",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "4400.00"
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 2",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "4428.20"
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c3:dd0927ea2e46": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT COUNT(*) AS ledger_rows FROM transactions WHERE account_id = 12",
+       "status": "ok",
+       "columns": [
+        "ledger_rows"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         2
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "DELETE FROM transactions WHERE account_id = 12",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 2,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS ledger_rows FROM transactions WHERE account_id = 12",
+       "status": "ok",
+       "columns": [
+        "ledger_rows"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         2
+        ]
+       ]
+      },
+      {
+       "sql": "SELECT COUNT(*) AS ledger_rows_locking FROM transactions WHERE account_id = 12 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "ledger_rows_locking"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c4:d6e2b668444e": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION WITH CONSISTENT SNAPSHOT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT hits FROM counter WHERE id = 1",
+       "status": "ok",
+       "columns": [
+        "hits"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "CALL bump(3000)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT hits FROM counter WHERE id = 1",
+       "status": "ok",
+       "columns": [
+        "hits"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3000
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT hits FROM counter WHERE id = 1",
+       "status": "ok",
+       "columns": [
+        "hits"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      },
+      {
+       "sql": "SELECT hits FROM counter WHERE id = 1 FOR SHARE",
+       "status": "ok",
+       "columns": [
+        "hits"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3000
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "w1.0:23a3d0c86653": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance, version FROM accounts WHERE account_id = 14",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       14,
+       "2106.08",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:63f97066c0c7": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION WITH CONSISTENT SNAPSHOT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance + 10.00, version = version + 1 WHERE account_id = 14",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance, version FROM accounts WHERE account_id = 14",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       14,
+       "2116.08",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:4116f40f9054": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET balance = balance + 5.00, version = version + 1 WHERE account_id = 14",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance, version FROM accounts WHERE account_id = 14",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       14,
+       "2121.08",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:f8d158b81071": {
+   "statements": [
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance, version FROM accounts WHERE account_id = 14",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       14,
+       "2106.08",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

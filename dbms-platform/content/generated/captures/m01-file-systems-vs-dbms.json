@@ -1,0 +1,885 @@
+{
+ "doc": "m01-file-systems-vs-dbms",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:d05dac9ef34e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE loans_customers_file (\n  customer_id INT          NOT NULL,\n  full_name   VARCHAR(100) NOT NULL,\n  email       VARCHAR(255) NOT NULL\n) ENGINE=CSV",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE cards_customers_file (\n  customer_id INT          NOT NULL,\n  full_name   VARCHAR(100) NOT NULL,\n  email       VARCHAR(255) NOT NULL\n) ENGINE=CSV",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO loans_customers_file SELECT customer_id, full_name, email FROM customers WHERE customer_id <= 3",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO cards_customers_file SELECT customer_id, full_name, email FROM customers WHERE customer_id <= 3",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME, ENGINE\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE '%file'\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "ENGINE"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "cards_customers_file",
+       "CSV"
+      ],
+      [
+       "loans_customers_file",
+       "CSV"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:da6066d05419": {
+   "statements": [
+    {
+     "sql": "UPDATE cards_customers_file SET email = 'yuki.m@newmail.example' WHERE customer_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT l.customer_id, l.email AS loans_dept_email, c.email AS cards_dept_email\nFROM loans_customers_file AS l\nJOIN cards_customers_file AS c ON c.customer_id = l.customer_id\nORDER BY l.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "loans_dept_email",
+      "cards_dept_email"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "yuki.miller@mail.example",
+       "yuki.m@newmail.example"
+      ],
+      [
+       2,
+       "victor.rossi@mail.example",
+       "victor.rossi@mail.example"
+      ],
+      [
+       3,
+       "hana.smith@mail.example",
+       "hana.smith@mail.example"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:a70cba2bc84f": {
+   "statements": [
+    {
+     "sql": "SELECT a.account_id, a.account_type, c.full_name, c.email\nFROM accounts AS a\nJOIN customers AS c ON c.customer_id = a.customer_id\nWHERE c.customer_id = 1\nORDER BY a.account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "account_type",
+      "full_name",
+      "email"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "checking",
+       "Yuki Miller",
+       "yuki.miller@mail.example"
+      ],
+      [
+       2,
+       "savings",
+       "Yuki Miller",
+       "yuki.miller@mail.example"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:719e7f4e7df0": {
+   "statements": [
+    {
+     "sql": "SELECT b.city,\n       COUNT(DISTINCT a.customer_id) AS customers,\n       COUNT(*)                      AS accounts,\n       SUM(a.balance)                AS total_balance\nFROM accounts AS a\nJOIN branches AS b ON b.branch_id = a.branch_id\nGROUP BY b.city\nORDER BY total_balance DESC",
+     "status": "ok",
+     "columns": [
+      "city",
+      "customers",
+      "accounts",
+      "total_balance"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "San Jose",
+       8,
+       11,
+       "51411.00"
+      ],
+      [
+       "San Francisco",
+       7,
+       8,
+       "32771.07"
+      ],
+      [
+       "Seattle",
+       6,
+       6,
+       "28523.36"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:10f7357626a6": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE accounts_file (\n  account_id INT NOT NULL PRIMARY KEY,\n  balance    DECIMAL(14,2) NOT NULL\n) ENGINE=CSV",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1069,
+      "message": "Too many keys specified; max 0 keys allowed"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:af0779440add": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE accounts_file (\n  account_id INT           NOT NULL,\n  balance    DECIMAL(14,2) NOT NULL\n) ENGINE=CSV",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO accounts_file VALUES (1, 492.57), (1, 9999.99)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance FROM accounts_file ORDER BY balance",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "492.57"
+      ],
+      [
+       1,
+       "9999.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:d2d122a2bd4d": {
+   "statements": [
+    {
+     "sql": "INSERT INTO accounts (account_id, customer_id, branch_id, account_type, balance, opened_at)\nVALUES (1, 1, 2, 'checking', 9999.99, '2024-01-01 09:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '1' for key 'accounts.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:a56eb6a4a7d8": {
+   "statements": [
+    {
+     "sql": "INSERT INTO accounts (account_id, customer_id, branch_id, account_type, balance, opened_at)\nVALUES (26, 999, 1, 'savings', 100.00, '2024-01-01 09:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`accounts`, CONSTRAINT `fk_accounts_customer` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`customer_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s10:51ce7b213650": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW customer_contacts AS\nSELECT customer_id, full_name, email\nFROM customers\nWHERE kyc_verified = TRUE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM customer_contacts ORDER BY customer_id LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "full_name",
+      "email"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "Yuki Miller",
+       "yuki.miller@mail.example"
+      ],
+      [
+       2,
+       "Victor Rossi",
+       "victor.rossi@mail.example"
+      ],
+      [
+       3,
+       "Hana Smith",
+       "hana.smith@mail.example"
+      ],
+      [
+       4,
+       "Sofia Brown",
+       "sofia.brown@mail.example"
+      ],
+      [
+       5,
+       "Daniel Haddad",
+       "daniel.haddad@mail.example"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:51615fc555d3": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE accounts_csv (\n  account_id INT NOT NULL,\n  balance    DECIMAL(14,2) NOT NULL,\n  CHECK (balance >= 0)\n) ENGINE=CSV",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO accounts_csv SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT 'csv' AS store, account_id, balance FROM accounts_csv\nUNION ALL\nSELECT 'innodb', account_id, balance FROM accounts WHERE account_id IN (1, 2)\nORDER BY store, account_id",
+     "status": "ok",
+     "columns": [
+      "store",
+      "account_id",
+      "balance"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "csv",
+       1,
+       "492.57"
+      ],
+      [
+       "csv",
+       2,
+       "4428.20"
+      ],
+      [
+       "innodb",
+       1,
+       "492.57"
+      ],
+      [
+       "innodb",
+       2,
+       "4428.20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:07066c85b691": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts_csv SET balance = balance + 600 WHERE account_id = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts_csv SET balance = balance - 600 WHERE account_id = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'accounts_csv_chk_1' is violated."
+     }
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1196,
+       "message": "Some non-transactional changed tables couldn't be rolled back"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:a901fd8249de": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance FROM accounts_csv ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "492.57"
+      ],
+      [
+       2,
+       "5028.20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:9f231f625f37": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance + 600 WHERE account_id = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance - 600 WHERE account_id = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_accounts_balance' is violated."
+     }
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:8223e31efc86": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "492.57"
+      ],
+      [
+       2,
+       "4428.20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:f2c773753d9d": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "492.57"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "492.57"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = 442.57 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = 462.57 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "462.57"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:37d6c5aa62ae": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "492.57"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "442.57"
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "133020",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "B",
+        "trxId": "133024",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "1"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance - 50 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance - 30 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "412.57"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s11:2c55f980bb84": {
+   "statements": [
+    {
+     "sql": "SELECT 'csv' AS store, account_id, balance FROM accounts_csv\nUNION ALL\nSELECT 'innodb', account_id, balance FROM accounts WHERE account_id IN (1, 2)\nORDER BY store, account_id",
+     "status": "ok",
+     "columns": [
+      "store",
+      "account_id",
+      "balance"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "csv",
+       1,
+       "492.57"
+      ],
+      [
+       "csv",
+       2,
+       "5028.20"
+      ],
+      [
+       "innodb",
+       1,
+       "492.57"
+      ],
+      [
+       "innodb",
+       2,
+       "4428.20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:e41760b54ae4": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, ENGINE\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND ENGINE <> 'InnoDB'\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "ENGINE"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "accounts_csv",
+       "CSV"
+      ],
+      [
+       "accounts_file",
+       "CSV"
+      ],
+      [
+       "cards_customers_file",
+       "CSV"
+      ],
+      [
+       "loans_customers_file",
+       "CSV"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:e91aed7ba0a9": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET balance = balance - 1000000 WHERE account_id = 3",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_accounts_balance' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:9f6e0a67b146": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET balance = balance - 50 WHERE account_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id = 1",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "442.57"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

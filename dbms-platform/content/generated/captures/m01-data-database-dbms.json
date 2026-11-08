@@ -1,0 +1,734 @@
+{
+ "doc": "m01-data-database-dbms",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:74d91ead7a2f": {
+   "statements": [
+    {
+     "sql": "SHOW ENGINES",
+     "status": "ok",
+     "columns": [
+      "Engine",
+      "Support",
+      "Comment",
+      "Transactions",
+      "XA",
+      "Savepoints"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       "ARCHIVE",
+       "YES",
+       "Archive storage engine",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "BLACKHOLE",
+       "YES",
+       "/dev/null storage engine (anything you write to it disappears)",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "MRG_MYISAM",
+       "YES",
+       "Collection of identical MyISAM tables",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "FEDERATED",
+       "NO",
+       "Federated MySQL storage engine",
+       null,
+       null,
+       null
+      ],
+      [
+       "MyISAM",
+       "YES",
+       "MyISAM storage engine",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "PERFORMANCE_SCHEMA",
+       "YES",
+       "Performance Schema",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "InnoDB",
+       "DEFAULT",
+       "Supports transactions, row-level locking, and foreign keys",
+       "YES",
+       "YES",
+       "YES"
+      ],
+      [
+       "MEMORY",
+       "YES",
+       "Hash based, stored in memory, useful for temporary tables",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "CSV",
+       "YES",
+       "CSV storage engine",
+       "NO",
+       "NO",
+       "NO"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:9a0e6269416f": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, ENGINE, TABLE_COMMENT\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE()\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "ENGINE",
+      "TABLE_COMMENT"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "categories",
+       "InnoDB",
+       ""
+      ],
+      [
+       "customers",
+       "InnoDB",
+       ""
+      ],
+      [
+       "order_items",
+       "InnoDB",
+       ""
+      ],
+      [
+       "orders",
+       "InnoDB",
+       ""
+      ],
+      [
+       "payments",
+       "InnoDB",
+       ""
+      ],
+      [
+       "products",
+       "InnoDB",
+       ""
+      ],
+      [
+       "reviews",
+       "InnoDB",
+       ""
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:a3b3b3b6bbc2": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, customer_id, order_date, status, discount_code\nFROM orders\nORDER BY order_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "order_date",
+      "status",
+      "discount_code"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       3,
+       "2024-10-31 09:09:00",
+       "cancelled",
+       null
+      ],
+      [
+       2,
+       19,
+       "2024-10-16 16:55:00",
+       "delivered",
+       "VIP20"
+      ],
+      [
+       3,
+       18,
+       "2024-04-19 16:38:00",
+       "delivered",
+       null
+      ],
+      [
+       4,
+       10,
+       "2024-11-09 19:09:00",
+       "paid",
+       null
+      ],
+      [
+       5,
+       11,
+       "2024-04-14 19:43:00",
+       "cancelled",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:a9973119c6e3": {
+   "statements": [
+    {
+     "sql": "SELECT status, COUNT(*) AS orders\nFROM orders\nGROUP BY status\nORDER BY orders DESC, status",
+     "status": "ok",
+     "columns": [
+      "status",
+      "orders"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "delivered",
+       45
+      ],
+      [
+       "shipped",
+       14
+      ],
+      [
+       "cancelled",
+       8
+      ],
+      [
+       "paid",
+       6
+      ],
+      [
+       "refunded",
+       5
+      ],
+      [
+       "pending",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:07fd99d4935e": {
+   "statements": [
+    {
+     "sql": "INSERT INTO reviews (product_id, customer_id, rating, comment, created_at)\nVALUES (1, 25, 6, 'Better than perfect!', '2024-12-31 10:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_reviews_rating' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:749b43efa050": {
+   "statements": [
+    {
+     "sql": "SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_KEY\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers'\nORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "COLUMN_TYPE",
+      "IS_NULLABLE",
+      "COLUMN_KEY"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       "customer_id",
+       "int unsigned",
+       "NO",
+       "PRI"
+      ],
+      [
+       "first_name",
+       "varchar(50)",
+       "NO",
+       ""
+      ],
+      [
+       "last_name",
+       "varchar(50)",
+       "NO",
+       ""
+      ],
+      [
+       "email",
+       "varchar(255)",
+       "NO",
+       "UNI"
+      ],
+      [
+       "phone",
+       "varchar(20)",
+       "YES",
+       ""
+      ],
+      [
+       "city",
+       "varchar(60)",
+       "NO",
+       ""
+      ],
+      [
+       "state",
+       "char(2)",
+       "NO",
+       ""
+      ],
+      [
+       "loyalty_tier",
+       "enum('bronze','silver','gold')",
+       "YES",
+       ""
+      ],
+      [
+       "signup_date",
+       "date",
+       "NO",
+       ""
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:4bb9712a1902": {
+   "statements": [
+    {
+     "sql": "SHOW CREATE TABLE reviews",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Create Table"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "reviews",
+       "CREATE TABLE `reviews` (\n  `review_id` int unsigned NOT NULL AUTO_INCREMENT,\n  `product_id` int unsigned NOT NULL,\n  `customer_id` int unsigned NOT NULL,\n  `rating` tinyint unsigned NOT NULL,\n  `comment` varchar(500) DEFAULT NULL,\n  `created_at` datetime NOT NULL,\n  PRIMARY KEY (`review_id`),\n  UNIQUE KEY `uq_reviews_product_customer` (`product_id`,`customer_id`),\n  KEY `idx_reviews_customer` (`customer_id`),\n  CONSTRAINT `fk_reviews_customer` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`customer_id`),\n  CONSTRAINT `fk_reviews_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`product_id`),\n  CONSTRAINT `chk_reviews_rating` CHECK ((`rating` between 1 and 5))\n) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:852395c010eb": {
+   "statements": [
+    {
+     "sql": "SELECT MONTH(order_date) AS month_2024, COUNT(*) AS orders\nFROM orders\nGROUP BY MONTH(order_date)\nORDER BY month_2024",
+     "status": "ok",
+     "columns": [
+      "month_2024",
+      "orders"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       1,
+       3
+      ],
+      [
+       2,
+       9
+      ],
+      [
+       3,
+       6
+      ],
+      [
+       4,
+       9
+      ],
+      [
+       5,
+       4
+      ],
+      [
+       6,
+       6
+      ],
+      [
+       7,
+       7
+      ],
+      [
+       8,
+       8
+      ],
+      [
+       9,
+       5
+      ],
+      [
+       10,
+       3
+      ],
+      [
+       11,
+       12
+      ],
+      [
+       12,
+       8
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:792c833ac932": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE products SET stock_qty = stock_qty - 2 WHERE product_id = 5",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id, stock_qty FROM products WHERE product_id = 5",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "stock_qty"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       116
+      ]
+     ]
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id, stock_qty FROM products WHERE product_id = 5",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "stock_qty"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       118
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:753b8c4116c1": {
+   "statements": [
+    {
+     "sql": "INSERT INTO customers (first_name, last_name, email, city, state, signup_date)\nVALUES ('Amara', 'Sharma', 'amara.sharma1@example.com', 'Austin', 'TX', '2024-12-01')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'amara.sharma1@example.com' for key 'customers.uq_customers_email'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:f6af585bf63f": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, product_id, quantity, unit_price FROM order_items ORDER BY order_id, product_id LIMIT 6",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "product_id",
+      "quantity",
+      "unit_price"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       5,
+       3,
+       "29.99"
+      ],
+      [
+       1,
+       30,
+       3,
+       "62.99"
+      ],
+      [
+       2,
+       9,
+       1,
+       "39.99"
+      ],
+      [
+       2,
+       10,
+       1,
+       "224.99"
+      ],
+      [
+       2,
+       12,
+       1,
+       "129.99"
+      ],
+      [
+       2,
+       14,
+       3,
+       "499.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:56680eb7e2d8": {
+   "statements": [
+    {
+     "sql": "SELECT i.order_id, o.status, i.quantity * i.unit_price AS line_total\nFROM order_items AS i JOIN orders AS o ON o.order_id = i.order_id\nORDER BY i.order_id, i.product_id\nLIMIT 6",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "line_total"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "cancelled",
+       "89.97"
+      ],
+      [
+       1,
+       "cancelled",
+       "188.97"
+      ],
+      [
+       2,
+       "delivered",
+       "39.99"
+      ],
+      [
+       2,
+       "delivered",
+       "224.99"
+      ],
+      [
+       2,
+       "delivered",
+       "129.99"
+      ],
+      [
+       2,
+       "delivered",
+       "1497.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:f35abf43e8be": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS delivered_line_items\nFROM order_items AS i JOIN orders AS o ON o.order_id = i.order_id\nWHERE o.status = 'delivered'",
+     "status": "ok",
+     "columns": [
+      "delivered_line_items"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       108
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:d31872055678": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(DISTINCT o.order_id) AS delivered_orders,\n       SUM(i.quantity * i.unit_price) AS delivered_revenue\nFROM order_items AS i JOIN orders AS o ON o.order_id = i.order_id\nWHERE o.status = 'delivered'",
+     "status": "ok",
+     "columns": [
+      "delivered_orders",
+      "delivered_revenue"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       45,
+       "43251.75"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:e6ef04193ba6": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT SUM(i.quantity * i.unit_price)\nFROM order_items AS i JOIN orders AS o ON o.order_id = i.order_id\nWHERE o.status = 'delivered'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: sum((i.quantity * i.unit_price))  (cost=21 rows=1)\n    -> Nested loop inner join  (cost=18 rows=30.3)\n        -> Filter: (o.`status` = 'delivered')  (cost=8.25 rows=13.3)\n            -> Table scan on o  (cost=8.25 rows=80)\n        -> Index lookup on i using PRIMARY (order_id=o.order_id)  (cost=0.517 rows=2.28)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:316bdfbf1748": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_flush_log_at_trx_commit AS flush_at_commit,\n       @@innodb_buffer_pool_size / 1024 / 1024 AS buffer_pool_mb,\n       @@innodb_page_size AS page_size_bytes",
+     "status": "ok",
+     "columns": [
+      "flush_at_commit",
+      "buffer_pool_mb",
+      "page_size_bytes"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "128.00000000",
+       16384
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:453af7808ce0": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE product_import (\n  sku   VARCHAR(20),\n  price DECIMAL(10,2)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO product_import VALUES (NULL, -15.00), ('SKU-1001', 10.00), ('SKU-1001', 12.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM product_import ORDER BY price",
+     "status": "ok",
+     "columns": [
+      "sku",
+      "price"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       null,
+       "-15.00"
+      ],
+      [
+       "SKU-1001",
+       "10.00"
+      ],
+      [
+       "SKU-1001",
+       "12.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:73eefb8fdd6e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE product_import_v2 (\n  sku   VARCHAR(20)   NOT NULL PRIMARY KEY,\n  price DECIMAL(10,2) NOT NULL CHECK (price >= 0)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO product_import_v2 VALUES ('SKU-1001', -15.00)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'product_import_v2_chk_1' is violated."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

@@ -71,19 +71,19 @@
      "row_count": 3,
      "rows": [
       [
-       "lab_55b6bb4e69977ddb7374.customers_j",
+       "customers_j",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_55b6bb4e69977ddb7374.orders_j",
+       "orders_j",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_55b6bb4e69977ddb7374.tickets_j",
+       "tickets_j",
        "analyze",
        "status",
        "OK"
@@ -153,7 +153,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_55b6bb4e69977ddb7374.orders_j",
+       "orders_j",
        "analyze",
        "status",
        "OK"
@@ -189,7 +189,7 @@
        null,
        null,
        null,
-       20406,
+       19896,
        1.0,
        "Using where"
       ],
@@ -203,7 +203,7 @@
        "idx_customer",
        "4",
        "c.customer_id",
-       10,
+       9,
        100.0,
        null
       ]
@@ -212,7 +212,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select count(0) AS `orders`,sum(`lab_55b6bb4e69977ddb7374`.`o`.`amount`) AS `revenue` from `lab_55b6bb4e69977ddb7374`.`customers_j` `c` join `lab_55b6bb4e69977ddb7374`.`orders_j` `o` where ((`lab_55b6bb4e69977ddb7374`.`o`.`customer_id` = `lab_55b6bb4e69977ddb7374`.`c`.`customer_id`) and (`lab_55b6bb4e69977ddb7374`.`c`.`segment` = 'enterprise') and (`lab_55b6bb4e69977ddb7374`.`c`.`region` = 'islands'))"
+       "message": "/* select#1 */ select count(0) AS `orders`,sum(`o`.`amount`) AS `revenue` from `customers_j` `c` join `orders_j` `o` where ((`o`.`customer_id` = `c`.`customer_id`) and (`c`.`segment` = 'enterprise') and (`c`.`region` = 'islands'))"
       }
      ]
     }
@@ -248,7 +248,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), sum(o.amount)  (cost=3017 rows=1)\n    -> Nested loop inner join  (cost=2805 rows=2115)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204)\n            -> Table scan on c  (cost=2065 rows=20406)\n        -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.6 rows=10.4)\n"
+       "-> Aggregate: count(0), sum(o.amount)  (cost=2906 rows=1)\n    -> Nested loop inner join  (cost=2708 rows=1983)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2014 rows=199)\n            -> Table scan on c  (cost=2014 rows=19896)\n        -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.5 rows=9.97)\n"
       ]
      ]
     }
@@ -286,7 +286,7 @@
        null,
        null,
        null,
-       20406,
+       19896,
        1.0,
        "Using where"
       ],
@@ -301,7 +301,7 @@
        null,
        null,
        200200,
-       0.01,
+       0.0,
        "Using where; Using join buffer (hash join)"
       ]
      ],
@@ -309,7 +309,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select /*+ JOIN_ORDER(@`select#1` `c`,`o`) NO_INDEX(`o`@`select#1` `idx_customer`) */ count(0) AS `COUNT(*)`,sum(`lab_55b6bb4e69977ddb7374`.`o`.`amount`) AS `SUM(o.amount)` from `lab_55b6bb4e69977ddb7374`.`customers_j` `c` join `lab_55b6bb4e69977ddb7374`.`orders_j` `o` where ((`lab_55b6bb4e69977ddb7374`.`o`.`customer_id` = `lab_55b6bb4e69977ddb7374`.`c`.`customer_id`) and (`lab_55b6bb4e69977ddb7374`.`c`.`segment` = 'enterprise') and (`lab_55b6bb4e69977ddb7374`.`c`.`region` = 'islands'))"
+       "message": "/* select#1 */ select /*+ JOIN_ORDER(@`select#1` `c`,`o`) NO_INDEX(`o`@`select#1` `idx_customer`) */ count(0) AS `COUNT(*)`,sum(`o`.`amount`) AS `SUM(o.amount)` from `customers_j` `c` join `orders_j` `o` where ((`o`.`customer_id` = `c`.`customer_id`) and (`c`.`segment` = 'enterprise') and (`c`.`region` = 'islands'))"
       }
      ]
     }
@@ -327,7 +327,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), sum(o.amount)  (cost=4.09e+6 rows=1)\n    -> Inner hash join (o.customer_id = c.customer_id)  (cost=4.09e+6 rows=2115)\n        -> Table scan on o  (cost=0.634 rows=200200)\n        -> Hash\n            -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204)\n                -> Table scan on c  (cost=2065 rows=20406)\n"
+       "-> Aggregate: count(0), sum(o.amount)  (cost=3.99e+6 rows=1)\n    -> Inner hash join (o.customer_id = c.customer_id)  (cost=3.99e+6 rows=1983)\n        -> Table scan on o  (cost=0.649 rows=200200)\n        -> Hash\n            -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2014 rows=199)\n                -> Table scan on c  (cost=2014 rows=19896)\n"
       ]
      ]
     }
@@ -345,7 +345,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), sum(o.amount)  (cost=4.11e+6 rows=1)\n    -> Nested loop inner join  (cost=4.11e+6 rows=2115)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204)\n            -> Table scan on c  (cost=2065 rows=20406)\n        -> Filter: (o.customer_id = c.customer_id)  (cost=120 rows=10.4)\n            -> Table scan on o  (cost=120 rows=200200)\n"
+       "-> Aggregate: count(0), sum(o.amount)  (cost=4.01e+6 rows=1)\n    -> Nested loop inner join  (cost=4.01e+6 rows=1983)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2014 rows=199)\n            -> Table scan on c  (cost=2014 rows=19896)\n        -> Filter: (o.customer_id = c.customer_id)  (cost=120 rows=9.97)\n            -> Table scan on o  (cost=120 rows=200200)\n"
       ]
      ]
     }
@@ -383,7 +383,7 @@
        null,
        null,
        null,
-       20406,
+       19896,
        1.0,
        "Using where"
       ],
@@ -397,7 +397,7 @@
        "idx_customer",
        "4",
        "c.customer_id",
-       10,
+       9,
        100.0,
        "Using join buffer (Batched Key Access)"
       ]
@@ -406,7 +406,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select /*+ BKA(`o`@`select#1`) */ count(0) AS `COUNT(*)`,sum(`lab_55b6bb4e69977ddb7374`.`o`.`amount`) AS `SUM(o.amount)` from `lab_55b6bb4e69977ddb7374`.`customers_j` `c` join `lab_55b6bb4e69977ddb7374`.`orders_j` `o` where ((`lab_55b6bb4e69977ddb7374`.`o`.`customer_id` = `lab_55b6bb4e69977ddb7374`.`c`.`customer_id`) and (`lab_55b6bb4e69977ddb7374`.`c`.`segment` = 'enterprise') and (`lab_55b6bb4e69977ddb7374`.`c`.`region` = 'islands'))"
+       "message": "/* select#1 */ select /*+ BKA(`o`@`select#1`) */ count(0) AS `COUNT(*)`,sum(`o`.`amount`) AS `SUM(o.amount)` from `customers_j` `c` join `orders_j` `o` where ((`o`.`customer_id` = `c`.`customer_id`) and (`c`.`segment` = 'enterprise') and (`c`.`region` = 'islands'))"
       }
      ]
     },
@@ -419,7 +419,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), sum(o.amount)  (cost=0 rows=1)\n    -> Batched key access inner join\n        -> Batch input rows\n            -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204)\n                -> Table scan on c  (cost=2065 rows=20406)\n        -> Multi-range index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.6 rows=10.4)\n"
+       "-> Aggregate: count(0), sum(o.amount)  (cost=0 rows=1)\n    -> Batched key access inner join\n        -> Batch input rows\n            -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2014 rows=199)\n                -> Table scan on c  (cost=2014 rows=19896)\n        -> Multi-range index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.5 rows=9.97)\n"
       ]
      ]
     }
@@ -457,7 +457,7 @@
        "idx_customer_ref",
        "42",
        null,
-       100153,
+       100164,
        100.0,
        "Using index"
       ],
@@ -485,7 +485,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_55b6bb4e69977ddb7374`.`customers_j` `c` join `lab_55b6bb4e69977ddb7374`.`tickets_j` `t` where ((`lab_55b6bb4e69977ddb7374`.`c`.`segment` = 'enterprise') and (`lab_55b6bb4e69977ddb7374`.`c`.`region` = 'islands') and (cast(`lab_55b6bb4e69977ddb7374`.`t`.`customer_ref` as double) = cast(`lab_55b6bb4e69977ddb7374`.`c`.`customer_id` as double)))"
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `customers_j` `c` join `tickets_j` `t` where ((`c`.`segment` = 'enterprise') and (`c`.`region` = 'islands') and (cast(`t`.`customer_ref` as double) = cast(`c`.`customer_id` as double)))"
       }
      ]
     },
@@ -507,7 +507,7 @@
       [
        "Note",
        1003,
-       "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_55b6bb4e69977ddb7374`.`customers_j` `c` join `lab_55b6bb4e69977ddb7374`.`tickets_j` `t` where ((`lab_55b6bb4e69977ddb7374`.`c`.`segment` = 'enterprise') and (`lab_55b6bb4e69977ddb7374`.`c`.`region` = 'islands') and (cast(`lab_55b6bb4e69977ddb7374`.`t`.`customer_ref` as double) = cast(`lab_55b6bb4e69977ddb7374`.`c`.`customer_id` as double)))"
+       "/* select#1 */ select count(0) AS `COUNT(*)` from `customers_j` `c` join `tickets_j` `t` where ((`c`.`segment` = 'enterprise') and (`c`.`region` = 'islands') and (cast(`t`.`customer_ref` as double) = cast(`c`.`customer_id` as double)))"
       ]
      ]
     }
@@ -545,7 +545,7 @@
        null,
        null,
        null,
-       20406,
+       19896,
        1.0,
        "Using where"
       ],
@@ -568,7 +568,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_55b6bb4e69977ddb7374`.`customers_j` `c` join `lab_55b6bb4e69977ddb7374`.`tickets_j` `t` where ((`lab_55b6bb4e69977ddb7374`.`c`.`segment` = 'enterprise') and (`lab_55b6bb4e69977ddb7374`.`c`.`region` = 'islands') and (`lab_55b6bb4e69977ddb7374`.`t`.`customer_ref` = cast(`lab_55b6bb4e69977ddb7374`.`c`.`customer_id` as char charset utf8mb4)))"
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `customers_j` `c` join `tickets_j` `t` where ((`c`.`segment` = 'enterprise') and (`c`.`region` = 'islands') and (`t`.`customer_ref` = cast(`c`.`customer_id` as char charset utf8mb4)))"
       }
      ]
     }
@@ -656,10 +656,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), sum(o.amount)  (cost=3017 rows=1) (actual time=21.6..21.6 rows=1 loops=1)\n    -> Nested loop inner join  (cost=2805 rows=2115) (actual time=0.26..21 rows=8330 loops=1)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204) (actual time=0.207..5.42 rows=833 loops=1)\n            -> Table scan on c  (cost=2065 rows=20406) (actual time=0.199..3.73 rows=20000 loops=1)\n        -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.6 rows=10.4) (actual time=0.0174..0.0181 rows=10 loops=833)\n"
+       "-> Aggregate: count(0), sum(o.amount)  (cost=2906 rows=1) (actual time=22.1..22.1 rows=1 loops=1)\n    -> Nested loop inner join  (cost=2708 rows=1983) (actual time=0.27..21.5 rows=8330 loops=1)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2014 rows=199) (actual time=0.193..5.41 rows=833 loops=1)\n            -> Table scan on c  (cost=2014 rows=19896) (actual time=0.185..3.85 rows=20000 loops=1)\n        -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.5 rows=9.97) (actual time=0.0177..0.0186 rows=10 loops=833)\n"
       ]
      ],
-     "elapsed_ms": 23.17
+     "elapsed_ms": 23.45
     }
    ],
    "measured": true
@@ -675,10 +675,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), sum(o.amount)  (cost=4.09e+6 rows=1) (actual time=37.5..37.5 rows=1 loops=1)\n    -> Inner hash join (o.customer_id = c.customer_id)  (cost=4.09e+6 rows=2115) (actual time=4.93..36.8 rows=8330 loops=1)\n        -> Table scan on o  (cost=0.634 rows=200200) (actual time=0.438..21.4 rows=200000 loops=1)\n        -> Hash\n            -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204) (actual time=0.14..4.36 rows=833 loops=1)\n                -> Table scan on c  (cost=2065 rows=20406) (actual time=0.134..2.86 rows=20000 loops=1)\n"
+       "-> Aggregate: count(0), sum(o.amount)  (cost=3.99e+6 rows=1) (actual time=39.9..39.9 rows=1 loops=1)\n    -> Inner hash join (o.customer_id = c.customer_id)  (cost=3.99e+6 rows=1983) (actual time=5.66..39.3 rows=8330 loops=1)\n        -> Table scan on o  (cost=0.649 rows=200200) (actual time=0.452..22.7 rows=200000 loops=1)\n        -> Hash\n            -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2014 rows=199) (actual time=0.152..5.08 rows=833 loops=1)\n                -> Table scan on c  (cost=2014 rows=19896) (actual time=0.146..3.13 rows=20000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 39.21
+     "elapsed_ms": 41.15
     }
    ],
    "measured": true
@@ -694,10 +694,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), sum(o.amount)  (cost=91211 rows=1) (actual time=220..220 rows=1 loops=1)\n    -> Nested loop inner join  (cost=90210 rows=10010) (actual time=0.481..219 rows=8330 loops=1)\n        -> Table scan on o  (cost=20140 rows=200200) (actual time=0.461..33.5 rows=200000 loops=1)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=0.25 rows=0.05) (actual time=822e-6..825e-6 rows=0.0416 loops=200000)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.25 rows=1) (actual time=616e-6..638e-6 rows=1 loops=200000)\n"
+       "-> Aggregate: count(0), sum(o.amount)  (cost=91211 rows=1) (actual time=232..232 rows=1 loops=1)\n    -> Nested loop inner join  (cost=90210 rows=10010) (actual time=0.478..232 rows=8330 loops=1)\n        -> Table scan on o  (cost=20140 rows=200200) (actual time=0.459..35 rows=200000 loops=1)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=0.25 rows=0.05) (actual time=886e-6..889e-6 rows=0.0416 loops=200000)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.25 rows=1) (actual time=656e-6..683e-6 rows=1 loops=200000)\n"
       ]
      ],
-     "elapsed_ms": 221.07
+     "elapsed_ms": 233.91
     }
    ],
    "measured": true

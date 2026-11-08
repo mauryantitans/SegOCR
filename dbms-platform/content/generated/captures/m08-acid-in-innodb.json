@@ -1,0 +1,722 @@
+{
+ "doc": "m08-acid-in-innodb",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:a790d25afc64": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_flush_log_at_trx_commit AS flush_log_at_trx_commit,\n       @@innodb_flush_log_at_timeout    AS flush_log_at_timeout_s,\n       @@sync_binlog                    AS sync_binlog,\n       @@innodb_doublewrite             AS doublewrite,\n       @@innodb_redo_log_capacity       AS redo_log_capacity_bytes",
+     "status": "ok",
+     "columns": [
+      "flush_log_at_trx_commit",
+      "flush_log_at_timeout_s",
+      "sync_binlog",
+      "doublewrite",
+      "redo_log_capacity_bytes"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1,
+       1,
+       "ON",
+       104857600
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:d29a4cafcda8": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS savings_accounts, SUM(balance) AS total_savings FROM accounts WHERE account_type = 'savings'",
+     "status": "ok",
+     "columns": [
+      "savings_accounts",
+      "total_savings"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10,
+       "43463.89"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:5ecacc309e53": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET balance = balance - 3000.00 WHERE account_type = 'savings'",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_accounts_balance' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s4:d29a4cafcda8": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS savings_accounts, SUM(balance) AS total_savings FROM accounts WHERE account_type = 'savings'",
+     "status": "ok",
+     "columns": [
+      "savings_accounts",
+      "total_savings"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10,
+       "43463.89"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:55b3845d8f8d": {
+   "statements": [
+    {
+     "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, created_at)\nVALUES (999, 'deposit', 10.00, 10.00, '2024-12-31 10:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`transactions`, CONSTRAINT `fk_transactions_account` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`account_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:69dc2768303d": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS accounts,\n       SUM(a.balance = (SELECT t.balance_after FROM transactions t\n                        WHERE t.account_id = a.account_id\n                        ORDER BY t.created_at DESC, t.txn_id DESC LIMIT 1)) AS matching_latest_ledger_row\nFROM accounts a",
+     "status": "ok",
+     "columns": [
+      "accounts",
+      "matching_latest_ledger_row"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25,
+       "25"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:5f7d9c5b6016": {
+   "statements": [
+    {
+     "sql": "INSERT INTO branches VALUES (7, REPEAT('x', 80), 'Fremont')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1406,
+      "message": "Data too long for column 'name' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:88bae8beac67": {
+   "statements": [
+    {
+     "sql": "SET SESSION sql_mode = ''",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO branches VALUES (7, REPEAT('x', 80), 'Fremont')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1265,
+       "message": "Data truncated for column 'name' at row 1"
+      }
+     ]
+    },
+    {
+     "sql": "SET SESSION sql_mode = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT branch_id, CHAR_LENGTH(name) AS stored_name_length FROM branches WHERE branch_id = 7",
+     "status": "ok",
+     "columns": [
+      "branch_id",
+      "stored_name_length"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       7,
+       60
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:baec996ef369": {
+   "statements": [
+    {
+     "sql": "SET SESSION foreign_key_checks = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO accounts (account_id, customer_id, branch_id, account_type, balance, opened_at)\nVALUES (90, 999, 1, 'checking', 0.00, '2024-12-01 09:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION foreign_key_checks = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT a.account_id, a.customer_id, c.customer_id AS matching_customer\nFROM accounts a LEFT JOIN customers c ON c.customer_id = a.customer_id\nWHERE a.account_id = 90",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "customer_id",
+      "matching_customer"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       90,
+       999,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:0568a403d8d5": {
+   "statements": [
+    {
+     "sql": "DELETE FROM accounts WHERE account_id = 90",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s12:262a6737313a": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE queue_pos (pos INT PRIMARY KEY, item VARCHAR(20))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO queue_pos VALUES (1, 'alpha'), (2, 'bravo'), (3, 'charlie')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s13:c147d9493da4": {
+   "statements": [
+    {
+     "sql": "UPDATE queue_pos SET pos = pos + 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '2' for key 'queue_pos.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:3350ab86ff73": {
+   "statements": [
+    {
+     "sql": "UPDATE queue_pos SET pos = pos + 1 ORDER BY pos DESC",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Rows matched: 3  Changed: 3  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM queue_pos ORDER BY pos",
+     "status": "ok",
+     "columns": [
+      "pos",
+      "item"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       2,
+       "alpha"
+      ],
+      [
+       3,
+       "bravo"
+      ],
+      [
+       4,
+       "charlie"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:9af8e958e998": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance - 400.00 WHERE account_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s16:25b5e9d79149": {
+   "statements": [
+    {
+     "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\nVALUES (999, 'transfer_in', 400.00, 400.00, 'TRF-BROKEN', '2024-12-31 11:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`transactions`, CONSTRAINT `fk_transactions_account` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`account_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s17:82ea01bb73ac": {
+   "statements": [
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id = 1",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "492.57"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:b8e20374fb66": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance - 300.00 WHERE account_id = 3",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 3",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "10232.88"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 3 FOR SHARE",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "9932.88"
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "132023",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
+        "lockStructs": 2
+       },
+       {
+        "session": "B",
+        "trxId": "421279494836112",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "3"
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "3"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 3",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "10232.88"
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c2:eec024e2f9ef": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance - 400.00 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance - 400.00 WHERE account_id = 1",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 3819,
+        "message": "Check constraint 'chk_accounts_balance' is violated."
+       }
+      }
+     ],
+     "completedAfterStep": 2,
+     "finalStatus": "error"
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT account_id, balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1,
+         "92.57"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "w1.0:3ab9d9081d2e": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance + 1000.00, version = version + 1 WHERE account_id = 24",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:4902225043c9": {
+   "statements": [
+    {
+     "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\nSELECT account_id, 'deposit', 1000.00, balance, 'ACID-DEMO', '2024-12-31 15:00:00'\nFROM accounts WHERE account_id = 24",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:5be9cfb9ef50": {
+   "statements": [
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:8dc67634481d": {
+   "statements": [
+    {
+     "sql": "SELECT a.account_id, a.balance, t.balance_after, t.reference\nFROM accounts a\nJOIN transactions t ON t.account_id = a.account_id\nWHERE a.account_id = 24\nORDER BY t.created_at DESC, t.txn_id DESC\nLIMIT 1",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "balance_after",
+      "reference"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       24,
+       "2929.74",
+       "2929.74",
+       "ACID-DEMO"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:9147fa4e7d12": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE accounts ADD CONSTRAINT chk_min_balance CHECK (balance >= 200)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_min_balance' is violated."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

@@ -1,0 +1,1208 @@
+{
+ "doc": "m08-savepoints",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:a7235cfe3eba": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE sp_demo (id INT PRIMARY KEY, note VARCHAR(30))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sp_demo VALUES (1, 'before any savepoint')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SAVEPOINT s1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sp_demo VALUES (2, 'after s1')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SAVEPOINT s2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sp_demo VALUES (3, 'after s2')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK TO SAVEPOINT s2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM sp_demo ORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "note"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "before any savepoint"
+      ],
+      [
+       2,
+       "after s1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:32726a186f05": {
+   "statements": [
+    {
+     "sql": "ROLLBACK TO SAVEPOINT s1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM sp_demo ORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "note"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "before any savepoint"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:57a934998c3e": {
+   "statements": [
+    {
+     "sql": "ROLLBACK TO SAVEPOINT s2",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1305,
+      "message": "SAVEPOINT s2 does not exist"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s4:c6a309f6d6d7": {
+   "statements": [
+    {
+     "sql": "INSERT INTO sp_demo VALUES (4, 'after rolling back to s1')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM sp_demo ORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "note"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "before any savepoint"
+      ],
+      [
+       4,
+       "after rolling back to s1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:0555372386c9": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SAVEPOINT item",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sp_demo VALUES (10, 'item 1')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SAVEPOINT item",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sp_demo VALUES (11, 'item 2')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK TO SAVEPOINT item",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM sp_demo WHERE id >= 10 ORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "note"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10,
+       "item 1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:623d14394a36": {
+   "statements": [
+    {
+     "sql": "SAVEPOINT a",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sp_demo VALUES (12, 'after a')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SAVEPOINT b",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "RELEASE SAVEPOINT a",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s7:6e80318552be": {
+   "statements": [
+    {
+     "sql": "ROLLBACK TO SAVEPOINT b",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1305,
+      "message": "SAVEPOINT b does not exist"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:f56e508f3c97": {
+   "statements": [
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM sp_demo WHERE id >= 10 ORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "note"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       10,
+       "item 1"
+      ],
+      [
+       12,
+       "after a"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:b0b8893c4ff2": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance, version FROM accounts WHERE account_id = 10",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10,
+       "348.43",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:49cac6396317": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SAVEPOINT before_fee",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance - 0.00, version = version + 1 WHERE account_id = 10",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s11:c97579a8e307": {
+   "statements": [
+    {
+     "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\nVALUES (10, 'fee', 0.00, 348.43, 'FEE-ZERO', '2024-12-31 23:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_transactions_amount' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:9a7355b4f261": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, version FROM accounts WHERE account_id = 10",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10,
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "ROLLBACK TO SAVEPOINT before_fee",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, version FROM accounts WHERE account_id = 10",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10,
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s13:5eb95955ae2d": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE fee_batch (\n  item_id    INT PRIMARY KEY,\n  account_id INT UNSIGNED NOT NULL,\n  fee        DECIMAL(14,2) NOT NULL,\n  status     VARCHAR(10) NOT NULL DEFAULT 'pending',\n  error_msg  VARCHAR(200) NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO fee_batch (item_id, account_id, fee) VALUES\n  (1,  1, 25.00),   -- fine\n  (2, 23, 150.00),  -- account 23 has 144.47: CHECK (balance >= 0) fails\n  (3, 99, 25.00),   -- no such account: business rule, raised with SIGNAL\n  (4, 10, 0.00),    -- debit succeeds, ledger row fails CHECK (amount > 0)\n  (5, 25, 25.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s14:32e60aa3fe7b": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE apply_fee_batch()\nBEGIN\n  DECLARE done INT DEFAULT 0;\n  DECLARE v_item INT;\n  DECLARE v_acct INT UNSIGNED;\n  DECLARE v_fee DECIMAL(14,2);\n  DECLARE cur CURSOR FOR\n    SELECT item_id, account_id, fee FROM fee_batch WHERE status = 'pending' ORDER BY item_id;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;\n\n  START TRANSACTION;\n  OPEN cur;\n  item_loop: LOOP\n    FETCH cur INTO v_item, v_acct, v_fee;\n    IF done THEN LEAVE item_loop; END IF;\n    SAVEPOINT before_item;\n    BEGIN\n      DECLARE v_msg VARCHAR(200);\n      DECLARE EXIT HANDLER FOR SQLEXCEPTION\n      BEGIN\n        GET DIAGNOSTICS CONDITION 1 v_msg = MESSAGE_TEXT;\n        ROLLBACK TO SAVEPOINT before_item;\n        UPDATE fee_batch SET status = 'failed', error_msg = v_msg WHERE item_id = v_item;\n      END;\n      UPDATE accounts SET balance = balance - v_fee, version = version + 1 WHERE account_id = v_acct;\n      IF ROW_COUNT() <> 1 THEN\n        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'account not found';\n      END IF;\n      INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\n      SELECT account_id, 'fee', v_fee, balance, CONCAT('FEE-', v_item), '2024-12-31 23:59:00'\n      FROM accounts WHERE account_id = v_acct;\n      UPDATE fee_batch SET status = 'applied' WHERE item_id = v_item;\n    END;\n  END LOOP;\n  CLOSE cur;\n  COMMIT;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s15:5782278c7270": {
+   "statements": [
+    {
+     "sql": "CALL apply_fee_batch()",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT item_id, account_id, fee, status, error_msg FROM fee_batch ORDER BY item_id",
+     "status": "ok",
+     "columns": [
+      "item_id",
+      "account_id",
+      "fee",
+      "status",
+      "error_msg"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       1,
+       "25.00",
+       "applied",
+       null
+      ],
+      [
+       2,
+       23,
+       "150.00",
+       "failed",
+       "Check constraint 'chk_accounts_balance' is violated."
+      ],
+      [
+       3,
+       99,
+       "25.00",
+       "failed",
+       "account not found"
+      ],
+      [
+       4,
+       10,
+       "0.00",
+       "failed",
+       "Check constraint 'chk_transactions_amount' is violated."
+      ],
+      [
+       5,
+       25,
+       "25.00",
+       "applied",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:5b8709043c8a": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance, version FROM accounts WHERE account_id IN (1, 10, 23, 25) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "467.57",
+       1
+      ],
+      [
+       10,
+       "348.43",
+       0
+      ],
+      [
+       23,
+       "144.47",
+       0
+      ],
+      [
+       25,
+       "4537.03",
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT account_id, txn_type, amount, balance_after, reference FROM transactions WHERE reference LIKE 'FEE-%' ORDER BY reference",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "txn_type",
+      "amount",
+      "balance_after",
+      "reference"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "fee",
+       "25.00",
+       "467.57",
+       "FEE-1"
+      ],
+      [
+       25,
+       "fee",
+       "25.00",
+       "4537.03",
+       "FEE-5"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:982fa37f22e8": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SAVEPOINT before_ddl",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sp_demo VALUES (20, 'will be committed')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE sp_other (x INT)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s18:4348813d389e": {
+   "statements": [
+    {
+     "sql": "ROLLBACK TO SAVEPOINT before_ddl",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1305,
+      "message": "SAVEPOINT before_ddl does not exist"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s19:0f579d3b877f": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM sp_demo WHERE id = 20",
+     "status": "ok",
+     "columns": [
+      "id",
+      "note"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20,
+       "will be committed"
+      ]
+     ]
+    },
+    {
+     "sql": "DROP TABLE sp_other",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:4539c8787006": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance, version FROM accounts WHERE account_id IN (18, 19) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       18,
+       "1968.14",
+       0
+      ],
+      [
+       19,
+       "6936.77",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:a7a031f06443": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance + 500.00, version = version + 1 WHERE account_id = 18",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SAVEPOINT after_first",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:a7e5c2f98943": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET balance = balance + 900.00, version = version + 1 WHERE account_id = 19",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance, version FROM accounts WHERE account_id IN (18, 19) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       18,
+       "2468.14",
+       1
+      ],
+      [
+       19,
+       "7836.77",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:bafdac03cf2c": {
+   "statements": [
+    {
+     "sql": "ROLLBACK TO SAVEPOINT after_first",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance, version FROM accounts WHERE account_id IN (18, 19) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       18,
+       "2468.14",
+       1
+      ],
+      [
+       19,
+       "6936.77",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:fdade9f91fcf": {
+   "statements": [
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance, version FROM accounts WHERE account_id IN (18, 19) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       18,
+       "2468.14",
+       1
+      ],
+      [
+       19,
+       "6936.77",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:96637a489779": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET version = version + 1 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "SAVEPOINT s1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET status = 'frozen' WHERE account_id = 5",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "SELECT account_id, balance FROM accounts WHERE account_id = 6 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         6,
+         "15836.16"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "129764",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 3,
+        "rowsModified": 2,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "5"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "6"
+       }
+      ]
+     }
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK TO SAVEPOINT s1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT account_id, status FROM accounts WHERE account_id = 5",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "status"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         5,
+         "active"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "129764",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 3,
+        "rowsModified": 1,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "5"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "6"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance + 1.00 WHERE account_id = 6",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 6,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 5,
+     "session": "C",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance + 1.00 WHERE account_id = 5",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 6,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 6,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 7,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT account_id, balance, status, version FROM accounts WHERE account_id IN (1, 5, 6) ORDER BY account_id",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "balance",
+        "status",
+        "version"
+       ],
+       "row_count": 3,
+       "rows": [
+        [
+         1,
+         "492.57",
+         "active",
+         1
+        ],
+        [
+         5,
+         "6999.91",
+         "active",
+         0
+        ],
+        [
+         6,
+         "15837.16",
+         "active",
+         0
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:717e9d960ddc": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SAVEPOINT very_first",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET status = 'frozen' WHERE account_id = 5",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "ROLLBACK TO SAVEPOINT very_first",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [],
+      "locks": []
+     }
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance + 1.00 WHERE account_id = 5",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "s20:3c7e9711954d": {
+   "statements": [
+    {
+     "sql": "SAVEPOINT lonely",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sp_demo VALUES (30, 'autocommitted')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s21:bf2934c9cd6a": {
+   "statements": [
+    {
+     "sql": "ROLLBACK TO SAVEPOINT lonely",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1305,
+      "message": "SAVEPOINT lonely does not exist"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

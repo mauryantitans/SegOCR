@@ -1,0 +1,1398 @@
+{
+ "doc": "m08-isolation-levels",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:7458b9d63aa2": {
+   "statements": [
+    {
+     "sql": "SELECT @@GLOBAL.transaction_isolation  AS server_default,\n       @@SESSION.transaction_isolation AS this_session",
+     "status": "ok",
+     "columns": [
+      "server_default",
+      "this_session"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "REPEATABLE-READ",
+       "REPEATABLE-READ"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:16797ae31605": {
+   "statements": [
+    {
+     "sql": "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @@transaction_isolation AS this_session",
+     "status": "ok",
+     "columns": [
+      "this_session"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "READ-COMMITTED"
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "c1:89eda3602730": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET TRANSACTION ISOLATION LEVEL READ COMMITTED",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT COUNT(*) AS n FROM branches",
+       "status": "ok",
+       "columns": [
+        "n"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "421279494828032",
+        "state": "RUNNING",
+        "isolation": "READ COMMITTED",
+        "rowsLocked": 0,
+        "rowsModified": 0,
+        "lockStructs": 0
+       }
+      ],
+      "locks": []
+     }
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT COUNT(*) AS n FROM branches",
+       "status": "ok",
+       "columns": [
+        "n"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "421279494828032",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 0,
+        "rowsModified": 0,
+        "lockStructs": 0
+       }
+      ],
+      "locks": []
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "s4:104db397451e": {
+   "statements": [
+    {
+     "sql": "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION WITH CONSISTENT SNAPSHOT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 138,
+       "message": "InnoDB: WITH CONSISTENT SNAPSHOT was ignored because this phrase can only be used with REPEATABLE READ isolation level."
+      }
+     ]
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "c2:61b9145f511e": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 4",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "7946.37"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "421279494828840",
+        "state": "RUNNING",
+        "isolation": "SERIALIZABLE",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "4"
+       }
+      ]
+     }
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 4",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "7946.37"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance + 10.00 WHERE account_id = 4",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 4",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "7956.37"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c3:fdbe922f2920": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance - 1000.00 WHERE account_id = 5",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 5",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "6998.91"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 5",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "6998.91"
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c4:c95bb9deb248": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT SUM(balance) AS combined FROM accounts WHERE customer_id = 1",
+       "status": "ok",
+       "columns": [
+        "combined"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "4920.77"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT SUM(balance) AS combined FROM accounts WHERE customer_id = 1",
+       "status": "ok",
+       "columns": [
+        "combined"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "4920.77"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "421279494828840",
+        "state": "RUNNING",
+        "isolation": "SERIALIZABLE",
+        "rowsLocked": 5,
+        "rowsModified": 0,
+        "lockStructs": 4
+       },
+       {
+        "session": "B",
+        "trxId": "421279494829648",
+        "state": "RUNNING",
+        "isolation": "SERIALIZABLE",
+        "rowsLocked": 5,
+        "rowsModified": 0,
+        "lockStructs": 4
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "idx_accounts_customer",
+        "lockType": "RECORD",
+        "lockMode": "S",
+        "status": "GRANTED",
+        "lockData": "1, 1"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "idx_accounts_customer",
+        "lockType": "RECORD",
+        "lockMode": "S",
+        "status": "GRANTED",
+        "lockData": "1, 2"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "idx_accounts_customer",
+        "lockType": "RECORD",
+        "lockMode": "S,GAP",
+        "status": "GRANTED",
+        "lockData": "2, 3"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "2"
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "idx_accounts_customer",
+        "lockType": "RECORD",
+        "lockMode": "S",
+        "status": "GRANTED",
+        "lockData": "1, 1"
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "idx_accounts_customer",
+        "lockType": "RECORD",
+        "lockMode": "S",
+        "status": "GRANTED",
+        "lockData": "1, 2"
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "idx_accounts_customer",
+        "lockType": "RECORD",
+        "lockMode": "S,GAP",
+        "status": "GRANTED",
+        "lockData": "2, 3"
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "2"
+       }
+      ]
+     }
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance - 3500.00 WHERE account_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "error",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance - 450.00 WHERE account_id = 1",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1213,
+        "message": "Deadlock found when trying to get lock; try restarting transaction"
+       }
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT SUM(balance) AS combined FROM accounts WHERE customer_id = 1",
+       "status": "ok",
+       "columns": [
+        "combined"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "1420.77"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c5:4bedcd6f3083": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT account_id FROM accounts WHERE account_id > 20 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "account_id"
+       ],
+       "row_count": 5,
+       "rows": [
+        [
+         21
+        ],
+        [
+         22
+        ],
+        [
+         23
+        ],
+        [
+         24
+        ],
+        [
+         25
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "137488",
+        "state": "RUNNING",
+        "isolation": "READ COMMITTED",
+        "rowsLocked": 5,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "21"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "22"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "23"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "24"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "25"
+       }
+      ]
+     }
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "INSERT INTO accounts (account_id, customer_id, branch_id, account_type, balance, opened_at) VALUES (26, 15, 2, 'savings', 500.00, '2024-12-31 09:00:00')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT account_id FROM accounts WHERE account_id > 20 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "account_id"
+       ],
+       "row_count": 6,
+       "rows": [
+        [
+         21
+        ],
+        [
+         22
+        ],
+        [
+         23
+        ],
+        [
+         24
+        ],
+        [
+         25
+        ],
+        [
+         26
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c6:56e14afd75b7": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET version = version + 1 WHERE status = 'frozen'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "137594",
+        "state": "RUNNING",
+        "isolation": "READ COMMITTED",
+        "rowsLocked": 1,
+        "rowsModified": 1,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "7"
+       }
+      ]
+     }
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance + 5.00 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c7:e9cf44e8af6a": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance, version FROM accounts WHERE account_id = 9",
+       "status": "ok",
+       "columns": [
+        "balance",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "9169.88",
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance + 1000.00, version = version + 1 WHERE account_id = 9",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance, version FROM accounts WHERE account_id = 9",
+       "status": "ok",
+       "columns": [
+        "balance",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "9169.88",
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance + 10.00, version = version + 1 WHERE account_id = 9",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance, version FROM accounts WHERE account_id = 9",
+       "status": "ok",
+       "columns": [
+        "balance",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "10179.88",
+         2
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "w1.0:736452a2afce": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE iso_demo (id INT PRIMARY KEY, v INT)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO iso_demo VALUES (1, 100)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:1d222e8aa93a": {
+   "statements": [
+    {
+     "sql": "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT v FROM iso_demo WHERE id = 1",
+     "status": "ok",
+     "columns": [
+      "v"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       100
+      ]
+     ]
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:b5f0ba7b5908": {
+   "statements": [
+    {
+     "sql": "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT v FROM iso_demo WHERE id = 1",
+     "status": "ok",
+     "columns": [
+      "v"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       100
+      ]
+     ]
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:ffde3a7527a3": {
+   "statements": [
+    {
+     "sql": "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT v FROM iso_demo WHERE id = 1",
+     "status": "ok",
+     "columns": [
+      "v"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       100
+      ]
+     ]
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:c3d75126e981": {
+   "statements": [
+    {
+     "sql": "SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT v FROM iso_demo WHERE id = 1",
+     "status": "ok",
+     "columns": [
+      "v"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       100
+      ]
+     ]
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s6:8a5c0186dbee": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1568,
+      "message": "Transaction characteristics can't be changed while a transaction is in progress"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:52a82569bff7": {
+   "statements": [
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s8:eb9266f49775": {
+   "statements": [
+    {
+     "sql": "SELECT @@tx_isolation",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1193,
+      "message": "Unknown system variable 'tx_isolation'"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

@@ -1,0 +1,940 @@
+{
+ "doc": "m01-schemas-three-schema-architecture",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:6099b6226449": {
+   "statements": [
+    {
+     "sql": "SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_KEY, COLUMN_DEFAULT\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'students'\nORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "COLUMN_TYPE",
+      "IS_NULLABLE",
+      "COLUMN_KEY",
+      "COLUMN_DEFAULT"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "student_id",
+       "int unsigned",
+       "NO",
+       "PRI",
+       null
+      ],
+      [
+       "name",
+       "varchar(80)",
+       "NO",
+       "",
+       null
+      ],
+      [
+       "email",
+       "varchar(255)",
+       "NO",
+       "UNI",
+       null
+      ],
+      [
+       "dept_id",
+       "smallint unsigned",
+       "YES",
+       "MUL",
+       null
+      ],
+      [
+       "enrollment_year",
+       "year",
+       "NO",
+       "",
+       null
+      ],
+      [
+       "total_credits",
+       "smallint unsigned",
+       "NO",
+       "",
+       "0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:ab19d7cfef56": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS students,\n       COUNT(dept_id) AS declared_major,\n       MIN(enrollment_year) AS earliest_cohort,\n       MAX(enrollment_year) AS latest_cohort\nFROM students",
+     "status": "ok",
+     "columns": [
+      "students",
+      "declared_major",
+      "earliest_cohort",
+      "latest_cohort"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       40,
+       38,
+       2021,
+       2024
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:9e9f812f975d": {
+   "statements": [
+    {
+     "sql": "INSERT INTO students (student_id, name, email, dept_id, enrollment_year)\nVALUES (20250001, 'Priya Nair', 'priya.nair@student.example.edu', 2, 2025)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM students) AS students_now,\n       (SELECT COUNT(*) FROM information_schema.COLUMNS\n        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'students') AS columns_in_schema",
+     "status": "ok",
+     "columns": [
+      "students_now",
+      "columns_in_schema"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       41,
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:421ec017286a": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE students ADD COLUMN preferred_name VARCHAR(80) NULL AFTER name",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS columns_in_schema\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'students'",
+     "status": "ok",
+     "columns": [
+      "columns_in_schema"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       7
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:7851ced90e75": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW instructor_directory AS\nSELECT i.instructor_id, i.name, d.name AS department, d.building\nFROM instructors AS i\nJOIN departments AS d ON d.dept_id = i.dept_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM instructor_directory WHERE department = 'Data Science' ORDER BY instructor_id",
+     "status": "ok",
+     "columns": [
+      "instructor_id",
+      "name",
+      "department",
+      "building"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1004,
+       "Chloe Lin",
+       "Data Science",
+       "MacQuarrie Hall"
+      ],
+      [
+       1005,
+       "Anika Wang",
+       "Data Science",
+       "MacQuarrie Hall"
+      ],
+      [
+       1006,
+       "Elena Haddad",
+       "Data Science",
+       "MacQuarrie Hall"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:102a6589d436": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, TABLE_TYPE, ENGINE\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE()\nORDER BY TABLE_TYPE, TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "TABLE_TYPE",
+      "ENGINE"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       "advisors",
+       "BASE TABLE",
+       "InnoDB"
+      ],
+      [
+       "course_prereqs",
+       "BASE TABLE",
+       "InnoDB"
+      ],
+      [
+       "courses",
+       "BASE TABLE",
+       "InnoDB"
+      ],
+      [
+       "departments",
+       "BASE TABLE",
+       "InnoDB"
+      ],
+      [
+       "enrollments",
+       "BASE TABLE",
+       "InnoDB"
+      ],
+      [
+       "instructors",
+       "BASE TABLE",
+       "InnoDB"
+      ],
+      [
+       "sections",
+       "BASE TABLE",
+       "InnoDB"
+      ],
+      [
+       "students",
+       "BASE TABLE",
+       "InnoDB"
+      ],
+      [
+       "instructor_directory",
+       "VIEW",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:39adf4fc1366": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME AS view_name, IS_UPDATABLE, SECURITY_TYPE\nFROM information_schema.VIEWS\nWHERE TABLE_SCHEMA = DATABASE()",
+     "status": "ok",
+     "columns": [
+      "view_name",
+      "IS_UPDATABLE",
+      "SECURITY_TYPE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "instructor_directory",
+       "YES",
+       "DEFINER"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT VIEW_NAME, TABLE_NAME AS depends_on\nFROM information_schema.VIEW_TABLE_USAGE\nWHERE VIEW_SCHEMA = DATABASE()\nORDER BY VIEW_NAME, TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "VIEW_NAME",
+      "depends_on"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "instructor_directory",
+       "departments"
+      ],
+      [
+       "instructor_directory",
+       "instructors"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:880f7878a72e": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW instructor_workload AS\nSELECT i.instructor_id, i.name, COUNT(s.section_id) AS sections_taught\nFROM instructors AS i\nLEFT JOIN sections AS s ON s.instructor_id = i.instructor_id\nGROUP BY i.instructor_id, i.name",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM instructor_workload ORDER BY sections_taught DESC, instructor_id LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "instructor_id",
+      "name",
+      "sections_taught"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1003,
+       "Omar Kim",
+       4
+      ],
+      [
+       1006,
+       "Elena Haddad",
+       4
+      ],
+      [
+       1002,
+       "Isabella Wang",
+       3
+      ],
+      [
+       1008,
+       "Fatima Kim",
+       3
+      ],
+      [
+       1001,
+       "Arjun Rossi",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:aff3a9c12b64": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT student_id, name FROM students WHERE enrollment_year = 2023 ORDER BY student_id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "students",
+       null,
+       "index",
+       null,
+       "PRIMARY",
+       "4",
+       null,
+       41,
+       10.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `students`.`student_id` AS `student_id`,`students`.`name` AS `name` from `students` where (`students`.`enrollment_year` = 2023) order by `students`.`student_id`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:db479b377036": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE students ADD INDEX idx_students_year (enrollment_year)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE students",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "students",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT student_id, name FROM students WHERE enrollment_year = 2023 ORDER BY student_id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "students",
+       null,
+       "ref",
+       "idx_students_year",
+       "idx_students_year",
+       "1",
+       "const",
+       11,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `students`.`student_id` AS `student_id`,`students`.`name` AS `name` from `students` where (`students`.`enrollment_year` = 2023) order by `students`.`student_id`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:961476fa51a5": {
+   "statements": [
+    {
+     "sql": "SELECT student_id, name FROM students WHERE enrollment_year = 2023 ORDER BY student_id",
+     "status": "ok",
+     "columns": [
+      "student_id",
+      "name"
+     ],
+     "row_count": 11,
+     "rows": [
+      [
+       20230003,
+       "Diego Wilson"
+      ],
+      [
+       20230007,
+       "Aisha Sato"
+      ],
+      [
+       20230008,
+       "Daniel Martin"
+      ],
+      [
+       20230012,
+       "Fatima Lopez"
+      ],
+      [
+       20230014,
+       "Ravi Okafor"
+      ],
+      [
+       20230016,
+       "Ethan Adeyemi"
+      ],
+      [
+       20230017,
+       "Isabella Brown"
+      ],
+      [
+       20230020,
+       "Tomas Moradi"
+      ],
+      [
+       20230027,
+       "Victor Nguyen"
+      ],
+      [
+       20230031,
+       "Mei Sato"
+      ],
+      [
+       20230040,
+       "Leila Silva"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:5021c3520c1a": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE enrollments ROW_FORMAT = COMPACT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME, ROW_FORMAT\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('enrollments', 'students')\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "ROW_FORMAT"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "enrollments",
+       "Compact"
+      ],
+      [
+       "students",
+       "Dynamic"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:f4956cde00fb": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE instructors RENAME COLUMN dept_id TO home_dept_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s14:7fe4edc766cc": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM instructor_directory WHERE department = 'Data Science' ORDER BY instructor_id",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1054,
+      "message": "Unknown column 'i.dept_id' in 'on clause'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s15:410b76d68646": {
+   "statements": [
+    {
+     "sql": "CREATE OR REPLACE VIEW instructor_directory AS\nSELECT i.instructor_id, i.name, d.name AS department, d.building\nFROM instructors AS i\nJOIN departments AS d ON d.dept_id = i.home_dept_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM instructor_directory WHERE department = 'Data Science' ORDER BY instructor_id",
+     "status": "ok",
+     "columns": [
+      "instructor_id",
+      "name",
+      "department",
+      "building"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1004,
+       "Chloe Lin",
+       "Data Science",
+       "MacQuarrie Hall"
+      ],
+      [
+       1005,
+       "Anika Wang",
+       "Data Science",
+       "MacQuarrie Hall"
+      ],
+      [
+       1006,
+       "Elena Haddad",
+       "Data Science",
+       "MacQuarrie Hall"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:aa9282cfb003": {
+   "statements": [
+    {
+     "sql": "SELECT COLUMN_NAME, DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'instructor_directory' ORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "DATA_TYPE"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "instructor_id",
+       "int"
+      ],
+      [
+       "name",
+       "varchar"
+      ],
+      [
+       "department",
+       "varchar"
+      ],
+      [
+       "building",
+       "varchar"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:3d5097533f91": {
+   "statements": [
+    {
+     "sql": "SELECT VIEW_DEFINITION FROM information_schema.VIEWS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'instructor_directory'",
+     "status": "ok",
+     "columns": [
+      "VIEW_DEFINITION"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "select `i`.`instructor_id` AS `instructor_id`,`i`.`name` AS `name`,`d`.`name` AS `department`,`d`.`building` AS `building` from (`instructors` `i` join `departments` `d` on((`d`.`dept_id` = `i`.`home_dept_id`)))"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:7c4c9cf3e996": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM instructor_directory WHERE department = 'Data Science'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "d",
+       null,
+       "const",
+       "PRIMARY,uq_departments_name",
+       "uq_departments_name",
+       "242",
+       "const",
+       1,
+       100.0,
+       null
+      ],
+      [
+       1,
+       "SIMPLE",
+       "i",
+       null,
+       "ref",
+       "fk_instructors_dept",
+       "fk_instructors_dept",
+       "2",
+       "const",
+       3,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `i`.`instructor_id` AS `instructor_id`,`i`.`name` AS `name`,'Data Science' AS `department`,'MacQuarrie Hall' AS `building` from `instructors` `i` join `departments` `d` where ((`i`.`home_dept_id` = '2'))"
+      }
+     ]
+    },
+    {
+     "sql": "SHOW WARNINGS",
+     "status": "ok",
+     "columns": [
+      "Level",
+      "Code",
+      "Message"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Note",
+       1003,
+       "/* select#1 */ select `i`.`instructor_id` AS `instructor_id`,`i`.`name` AS `name`,'Data Science' AS `department`,'MacQuarrie Hall' AS `building` from `instructors` `i` join `departments` `d` where ((`i`.`home_dept_id` = '2'))"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:5d58a08c32f9": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT * FROM instructor_directory WHERE department = 'Data Science'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Index lookup on i using fk_instructors_dept (home_dept_id='2')  (cost=0.8 rows=3)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:7fe4edc766cc": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM instructor_directory WHERE department = 'Data Science' ORDER BY instructor_id",
+     "status": "ok",
+     "columns": [
+      "instructor_id",
+      "name",
+      "department",
+      "building"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1004,
+       "Chloe Lin",
+       "Data Science",
+       "MacQuarrie Hall"
+      ],
+      [
+       1005,
+       "Anika Wang",
+       "Data Science",
+       "MacQuarrie Hall"
+      ],
+      [
+       1006,
+       "Elena Haddad",
+       "Data Science",
+       "MacQuarrie Hall"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:bbefc1264091": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE departments RENAME COLUMN building TO building_name",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME AS view_name\nFROM information_schema.VIEWS\nWHERE TABLE_SCHEMA = DATABASE()\nORDER BY view_name",
+     "status": "ok",
+     "columns": [
+      "view_name"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "instructor_directory"
+      ],
+      [
+       "instructor_workload"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:f920ac42b964": {
+   "statements": [
+    {
+     "sql": "CHECK TABLE instructor_directory",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "instructor_directory",
+       "check",
+       "Error",
+       "View 'instructor_directory' references invalid table(s) or column(s) or function(s) or definer/invoker of view lack rights to use them"
+      ],
+      [
+       "instructor_directory",
+       "check",
+       "error",
+       "Corrupt"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:e352bcdb81aa": {
+   "statements": [
+    {
+     "sql": "CREATE OR REPLACE VIEW instructor_directory AS\nSELECT i.instructor_id, i.name, d.name AS department, d.building_name AS building\nFROM instructors AS i\nJOIN departments AS d ON d.dept_id = i.home_dept_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CHECK TABLE instructor_directory",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "instructor_directory",
+       "check",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:7a59f2af8557": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW course_list AS SELECT * FROM courses",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE courses ADD COLUMN is_online BOOLEAN NOT NULL DEFAULT FALSE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COLUMN_NAME FROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'course_list'\nORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "course_id"
+      ],
+      [
+       "title"
+      ],
+      [
+       "dept_id"
+      ],
+      [
+       "credits"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

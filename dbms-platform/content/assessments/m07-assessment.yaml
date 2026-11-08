@@ -1,0 +1,604 @@
+id: m07-assessment
+module: m07
+title: "Module 7 Assessment — Indexing & Query Optimization"
+passMark: 70
+description: >-
+  Covers all of Module 7: why indexes exist and what a full scan costs, B-trees and B+ trees, InnoDB clustered and
+  secondary indexes, unique/composite indexes and the leftmost-prefix rule, covering/prefix/functional/descending/
+  multi-valued indexes, selectivity and statistics, EXPLAIN and EXPLAIN ANALYZE, access paths, SARGable predicates,
+  join, subquery, aggregation/sorting/pagination optimization, the cost-based optimizer and its hints, slow-query
+  diagnostics, and indexing mistakes. Questions emphasise reading real plans and predicting optimizer behaviour;
+  the challenges are optimization tasks graded by comparing your result with the reference (rewrites must return
+  exactly the same rows), plus index-design tasks with model answers.
+questions:
+  - id: q1
+    question: "Why is a full table scan of a 10 GB InnoDB table expensive even when the query returns one row?"
+    options:
+      - "Because InnoDB reads rows one byte at a time"
+      - "Because every page of the clustered index must be read (and possibly fetched from disk) and every row evaluated, so cost grows with table size, not result size"
+      - "Because full scans always lock the whole table"
+      - "Because the query cache must be invalidated"
+    answer: 1
+    explanation: "I/O and CPU are proportional to the pages and rows scanned. Plain SELECTs under InnoDB's MVCC do not lock rows; the query cache was removed in 8.0. An index turns the work into a tree descent proportional to the result."
+    concepts: [pages-io, full-table-scan]
+  - id: q2
+    question: "A B+ tree index has a fan-out of about 500 entries per internal page. Roughly how many levels are needed to index 100 million keys?"
+    options: ["2", "3", "4", "27"]
+    answer: 1
+    explanation: "500² = 250,000 and 500³ = 125 million ≥ 100 million, so about 3 levels. A binary tree would need about log₂(10⁸) ≈ 27 levels. High fan-out is why B+ trees are shallow and each lookup reads only a few pages."
+    concepts: [fan-out, tree-height]
+  - id: q3
+    question: "Which property of B+ trees makes range scans such as `WHERE k BETWEEN 100 AND 200` efficient?"
+    options:
+      - "Every internal node stores full rows"
+      - "Keys are kept sorted and leaf pages are linked, so after one descent the scan walks along the leaves"
+      - "The tree is rebuilt for each range query"
+      - "Keys are hashed into buckets"
+    answer: 1
+    explanation: "A single root-to-leaf descent finds the first key; linked leaves deliver the rest in order. Hash structures cannot answer ranges; internal nodes in a B+ tree hold only separator keys."
+    concepts: [bplus-tree, range-scan]
+  - id: q4
+    question: "An InnoDB table has no PRIMARY KEY and no UNIQUE index on NOT NULL columns. How is it clustered?"
+    options:
+      - "It is a heap without a clustered index"
+      - "By a hidden 6-byte row id in an index named GEN_CLUST_INDEX"
+      - "By the first column"
+      - "By insertion time in a separate log"
+    answer: 1
+    explanation: "InnoDB always has a clustered index. Without a suitable key it generates GEN_CLUST_INDEX on an internal, monotonically increasing row id that is invisible to SQL — and therefore useless to queries and to replication tools that need a key."
+    concepts: [clustered-index, gen-clust-index]
+  - id: q5
+    question: "`SELECT name FROM users WHERE email = ?` uses a secondary index on email. Which steps does InnoDB perform?"
+    options:
+      - "One lookup in the email index, which contains name"
+      - "A lookup in the email index to find the primary key, then a lookup in the clustered index to fetch name (a bookmark lookup)"
+      - "A full scan of the clustered index"
+      - "A lookup in the clustered index by email"
+    answer: 1
+    explanation: "Secondary-index entries contain the indexed columns plus the primary key. Columns outside the index require a second descent into the clustered index. An index on (email, name) would make the query covering."
+    concepts: [secondary-index, bookmark-lookup]
+  - id: q6
+    question: "Index `(country, city, signup_date)`. Which WHERE clauses can use the index for at least one key part? (Select all that apply.)"
+    type: multi
+    options:
+      - "`country = 'US' AND city = 'Austin'`"
+      - "`city = 'Austin'`"
+      - "`country = 'US' AND signup_date >= '2024-01-01'`"
+      - "`signup_date >= '2024-01-01'`"
+    answer: [0, 2]
+    explanation: "The leftmost-prefix rule: a lookup must constrain the leading column(s). Option 3 uses only the country key part (signup_date may be checked via ICP). Options 2 and 4 skip country; at most a skip scan or full index scan could apply."
+    concepts: [leftmost-prefix, composite-index]
+  - id: q7
+    question: "For `WHERE customer_id = ? AND created_at >= ?`, which composite index is best and why?"
+    options:
+      - "(created_at, customer_id) — the range column first narrows the most"
+      - "(customer_id, created_at) — equality first, then the range, so both key parts bound the scan"
+      - "Two separate single-column indexes, merged"
+      - "(customer_id) alone"
+    answer: 1
+    explanation: "Equality before range: with customer_id fixed, entries are ordered by created_at and the range is contiguous. With the range first, entries for one customer are scattered across the range. Index merge is usually worse than one well-ordered composite index."
+    concepts: [equality-before-range, composite-index]
+  - id: q8
+    question: "Which statements about index types in MySQL 8.x are correct? (Select all that apply.)"
+    type: multi
+    options:
+      - "A prefix index `INDEX (title(20))` can never make a query covering for `title`"
+      - "A functional key part `INDEX ((LOWER(email)))` is used only when the query uses the same expression"
+      - "Descending key parts let one index serve `ORDER BY a ASC, b DESC` without a filesort"
+      - "Multi-valued indexes on JSON arrays support MEMBER OF, JSON_CONTAINS and JSON_OVERLAPS"
+      - "MySQL supports partial indexes with a WHERE clause"
+    answer: [0, 1, 2, 3]
+    explanation: "A prefix index stores only part of the value, so MySQL must read the row. Functional indexes match the exact expression. Descending key parts (8.0) support mixed directions. Multi-valued indexes (8.0.17) serve those JSON predicates. MySQL has no partial indexes."
+    concepts: [prefix-index, functional-index, descending-index, multi-valued-index]
+  - id: q9
+    question: "EXPLAIN shows `Using index` in Extra. What does that mean?"
+    options:
+      - "An index was used for the WHERE clause"
+      - "The query was answered from the index alone (covering index), without reading the clustered index rows"
+      - "Index condition pushdown was applied"
+      - "The index was used for sorting"
+    answer: 1
+    explanation: "Using index = covering. ICP appears as Using index condition; index-ordered sorting is shown by the absence of Using filesort."
+    concepts: [covering-index, extra-column]
+  - id: q10
+    question: "A column has 4 distinct values; 90 % of rows have value 'delivered'. Which tool lets the optimizer estimate the selectivity of `status = 'lost'` correctly if `status` is NOT indexed?"
+    options: ["ANALYZE TABLE alone", "A histogram on status", "A larger innodb_buffer_pool_size", "FORCE INDEX"]
+    answer: 1
+    explanation: "Without an index there are no index dives or rec_per_key; a histogram (ANALYZE TABLE … UPDATE HISTOGRAM ON status) gives value frequencies. Plain ANALYZE TABLE refreshes index statistics only; the buffer pool and hints do not affect estimates."
+    concepts: [histograms, selectivity]
+  - id: q11
+    question: "EXPLAIN shows `type: ALL`, `possible_keys: idx_created`, `key: NULL` for `WHERE created_at >= '2024-01-01'` on a table whose rows are all from 2024. Best interpretation?"
+    options:
+      - "The index is broken"
+      - "The predicate matches most of the table; the optimizer estimated a full scan cheaper than many secondary-index lookups"
+      - "Statistics were never collected"
+      - "DATETIME columns cannot be indexed"
+    answer: 1
+    explanation: "Low selectivity makes the scan cheaper; the index remains a possible key. This is the optimizer working correctly, not a bug."
+    concepts: [selectivity, cost-based-optimization]
+  - id: q12
+    question: "In traditional EXPLAIN, which `type` values are ordered from best to worst for a single-table lookup?"
+    options:
+      - "ALL, index, range, ref, eq_ref, const"
+      - "const, eq_ref, ref, range, index, ALL"
+      - "ref, const, ALL, range"
+      - "index, ALL, range, const"
+    answer: 1
+    explanation: "const (at most one row, resolved at optimization), eq_ref (one row per prior row via unique key), ref (non-unique lookup), range (index intervals), index (full index scan), ALL (full table scan)."
+    concepts: [access-types, explain]
+  - id: q13
+    question: "For an `INT NOT NULL` column followed by a nullable `VARCHAR(10)` column in utf8mb4, EXPLAIN shows `key_len: 47`. What does it tell you?"
+    options:
+      - "Only the INT key part is used"
+      - "Both key parts are used: 4 (INT) + 10×4 + 2 (length bytes) + 1 (NULL flag) = 47"
+      - "The index is 47 rows deep"
+      - "47 % of the index is read"
+    answer: 1
+    explanation: "key_len sums the maximum byte length of the used key parts: 4 for INT, 4 bytes per character for utf8mb4 VARCHAR plus 2 length bytes, plus 1 for nullability. It reveals how many leading key parts bound the access."
+    concepts: [key-len, explain]
+  - id: q14
+    question: "EXPLAIN ANALYZE shows `Index lookup on o … (cost=2.5 rows=10) (actual time=0.017..0.018 rows=10 loops=833)`. How many rows did this iterator return in total?"
+    options: ["10", "833", "About 8,330", "2.5"]
+    answer: 2
+    explanation: "Actual rows is an average per loop; total ≈ rows × loops = 10 × 833. The estimate (rows=10) matches, so the inner side of this nested-loop join was estimated correctly."
+    concepts: [loops, explain-analyze]
+  - id: q15
+    question: "What does `Using index condition` (index condition pushdown) do?"
+    options:
+      - "Evaluates parts of the WHERE clause on index entries inside the storage engine before fetching full rows"
+      - "Forces the optimizer to use an index"
+      - "Builds a temporary index"
+      - "Makes the query covering"
+    answer: 0
+    explanation: "ICP pushes conditions on index columns down to InnoDB so that rows failing them are never fetched from the clustered index, saving bookmark lookups. It is not covering — matching rows are still fetched."
+    concepts: [index-condition-pushdown, access-paths]
+  - id: q16
+    question: "Which predicates can use an index on `created_at` (DATETIME) as a range? (Select all that apply.)"
+    type: multi
+    options:
+      - "`created_at >= '2024-07-01' AND created_at < '2024-08-01'`"
+      - "`DATE(created_at) = '2024-07-04'`"
+      - "`created_at >= NOW() - INTERVAL 1 DAY`"
+      - "`YEAR(created_at) = 2024`"
+    answer: [0, 2]
+    explanation: "SARGable predicates keep the indexed column bare; functions on the constant side are evaluated once. MySQL does not invert DATE() or YEAR() wrapped around the column."
+    concepts: [sargability]
+  - id: q17
+    question: "`phone` is VARCHAR(20) with an index. Why is `WHERE phone = 4085551234` slow?"
+    options:
+      - "Numbers are compared character by character"
+      - "MySQL compares string and number as doubles, converting each stored phone; the index cannot be used and differently formatted strings may also match"
+      - "VARCHAR indexes are not B+ trees"
+      - "It is not slow; MySQL converts the constant once"
+    answer: 1
+    explanation: "String vs number comparison converts the column, producing warning 1739 and a full scan. Converting the constant once only happens when the column is numeric and the constant is a string."
+    concepts: [implicit-conversion, sargability]
+  - id: q18
+    question: "EXPLAIN shows `Using join buffer (hash join)` on a join in an OLTP request path. What is the most likely fix?"
+    options:
+      - "Increase join_buffer_size globally"
+      - "Add (or fix the type of) an index on the inner table's join column so an index nested-loop join can be used"
+      - "Add STRAIGHT_JOIN"
+      - "Use a RIGHT JOIN"
+    answer: 1
+    explanation: "Hash join is chosen when no index applies to the join condition. In OLTP this usually signals a missing index or a type/collation mismatch. Join order hints and buffer sizes do not create an index path."
+    concepts: [hash-join, join-indexing]
+  - id: q19
+    question: "A query joins customers to orders (10 per customer) and to tickets (5 per customer) and reports SUM(o.amount). What is wrong and how do you fix it?"
+    options:
+      - "Nothing; GROUP BY prevents duplicates"
+      - "Each order row repeats once per ticket (fan-out ×5); aggregate orders and tickets separately before joining"
+      - "Use COUNT(DISTINCT) on the amount"
+      - "Use a hash join"
+    answer: 1
+    explanation: "Two independent 1:N joins create a partial Cartesian product per customer. SUM(DISTINCT) would collapse equal amounts and is wrong too. Pre-aggregation (derived tables, LATERAL) keeps joins 1:1."
+    concepts: [join-fan-out]
+  - id: q20
+    question: "EXPLAIN for `c.id IN (SELECT o.customer_id FROM orders o WHERE …)` shows `Start temporary` and `End temporary`. Which semi-join strategy is that?"
+    options: ["FirstMatch", "LooseScan", "Duplicate weedout", "Table pullout"]
+    answer: 2
+    explanation: "Duplicate weedout runs the semi-join as an ordinary join and removes duplicate outer rows with a temporary table of row ids. FirstMatch shows FirstMatch(t), LooseScan shows LooseScan, and table pullout shows a plain join."
+    concepts: [semi-join]
+  - id: q21
+    question: "Why can `NOT IN (SELECT col FROM t)` return no rows when many rows obviously qualify?"
+    options:
+      - "Because NOT IN is not supported for subqueries"
+      - "Because the subquery returned a NULL, making every NOT IN comparison UNKNOWN"
+      - "Because anti-joins require an index"
+      - "Because the subquery is correlated"
+    answer: 1
+    explanation: "x NOT IN (…, NULL) is never TRUE. Use NOT EXISTS, or filter NULLs in the subquery."
+    concepts: [anti-join]
+  - id: q22
+    question: "`LIMIT 20 OFFSET 100000` on an index-ordered query reads how many index entries, and what is the scalable alternative?"
+    options:
+      - "20; none needed"
+      - "About 100,020; keyset pagination (WHERE sort_key < last_seen … ORDER BY … LIMIT 20) with a unique tie-breaker"
+      - "100,000; a larger sort buffer"
+      - "All rows; a covering index fixes it completely"
+    answer: 1
+    explanation: "OFFSET must produce and discard the skipped rows. Keyset pagination seeks to the cursor in the index and reads only the page. In MySQL write the cursor predicate in the expanded OR/AND form — the row-constructor form is not turned into a range."
+    concepts: [keyset-pagination, order-by-limit]
+  - id: q23
+    question: "`SELECT account_id, MAX(created_at) FROM events GROUP BY account_id` with index (account_id, created_at) shows `Using index for group-by`. What is happening?"
+    options:
+      - "A temporary table of groups is built"
+      - "A loose index scan reads one entry per group (the last created_at of each account)"
+      - "The whole table is sorted"
+      - "A hash aggregation in memory"
+    answer: 1
+    explanation: "The loose index scan jumps from group to group in the covering index. COUNT(*) or SUM(other_col) would need every row (tight scan)."
+    concepts: [loose-index-scan]
+  - id: q24
+    question: "Which statements about steering the MySQL optimizer are true? (Select all that apply.)"
+    type: multi
+    options:
+      - "The optimizer trace is enabled per session and read from information_schema.OPTIMIZER_TRACE"
+      - "`/*+ NO_INDEX(t i) */` removes one alternative without forcing a specific plan"
+      - "Costs reported by EXPLAIN are estimated milliseconds"
+      - "IN lists with at least eq_range_index_dive_limit values are estimated from index statistics instead of index dives"
+    answer: [0, 1, 3]
+    explanation: "Trace, targeted hints and the dive limit behave as stated. Costs are abstract model units for comparing plans of the same query, not time."
+    concepts: [optimizer-trace, optimizer-hints, index-dives, cost-model]
+  - id: q25
+    question: "A digest has 1,240,211 executions, avg 20 ms, and examines 2,500 rows per row sent while using an index. What is the most likely cause?"
+    options:
+      - "A missing index"
+      - "Deep OFFSET pagination — rows are read in index order and discarded"
+      - "Lock contention"
+      - "An undersized buffer pool"
+    answer: 1
+    explanation: "A high examined/sent ratio with an index in use and an ORDER BY … LIMIT shape is the signature of OFFSET pagination. A missing index would show SUM_NO_INDEX_USED; lock contention would show lock time, not rows examined."
+    concepts: [top-queries, keyset-pagination]
+  - id: q26
+    question: "Which of these indexes are redundant on an InnoDB table with `PRIMARY KEY (id)`, `UNIQUE (email)` and `INDEX (last_name, first_name)`? (Select all that apply.)"
+    type: multi
+    options:
+      - "INDEX (last_name)"
+      - "INDEX (email)"
+      - "INDEX (first_name)"
+      - "INDEX (created_at, id)  — compared with INDEX (created_at)"
+    answer: [0, 1, 3]
+    explanation: "(last_name) is a left prefix of (last_name, first_name); (email) duplicates the unique index; appending the PK to a secondary index is redundant because InnoDB already does it. (first_name) has a different leading column."
+    concepts: [redundant-indexes]
+  - id: q27
+    question: "Why are random `CHAR(36)` UUID primary keys a performance problem in InnoDB?"
+    options:
+      - "UUIDs cannot be unique"
+      - "Every secondary index entry stores the 36-character key, and random insertion order splits pages, enlarging and fragmenting the trees"
+      - "InnoDB cannot index CHAR columns"
+      - "They disable the change buffer"
+    answer: 1
+    explanation: "Wide keys bloat every secondary index; random order causes page splits and poor locality. Use BIGINT auto-increment keys or BINARY(16) time-ordered UUIDs (UUID_TO_BIN(…, 1))."
+    concepts: [wide-primary-keys, primary-key-design]
+challenges:
+  - id: c1
+    title: Make the login report SARGable
+    dataset: empty
+    difficulty: hard
+    setup: |
+      SET SESSION cte_max_recursion_depth = 30000;
+      CREATE TABLE logins (
+        login_id INT UNSIGNED PRIMARY KEY,
+        user_code VARCHAR(8) NOT NULL,
+        logged_at DATETIME NOT NULL,
+        INDEX idx_user_time (user_code, logged_at),
+        CONSTRAINT chk_user_code CHECK (user_code REGEXP '^[0-9]{8}$')
+      );
+      INSERT INTO logins
+      WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 30000)
+      SELECT n, LPAD(1 + n % 300, 8, '0'), TIMESTAMP '2024-01-01 00:00:00' + INTERVAL n * 17 MINUTE FROM s;
+    prompt: |
+      User codes are always eight zero-padded digits (enforced by a CHECK constraint). A security report runs:
+
+      ~~~sql
+      SELECT login_id, logged_at
+      FROM logins
+      WHERE user_code = 42
+        AND YEAR(logged_at) = 2024 AND MONTH(logged_at) = 7;
+      ~~~
+
+      EXPLAIN shows a full scan. Rewrite it so that **both** key parts of `idx_user_time (user_code, logged_at)`
+      can bound the scan (equality on `user_code`, range on `logged_at`), returning exactly the same rows
+      (columns `login_id`, `logged_at`). Verify with EXPLAIN that `type` is `range` and `key_len` covers both
+      key parts.
+    hints:
+      - "Comparing a VARCHAR column with the number 42 converts every stored code to a double — compare with the zero-padded string instead."
+      - "July 2024 as a half-open interval: logged_at >= '2024-07-01' AND logged_at < '2024-08-01'."
+    solution: |
+      SELECT login_id, logged_at
+      FROM logins
+      WHERE user_code = '00000042'
+        AND logged_at >= '2024-07-01' AND logged_at < '2024-08-01';
+    explanation: |
+      Two independent problems make the original non-SARGable: the implicit string-to-number conversion on
+      `user_code` (warning 1739 after EXPLAIN) and the functions wrapped around `logged_at`. The string literal
+      restores equality on the first key part — equivalent only because the CHECK constraint guarantees canonical
+      codes — and the half-open interval makes the second key part a range. `user_code = '42'` (no padding) is the
+      classic wrong rewrite: fast but empty. Fixing only one of the two problems gives either a full scan or a
+      `ref` on the first key part with the month checked per row.
+  - id: c2
+    title: Keyset pagination with ties
+    dataset: empty
+    difficulty: hard
+    setup: |
+      SET SESSION cte_max_recursion_depth = 20000;
+      CREATE TABLE posts (
+        post_id INT UNSIGNED PRIMARY KEY,
+        score SMALLINT NOT NULL,
+        title VARCHAR(30) NOT NULL,
+        INDEX idx_score (score)
+      );
+      INSERT INTO posts
+      WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 20000)
+      SELECT n, n % 50, CONCAT('Post ', n) FROM s;
+    prompt: |
+      A leaderboard lists posts with `ORDER BY score DESC, post_id DESC`, 10 per page. Many posts share a score.
+      The last row of the current page is `score = 37`, `post_id = 10037`. Write the query for the **next page**
+      without OFFSET: columns `post_id`, `score`, `title`, in leaderboard order, 10 rows. It must be able to use
+      `idx_score` as a range (remember InnoDB appends `post_id` to the index).
+    hints:
+      - "The cursor has two columns because score is not unique."
+      - "Rows after the cursor: score < 37 OR (score = 37 AND post_id < 10037)."
+      - "Do not use the row-constructor form (score, post_id) < (37, 10037): it is correct but MySQL evaluates it as a filter."
+    solution: |
+      SELECT post_id, score, title
+      FROM posts
+      WHERE score < 37 OR (score = 37 AND post_id < 10037)
+      ORDER BY score DESC, post_id DESC
+      LIMIT 10;
+    orderMatters: true
+    explanation: |
+      Because `idx_score` is effectively ordered by (score, post_id), the expanded predicate is a backward range scan
+      starting right after the cursor; the query reads about 10 entries regardless of page depth. Filtering on
+      `score < 37` alone skips the remaining posts with score 37, and OFFSET pagination reads every earlier row.
+      The tie-breaker in ORDER BY makes the order total, so pages never overlap or skip rows.
+  - id: c3
+    title: Customer activity without fan-out
+    dataset: shop
+    difficulty: hard
+    prompt: |
+      For every customer who has **at least one order**, return:
+
+      1. `customer_id`
+      2. `orders` — number of orders (any status)
+      3. `reviews` — number of reviews written (0 if none)
+      4. `paid` — total amount of payments with status `succeeded` for their orders (0 if none)
+
+      Joining orders, reviews and payments directly to customers multiplies rows; your result must not be inflated.
+    hints:
+      - "Build one derived table per measure, each with at most one row per customer."
+      - "Payments link to customers through orders: aggregate payments joined to orders, grouped by orders.customer_id."
+      - "Start from the orders aggregate (inner join) so only buyers appear; LEFT JOIN the others with COALESCE(…, 0)."
+    solution: |
+      SELECT o.customer_id,
+             o.orders,
+             COALESCE(r.reviews, 0) AS reviews,
+             COALESCE(p.paid, 0)    AS paid
+      FROM (SELECT customer_id, COUNT(*) AS orders FROM orders GROUP BY customer_id) AS o
+      LEFT JOIN (SELECT customer_id, COUNT(*) AS reviews FROM reviews GROUP BY customer_id) AS r
+             ON r.customer_id = o.customer_id
+      LEFT JOIN (SELECT ord.customer_id, SUM(pay.amount) AS paid
+                 FROM payments AS pay JOIN orders AS ord ON ord.order_id = pay.order_id
+                 WHERE pay.status = 'succeeded'
+                 GROUP BY ord.customer_id) AS p
+             ON p.customer_id = o.customer_id;
+    explanation: |
+      Each derived table is pre-aggregated to one row per customer, so the joins are 1:1 and every order, review and
+      payment is counted once. The naive `customers ⋈ orders ⋈ reviews ⋈ payments` with GROUP BY multiplies each
+      order by the customer's review count and inflates both counts and the paid total. `COUNT(DISTINCT …)` repairs
+      counts but not sums. Correlated scalar subqueries per customer are an equally correct alternative and, with
+      indexes on the foreign keys, cheap for 25 customers — for millions of customers the grouped derived tables (or
+      window functions) avoid one subquery execution per row.
+  - id: c4
+    title: One index for a tenant dashboard
+    dataset: empty
+    difficulty: challenge
+    kind: dml
+    setup: |
+      CREATE TABLE tasks (
+        task_id INT UNSIGNED PRIMARY KEY,
+        tenant_id INT UNSIGNED NOT NULL,
+        status VARCHAR(10) NOT NULL,
+        created_at DATETIME NOT NULL,
+        title VARCHAR(80) NOT NULL,
+        INDEX idx_tenant (tenant_id),
+        INDEX idx_status (status),
+        INDEX idx_created (created_at),
+        INDEX idx_tenant_created (tenant_id, created_at)
+      );
+      INSERT INTO tasks VALUES (1, 1, 'open', '2024-05-01 10:00:00', 'Set up billing'),
+                               (2, 1, 'done', '2024-05-02 11:00:00', 'Invite team'),
+                               (3, 2, 'open', '2024-05-03 12:00:00', 'Import data');
+    prompt: |
+      The application runs exactly these three queries against `tasks`:
+
+      1. `SELECT task_id, title FROM tasks WHERE tenant_id = ? AND status = ? ORDER BY created_at DESC LIMIT 20`
+      2. `SELECT COUNT(*) FROM tasks WHERE tenant_id = ? AND status = ?`
+      3. `SELECT COUNT(*) FROM tasks WHERE tenant_id = ?`
+
+      Replace **all four** secondary indexes with a **single** index named `idx_tenant_status_created` that serves
+      all three queries without a filesort, using one `ALTER TABLE`.
+    hints:
+      - "Equality columns first (tenant_id, status), then the ORDER BY column."
+      - "Query 3 uses the leftmost key part only; query 2 the first two key parts (covering for COUNT)."
+      - "ALTER TABLE tasks DROP INDEX …, DROP INDEX …, DROP INDEX …, DROP INDEX …, ADD INDEX idx_tenant_status_created (…);"
+    solution: |
+      ALTER TABLE tasks
+        DROP INDEX idx_tenant, DROP INDEX idx_status, DROP INDEX idx_created, DROP INDEX idx_tenant_created,
+        ADD INDEX idx_tenant_status_created (tenant_id, status, created_at);
+    check: |
+      SELECT INDEX_NAME, SEQ_IN_INDEX, COLUMN_NAME
+      FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tasks' AND INDEX_NAME <> 'PRIMARY'
+      ORDER BY INDEX_NAME, SEQ_IN_INDEX;
+    explanation: |
+      `(tenant_id, status, created_at)` fixes the two equality columns and leaves entries ordered by `created_at`, so
+      query 1 reads 20 entries backwards (no filesort) and fetches `title` for those 20 rows only; query 2 is a
+      covering `ref` on the first two key parts; query 3 a covering `ref` on the first. `(tenant_id, created_at,
+      status)` would need a filesort or extra reads for query 1, and `(status, tenant_id, …)` cannot serve query 3.
+      Four indexes became one: less write amplification, less buffer pool, fewer optimizer alternatives.
+  - id: c5
+    title: B+ tree height estimate
+    dataset: empty
+    difficulty: medium
+    prompt: |
+      An index has a fan-out of 400 entries per page. Return one row with three columns giving the **number of
+      levels** (the smallest integer h with 400^h ≥ N) needed for N = 1,000,000, N = 100,000,000 and
+      N = 10,000,000,000 entries: `levels_1m`, `levels_100m`, `levels_10b`.
+    hints:
+      - "h = CEIL(log base 400 of N); MySQL's LOG(b, x) computes the logarithm of x to base b."
+      - "Floating point can put an exact power slightly above an integer; none of these N is an exact power of 400."
+    solution: |
+      SELECT CEIL(LOG(400, 1000000))     AS levels_1m,
+             CEIL(LOG(400, 100000000))   AS levels_100m,
+             CEIL(LOG(400, 10000000000)) AS levels_10b;
+    explanation: |
+      400² = 160,000 < 10⁶ ≤ 400³ = 64 million, so 3 levels; 400³ < 10⁸ ≤ 400⁴ = 25.6 billion, so 4 levels; and
+      10¹⁰ ≤ 400⁴, so still 4 levels. A ten-thousand-fold increase in data adds one level — one extra page read per
+      lookup, usually already cached for the upper levels. That shallowness is the reason B+ tree lookups stay fast
+      as tables grow, while full scans grow linearly.
+  - id: c6
+    title: Index design review for an orders service
+    dataset: empty
+    difficulty: challenge
+    kind: open
+    prompt: |
+      An `orders` table (50 M rows; `id BIGINT AUTO_INCREMENT` primary key; columns `customer_id`, `merchant_id`,
+      `status` (6 values, 85 % 'completed'), `created_at`, `total`, `coupon_code` (NULL for 95 % of rows)) has
+      these secondary indexes: `(customer_id)`, `(customer_id, created_at)`, `(merchant_id)`, `(status)`,
+      `(created_at)`, `(coupon_code)`, `(merchant_id, status)`.
+
+      The top statements by total time are:
+
+      1. `WHERE customer_id = ? ORDER BY created_at DESC LIMIT 20`
+      2. `WHERE merchant_id = ? AND status = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 50`
+      3. `SELECT SUM(total) FROM orders WHERE merchant_id = ? AND created_at >= ? AND created_at < ?`
+      4. `WHERE coupon_code = ?` (fraud checks, a few times a day)
+
+      Propose the index set, justify each index you keep, add or drop, and describe how you would roll the change
+      out safely and verify it.
+    hints:
+      - "Design from the workload: equality columns, then range/sort columns; consider covering for the aggregate."
+      - "Look for left-prefix redundancy and low-selectivity standalone indexes."
+      - "Plan: invisible first, observe, then drop; add new indexes online before removing old ones."
+    solution: |
+      **Keep / add**
+      - `(customer_id, created_at)` — serves statement 1 (equality + ordered backward scan, LIMIT 20); makes
+        `(customer_id)` redundant.
+      - `(merchant_id, status, created_at)` — statement 2: two equalities then the range/sort column; no filesort,
+        reads ~50 entries. Replaces `(merchant_id, status)`.
+      - `(merchant_id, created_at, total)` — statement 3: equality then range, covering `total`, so the SUM never
+        touches the clustered index. It also serves `merchant_id = ?` lookups, making `(merchant_id)` redundant.
+        (If write cost matters more than statement 3's latency, `(merchant_id, created_at)` without `total` is the
+        compromise.)
+      - `(coupon_code)` — keep: a lookup by a specific code is highly selective and fraud checks need it. Note that
+        InnoDB indexes NULLs too (MySQL has no partial indexes), so the index still has an entry per row; if its
+        write cost matters, move coupon usage into a separate narrow table indexed by code.
+
+      **Drop**
+      - `(customer_id)` and `(merchant_id)` — left prefixes of kept composites.
+      - `(merchant_id, status)` — prefix of the new `(merchant_id, status, created_at)`.
+      - `(status)` — low selectivity (85 % completed); no top statement filters on status alone.
+      - `(created_at)` — only if no other statement (exports, retention jobs) needs a global time range; check the
+        digests first — a purge job `WHERE created_at < ?` would justify keeping it.
+
+      **Rollout:** add the new composites with online DDL (`ALGORITHM=INPLACE, LOCK=NONE`), confirm with EXPLAIN on
+      a replica that statements 2 and 3 use them; make each index to be dropped INVISIBLE, observe digests
+      (latency, rows examined, `SUM_NO_INDEX_USED`) through a full business cycle including month-end; check FKs and
+      index hints in code; then drop. Watch replication lag during DDL.
+
+      **Verify:** digest latency and rows examined per row sent for the four statements, insert latency
+      (fewer indexes: 7 → 4 or 5), `INDEX_LENGTH`, and buffer pool hit rate.
+    explanation: |
+      Index design is driven by the workload's equality/range/sort pattern and by write cost; a good answer removes
+      redundancy, avoids low-selectivity standalone indexes, uses covering deliberately, and rolls out changes with
+      invisible indexes and verification.
+interview:
+  - id: i1
+    question: "Walk me through how you would diagnose and fix a query that suddenly became slow in production."
+    answer: |
+      1. **Find and quantify** it: the statement class (digest) from performance_schema/sys or the slow log — total
+         time, executions, average/p95 latency, rows examined per row sent, no-index flags — and when it changed
+         (deploy, data growth, statistics refresh, upgrade).
+      2. **Get a real sample** with its parameters (slow log, `QUERY_SAMPLE_TEXT`, application tracing), because
+         plans can depend on values.
+      3. **Reproduce** on a replica/staging copy with production-like data: `EXPLAIN` (access types, `key`,
+         `key_len`, `rows`, `filtered`, Extra), then `EXPLAIN ANALYZE` to compare estimated and actual rows and
+         see where time and loops go; the optimizer trace if the choice is surprising.
+      4. **Classify the bottleneck**: non-SARGable predicate or type mismatch, missing/wrong-order composite index,
+         bad join order from a misestimate, fan-out, filesort/temporary tables, deep OFFSET, or waiting (lock time).
+      5. **Fix the cause** with the least risky durable change — rewrite, index, statistics/histogram — and only
+         then consider a scoped hint.
+      6. **Verify**: compare plans and measurements, deploy, and watch the digest afterwards.
+    concepts: [explain-analyze, top-queries, sargability]
+  - id: i2
+    question: "Explain InnoDB's clustered and secondary indexes and what that implies for primary key design."
+    answer: |
+      InnoDB stores each table as a B+ tree ordered by the primary key — the **clustered index** — whose leaf pages
+      hold the complete rows. A **secondary index** is a separate B+ tree whose leaf entries hold the indexed columns
+      plus the **primary key value**, which acts as the row pointer. A secondary lookup that needs other columns
+      therefore does a second descent into the clustered index (bookmark lookup), unless the index covers the query.
+      Implications: keep the primary key **narrow** (it is copied into every secondary entry), **stable** (changing it
+      moves the row and rewrites all secondary entries), and preferably **monotonically increasing** (appends at the
+      right edge instead of random page splits). `BIGINT AUTO_INCREMENT` or time-ordered `BINARY(16)` UUIDs fit;
+      random `CHAR(36)` UUIDs bloat and fragment. Always define a primary key — otherwise InnoDB uses a hidden
+      `GEN_CLUST_INDEX` row id that queries cannot use. And remember the PK suffix gives secondary indexes free
+      covering of the PK and ordering by (key, pk).
+    concepts: [clustered-index, secondary-index, primary-key-design]
+  - id: i3
+    question: "How do you choose the column order of a composite index?"
+    answer: |
+      From the queries, not from column cardinality alone. Put columns compared with **equality** first, then the
+      column used for a **range** or for **ORDER BY/GROUP BY**, because after the first range the remaining key parts
+      can no longer narrow the scan (they can only be checked via ICP). Among equality columns, order them so that the
+      index's **leftmost prefixes** also serve other frequent queries (an index on (tenant_id, status, created_at)
+      also serves `tenant_id = ?`). Add trailing columns to make hot queries **covering** when the write cost is
+      acceptable. Selectivity matters mainly for deciding whether an index is worthwhile, not for ordering equality
+      columns — a low-selectivity column can lead the index if every query filters on it. Verify with EXPLAIN
+      (`key_len` shows how many key parts are used, Extra shows filesort/covering).
+    concepts: [composite-index, leftmost-prefix, equality-before-range, covering-index]
+  - id: i4
+    question: "When does the MySQL optimizer ignore an index that exists, and when is that correct?"
+    answer: |
+      - **The predicate is not SARGable**: a function or arithmetic on the column, an implicit type or collation
+        conversion, a leading wildcard, an OR with an unindexed branch, or the leftmost key part is missing. This is
+        a query/index design bug.
+      - **The index is not selective enough** for this value or range: reading many rows through a secondary index
+        (one clustered lookup each) costs more than a sequential scan. Usually correct — unless the estimate is
+        wrong (stale statistics, correlated predicates, InnoDB's 50 % cap on range estimates for very common values,
+        or IN lists beyond `eq_range_index_dive_limit`).
+      - **Another plan is cheaper**: a different index gives order or covering, a hash join beats many lookups, a
+        semi-join strategy drives from the other side.
+      - **The index is invisible**, or hints exclude it.
+      Diagnose with EXPLAIN (`possible_keys` vs `key`), `SHOW WARNINGS` (warning 1739 for conversions), the optimizer
+      trace (`range_scan_alternatives` with `cause`) and EXPLAIN ANALYZE to check whether the rejection was right.
+    concepts: [sargability, selectivity, cost-model]
+  - id: i5
+    question: "Compare nested-loop joins and hash joins in MySQL 8.x. How do you decide which plan is better for a query?"
+    answer: |
+      An **index nested-loop join** reads the outer table and, for each row, looks up matches through an index on the
+      inner join column: work ∝ outer rows × (lookup + fan-out); it streams rows, benefits from selective outer
+      filters and requires an index (with matching types/collations). A **hash join** (8.0.18+, general since 8.0.20)
+      builds a hash table on one input and probes it with the other in a single pass: work ∝ |R| + |S|, no index
+      needed, but only equality lookups, and the build side must be read completely first (spilling to disk beyond
+      `join_buffer_size`). Neither always wins: with a few hundred qualifying outer rows and an indexed inner table
+      the NLJ reads thousands of rows; with a large fraction of both tables, one scan plus hashing can beat hundreds
+      of thousands of random lookups — especially on cold caches. Decide with EXPLAIN ANALYZE on realistic data,
+      comparing rows read and loops; note that the classic optimizer's cost estimates for hash joins are
+      pessimistic. Fix join order or algorithm choices first through indexes and statistics; use `JOIN_ORDER`,
+      `NO_BNL`/`BNL` or `BKA` hints only after measurement.
+    concepts: [nested-loop-join, hash-join, join-order]
+  - id: i6
+    question: "A table has 15 indexes and inserts are slow. How do you decide which indexes to remove?"
+    answer: |
+      Inventory the indexes (`information_schema.STATISTICS`, sizes from `information_schema.TABLES`), find
+      **redundant** ones (left prefixes of other indexes, duplicates of PRIMARY/UNIQUE, manually appended PK columns —
+      `sys.schema_redundant_indexes` helps), and **unused** ones (per-index read counts in performance_schema /
+      `sys.schema_unused_indexes`, over a window that includes periodic jobs). Map the top statement digests to the
+      indexes they actually use, merge single-column indexes into composites that serve several statements, and drop
+      low-selectivity standalone indexes. Check foreign keys and index hints before dropping. Remove safely: make
+      the index **invisible**, observe a full business cycle, then drop it with online DDL. Verify that insert
+      latency, replication lag and buffer pool hit rate improve and that no read digest regressed. Remember each
+      secondary index costs a B+ tree modification per insert/delete and per update of its columns.
+    concepts: [over-indexing, redundant-indexes, unused-indexes, write-amplification]

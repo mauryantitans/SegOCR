@@ -1,0 +1,1088 @@
+{
+ "doc": "m07-optimizer-decisions",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:20ed52eace5f": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 200000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE shipments (\n  shipment_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  carrier     VARCHAR(10)  NOT NULL,\n  status      VARCHAR(12)  NOT NULL,\n  shipped_at  DATETIME     NOT NULL,\n  weight_kg   DECIMAL(7,2) NOT NULL,\n  INDEX idx_status  (status),\n  INDEX idx_shipped (shipped_at),\n  INDEX idx_carrier (carrier)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO shipments\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 200000)\nSELECT n,\n       ELT(1 + n % 4, 'ups', 'fedex', 'usps', 'dhl'),\n       CASE WHEN n % 100 = 0 THEN 'lost'\n            WHEN n % 100 < 4 THEN 'returned'\n            WHEN n % 100 < 10 THEN 'in_transit'\n            ELSE 'delivered' END,\n       TIMESTAMP '2024-01-01 00:00:00' + INTERVAL n * 157 SECOND,\n       ((n * 37) % 5000) / 100\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE shipments",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "shipments",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:286e92adfcb2": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM shipments WHERE shipped_at >= '2024-12-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "shipments",
+       null,
+       "range",
+       "idx_shipped",
+       "idx_shipped",
+       "5",
+       null,
+       29022,
+       100.0,
+       "Using index condition"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `shipments`.`shipment_id` AS `shipment_id`,`shipments`.`carrier` AS `carrier`,`shipments`.`status` AS `status`,`shipments`.`shipped_at` AS `shipped_at`,`shipments`.`weight_kg` AS `weight_kg` from `shipments` where (`shipments`.`shipped_at` >= TIMESTAMP'2024-12-01 00:00:00')"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM shipments WHERE shipped_at >= '2024-11-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "shipments",
+       null,
+       "ALL",
+       "idx_shipped",
+       null,
+       null,
+       null,
+       199752,
+       30.48,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `shipments`.`shipment_id` AS `shipment_id`,`shipments`.`carrier` AS `carrier`,`shipments`.`status` AS `status`,`shipments`.`shipped_at` AS `shipped_at`,`shipments`.`weight_kg` AS `weight_kg` from `shipments` where (`shipments`.`shipped_at` >= TIMESTAMP'2024-11-01 00:00:00')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:ba9c8c834fde": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(weight_kg) FROM shipments WHERE shipped_at >= '2024-12-01'",
+     "status": "ok",
+     "columns": [
+      "COUNT(weight_kg)"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       15644
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Last_query_cost'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Last_query_cost",
+       "13060.159000"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(weight_kg) FROM shipments WHERE shipped_at >= '2024-11-01'",
+     "status": "ok",
+     "columns": [
+      "COUNT(weight_kg)"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       32153
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Last_query_cost'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Last_query_cost",
+       "20143.449000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:d40cd4236aee": {
+   "statements": [
+    {
+     "sql": "SET SESSION optimizer_trace = 'enabled=on'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(weight_kg) FROM shipments WHERE shipped_at >= '2024-11-01'",
+     "status": "ok",
+     "columns": [
+      "COUNT(weight_kg)"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       32153
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT JSON_PRETTY(JSON_EXTRACT(TRACE, '$**.table_scan')) AS table_scan,\n       JSON_PRETTY(JSON_EXTRACT(TRACE, '$**.range_scan_alternatives')) AS range_alternatives\nFROM information_schema.OPTIMIZER_TRACE",
+     "status": "ok",
+     "columns": [
+      "table_scan",
+      "range_alternatives"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "[\n  {\n    \"cost\": 20145.5,\n    \"rows\": 199752\n  }\n]",
+       "[\n  [\n    {\n      \"cost\": 21309,\n      \"rows\": 60882,\n      \"cause\": \"cost\",\n      \"index\": \"idx_shipped\",\n      \"chosen\": false,\n      \"ranges\": [\n        \"'2024-11-01 00:00:00' <= shipped_at\"\n      ],\n      \"in_memory\": 1,\n      \"using_mrr\": false,\n      \"index_only\": false,\n      \"rowid_ordered\": false,\n      \"index_dives_for_eq_ranges\": true\n    }\n  ]\n]"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:3304a85b9ba2": {
+   "statements": [
+    {
+     "sql": "SELECT jt.*\nFROM information_schema.OPTIMIZER_TRACE,\n     JSON_TABLE(JSON_EXTRACT(TRACE, '$**.range_scan_alternatives[*]'), '$[*]'\n       COLUMNS (index_name VARCHAR(64) PATH '$.index',\n                est_rows   INT         PATH '$.rows',\n                chosen     VARCHAR(5)  PATH '$.chosen',\n                cause      VARCHAR(30) PATH '$.cause')) AS jt",
+     "status": "ok",
+     "columns": [
+      "index_name",
+      "est_rows",
+      "chosen",
+      "cause"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "idx_shipped",
+       60882,
+       "false",
+       "cost"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:d8eed83208ec": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM shipments WHERE status = 'lost'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "shipments",
+       null,
+       "ref",
+       "idx_status",
+       "idx_status",
+       "50",
+       "const",
+       2000,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `shipments`.`shipment_id` AS `shipment_id`,`shipments`.`carrier` AS `carrier`,`shipments`.`status` AS `status`,`shipments`.`shipped_at` AS `shipped_at`,`shipments`.`weight_kg` AS `weight_kg` from `shipments` where (`shipments`.`status` = 'lost')"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM shipments WHERE status = 'delivered'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "shipments",
+       null,
+       "ref",
+       "idx_status",
+       "idx_status",
+       "50",
+       "const",
+       99876,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `shipments`.`shipment_id` AS `shipment_id`,`shipments`.`carrier` AS `carrier`,`shipments`.`status` AS `status`,`shipments`.`shipped_at` AS `shipped_at`,`shipments`.`weight_kg` AS `weight_kg` from `shipments` where (`shipments`.`status` = 'delivered')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:122505f4c61b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(weight_kg) FROM shipments WHERE status = 'delivered'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(shipments.weight_kg)  (cost=20480 rows=1) (actual time=157..157 rows=1 loops=1)\n    -> Index lookup on shipments using idx_status (status='delivered')  (cost=10492 rows=99876) (actual time=0.987..150 rows=180000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 158.25
+    }
+   ],
+   "measured": true
+  },
+  "s9:f358b549ffc1": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(weight_kg) FROM shipments IGNORE INDEX (idx_status) WHERE status = 'delivered'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(shipments.weight_kg)  (cost=26802 rows=1) (actual time=50.4..50.4 rows=1 loops=1)\n    -> Filter: (shipments.`status` = 'delivered')  (cost=20143 rows=66584) (actual time=0.116..43.7 rows=180000 loops=1)\n        -> Table scan on shipments  (cost=20143 rows=199752) (actual time=0.111..24.1 rows=200000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 51.67
+    }
+   ],
+   "measured": true
+  },
+  "s10:30b7e39c4fcc": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM shipments WHERE status IN ('lost', 'returned')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "shipments",
+       null,
+       "range",
+       "idx_status",
+       "idx_status",
+       "50",
+       null,
+       8000,
+       100.0,
+       "Using index condition"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `shipments`.`shipment_id` AS `shipment_id`,`shipments`.`carrier` AS `carrier`,`shipments`.`status` AS `status`,`shipments`.`shipped_at` AS `shipped_at`,`shipments`.`weight_kg` AS `weight_kg` from `shipments` where (`shipments`.`status` in ('lost','returned'))"
+      }
+     ]
+    },
+    {
+     "sql": "SET SESSION eq_range_index_dive_limit = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM shipments WHERE status IN ('lost', 'returned')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "shipments",
+       null,
+       "ALL",
+       "idx_status",
+       null,
+       null,
+       null,
+       199752,
+       66.67,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `shipments`.`shipment_id` AS `shipment_id`,`shipments`.`carrier` AS `carrier`,`shipments`.`status` AS `status`,`shipments`.`shipped_at` AS `shipped_at`,`shipments`.`weight_kg` AS `weight_kg` from `shipments` where (`shipments`.`status` in ('lost','returned'))"
+      }
+     ]
+    },
+    {
+     "sql": "SET SESSION eq_range_index_dive_limit = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s11:849b4537d215": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM shipments WHERE status = 'lost' AND carrier = 'dhl'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "shipments",
+       null,
+       "index_merge",
+       "idx_status,idx_carrier",
+       "idx_status,idx_carrier",
+       "50,42",
+       null,
+       999,
+       99.9,
+       "Using intersect(idx_status,idx_carrier); Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `shipments`.`shipment_id` AS `shipment_id`,`shipments`.`carrier` AS `carrier`,`shipments`.`status` AS `status`,`shipments`.`shipped_at` AS `shipped_at`,`shipments`.`weight_kg` AS `weight_kg` from `shipments` where ((`shipments`.`carrier` = 'dhl') and (`shipments`.`status` = 'lost'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:5dee31023d31": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM shipments FORCE INDEX (idx_carrier) WHERE status = 'lost' AND carrier = 'dhl'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "shipments",
+       null,
+       "ref",
+       "idx_carrier",
+       "idx_carrier",
+       "42",
+       "const",
+       66584,
+       33.33,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `shipments`.`shipment_id` AS `shipment_id`,`shipments`.`carrier` AS `carrier`,`shipments`.`status` AS `status`,`shipments`.`shipped_at` AS `shipped_at`,`shipments`.`weight_kg` AS `weight_kg` from `shipments` FORCE INDEX (`idx_carrier`) where ((`shipments`.`carrier` = 'dhl') and (`shipments`.`status` = 'lost'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:a16caeae339b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT * FROM shipments WHERE status = 'lost' AND carrier = 'dhl'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: ((shipments.carrier = 'dhl') and (shipments.`status` = 'lost'))  (cost=452 rows=999) (actual time=14.5..14.5 rows=0 loops=1)\n    -> Intersect rows sorted by row ID  (cost=452 rows=1000) (actual time=14.5..14.5 rows=0 loops=1)\n        -> Index range scan on shipments using idx_status over (status = 'lost')  (cost=3.54 rows=2000) (actual time=0.0423..0.518 rows=2000 loops=1)\n        -> Index range scan on shipments using idx_carrier over (carrier = 'dhl')  (cost=140 rows=99876) (actual time=0.00977..11.9 rows=50000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 15.54
+    }
+   ],
+   "measured": true
+  },
+  "s14:406ecd26117f": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT * FROM shipments FORCE INDEX (idx_carrier) WHERE status = 'lost' AND carrier = 'dhl'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (shipments.`status` = 'lost')  (cost=2724 rows=22195) (actual time=52.5..52.5 rows=0 loops=1)\n    -> Index lookup on shipments using idx_carrier (carrier='dhl')  (cost=2724 rows=66584) (actual time=0.969..50.3 rows=50000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 53.52
+    }
+   ],
+   "measured": true
+  },
+  "s15:7a9aaa2a32dd": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT /*+ NO_INDEX(shipments idx_carrier) */ * FROM shipments\nWHERE status = 'lost' AND carrier = 'dhl'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "shipments",
+       null,
+       "ref",
+       "idx_status",
+       "idx_status",
+       "50",
+       "const",
+       2000,
+       33.33,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select /*+ NO_INDEX(`shipments`@`select#1` `idx_carrier`) */ `shipments`.`shipment_id` AS `shipment_id`,`shipments`.`carrier` AS `carrier`,`shipments`.`status` AS `status`,`shipments`.`shipped_at` AS `shipped_at`,`shipments`.`weight_kg` AS `weight_kg` from `shipments` where ((`shipments`.`carrier` = 'dhl') and (`shipments`.`status` = 'lost'))"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT /*+ SET_VAR(optimizer_switch = 'index_merge_intersection=off') */ * FROM shipments\nWHERE status = 'lost' AND carrier = 'dhl'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "shipments",
+       null,
+       "ref",
+       "idx_status,idx_carrier",
+       "idx_status",
+       "50",
+       "const",
+       2000,
+       50.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select /*+ SET_VAR(optimizer_switch='index_merge_intersection=off') */ `shipments`.`shipment_id` AS `shipment_id`,`shipments`.`carrier` AS `carrier`,`shipments`.`status` AS `status`,`shipments`.`shipped_at` AS `shipped_at`,`shipments`.`weight_kg` AS `weight_kg` from `shipments` where ((`shipments`.`carrier` = 'dhl') and (`shipments`.`status` = 'lost'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:6c4921c04178": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM shipments WHERE carrier = 'dhl' AND weight_kg > 49",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "shipments",
+       null,
+       "ref",
+       "idx_carrier",
+       "idx_carrier",
+       "42",
+       "const",
+       99876,
+       33.33,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `shipments`.`shipment_id` AS `shipment_id`,`shipments`.`carrier` AS `carrier`,`shipments`.`status` AS `status`,`shipments`.`shipped_at` AS `shipped_at`,`shipments`.`weight_kg` AS `weight_kg` from `shipments` where ((`shipments`.`carrier` = 'dhl') and (`shipments`.`weight_kg` > 49.00))"
+      }
+     ]
+    },
+    {
+     "sql": "ANALYZE TABLE shipments UPDATE HISTOGRAM ON weight_kg WITH 32 BUCKETS",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "shipments",
+       "histogram",
+       "status",
+       "Histogram statistics created for column 'weight_kg'."
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM shipments WHERE carrier = 'dhl' AND weight_kg > 49",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "shipments",
+       null,
+       "ref",
+       "idx_carrier",
+       "idx_carrier",
+       "42",
+       "const",
+       99876,
+       1.99,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `shipments`.`shipment_id` AS `shipment_id`,`shipments`.`carrier` AS `carrier`,`shipments`.`status` AS `status`,`shipments`.`shipped_at` AS `shipped_at`,`shipments`.`weight_kg` AS `weight_kg` from `shipments` where ((`shipments`.`carrier` = 'dhl') and (`shipments`.`weight_kg` > 49.00))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:cdcbc469700a": {
+   "statements": [
+    {
+     "sql": "SET SESSION optimizer_trace = 'enabled=on'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(weight_kg) FROM shipments WHERE status = 'lost' AND shipped_at >= '2024-06-01'",
+     "status": "ok",
+     "columns": [
+      "COUNT(weight_kg)"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1164
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:81ad790231e5": {
+   "statements": [
+    {
+     "sql": "SELECT JSON_PRETTY(JSON_EXTRACT(TRACE, '$**.table_scan')) AS table_scan\nFROM information_schema.OPTIMIZER_TRACE",
+     "status": "ok",
+     "columns": [
+      "table_scan"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "[\n  {\n    \"cost\": 20145.5,\n    \"rows\": 199752\n  }\n]"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:43ea0ddb2fd0": {
+   "statements": [
+    {
+     "sql": "SELECT jt.*\nFROM information_schema.OPTIMIZER_TRACE,\n     JSON_TABLE(JSON_EXTRACT(TRACE, '$**.range_scan_alternatives[*]'), '$[*]'\n       COLUMNS (index_name VARCHAR(64) PATH '$.index', est_rows INT PATH '$.rows',\n                cost DOUBLE PATH '$.cost', chosen VARCHAR(5) PATH '$.chosen',\n                cause VARCHAR(30) PATH '$.cause')) AS jt",
+     "status": "ok",
+     "columns": [
+      "index_name",
+      "est_rows",
+      "cost",
+      "chosen",
+      "cause"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "idx_status",
+       2000,
+       700.26,
+       "true",
+       null
+      ],
+      [
+       "idx_shipped",
+       99876,
+       34956.9,
+       "false",
+       "cost"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:9f5b8709a065": {
+   "statements": [
+    {
+     "sql": "SELECT JSON_PRETTY(JSON_EXTRACT(TRACE, '$**.considered_execution_plans')) AS plans\nFROM information_schema.OPTIMIZER_TRACE",
+     "status": "ok",
+     "columns": [
+      "plans"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "[\n  [\n    {\n      \"table\": \"`shipments`\",\n      \"chosen\": true,\n      \"plan_prefix\": [],\n      \"cost_for_plan\": 700,\n      \"rows_for_plan\": 2000,\n      \"best_access_path\": {\n        \"considered_access_paths\": [\n          {\n            \"cost\": 700,\n            \"rows\": 2000,\n            \"index\": \"idx_status\",\n            \"chosen\": true,\n            \"access_type\": \"ref\"\n          },\n          {\n            \"cause\": \"heuristic_index_cheaper\",\n            \"chosen\": false,\n            \"access_type\": \"range\",\n            \"range_details\": {\n              \"used_index\": \"idx_status\"\n            }\n          }\n        ]\n      },\n      \"condition_filtering_pct\": 100\n    }\n  ]\n]"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:685fdda79c25": {
+   "statements": [
+    {
+     "sql": "SET SESSION optimizer_trace = 'enabled=off'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT COUNT(weight_kg) FROM shipments WHERE status = 'lost' AND shipped_at >= '2024-06-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "shipments",
+       null,
+       "ref",
+       "idx_status,idx_shipped",
+       "idx_status",
+       "50",
+       "const",
+       2000,
+       50.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(`shipments`.`weight_kg`) AS `COUNT(weight_kg)` from `shipments` where ((`shipments`.`status` = 'lost') and (`shipments`.`shipped_at` >= TIMESTAMP'2024-06-01 00:00:00'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:4e9f130c2c9c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(weight_kg) FROM shipments WHERE shipped_at >= '2024-11-01'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(shipments.weight_kg)  (cost=26232 rows=1) (actual time=34.3..34.3 rows=1 loops=1)\n    -> Filter: (shipments.shipped_at >= TIMESTAMP'2024-11-01 00:00:00')  (cost=20143 rows=60882) (actual time=27..33 rows=32153 loops=1)\n        -> Table scan on shipments  (cost=20143 rows=199752) (actual time=0.172..24.1 rows=200000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 35.26
+    }
+   ],
+   "measured": true
+  },
+  "s19:fe22337796a9": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(weight_kg) FROM shipments FORCE INDEX (idx_shipped) WHERE shipped_at >= '2024-11-01'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(shipments.weight_kg)  (cost=33485 rows=1) (actual time=36.1..36.1 rows=1 loops=1)\n    -> Index range scan on shipments using idx_shipped over ('2024-11-01 00:00:00' <= shipped_at), with index condition: (shipments.shipped_at >= TIMESTAMP'2024-11-01 00:00:00')  (cost=27397 rows=60882) (actual time=2.26..34.9 rows=32153 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 37.21
+    }
+   ],
+   "measured": true
+  },
+  "s20:a7aad579d2c0": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT /*+ NO_INDEX(shipments idx_carrierr) */ * FROM shipments WHERE carrier = 'dhl' AND status = 'lost'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "shipments",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       199752,
+       11.11,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 3128,
+       "message": "Unresolved name `shipments`@`select#1` `idx_carrierr` for NO_INDEX hint"
+      },
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `shipments`.`shipment_id` AS `shipment_id`,`shipments`.`carrier` AS `carrier`,`shipments`.`status` AS `status`,`shipments`.`shipped_at` AS `shipped_at`,`shipments`.`weight_kg` AS `weight_kg` from `shipments` where ((`shipments`.`status` = 'lost') and (`shipments`.`carrier` = 'dhl'))"
+      }
+     ]
+    },
+    {
+     "sql": "SHOW WARNINGS",
+     "status": "ok",
+     "columns": [
+      "Level",
+      "Code",
+      "Message"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Warning",
+       3128,
+       "Unresolved name `shipments`@`select#1` `idx_carrierr` for NO_INDEX hint"
+      ],
+      [
+       "Note",
+       1003,
+       "/* select#1 */ select `shipments`.`shipment_id` AS `shipment_id`,`shipments`.`carrier` AS `carrier`,`shipments`.`status` AS `status`,`shipments`.`shipped_at` AS `shipped_at`,`shipments`.`weight_kg` AS `weight_kg` from `shipments` where ((`shipments`.`status` = 'lost') and (`shipments`.`carrier` = 'dhl'))"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

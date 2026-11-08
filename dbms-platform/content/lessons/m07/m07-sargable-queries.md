@@ -631,23 +631,23 @@ prompt: |
   (single column `ticket_id`):
 
   ~~~sql
-  SELECT ticket_id FROM tickets WHERE assignee_id = 17 OR priority = 100;
+  SELECT ticket_id FROM tickets WHERE assignee_id = 268 OR priority = 100;
   ~~~
 
-  Careful: some tickets of assignee 17 also have priority 100.
+  Careful: some tickets of assignee 268 also have priority 100.
 hints:
   - "One branch filters on assignee_id, the other on priority."
   - "UNION ALL keeps duplicates: a ticket matching both branches would appear twice, which the grader treats as a different result."
   - "Use UNION (distinct), or keep UNION ALL and exclude the overlap in the second branch."
 solution: |
-  SELECT ticket_id FROM tickets WHERE assignee_id = 17
+  SELECT ticket_id FROM tickets WHERE assignee_id = 268
   UNION
   SELECT ticket_id FROM tickets WHERE priority = 100;
 explanation: |
   `UNION` removes duplicates, so the result is the set of tickets satisfying either predicate — the meaning of OR.
   `UNION ALL` returns overlapping tickets twice (the multiset comparison catches it). An equally correct and often
   cheaper form is `UNION ALL` with disjoint branches: `… UNION ALL SELECT ticket_id FROM tickets WHERE priority = 100
-  AND assignee_id <> 17` (fine here because `assignee_id` is NOT NULL; with a nullable column the exclusion must
+  AND assignee_id <> 268` (fine here because `assignee_id` is NOT NULL; with a nullable column the exclusion must
   also keep NULLs). On this table MySQL can answer the original OR with an index-merge union by itself — compare
   the two plans with EXPLAIN.
 ```

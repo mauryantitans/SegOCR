@@ -1,0 +1,858 @@
+{
+ "doc": "m07-indexing-mistakes",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:66833f95d51a": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 200000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION information_schema_stats_expiry = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- always read fresh sizes from InnoDB\nCREATE TABLE w_lean (\n  id INT UNSIGNED NOT NULL PRIMARY KEY,\n  a  INT NOT NULL, b INT NOT NULL, c INT NOT NULL,\n  d  VARCHAR(20) NOT NULL, e DATE NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE w_heavy LIKE w_lean",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE w_heavy\n  ADD INDEX i_a (a), ADD INDEX i_b (b), ADD INDEX i_c (c), ADD INDEX i_d (d), ADD INDEX i_e (e),\n  ADD INDEX i_ab (a, b), ADD INDEX i_ba (b, a), ADD INDEX i_de (d, e)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s2:e631b4b673e9": {
+   "statements": [
+    {
+     "sql": "INSERT INTO w_lean\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 100000)\nSELECT n, (n * 7919) % 100000, (n * 104729) % 100000, (n * 31) % 5000,\n       LEFT(MD5(n), 20), DATE '2020-01-01' + INTERVAL n % 1800 DAY\nFROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 420.64
+    }
+   ],
+   "measured": true
+  },
+  "s3:37871c8becd0": {
+   "statements": [
+    {
+     "sql": "INSERT INTO w_heavy\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 100000)\nSELECT n, (n * 7919) % 100000, (n * 104729) % 100000, (n * 31) % 5000,\n       LEFT(MD5(n), 20), DATE '2020-01-01' + INTERVAL n % 1800 DAY\nFROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 2053.85
+    }
+   ],
+   "measured": true
+  },
+  "s4:8e0b2496c2cd": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE w_lean, w_heavy",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "w_lean",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "w_heavy",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT TABLE_NAME, TABLE_ROWS, DATA_LENGTH, INDEX_LENGTH,\n       ROUND(INDEX_LENGTH / DATA_LENGTH, 2) AS index_to_data_ratio\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('w_lean', 'w_heavy')\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "TABLE_ROWS",
+      "DATA_LENGTH",
+      "INDEX_LENGTH",
+      "index_to_data_ratio"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "w_heavy",
+       99974,
+       6832128,
+       27394048,
+       "4.01"
+      ],
+      [
+       "w_lean",
+       99974,
+       6832128,
+       0,
+       "0.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:22f96d1ae33b": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE users_int (\n  id     INT UNSIGNED NOT NULL PRIMARY KEY,\n  email  VARCHAR(40)  NOT NULL, city VARCHAR(20) NOT NULL, signup DATE NOT NULL,\n  INDEX idx_email (email), INDEX idx_city (city), INDEX idx_signup (signup)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE users_hex (\n  id     CHAR(32)     NOT NULL PRIMARY KEY,\n  email  VARCHAR(40)  NOT NULL, city VARCHAR(20) NOT NULL, signup DATE NOT NULL,\n  INDEX idx_email (email), INDEX idx_city (city), INDEX idx_signup (signup)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO users_int\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 100000)\nSELECT n, CONCAT('u', n, '@example.com'), ELT(1 + n % 10, 'Austin', 'Boston', 'Chicago', 'Denver', 'Fresno',\n       'Houston', 'Irvine', 'Miami', 'Oakland', 'Seattle'), DATE '2020-01-01' + INTERVAL n % 1800 DAY\nFROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO users_hex\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 100000)\nSELECT MD5(n), CONCAT('u', n, '@example.com'), ELT(1 + n % 10, 'Austin', 'Boston', 'Chicago', 'Denver', 'Fresno',\n       'Houston', 'Irvine', 'Miami', 'Oakland', 'Seattle'), DATE '2020-01-01' + INTERVAL n % 1800 DAY\nFROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE users_int, users_hex",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "users_int",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "users_hex",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT TABLE_NAME, DATA_LENGTH, INDEX_LENGTH\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('users_int', 'users_hex')\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "DATA_LENGTH",
+      "INDEX_LENGTH"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "users_hex",
+       14204928,
+       24772608
+      ],
+      [
+       "users_int",
+       5783552,
+       11059200
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:9891fe9a32c6": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE accounts_legacy (\n  id         INT UNSIGNED NOT NULL PRIMARY KEY,\n  email      VARCHAR(60)  NOT NULL,\n  last_name  VARCHAR(40)  NOT NULL,\n  first_name VARCHAR(40)  NOT NULL,\n  status     VARCHAR(10)  NOT NULL,\n  created_at DATETIME     NOT NULL,\n  UNIQUE KEY uq_email (email),\n  KEY idx_email (email),                      -- duplicate of uq_email\n  KEY idx_id (id),                            -- duplicate of the PRIMARY KEY\n  KEY idx_last (last_name),                   -- left prefix of idx_last_first\n  KEY idx_last_first (last_name, first_name),\n  KEY idx_status (status),\n  KEY idx_created_id (created_at, id)         -- id is already the hidden suffix of every secondary index\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SHOW WARNINGS",
+     "status": "ok",
+     "columns": [
+      "Level",
+      "Code",
+      "Message"
+     ],
+     "row_count": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s7:276892745b23": {
+   "statements": [
+    {
+     "sql": "WITH idx AS (\n  SELECT INDEX_NAME, NON_UNIQUE,\n         GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX SEPARATOR ',') AS cols\n  FROM information_schema.STATISTICS\n  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'accounts_legacy'\n  GROUP BY INDEX_NAME, NON_UNIQUE\n)\nSELECT r.INDEX_NAME AS redundant_index, r.cols AS redundant_cols,\n       d.INDEX_NAME AS covered_by,      d.cols AS covering_cols\nFROM idx AS r\nJOIN idx AS d\n  ON d.INDEX_NAME <> r.INDEX_NAME\n AND CONCAT(d.cols, ',') LIKE CONCAT(r.cols, ',%')\nWHERE r.NON_UNIQUE = 1                 -- never report a UNIQUE/PRIMARY index as redundant\nORDER BY r.INDEX_NAME, d.INDEX_NAME",
+     "status": "ok",
+     "columns": [
+      "redundant_index",
+      "redundant_cols",
+      "covered_by",
+      "covering_cols"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "idx_email",
+       "email",
+       "uq_email",
+       "email"
+      ],
+      [
+       "idx_id",
+       "id",
+       "PRIMARY",
+       "id"
+      ],
+      [
+       "idx_last",
+       "last_name",
+       "idx_last_first",
+       "last_name,first_name"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:2e1c6809cff9": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE accounts_legacy\n  DROP INDEX idx_email,\n  DROP INDEX idx_id,\n  DROP INDEX idx_last,\n  DROP INDEX idx_created_id,\n  ADD INDEX idx_created (created_at)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT INDEX_NAME, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS cols, MIN(NON_UNIQUE) AS non_unique\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'accounts_legacy'\nGROUP BY INDEX_NAME ORDER BY INDEX_NAME",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "cols",
+      "non_unique"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "idx_created",
+       "created_at",
+       1
+      ],
+      [
+       "idx_last_first",
+       "last_name,first_name",
+       1
+      ],
+      [
+       "idx_status",
+       "status",
+       1
+      ],
+      [
+       "PRIMARY",
+       "id",
+       0
+      ],
+      [
+       "uq_email",
+       "email",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:4f9afee6deee": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE members_flag (\n  member_id  INT UNSIGNED NOT NULL PRIMARY KEY,\n  is_active  TINYINT      NOT NULL,\n  joined_at  DATETIME     NOT NULL,\n  INDEX idx_active (is_active)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO members_flag\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 100000)\nSELECT n, IF(n % 20 = 0, 0, 1), TIMESTAMP '2020-01-01 00:00:00' + INTERVAL n * 23 MINUTE FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE members_flag",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "members_flag",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT member_id, joined_at FROM members_flag WHERE is_active = 1",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "members_flag",
+       null,
+       "ref",
+       "idx_active",
+       "idx_active",
+       "1",
+       "const",
+       50102,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `members_flag`.`member_id` AS `member_id`,`members_flag`.`joined_at` AS `joined_at` from `members_flag` where (`members_flag`.`is_active` = 1)"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT member_id, joined_at FROM members_flag WHERE is_active = 0",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "members_flag",
+       null,
+       "ref",
+       "idx_active",
+       "idx_active",
+       "1",
+       "const",
+       5000,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `members_flag`.`member_id` AS `member_id`,`members_flag`.`joined_at` AS `joined_at` from `members_flag` where (`members_flag`.`is_active` = 0)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:569d7b5094c0": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE members_flag DROP INDEX idx_active, ADD INDEX idx_active_joined (is_active, joined_at)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT member_id, joined_at FROM members_flag WHERE is_active = 1 ORDER BY joined_at DESC LIMIT 20",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "members_flag",
+       null,
+       "ref",
+       "idx_active_joined",
+       "idx_active_joined",
+       "1",
+       "const",
+       50102,
+       100.0,
+       "Backward index scan; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `members_flag`.`member_id` AS `member_id`,`members_flag`.`joined_at` AS `joined_at` from `members_flag` where (`members_flag`.`is_active` = 1) order by `members_flag`.`joined_at` desc limit 20"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:9bae01b02837": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE accounts_legacy ALTER INDEX idx_status INVISIBLE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT id FROM accounts_legacy WHERE status = 'locked'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "accounts_legacy",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       1,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `accounts_legacy`.`id` AS `id` from `accounts_legacy` where (`accounts_legacy`.`status` = 'locked')"
+      }
+     ]
+    },
+    {
+     "sql": "SET SESSION optimizer_switch = 'use_invisible_indexes=on'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT id FROM accounts_legacy WHERE status = 'locked'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "accounts_legacy",
+       null,
+       "ref",
+       "idx_status",
+       "idx_status",
+       "42",
+       "const",
+       1,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `accounts_legacy`.`id` AS `id` from `accounts_legacy` where (`accounts_legacy`.`status` = 'locked')"
+      }
+     ]
+    },
+    {
+     "sql": "SET SESSION optimizer_switch = 'default'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT INDEX_NAME, IS_VISIBLE FROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'accounts_legacy' AND INDEX_NAME = 'idx_status'",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "IS_VISIBLE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "idx_status",
+       "NO"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:41d03919ed88": {
+   "statements": [
+    {
+     "sql": "SELECT INDEX_NAME, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS cols\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'w_heavy'\nGROUP BY INDEX_NAME ORDER BY INDEX_NAME",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "cols"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       "i_a",
+       "a"
+      ],
+      [
+       "i_ab",
+       "a,b"
+      ],
+      [
+       "i_b",
+       "b"
+      ],
+      [
+       "i_ba",
+       "b,a"
+      ],
+      [
+       "i_c",
+       "c"
+      ],
+      [
+       "i_d",
+       "d"
+      ],
+      [
+       "i_de",
+       "d,e"
+      ],
+      [
+       "i_e",
+       "e"
+      ],
+      [
+       "PRIMARY",
+       "id"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:bf41e3a2f0ee": {
+   "statements": [
+    {
+     "sql": "WITH idx AS (\n  SELECT INDEX_NAME, NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS cols\n  FROM information_schema.STATISTICS\n  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'w_heavy'\n  GROUP BY INDEX_NAME, NON_UNIQUE)\nSELECT r.INDEX_NAME AS redundant_index, d.INDEX_NAME AS covered_by\nFROM idx r JOIN idx d\n  ON d.INDEX_NAME <> r.INDEX_NAME AND CONCAT(d.cols, ',') LIKE CONCAT(r.cols, ',%')\nWHERE r.NON_UNIQUE = 1\nORDER BY r.INDEX_NAME",
+     "status": "ok",
+     "columns": [
+      "redundant_index",
+      "covered_by"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "i_a",
+       "i_ab"
+      ],
+      [
+       "i_b",
+       "i_ba"
+      ],
+      [
+       "i_d",
+       "i_de"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:6997600855d1": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE w_heavy ALTER INDEX i_a INVISIBLE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT id FROM w_heavy WHERE a = 4242",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "w_heavy",
+       null,
+       "ref",
+       "i_ab,i_ba",
+       "i_ab",
+       "4",
+       "const",
+       1,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `w_heavy`.`id` AS `id` from `w_heavy` where (`w_heavy`.`a` = 4242)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:47759fed26fa": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE w_heavy DROP INDEX i_a, DROP INDEX i_b, DROP INDEX i_d, DROP INDEX i_e",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE w_heavy",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "w_heavy",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT TABLE_NAME, DATA_LENGTH, INDEX_LENGTH\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'w_heavy'",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "DATA_LENGTH",
+      "INDEX_LENGTH"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "w_heavy",
+       6832128,
+       13697024
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:105d2c694ccd": {
+   "statements": [
+    {
+     "sql": "INSERT INTO w_heavy\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 100000)\nSELECT 100000 + n, (n * 7919) % 100000, (n * 104729) % 100000, (n * 31) % 5000,\n       LEFT(MD5(n), 20), DATE '2020-01-01' + INTERVAL n % 1800 DAY\nFROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 1639.36
+    }
+   ],
+   "measured": true
+  },
+  "s15:fead09cf2ff7": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE parents_m (id INT PRIMARY KEY)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE children_m (id INT PRIMARY KEY, parent_id INT NOT NULL,\n  INDEX idx_parent (parent_id),\n  CONSTRAINT fk_parent FOREIGN KEY (parent_id) REFERENCES parents_m (id))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE children_m DROP INDEX idx_parent",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1553,
+      "message": "Cannot drop index 'idx_parent': needed in a foreign key constraint"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

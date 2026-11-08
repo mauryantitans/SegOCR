@@ -41,7 +41,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_08e5ab4a79cbbde9afb5.events",
+       "events",
        "analyze",
        "status",
        "OK"
@@ -91,7 +91,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id` AS `account_id`,count(0) AS `events`,max(`lab_08e5ab4a79cbbde9afb5`.`events`.`created_at`) AS `last_seen` from `lab_08e5ab4a79cbbde9afb5`.`events` group by `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id` order by `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id` limit 5"
+       "message": "/* select#1 */ select `events`.`account_id` AS `account_id`,count(0) AS `events`,max(`events`.`created_at`) AS `last_seen` from `events` group by `events`.`account_id` order by `events`.`account_id` limit 5"
       }
      ]
     },
@@ -133,7 +133,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_08e5ab4a79cbbde9afb5.events",
+       "events",
        "analyze",
        "status",
        "OK"
@@ -178,7 +178,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id` AS `account_id`,count(0) AS `events`,max(`lab_08e5ab4a79cbbde9afb5`.`events`.`created_at`) AS `last_seen` from `lab_08e5ab4a79cbbde9afb5`.`events` group by `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id` order by `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id` limit 5"
+       "message": "/* select#1 */ select `events`.`account_id` AS `account_id`,count(0) AS `events`,max(`events`.`created_at`) AS `last_seen` from `events` group by `events`.`account_id` order by `events`.`account_id` limit 5"
       }
      ]
     }
@@ -216,7 +216,7 @@
        "idx_account_time",
        "4",
        null,
-       5017,
+       4988,
        100.0,
        "Using index for group-by"
       ]
@@ -225,7 +225,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id` AS `account_id`,max(`lab_08e5ab4a79cbbde9afb5`.`events`.`created_at`) AS `last_seen` from `lab_08e5ab4a79cbbde9afb5`.`events` group by `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id`"
+       "message": "/* select#1 */ select `events`.`account_id` AS `account_id`,max(`events`.`created_at`) AS `last_seen` from `events` group by `events`.`account_id`"
       }
      ]
     },
@@ -238,7 +238,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Covering index skip scan for grouping on events using idx_account_time  (cost=1901 rows=5017)\n"
+       "-> Covering index skip scan for grouping on events using idx_account_time  (cost=1892 rows=4988)\n"
       ]
      ]
     }
@@ -276,7 +276,7 @@
        "idx_account_time",
        "4",
        null,
-       5017,
+       4988,
        100.0,
        "Using index for group-by"
       ]
@@ -285,7 +285,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select count(distinct `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id`) AS `COUNT(DISTINCT account_id)` from `lab_08e5ab4a79cbbde9afb5`.`events`"
+       "message": "/* select#1 */ select count(distinct `events`.`account_id`) AS `COUNT(DISTINCT account_id)` from `events`"
       }
      ]
     }
@@ -332,7 +332,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select cast(`lab_08e5ab4a79cbbde9afb5`.`events`.`created_at` as date) AS `day`,count(0) AS `events` from `lab_08e5ab4a79cbbde9afb5`.`events` group by `day`"
+       "message": "/* select#1 */ select cast(`events`.`created_at` as date) AS `day`,count(0) AS `events` from `events` group by `day`"
       }
      ]
     }
@@ -621,7 +621,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_08e5ab4a79cbbde9afb5`.`events`.`event_id` AS `event_id`,`lab_08e5ab4a79cbbde9afb5`.`events`.`created_at` AS `created_at`,`lab_08e5ab4a79cbbde9afb5`.`events`.`amount` AS `amount` from `lab_08e5ab4a79cbbde9afb5`.`events` where (`lab_08e5ab4a79cbbde9afb5`.`events`.`kind` = 'purchase') order by `lab_08e5ab4a79cbbde9afb5`.`events`.`created_at` desc limit 20"
+       "message": "/* select#1 */ select `events`.`event_id` AS `event_id`,`events`.`created_at` AS `created_at`,`events`.`amount` AS `amount` from `events` where (`events`.`kind` = 'purchase') order by `events`.`created_at` desc limit 20"
       }
      ]
     }
@@ -650,7 +650,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_08e5ab4a79cbbde9afb5.events",
+       "events",
        "analyze",
        "status",
        "OK"
@@ -695,7 +695,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_08e5ab4a79cbbde9afb5`.`events`.`event_id` AS `event_id`,`lab_08e5ab4a79cbbde9afb5`.`events`.`created_at` AS `created_at`,`lab_08e5ab4a79cbbde9afb5`.`events`.`amount` AS `amount` from `lab_08e5ab4a79cbbde9afb5`.`events` where (`lab_08e5ab4a79cbbde9afb5`.`events`.`kind` = 'purchase') order by `lab_08e5ab4a79cbbde9afb5`.`events`.`created_at` desc limit 20"
+       "message": "/* select#1 */ select `events`.`event_id` AS `event_id`,`events`.`created_at` AS `created_at`,`events`.`amount` AS `amount` from `events` where (`events`.`kind` = 'purchase') order by `events`.`created_at` desc limit 20"
       }
      ]
     }
@@ -848,10 +848,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Limit/Offset: 20/50000 row(s)  (cost=12303 rows=20) (actual time=76.5..76.5 rows=20 loops=1)\n    -> Index lookup on events using idx_kind_time (kind='purchase') (reverse)  (cost=12303 rows=117504) (actual time=2.41..74.9 rows=50020 loops=1)\n"
+       "-> Limit/Offset: 20/50000 row(s)  (cost=12303 rows=20) (actual time=84.8..84.8 rows=20 loops=1)\n    -> Index lookup on events using idx_kind_time (kind='purchase') (reverse)  (cost=12303 rows=117504) (actual time=2.42..79.6 rows=50020 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 77.54
+     "elapsed_ms": 85.86
     }
    ],
    "measured": true
@@ -867,10 +867,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Limit: 20 row(s)  (cost=10173 rows=20) (actual time=4.34..4.35 rows=20 loops=1)\n    -> Index range scan on events using idx_kind_time over (kind = 'purchase' AND created_at < '2024-03-10 10:46:00') OR (kind = 'purchase' AND created_at = '2024-03-10 10:46:00' AND event_id < 50003) (reverse), with index condition: ((`events`.kind = 'purchase') and ((`events`.created_at < <cache>((@cursor_at))) or ((`events`.created_at = <cache>((@cursor_at))) and (`events`.event_id < <cache>((@cursor_id))))))  (cost=10173 rows=22605) (actual time=4.34..4.34 rows=20 loops=1)\n"
+       "-> Limit: 20 row(s)  (cost=10173 rows=20) (actual time=4.53..4.53 rows=20 loops=1)\n    -> Index range scan on events using idx_kind_time over (kind = 'purchase' AND created_at < '2024-03-10 10:46:00') OR (kind = 'purchase' AND created_at = '2024-03-10 10:46:00' AND event_id < 50003) (reverse), with index condition: ((`events`.kind = 'purchase') and ((`events`.created_at < <cache>((@cursor_at))) or ((`events`.created_at = <cache>((@cursor_at))) and (`events`.event_id < <cache>((@cursor_id))))))  (cost=10173 rows=22605) (actual time=4.53..4.53 rows=20 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 5.66
+     "elapsed_ms": 6.02
     }
    ],
    "measured": true
@@ -886,10 +886,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Limit: 20 row(s)  (cost=12303 rows=20) (actual time=65.6..65.6 rows=20 loops=1)\n    -> Filter: ((`events`.created_at,`events`.event_id) < ((@cursor_at),(@cursor_id)))  (cost=12303 rows=117504) (actual time=65.6..65.6 rows=20 loops=1)\n        -> Index lookup on events using idx_kind_time (kind='purchase') (reverse)  (cost=12303 rows=117504) (actual time=3.57..57 rows=50020 loops=1)\n"
+       "-> Limit: 20 row(s)  (cost=12303 rows=20) (actual time=66.2..66.2 rows=20 loops=1)\n    -> Filter: ((`events`.created_at,`events`.event_id) < ((@cursor_at),(@cursor_id)))  (cost=12303 rows=117504) (actual time=66.2..66.2 rows=20 loops=1)\n        -> Index lookup on events using idx_kind_time (kind='purchase') (reverse)  (cost=12303 rows=117504) (actual time=1.77..57.4 rows=50020 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 67.29
+     "elapsed_ms": 67.84
     }
    ],
    "measured": true

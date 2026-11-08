@@ -1,0 +1,1296 @@
+{
+ "doc": "m08-read-phenomena",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:6847f45becca": {
+   "statements": [
+    {
+     "sql": "SELECT @@transaction_isolation AS session_level",
+     "status": "ok",
+     "columns": [
+      "session_level"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "REPEATABLE-READ"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:57c6a40efd22": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, customer_id, account_type, balance\nFROM accounts\nWHERE account_id IN (1, 2) OR balance > 10000\nORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "customer_id",
+      "account_type",
+      "balance"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       1,
+       "checking",
+       "492.57"
+      ],
+      [
+       2,
+       1,
+       "savings",
+       "4428.20"
+      ],
+      [
+       3,
+       2,
+       "checking",
+       "10232.88"
+      ],
+      [
+       6,
+       4,
+       "checking",
+       "15836.16"
+      ],
+      [
+       8,
+       5,
+       "checking",
+       "10403.88"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:72374ad7d944": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance - 400.00 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "92.57"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "492.57"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "492.57"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:2663261d82a7": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "492.57"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "492.57"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance - 300.00 WHERE account_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance + 300.00 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "792.57"
+        ]
+       ]
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 2",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "4128.20"
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "492.57"
+        ]
+       ]
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 2",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "4428.20"
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c3:e6eb056aa8e8": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT COUNT(*) AS big_accounts FROM accounts WHERE balance > 10000",
+       "status": "ok",
+       "columns": [
+        "big_accounts"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT COUNT(*) AS big_accounts FROM accounts WHERE balance > 10000",
+       "status": "ok",
+       "columns": [
+        "big_accounts"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "INSERT INTO accounts (account_id, customer_id, branch_id, account_type, balance, opened_at) VALUES (26, 15, 2, 'savings', 25000.00, '2024-12-31 09:00:00')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS big_accounts FROM accounts WHERE balance > 10000",
+       "status": "ok",
+       "columns": [
+        "big_accounts"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         4
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS big_accounts FROM accounts WHERE balance > 10000",
+       "status": "ok",
+       "columns": [
+        "big_accounts"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3
+        ]
+       ]
+      },
+      {
+       "sql": "SELECT COUNT(*) AS big_accounts_locking FROM accounts WHERE balance > 10000 FOR SHARE",
+       "status": "ok",
+       "columns": [
+        "big_accounts_locking"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         4
+        ]
+       ]
+      },
+      {
+       "sql": "SELECT COUNT(*) AS big_accounts_again FROM accounts WHERE balance > 10000",
+       "status": "ok",
+       "columns": [
+        "big_accounts_again"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c4:cc0d28db7bcc": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT account_id, balance FROM accounts WHERE account_id > 20 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "balance"
+       ],
+       "row_count": 5,
+       "rows": [
+        [
+         21,
+         "1867.55"
+        ],
+        [
+         22,
+         "5147.05"
+        ],
+        [
+         23,
+         "144.47"
+        ],
+        [
+         24,
+         "1929.74"
+        ],
+        [
+         25,
+         "4562.03"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "C",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "INSERT INTO accounts (account_id, customer_id, branch_id, account_type, balance, opened_at) VALUES (26, 15, 2, 'savings', 25000.00, '2024-12-31 09:00:00')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 2,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "C",
+        "trxId": "133967",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "B",
+        "trxId": "133965",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 6,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "21"
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "22"
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "23"
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "24"
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "25"
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "supremum pseudo-record"
+       },
+       {
+        "session": "C",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "C",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,INSERT_INTENTION",
+        "status": "WAITING",
+        "lockData": "supremum pseudo-record"
+       }
+      ]
+     }
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT account_id, balance FROM accounts WHERE account_id > 20 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "balance"
+       ],
+       "row_count": 5,
+       "rows": [
+        [
+         21,
+         "1867.55"
+        ],
+        [
+         22,
+         "5147.05"
+        ],
+        [
+         23,
+         "144.47"
+        ],
+        [
+         24,
+         "1929.74"
+        ],
+        [
+         25,
+         "4562.03"
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS accounts_now FROM accounts",
+       "status": "ok",
+       "columns": [
+        "accounts_now"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         26
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c5:2db9e4caeffd": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "492.57"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "492.57"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = 592.57 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = 442.57 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "442.57"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c6:59db595c89e9": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance + 100.00 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance - 50.00 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 2,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "542.57"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c7:e428580d6d6d": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT SUM(balance) AS combined FROM accounts WHERE customer_id = 1",
+       "status": "ok",
+       "columns": [
+        "combined"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "4920.77"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT SUM(balance) AS combined FROM accounts WHERE customer_id = 1",
+       "status": "ok",
+       "columns": [
+        "combined"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "4920.77"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance - 3500.00 WHERE account_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance - 450.00 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT SUM(balance) AS combined FROM accounts WHERE customer_id = 1",
+       "status": "ok",
+       "columns": [
+        "combined"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "970.77"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "w1.0:f5d4fdeb6e41": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION WITH CONSISTENT SNAPSHOT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS accounts, SUM(balance) AS total FROM accounts",
+     "status": "ok",
+     "columns": [
+      "accounts",
+      "total"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25,
+       "112705.43"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:8223e31efc86": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "492.57"
+      ],
+      [
+       2,
+       "4428.20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:02fc1ee1025f": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2) ORDER BY account_id FOR SHARE",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "492.57"
+      ],
+      [
+       2,
+       "4428.20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:5960caa105ee": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET balance = balance + 1.00 WHERE account_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "493.57"
+      ],
+      [
+       2,
+       "4428.20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:64e8a41b441d": {
+   "statements": [
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "492.57"
+      ],
+      [
+       2,
+       "4428.20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:09dd96bf7310": {
+   "statements": [
+    {
+     "sql": "INSERT INTO accounts (account_id, customer_id, branch_id, account_type, balance, opened_at)\nVALUES (27, 15, 2, 'savings', 12000.00, '2024-12-31 09:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS big_accounts_seen FROM accounts WHERE balance > 10000",
+     "status": "ok",
+     "columns": [
+      "big_accounts_seen"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4
+      ]
+     ]
+    },
+    {
+     "sql": "UPDATE accounts SET version = version + 1 WHERE balance > 10000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Rows matched: 4  Changed: 4  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS rows_updated",
+     "status": "ok",
+     "columns": [
+      "rows_updated"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4
+      ]
+     ]
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM accounts WHERE account_id = 27",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  }
+ }
+}
