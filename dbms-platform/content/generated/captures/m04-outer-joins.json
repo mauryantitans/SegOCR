@@ -11,12 +11,14 @@
      "sql": "CREATE TABLE j_depts (\n  department_id INT PRIMARY KEY,\n  name          VARCHAR(30) NOT NULL\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
      "sql": "CREATE TABLE j_emps (\n  employee_id   INT PRIMARY KEY,\n  first_name    VARCHAR(20) NOT NULL,\n  department_id INT NULL\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -758,7 +760,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Nested loop left join  (cost=6.49 rows=34.3)\n    -> Index scan on d using uq_departments_name  (cost=1.05 rows=8)\n    -> Covering index lookup on e using idx_employees_department (department_id=d.department_id)  (cost=0.304 rows=4.29)\n"
+       "-> Nested loop left join  (cost=5.71 rows=30)\n    -> Index scan on d using uq_departments_name  (cost=0.95 rows=7)\n    -> Covering index lookup on e using idx_employees_department (department_id=d.department_id)  (cost=0.312 rows=4.29)\n"
       ]
      ]
     }
@@ -794,7 +796,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Filter: (e.employee_id is null)  (cost=37.3 rows=34.3)\n    -> Nested loop antijoin  (cost=37.3 rows=34.3)\n        -> Index scan on d using uq_departments_name  (cost=1.05 rows=8)\n        -> Covering index lookup on e using idx_employees_department (department_id=d.department_id)  (cost=0.256 rows=4.29)\n"
+       "-> Filter: (e.employee_id is null)  (cost=32.7 rows=30)\n    -> Nested loop antijoin  (cost=32.7 rows=30)\n        -> Index scan on d using uq_departments_name  (cost=0.95 rows=7)\n        -> Covering index lookup on e using idx_employees_department (department_id=d.department_id)  (cost=0.257 rows=4.29)\n"
       ]
      ]
     }
@@ -812,7 +814,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Nested loop left join  (cost=6.49 rows=34.3)\n    -> Index scan on d using uq_departments_name  (cost=1.05 rows=8)\n    -> Covering index lookup on e using idx_employees_department (department_id=d.department_id)  (cost=0.304 rows=4.29)\n"
+       "-> Nested loop left join  (cost=5.71 rows=30)\n    -> Index scan on d using uq_departments_name  (cost=0.95 rows=7)\n    -> Covering index lookup on e using idx_employees_department (department_id=d.department_id)  (cost=0.312 rows=4.29)\n"
       ]
      ]
     }
@@ -830,7 +832,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Left hash join (e.department_id = d.department_id)  (cost=24.7 rows=240)\n    -> Index scan on d using uq_departments_name  (cost=1.05 rows=8)\n    -> Hash\n        -> Table scan on e  (cost=0.406 rows=30)\n"
+       "-> Left hash join (e.department_id = d.department_id)  (cost=21.7 rows=210)\n    -> Index scan on d using uq_departments_name  (cost=0.95 rows=7)\n    -> Hash\n        -> Table scan on e  (cost=0.465 rows=30)\n"
       ]
      ]
     }

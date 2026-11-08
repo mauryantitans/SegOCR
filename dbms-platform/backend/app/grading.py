@@ -75,8 +75,12 @@ def compare(expected: dict, actual: dict, order_matters: bool, reveal_missing: b
         return GradeResult(True, "Correct — your result matches the expected result exactly.", details, expected_shape=shape)
     missing = list((ec - ac).elements())
     unexpected = list((ac - ec).elements())
-    summary = (f"Your query returned {len(arows)} row(s); the expected result has {len(erows)}. "
-               f"{len(missing)} expected row(s) are missing and {len(unexpected)} row(s) should not be there.")
+    if len(arows) == len(erows):
+        summary = (f"Your query returns the right number of rows ({len(arows)}), but {len(unexpected)} of them "
+                   "contain values that differ from the expected result.")
+    else:
+        summary = (f"Your query returned {len(arows)} row(s); the expected result has {len(erows)}. "
+                   f"{len(missing)} expected row(s) are missing and {len(unexpected)} row(s) should not be there.")
     if len(arows) == len(erows) and missing:
         details.append("The row count matches, so the filtering is probably right — compare the values column by column "
                        "(rounding, NULL handling, aggregation level or joins).")

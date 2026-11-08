@@ -1,0 +1,1100 @@
+{
+ "doc": "m07-selectivity-statistics",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:2767ca730ebd": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 300000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE orders_big (\n  order_id    INT UNSIGNED  NOT NULL,\n  customer_id INT UNSIGNED  NOT NULL,\n  status      VARCHAR(10)   NOT NULL,\n  order_date  DATE          NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  country     CHAR(2)       NOT NULL,\n  channel     VARCHAR(5)    NOT NULL,\n  PRIMARY KEY (order_id),\n  INDEX idx_customer (customer_id),\n  INDEX idx_status (status),\n  INDEX idx_order_date (order_date)\n) ENGINE=InnoDB",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders_big\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 200000)\nSELECT n,\n       1 + (n * 7919) % 19997,\n       ELT(1 + (n % 20 > 0) + (n % 20 > 2) + (n % 20 > 15), 'cancelled', 'pending', 'shipped', 'delivered'),\n       DATE '2023-01-01' + INTERVAL (n * 37) % 731 DAY,\n       ROUND(5 + (n * 104729 % 99500) / 100, 2),\n       ELT(1 + n % 7, 'US', 'IN', 'DE', 'BR', 'JP', 'FR', 'MX'),\n       CASE WHEN n % 100 = 0 THEN 'phone' WHEN n % 100 < 10 THEN 'app' ELSE 'web' END\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders_big",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_2fb69c5ffa80362c43b9.orders_big",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:993c4f3358d3": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)                                       AS total_rows,\n       COUNT(DISTINCT customer_id)                    AS card_customer,\n       COUNT(DISTINCT status)                         AS card_status,\n       COUNT(DISTINCT order_date)                     AS card_order_date,\n       COUNT(DISTINCT channel)                        AS card_channel,\n       ROUND(1 / COUNT(DISTINCT customer_id), 6)      AS uniform_sel_customer,\n       ROUND(1 / COUNT(DISTINCT status), 2)           AS uniform_sel_status\nFROM orders_big",
+     "status": "ok",
+     "columns": [
+      "total_rows",
+      "card_customer",
+      "card_status",
+      "card_order_date",
+      "card_channel",
+      "uniform_sel_customer",
+      "uniform_sel_status"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       200000,
+       19997,
+       4,
+       731,
+       3,
+       "0.0001",
+       "0.25"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:798010f22d62": {
+   "statements": [
+    {
+     "sql": "SELECT status, COUNT(*) AS n_rows, ROUND(COUNT(*) / 200000, 3) AS selectivity\nFROM orders_big\nGROUP BY status\nORDER BY n_rows DESC",
+     "status": "ok",
+     "columns": [
+      "status",
+      "n_rows",
+      "selectivity"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "shipped",
+       130000,
+       "0.650"
+      ],
+      [
+       "delivered",
+       40000,
+       "0.200"
+      ],
+      [
+       "pending",
+       20000,
+       "0.100"
+      ],
+      [
+       "cancelled",
+       10000,
+       "0.050"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:fab0fa3c3a4f": {
+   "statements": [
+    {
+     "sql": "SELECT INDEX_NAME, SEQ_IN_INDEX, COLUMN_NAME, CARDINALITY\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders_big'\nORDER BY INDEX_NAME, SEQ_IN_INDEX",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "SEQ_IN_INDEX",
+      "COLUMN_NAME",
+      "CARDINALITY"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "idx_customer",
+       1,
+       "customer_id",
+       19955
+      ],
+      [
+       "idx_order_date",
+       1,
+       "order_date",
+       716
+      ],
+      [
+       "idx_status",
+       1,
+       "status",
+       3
+      ],
+      [
+       "PRIMARY",
+       1,
+       "order_id",
+       199677
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:f2c7283960a6": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE status = 'cancelled'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ref",
+       "idx_status",
+       "idx_status",
+       "42",
+       "const",
+       18336,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_id` AS `order_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`customer_id` AS `customer_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`status` AS `status`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_date` AS `order_date`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`amount` AS `amount`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`country` AS `country`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`channel` AS `channel` from `lab_2fb69c5ffa80362c43b9`.`orders_big` where (`lab_2fb69c5ffa80362c43b9`.`orders_big`.`status` = 'cancelled')"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE status = 'shipped'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ref",
+       "idx_status",
+       "idx_status",
+       "42",
+       "const",
+       99838,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_id` AS `order_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`customer_id` AS `customer_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`status` AS `status`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_date` AS `order_date`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`amount` AS `amount`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`country` AS `country`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`channel` AS `channel` from `lab_2fb69c5ffa80362c43b9`.`orders_big` where (`lab_2fb69c5ffa80362c43b9`.`orders_big`.`status` = 'shipped')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:e5abdf57b4b4": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_stats_persistent         AS stats_persistent,\n       @@innodb_stats_auto_recalc        AS auto_recalc,\n       @@innodb_stats_persistent_sample_pages AS sample_pages,\n       @@eq_range_index_dive_limit       AS dive_limit,\n       @@histogram_generation_max_mem_size AS histogram_mem_bytes",
+     "status": "ok",
+     "columns": [
+      "stats_persistent",
+      "auto_recalc",
+      "sample_pages",
+      "dive_limit",
+      "histogram_mem_bytes"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1,
+       20,
+       200,
+       20000000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:5a496dfafd68": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE channel = 'phone'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       199677,
+       10.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_id` AS `order_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`customer_id` AS `customer_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`status` AS `status`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_date` AS `order_date`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`amount` AS `amount`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`country` AS `country`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`channel` AS `channel` from `lab_2fb69c5ffa80362c43b9`.`orders_big` where (`lab_2fb69c5ffa80362c43b9`.`orders_big`.`channel` = 'phone')"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE channel = 'web'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       199677,
+       10.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_id` AS `order_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`customer_id` AS `customer_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`status` AS `status`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_date` AS `order_date`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`amount` AS `amount`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`country` AS `country`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`channel` AS `channel` from `lab_2fb69c5ffa80362c43b9`.`orders_big` where (`lab_2fb69c5ffa80362c43b9`.`orders_big`.`channel` = 'web')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:79e497cd7fea": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE orders_big UPDATE HISTOGRAM ON channel WITH 8 BUCKETS",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_2fb69c5ffa80362c43b9.orders_big",
+       "histogram",
+       "status",
+       "Histogram statistics created for column 'channel'."
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COLUMN_NAME,\n       HISTOGRAM->>'$.\"histogram-type\"'       AS histogram_type,\n       JSON_LENGTH(HISTOGRAM->'$.buckets')     AS buckets,\n       HISTOGRAM->'$.buckets'                  AS bucket_data\nFROM information_schema.COLUMN_STATISTICS\nWHERE SCHEMA_NAME = DATABASE() AND TABLE_NAME = 'orders_big'",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "histogram_type",
+      "buckets",
+      "bucket_data"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "channel",
+       "singleton",
+       3,
+       "[[\"base64:type254:YXBw\", 0.0902668196815378], [\"base64:type254:cGhvbmU=\", 0.10023669487878353], [\"base64:type254:d2Vi\", 1.0]]"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:5a496dfafd68": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE channel = 'phone'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       199677,
+       1.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_id` AS `order_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`customer_id` AS `customer_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`status` AS `status`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_date` AS `order_date`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`amount` AS `amount`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`country` AS `country`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`channel` AS `channel` from `lab_2fb69c5ffa80362c43b9`.`orders_big` where (`lab_2fb69c5ffa80362c43b9`.`orders_big`.`channel` = 'phone')"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE channel = 'web'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       199677,
+       89.98,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_id` AS `order_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`customer_id` AS `customer_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`status` AS `status`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_date` AS `order_date`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`amount` AS `amount`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`country` AS `country`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`channel` AS `channel` from `lab_2fb69c5ffa80362c43b9`.`orders_big` where (`lab_2fb69c5ffa80362c43b9`.`orders_big`.`channel` = 'web')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:2034e2512eaa": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE countries (code CHAR(2) PRIMARY KEY, region VARCHAR(10) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO countries VALUES ('US','americas'),('BR','americas'),('MX','americas'),('IN','apac'),('JP','apac'),('DE','emea'),('FR','emea')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 7,
+     "info": "Records: 7  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE countries",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_2fb69c5ffa80362c43b9.countries",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT c.region, COUNT(*) FROM orders_big o JOIN countries c ON c.code = o.country\nWHERE o.channel = 'phone' GROUP BY c.region",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Inner hash join (o.country = c.`code`)  (cost=20103 rows=1.39)\n            -> Filter: (o.`channel` = 'phone')  (cost=2855 rows=199)\n                -> Table scan on o  (cost=2855 rows=199677)\n            -> Hash\n                -> Table scan on c  (cost=0.95 rows=7)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:c5e68a8b82aa": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE orders_big DROP HISTOGRAM ON channel",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_2fb69c5ffa80362c43b9.orders_big",
+       "histogram",
+       "status",
+       "Histogram statistics removed for column 'channel'."
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT c.region, COUNT(*) FROM orders_big o JOIN countries c ON c.code = o.country\nWHERE o.channel = 'phone' GROUP BY c.region",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Inner hash join (o.country = c.`code`)  (cost=19562 rows=140)\n            -> Filter: (o.`channel` = 'phone')  (cost=2623 rows=1997)\n                -> Table scan on o  (cost=2623 rows=199677)\n            -> Hash\n                -> Table scan on c  (cost=0.95 rows=7)\n"
+      ]
+     ]
+    },
+    {
+     "sql": "ANALYZE TABLE orders_big UPDATE HISTOGRAM ON channel WITH 8 BUCKETS",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_2fb69c5ffa80362c43b9.orders_big",
+       "histogram",
+       "status",
+       "Histogram statistics created for column 'channel'."
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:076484b63f3c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT order_id FROM orders_big WHERE status IN ('cancelled', 'pending')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "range",
+       "idx_status",
+       "idx_status",
+       "42",
+       null,
+       53306,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_id` AS `order_id` from `lab_2fb69c5ffa80362c43b9`.`orders_big` where (`lab_2fb69c5ffa80362c43b9`.`orders_big`.`status` in ('cancelled','pending'))"
+      }
+     ]
+    },
+    {
+     "sql": "SET SESSION eq_range_index_dive_limit = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT order_id FROM orders_big WHERE status IN ('cancelled', 'pending')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "range",
+       "idx_status",
+       "idx_status",
+       "42",
+       null,
+       133118,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_id` AS `order_id` from `lab_2fb69c5ffa80362c43b9`.`orders_big` where (`lab_2fb69c5ffa80362c43b9`.`orders_big`.`status` in ('cancelled','pending'))"
+      }
+     ]
+    },
+    {
+     "sql": "SET SESSION eq_range_index_dive_limit = 200",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s14:bf285a046b42": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE stale_demo (\n  id  INT UNSIGNED NOT NULL PRIMARY KEY,\n  grp INT UNSIGNED NOT NULL,\n  INDEX idx_grp (grp)\n) STATS_AUTO_RECALC = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO stale_demo VALUES (1, 1), (2, 2), (3, 3)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE stale_demo",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_2fb69c5ffa80362c43b9.stale_demo",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO stale_demo\nWITH RECURSIVE s(n) AS (SELECT 4 UNION ALL SELECT n + 1 FROM s WHERE n < 100000)\nSELECT n, n % 50 FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 99997,
+     "info": "Records: 99997  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_ROWS FROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stale_demo'",
+     "status": "ok",
+     "columns": [
+      "TABLE_ROWS"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT INDEX_NAME, CARDINALITY FROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stale_demo' ORDER BY INDEX_NAME",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "CARDINALITY"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "idx_grp",
+       3
+      ],
+      [
+       "PRIMARY",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:fc95d7d136ff": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE stale_demo",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_2fb69c5ffa80362c43b9.stale_demo",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT TABLE_ROWS FROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stale_demo'",
+     "status": "ok",
+     "columns": [
+      "TABLE_ROWS"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       100275
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT INDEX_NAME, CARDINALITY FROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stale_demo' ORDER BY INDEX_NAME",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "CARDINALITY"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "idx_grp",
+       48
+      ],
+      [
+       "PRIMARY",
+       100275
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:5cf031a744fb": {
+   "statements": [
+    {
+     "sql": "SELECT SUM(order_date >= '2023-03-01') AS rows_since_mar_2023,\n       SUM(order_date >= '2024-12-18') AS rows_since_dec_18_2024,\n       COUNT(*) AS total\nFROM orders_big",
+     "status": "ok",
+     "columns": [
+      "rows_since_mar_2023",
+      "rows_since_dec_18_2024",
+      "total"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "183858",
+       "3832",
+       200000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:591bdb53380e": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE order_date >= '2024-12-18'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "range",
+       "idx_order_date",
+       "idx_order_date",
+       "3",
+       null,
+       3832,
+       100.0,
+       "Using index condition"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_id` AS `order_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`customer_id` AS `customer_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`status` AS `status`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_date` AS `order_date`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`amount` AS `amount`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`country` AS `country`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`channel` AS `channel` from `lab_2fb69c5ffa80362c43b9`.`orders_big` where (`lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_date` >= DATE'2024-12-18')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:9228d506d69c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM orders_big WHERE order_date >= '2023-03-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "ALL",
+       "idx_order_date",
+       null,
+       null,
+       null,
+       199677,
+       50.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_id` AS `order_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`customer_id` AS `customer_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`status` AS `status`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_date` AS `order_date`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`amount` AS `amount`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`country` AS `country`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`channel` AS `channel` from `lab_2fb69c5ffa80362c43b9`.`orders_big` where (`lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_date` >= DATE'2023-03-01')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:e789e608a6f1": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM orders_big WHERE order_date >= '2023-03-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_big",
+       null,
+       "range",
+       "idx_order_date",
+       "idx_order_date",
+       "3",
+       null,
+       99838,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_2fb69c5ffa80362c43b9`.`orders_big` where (`lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_date` >= DATE'2023-03-01')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:7dd99ef38c55": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=JSON SELECT * FROM orders_big WHERE order_date >= '2023-03-01'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"20135.95\"\n    },\n    \"table\": {\n      \"table_name\": \"orders_big\",\n      \"access_type\": \"ALL\",\n      \"possible_keys\": [\n        \"idx_order_date\"\n      ],\n      \"rows_examined_per_scan\": 199677,\n      \"rows_produced_per_join\": 99838,\n      \"filtered\": \"50.00\",\n      \"cost_info\": {\n        \"read_cost\": \"10152.15\",\n        \"eval_cost\": \"9983.80\",\n        \"prefix_cost\": \"20135.95\",\n        \"data_read_per_join\": \"8M\"\n      },\n      \"used_columns\": [\n        \"order_id\",\n        \"customer_id\",\n        \"status\",\n        \"order_date\",\n        \"amount\",\n        \"country\",\n        \"channel\"\n      ],\n      \"attached_condition\": \"(`lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_date` >= DATE'2023-03-01')\"\n    }\n  }\n}"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_id` AS `order_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`customer_id` AS `customer_id`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`status` AS `status`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_date` AS `order_date`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`amount` AS `amount`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`country` AS `country`,`lab_2fb69c5ffa80362c43b9`.`orders_big`.`channel` AS `channel` from `lab_2fb69c5ffa80362c43b9`.`orders_big` where (`lab_2fb69c5ffa80362c43b9`.`orders_big`.`order_date` >= DATE'2023-03-01')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:109420e837ba": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big WHERE order_date >= '2023-03-01'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: sum(orders_big.amount)  (cost=30120 rows=1) (actual time=47.7..47.7 rows=1 loops=1)\n    -> Filter: (orders_big.order_date >= DATE'2023-03-01')  (cost=20136 rows=99838) (actual time=0.164..35.7 rows=183858 loops=1)\n        -> Table scan on orders_big  (cost=20136 rows=199677) (actual time=0.162..22.8 rows=200000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 48.72
+    },
+    {
+     "sql": "EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big FORCE INDEX (idx_order_date) WHERE order_date >= '2023-03-01'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: sum(orders_big.amount)  (cost=54911 rows=1) (actual time=250..250 rows=1 loops=1)\n    -> Index range scan on orders_big using idx_order_date over ('2023-03-01' <= order_date), with index condition: (orders_big.order_date >= DATE'2023-03-01')  (cost=44927 rows=99838) (actual time=4.25..238 rows=183858 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 251.76
+    }
+   ],
+   "measured": true
+  },
+  "s17:74cb17ceb7c7": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big WHERE status = 'shipped'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: sum(orders_big.amount)  (cost=20472 rows=1) (actual time=128..128 rows=1 loops=1)\n    -> Index lookup on orders_big using idx_status (status='shipped')  (cost=10489 rows=99838) (actual time=1.63..119 rows=130000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 128.82
+    },
+    {
+     "sql": "EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big IGNORE INDEX (idx_status) WHERE status = 'shipped'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: sum(orders_big.amount)  (cost=26792 rows=1) (actual time=48.9..48.9 rows=1 loops=1)\n    -> Filter: (orders_big.`status` = 'shipped')  (cost=20136 rows=66559) (actual time=0.203..40.3 rows=130000 loops=1)\n        -> Table scan on orders_big  (cost=20136 rows=199677) (actual time=0.198..24.7 rows=200000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 50.34
+    }
+   ],
+   "measured": true
+  }
+ }
+}

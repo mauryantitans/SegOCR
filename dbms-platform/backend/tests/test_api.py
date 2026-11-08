@@ -99,3 +99,22 @@ def test_concurrent_sessions_block_and_release(client, auth):
         time.sleep(0.2)
     else:
         raise AssertionError("blocked statement never completed")
+
+
+@requires_sandbox
+def test_reset_survives_stray_connection_holding_metadata_lock(client):
+    """A connection from another process with an open transaction must not make reset/drop hang."""
+    import pymysql
+    from app.state import state
+    labs, owner = state.labs, "test-stray-" + uuid.uuid4().hex[:6]
+    labs.reset_lab(owner, "playground", "empty")
+    schema = labs.schema_for(owner, "playground")
+    s = labs.settings
+    stray = pymysql.connect(host=s.sandbox_host, port=s.sandbox_port, user=schema, password=labs.lab_password(schema),
+                            database=schema, autocommit=False)
+    cur = stray.cursor()
+    cur.execute("CREATE TABLE t (id INT)")
+    cur.execute("SELECT * FROM t")  # open transaction now holds a metadata lock on t
+    labs.reset_lab(owner, "playground", "empty")  # must kill the stray connection instead of waiting
+    assert labs.schema_overview(owner, "playground")["tables"] == []
+    labs.drop_lab(schema)

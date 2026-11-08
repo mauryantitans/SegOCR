@@ -52,7 +52,7 @@ def trim_statement(st: dict, measured: bool) -> dict:
         out["error"] = {"code": st["error"].get("code"), "message": st["error"].get("message")}
     if measured:
         out["elapsed_ms"] = st.get("elapsed_ms")
-    return {k: v for k, v in out.items() if v not in (None, [], False) or k in ("rows", "columns")}
+    return {k: v for k, v in out.items() if not (v is None or v is False or (isinstance(v, list) and not v)) or k in ("rows", "columns")}
 
 
 # ---------------------------------------------------------------------------

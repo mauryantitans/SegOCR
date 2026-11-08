@@ -116,7 +116,7 @@ SET price = price * 1.05
 WHERE category_id = 7;
 ```
 
-The info message reports **Rows matched** (rows that satisfied the WHERE clause) and **Changed** (rows whose values actually changed), plus warnings. Look at the warnings too: `price * 1.05` produces more decimal places than `DECIMAL(10,2)` holds, so MySQL rounds each value and records a note.
+The info message reports **Rows matched** (rows that satisfied the WHERE clause) and **Changed** (rows whose values actually changed), plus warnings. Look at the warnings too: `price * 1.05` can produce more decimal places than `DECIMAL(10,2)` holds. Three of the four new prices fit exactly; 34.50 × 1.05 = 36.225 does not, so MySQL rounded it to 36.23 and recorded a note (code 1265) — that is the `Warnings: 1`.
 
 ```sql run
 SELECT product_id, name, price FROM products WHERE category_id = 7 ORDER BY product_id;
@@ -226,6 +226,8 @@ JOIN (SELECT product_id, AVG(rating) AS r FROM reviews GROUP BY product_id) AS a
 SET p.avg_rating = agg.r;
 SELECT product_id, name, avg_rating FROM products WHERE avg_rating IS NOT NULL ORDER BY avg_rating DESC, product_id LIMIT 5;
 ```
+
+The notes attached to this UPDATE (code 1265) come from storing averages such as 4.3333 in a `DECIMAL(3,2)` column: MySQL rounds them to two decimals. Notes are informational; in strict mode a value that does not *fit* at all (e.g. 12.5 in `DECIMAL(3,2)`) would be an error.
 
 (The first subquery alone — reading `reviews` — would be fine; the restriction concerns reading the *target* table.)
 
@@ -338,8 +340,8 @@ steps:
     explain: The stored prices now equal the previewed new_price values.
     sql: |
       SELECT product_id, name, price FROM products
-      WHERE product_id IN (SELECT product_id FROM order_items GROUP BY product_id)
-      ORDER BY price DESC LIMIT 5;
+      WHERE product_id IN (12, 24)
+      ORDER BY product_id;
 ```
 
 **Transactions as a safety net.** Inside an explicit transaction, a mistaken DELETE can be undone:
@@ -396,7 +398,7 @@ steps:
     sql: COMMIT;
 ```
 
-Compare the two lock snapshots: in the first, A holds record locks on all four primary-key records (plus the supremum pseudo-record); in the second, its locks cover Ann's entries in `idx_assignee` and her two primary-key records. On a production table the difference is "one user blocked" versus "every writer to the table blocked".
+Compare the two lock snapshots: in the first, A holds record locks on all four primary-key records (plus the supremum pseudo-record); in the second, its locks cover Ann's two entries in `idx_assignee` (next-key locks), a gap lock (`X,GAP`) on the first `'bob'` entry that closes the range, and Ann's two primary-key records (`X,REC_NOT_GAP`). Ticket 4's primary-key record is not locked. On a production table the difference is "one user blocked" versus "every writer to the table blocked".
 
 ## Output
 
@@ -462,7 +464,7 @@ EXPLAIN DELETE FROM orders WHERE order_date < '2024-02-01';
 EXPLAIN UPDATE orders SET status = 'cancelled' WHERE discount_code = 'NOPE';
 ```
 
-The first uses a range on `idx_orders_date`; the second scans the entire table (`type = ALL`) — and, as the concurrency demo showed, locks every row it scans even though no row matches.
+The first uses a range on `idx_orders_date`. The second shows `type = index` on `PRIMARY` — a full scan of the clustered index, i.e. every row of the table — and, as the concurrency demo showed, such a scan locks every row it reads even though no row matches.
 
 **Per-row costs.** Each modified row costs an undo record, redo log records, possibly secondary-index maintenance (only for indexes whose columns change) and lock memory. A DELETE of 10 million rows in one statement therefore generates a huge undo log, keeps millions of locks, and on a replica must be replayed as one giant transaction — causing replication lag. Batching (Practical Example 6) bounds every one of these.
 

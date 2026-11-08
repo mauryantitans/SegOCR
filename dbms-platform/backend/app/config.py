@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     # Host part used for per-lab accounts ('%' in Docker, 'localhost' for a local server).
     sandbox_account_host: str = "localhost"
 
+    # Namespace for lab ownership, so several deployments (or dev + tests) can share one sandbox server
+    # without colliding. Defaults to a hash of the application database URL.
+    lab_namespace: str = ""
+
     # Resource limits applied to learner SQL.
     statement_timeout_ms: int = 10_000
     max_statements_per_run: int = 60

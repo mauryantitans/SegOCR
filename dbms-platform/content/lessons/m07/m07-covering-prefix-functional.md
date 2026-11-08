@@ -110,27 +110,27 @@ ANALYZE TABLE orders_big;
 
 ### Covering indexes
 
-A finance report sums the order amounts of a block of 1,000 customers — about 10,000 orders:
+A finance report sums the order amounts of a block of 3,000 customers — about 30,000 orders, 15% of the table:
 
 ```sql run
-EXPLAIN SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999;
+EXPLAIN SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1 AND 3000;
 ```
 
-`idx_cust_date` locates the entries (`range`, `key_len = 4`), but `amount` is not in it: every one of the ~10,000 entries needs a bookmark lookup (`Using index condition` without `Using index`). Add `amount` to the index:
+`idx_cust_date` could locate the entries, but `amount` is not in it: every one of the ~30,000 entries would need a bookmark lookup. As in the previous lesson, the optimizer judges that too expensive and scans the whole table instead (`type = ALL`, `possible_keys` lists the unused index). Add `amount` to the index:
 
 ```sql run
 CREATE INDEX idx_cust_date_amount ON orders_big (customer_id, order_date, amount);
-EXPLAIN SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999;
+EXPLAIN SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1 AND 3000;
 ```
 
-Now the plan uses the wider index with `Using index`: the whole query is answered from `idx_cust_date_amount`. Compare the actual execution:
+Now the plan is a `range` scan of the wider index with `Using index`: the whole query is answered from `idx_cust_date_amount`. Compare the actual execution (the first statement hides the new index to reproduce the old plan):
 
 ```sql run measured
-EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big IGNORE INDEX (idx_cust_date_amount) WHERE customer_id BETWEEN 1000 AND 1999;
-EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999;
+EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big IGNORE INDEX (idx_cust_date_amount) WHERE customer_id BETWEEN 1 AND 3000;
+EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1 AND 3000;
 ```
 
-Both read the same ~10,000 index entries; the first then performs a clustered-index lookup for each one (*Index range scan*), the second does not (*Covering index range scan*). The timings are measured on the build machine; the structural difference is what transfers to your system.
+The uncovered plan reads all 200,000 rows of the clustered index (*Table scan*) and filters them; the covered plan reads only the ~30,000 entries in the range (*Covering index range scan*) from an index that is much narrower than the table. Rows examined is the robust evidence; the timings are measured on the build machine and on a small, fully cached table they are noisy — the gap grows when the table no longer fits in memory.
 
 ## Syntax Breakdown
 
@@ -216,7 +216,7 @@ A monthly dashboard filters on `YEAR(order_date)`:
 EXPLAIN SELECT COUNT(*) FROM orders_big WHERE YEAR(order_date) = 2024;
 ```
 
-The function hides `order_date` from any index on it. A functional key part indexes the expression itself:
+The function hides `order_date` from the index: the best MySQL can do is a full scan of the narrowest index that contains `order_date` (`type = index` on `idx_cust_date`, `Using index`), evaluating `YEAR()` for all ~200,000 entries. A functional key part indexes the expression itself:
 
 ```sql run
 CREATE INDEX idx_order_year ON orders_big ((YEAR(order_date)));
@@ -227,7 +227,7 @@ FROM information_schema.STATISTICS
 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders_big' AND INDEX_NAME = 'idx_order_year';
 ```
 
-`key = idx_order_year`, `type = ref`: the expression is now an indexed value. `information_schema.STATISTICS` shows `COLUMN_NAME = NULL` and the expression text — the hidden generated column is not a user-visible column. The optimizer matches the expression structurally, so a different spelling does not use the index:
+`key = idx_order_year`, `type = ref`: the expression is now an indexed value. `information_schema.STATISTICS` shows `COLUMN_NAME = NULL` and the expression text — the hidden generated column is not a user-visible column. The optimizer matches the expression structurally, so a different spelling does not use the index — the plan falls back to the full index scan:
 
 ```sql run
 EXPLAIN SELECT COUNT(*) FROM orders_big WHERE YEAR(order_date) + 0 = 2024;
@@ -237,7 +237,7 @@ EXPLAIN SELECT COUNT(*) FROM orders_big WHERE YEAR(order_date) + 0 = 2024;
 For dates, `WHERE order_date >= '2024-01-01' AND order_date < '2025-01-01'` uses an ordinary index on `order_date` (or any index *starting* with it) and also serves other date ranges, while `idx_order_year` serves only whole-year predicates. Functional indexes are the right tool when **no equivalent predicate on the bare column exists** — JSON paths, case-insensitive matching on a case-sensitive column, computed values. See [SARGable Queries](/lessons/m07-sargable-queries).
 :::
 
-A typical legitimate case — indexing a scalar inside JSON. Note the `CAST`: the `->>` operator returns `LONGTEXT` with a binary collation, which cannot be indexed directly, so cast it to a sized type (and match the cast in the query):
+A typical legitimate case — indexing a scalar inside JSON. The `->>` operator returns a `LONGTEXT` value with the `utf8mb4_bin` collation, which cannot be indexed directly, so cast it to a sized type. Adding `COLLATE utf8mb4_bin` makes the indexed expression's type and collation match what `->>` returns, which (as the manual documents) lets the optimizer use the index both for the cast expression and for a plain `attrs->>'$.sku' = …` comparison:
 
 ```sql run
 CREATE TABLE products_json (
@@ -256,6 +256,7 @@ FROM s;
 ANALYZE TABLE products_json;
 EXPLAIN SELECT product_id FROM products_json
 WHERE CAST(attrs->>'$.sku' AS CHAR(20)) COLLATE utf8mb4_bin = 'SKU-004242';
+EXPLAIN SELECT product_id FROM products_json WHERE attrs->>'$.sku' = 'SKU-004242';
 ```
 
 ### 3. Descending indexes for mixed-direction sorts
@@ -299,24 +300,24 @@ All three JSON predicates now use `idx_tags`: `MEMBER OF` as a `ref` lookup of o
 
 ## Execution Walkthrough
 
-Trace the covered aggregate from the MySQL Implementation section, `SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999`, with `idx_cust_date_amount`.
+Trace the covered aggregate from the MySQL Implementation section, `SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1 AND 3000`, with `idx_cust_date_amount`.
 
 ```walkthrough
-title: SELECT SUM(amount) … WHERE customer_id BETWEEN 1000 AND 1999 (covering index)
+title: SELECT SUM(amount) … WHERE customer_id BETWEEN 1 AND 3000 (covering index)
 steps:
   - title: "1. Choose the index"
     explain: >-
       Two indexes start with customer_id. idx_cust_date would need a clustered lookup per entry to get amount;
       idx_cust_date_amount contains amount, so its cost estimate is far lower. The tree output names a covering range scan.
-    sql: EXPLAIN FORMAT=TREE SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999;
+    sql: EXPLAIN FORMAT=TREE SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1 AND 3000;
   - title: "2. Range scan over the secondary index"
     explain: >-
-      One descent to (1000, …), then a sequential walk of entries until customer_id exceeds 1999. Each entry is
+      One descent to (1, …), then a sequential walk of entries until customer_id exceeds 3000. Each entry is
       (customer_id, order_date, amount, order_id). This query lists the first few entries exactly as the scan sees them.
     sql: |
       SELECT customer_id, order_date, amount, order_id
       FROM orders_big FORCE INDEX (idx_cust_date_amount)
-      WHERE customer_id BETWEEN 1000 AND 1999
+      WHERE customer_id BETWEEN 1 AND 3000
       ORDER BY customer_id, order_date, amount, order_id
       LIMIT 5;
   - title: "3. Aggregate from index entries"
@@ -325,12 +326,12 @@ steps:
       accesses happen; the work is proportional to the number of index entries in the range.
     sql: |
       SELECT COUNT(*) AS entries_read, SUM(amount) AS total
-      FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999;
+      FROM orders_big WHERE customer_id BETWEEN 1 AND 3000;
   - title: "4. Verify there were no lookups"
     explain: >-
       EXPLAIN ANALYZE confirms: a single 'Covering index range scan' iterator under the aggregate. With the
       uncovered index the same node would read 'Index range scan', and each of its rows would cost a clustered lookup.
-    sql: EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1000 AND 1999;
+    sql: EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1 AND 3000;
 ```
 
 ## Output
@@ -339,9 +340,9 @@ How to read the evidence from each technique:
 
 | Technique | Before | After |
 |---|---|---|
-| Covering | `range` on `idx_cust_date`, `Using index condition` (lookups) | `range` on `idx_cust_date_amount`, `Using index`; *Covering index range scan* |
+| Covering | `ALL` (lookups too expensive; full table scan) | `range` on `idx_cust_date_amount`, `Using index`; *Covering index range scan* |
 | Prefix | (no index) | `ref`, `key_len = 66`, `Using where`, never `Using index`; `ORDER BY email` still filesorts |
-| Functional | `ALL`, `Using where` | `ref` on `idx_order_year`; a different expression spelling falls back to `ALL` |
+| Functional | full index scan (`index`), `YEAR()` evaluated per entry | `ref` on `idx_order_year`; a different expression spelling falls back to the full index scan |
 | Descending | `index` + `Using filesort` over all entries | `index`, `rows = 10`, no filesort |
 | Multi-valued | `ALL` (parse every document) | `ref` / `range` on `idx_tags` |
 
@@ -413,11 +414,21 @@ The second URL is different, but its first 20 characters equal the first one's, 
 
 **Mistake 3 — writing the expression differently from the index.** The functional index on `YEAR(order_date)` was ignored for `YEAR(order_date) + 0 = 2024`. Expression matching is structural; standardize the expression in application code (or use a generated column and query the column by name).
 
-**Mistake 4 — functional index on JSON without a cast/collation match.** The index on `CAST(attrs->>'$.sku' AS CHAR(20)) COLLATE utf8mb4_bin` is used only by predicates that produce the same type and collation. `WHERE attrs->>'$.sku' = 'SKU-004242'` (no cast) is a different expression:
+**Mistake 4 — functional index on JSON without the matching collation.** Here is the same SKU index *without* `COLLATE utf8mb4_bin`. The cast now produces the schema's default collation (`utf8mb4_0900_ai_ci`), which differs from the `utf8mb4_bin` result of `->>`, so the natural query no longer matches the indexed expression:
 
 ```sql run
-EXPLAIN SELECT product_id FROM products_json WHERE attrs->>'$.sku' = 'SKU-004242';
+CREATE TABLE products_json_nocoll (
+  product_id INT UNSIGNED NOT NULL PRIMARY KEY,
+  attrs      JSON NOT NULL,
+  INDEX idx_sku_nocoll ((CAST(attrs->>'$.sku' AS CHAR(20))))
+);
+INSERT INTO products_json_nocoll SELECT product_id, attrs FROM products_json;
+ANALYZE TABLE products_json_nocoll;
+EXPLAIN SELECT product_id FROM products_json_nocoll WHERE attrs->>'$.sku' = 'SKU-004242';
+EXPLAIN SELECT product_id FROM products_json_nocoll WHERE CAST(attrs->>'$.sku' AS CHAR(20)) = 'SKU-004242';
 ```
+
+Only the query that repeats the exact cast uses the index. Either write queries with exactly the indexed expression, or define the index with `COLLATE utf8mb4_bin` as the manual recommends so that ordinary `->>` comparisons match.
 
 **Mistake 5 — adding `DESC` everywhere.** `INDEX (created_at DESC)` brings nothing for `ORDER BY created_at DESC` that a backward scan of an ascending index would not already provide, and it can make other queries' plans less obvious. Use descending key parts for mixed directions.
 

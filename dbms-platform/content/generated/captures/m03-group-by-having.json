@@ -1,0 +1,1281 @@
+{
+ "doc": "m03-group-by-having",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:5daf3eb668ae": {
+   "statements": [
+    {
+     "sql": "SELECT status, COUNT(*) AS orders\nFROM orders\nGROUP BY status",
+     "status": "ok",
+     "columns": [
+      "status",
+      "orders"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "cancelled",
+       8
+      ],
+      [
+       "delivered",
+       45
+      ],
+      [
+       "paid",
+       6
+      ],
+      [
+       "refunded",
+       5
+      ],
+      [
+       "shipped",
+       14
+      ],
+      [
+       "pending",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:a9973119c6e3": {
+   "statements": [
+    {
+     "sql": "SELECT status, COUNT(*) AS orders\nFROM orders\nGROUP BY status\nORDER BY orders DESC, status",
+     "status": "ok",
+     "columns": [
+      "status",
+      "orders"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "delivered",
+       45
+      ],
+      [
+       "shipped",
+       14
+      ],
+      [
+       "cancelled",
+       8
+      ],
+      [
+       "paid",
+       6
+      ],
+      [
+       "refunded",
+       5
+      ],
+      [
+       "pending",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:fd6124d0fb5e": {
+   "statements": [
+    {
+     "sql": "SELECT state, loyalty_tier, COUNT(*) AS customers\nFROM customers\nGROUP BY state, loyalty_tier\nORDER BY state, loyalty_tier",
+     "status": "ok",
+     "columns": [
+      "state",
+      "loyalty_tier",
+      "customers"
+     ],
+     "row_count": 14,
+     "rows": [
+      [
+       "CA",
+       null,
+       2
+      ],
+      [
+       "CA",
+       "bronze",
+       3
+      ],
+      [
+       "CA",
+       "silver",
+       5
+      ],
+      [
+       "CA",
+       "gold",
+       2
+      ],
+      [
+       "IL",
+       "silver",
+       1
+      ],
+      [
+       "MA",
+       "bronze",
+       3
+      ],
+      [
+       "NY",
+       null,
+       1
+      ],
+      [
+       "NY",
+       "gold",
+       1
+      ],
+      [
+       "TX",
+       "bronze",
+       2
+      ],
+      [
+       "TX",
+       "silver",
+       1
+      ],
+      [
+       "TX",
+       "gold",
+       1
+      ],
+      [
+       "WA",
+       null,
+       1
+      ],
+      [
+       "WA",
+       "bronze",
+       1
+      ],
+      [
+       "WA",
+       "silver",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:49afe602c6d4": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, COUNT(*) AS orders\nFROM orders\nGROUP BY customer_id\nHAVING COUNT(*) >= 6\nORDER BY orders DESC, customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "orders"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       18,
+       8
+      ],
+      [
+       19,
+       8
+      ],
+      [
+       14,
+       6
+      ],
+      [
+       22,
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:3c4d4c613cdf": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, COUNT(*) AS delivered_orders\nFROM orders\nWHERE status = 'delivered'\nGROUP BY customer_id\nHAVING COUNT(*) >= 4\nORDER BY delivered_orders DESC, customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "delivered_orders"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       18,
+       6
+      ],
+      [
+       14,
+       5
+      ],
+      [
+       19,
+       5
+      ],
+      [
+       11,
+       4
+      ],
+      [
+       22,
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:6ea6bb7cbc56": {
+   "statements": [
+    {
+     "sql": "SELECT DATE_FORMAT(o.order_date, '%Y-%m')   AS order_month,\n       COUNT(DISTINCT o.order_id)           AS orders,\n       SUM(oi.quantity * oi.unit_price)     AS gross_revenue\nFROM orders o\nJOIN order_items oi ON oi.order_id = o.order_id\nWHERE o.status NOT IN ('cancelled', 'refunded')\nGROUP BY order_month\nORDER BY order_month",
+     "status": "ok",
+     "columns": [
+      "order_month",
+      "orders",
+      "gross_revenue"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       "2024-01",
+       3,
+       "1002.44"
+      ],
+      [
+       "2024-02",
+       7,
+       "6484.22"
+      ],
+      [
+       "2024-03",
+       4,
+       "1171.84"
+      ],
+      [
+       "2024-04",
+       7,
+       "2023.59"
+      ],
+      [
+       "2024-05",
+       4,
+       "3278.94"
+      ],
+      [
+       "2024-06",
+       6,
+       "14669.33"
+      ],
+      [
+       "2024-07",
+       6,
+       "9996.14"
+      ],
+      [
+       "2024-08",
+       7,
+       "4835.01"
+      ],
+      [
+       "2024-09",
+       3,
+       "1073.95"
+      ],
+      [
+       "2024-10",
+       2,
+       "3222.47"
+      ],
+      [
+       "2024-11",
+       12,
+       "11303.22"
+      ],
+      [
+       "2024-12",
+       6,
+       "4311.91"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:924aceda51d3": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, c.first_name, c.last_name, c.city,\n       COUNT(o.order_id) AS orders\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id\nGROUP BY c.customer_id\nORDER BY orders, c.customer_id\nLIMIT 6",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "last_name",
+      "city",
+      "orders"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       2,
+       "Kwame",
+       "Garcia",
+       "Boston",
+       0
+      ],
+      [
+       13,
+       "Diego",
+       "Adeyemi",
+       "San Jose",
+       0
+      ],
+      [
+       23,
+       "Victor",
+       "Silva",
+       "Chicago",
+       0
+      ],
+      [
+       24,
+       "Hana",
+       "Johnson",
+       "Seattle",
+       0
+      ],
+      [
+       25,
+       "Chloe",
+       "Adeyemi",
+       "San Francisco",
+       0
+      ],
+      [
+       9,
+       "Diego",
+       "Moradi",
+       "San Francisco",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:76071afedfde": {
+   "statements": [
+    {
+     "sql": "SELECT c.email, c.first_name, COUNT(*) AS orders\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nGROUP BY c.email\nORDER BY orders DESC, c.email\nLIMIT 3",
+     "status": "ok",
+     "columns": [
+      "email",
+      "first_name",
+      "orders"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "leila.martin18@example.com",
+       "Leila",
+       8
+      ],
+      [
+       "lucia.moradi19@example.com",
+       "Lucia",
+       8
+      ],
+      [
+       "tomas.martin22@example.com",
+       "Tomas",
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:cb017177bd3d": {
+   "statements": [
+    {
+     "sql": "SELECT city, state, COUNT(*) AS customers\nFROM customers\nGROUP BY city",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1055,
+      "message": "Expression #2 of SELECT list is not in GROUP BY clause and contains nonaggregated column 'customers.state' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:61390011aa71": {
+   "statements": [
+    {
+     "sql": "SELECT city, state, COUNT(*) AS customers\nFROM customers\nGROUP BY city, state\nORDER BY customers DESC, city",
+     "status": "ok",
+     "columns": [
+      "city",
+      "state",
+      "customers"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "San Francisco",
+       "CA",
+       7
+      ],
+      [
+       "Austin",
+       "TX",
+       4
+      ],
+      [
+       "San Jose",
+       "CA",
+       4
+      ],
+      [
+       "Boston",
+       "MA",
+       3
+      ],
+      [
+       "Seattle",
+       "WA",
+       3
+      ],
+      [
+       "New York",
+       "NY",
+       2
+      ],
+      [
+       "Chicago",
+       "IL",
+       1
+      ],
+      [
+       "Los Angeles",
+       "CA",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:c0a02a8199d2": {
+   "statements": [
+    {
+     "sql": "SELECT cat.name AS category, COUNT(*) AS products\nFROM products p\nJOIN categories cat ON cat.category_id = p.category_id\nGROUP BY cat.category_id\nHAVING AVG(p.price) > 100\nORDER BY products DESC, category",
+     "status": "ok",
+     "columns": [
+      "category",
+      "products"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Audio",
+       4
+      ],
+      [
+       "Coffee",
+       4
+      ],
+      [
+       "Fitness",
+       4
+      ],
+      [
+       "Laptops",
+       4
+      ],
+      [
+       "Computers",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:e073a7682085": {
+   "statements": [
+    {
+     "sql": "SELECT IF(GROUPING(cat.name) = 1, '== ALL CATEGORIES ==', cat.name) AS category,\n       IF(GROUPING(p.name) = 1, '-- subtotal --', p.name)           AS product,\n       SUM(oi.quantity)                                             AS units,\n       SUM(oi.quantity * oi.unit_price)                             AS revenue\nFROM order_items oi\nJOIN products p     ON p.product_id = oi.product_id\nJOIN categories cat ON cat.category_id = p.category_id\nWHERE cat.name IN ('Coffee', 'Databases')\nGROUP BY cat.name, p.name WITH ROLLUP\nORDER BY GROUPING(cat.name), cat.name, GROUPING(p.name), p.name",
+     "status": "ok",
+     "columns": [
+      "category",
+      "product",
+      "units",
+      "revenue"
+     ],
+     "row_count": 11,
+     "rows": [
+      [
+       "Coffee",
+       "Burr Coffee Grinder",
+       "12",
+       "1548.00"
+      ],
+      [
+       "Coffee",
+       "Espresso Machine",
+       "13",
+       "6287.40"
+      ],
+      [
+       "Coffee",
+       "Pour-Over Kettle",
+       "3",
+       "177.00"
+      ],
+      [
+       "Coffee",
+       "Single-Origin Beans 1kg",
+       "14",
+       "479.55"
+      ],
+      [
+       "Coffee",
+       "-- subtotal --",
+       "42",
+       "8491.95"
+      ],
+      [
+       "Databases",
+       "Database Internals (Book)",
+       "5",
+       "274.95"
+      ],
+      [
+       "Databases",
+       "Designing Data-Intensive Applications",
+       "8",
+       "394.92"
+      ],
+      [
+       "Databases",
+       "High Performance MySQL",
+       "4",
+       "227.96"
+      ],
+      [
+       "Databases",
+       "SQL Antipatterns",
+       "25",
+       "971.75"
+      ],
+      [
+       "Databases",
+       "-- subtotal --",
+       "42",
+       "1869.58"
+      ],
+      [
+       "== ALL CATEGORIES ==",
+       "-- subtotal --",
+       "84",
+       "10361.53"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:47a21f0f44ef": {
+   "statements": [
+    {
+     "sql": "SELECT discount_code,\n       COALESCE(discount_code, '(no code)')                   AS coalesce_label,\n       IF(GROUPING(discount_code) = 1, 'TOTAL',\n          COALESCE(discount_code, '(no code)'))               AS grouping_label,\n       GROUPING(discount_code)                                AS is_rollup_row,\n       COUNT(*)                                               AS orders\nFROM orders\nGROUP BY discount_code WITH ROLLUP\nORDER BY GROUPING(discount_code), discount_code",
+     "status": "ok",
+     "columns": [
+      "discount_code",
+      "coalesce_label",
+      "grouping_label",
+      "is_rollup_row",
+      "orders"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       null,
+       "(no code)",
+       "(no code)",
+       0,
+       36
+      ],
+      [
+       "SPRING15",
+       "SPRING15",
+       "SPRING15",
+       0,
+       14
+      ],
+      [
+       "VIP20",
+       "VIP20",
+       "VIP20",
+       0,
+       15
+      ],
+      [
+       "WELCOME10",
+       "WELCOME10",
+       "WELCOME10",
+       0,
+       15
+      ],
+      [
+       null,
+       "(no code)",
+       "TOTAL",
+       1,
+       80
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:04f409e932e1": {
+   "statements": [
+    {
+     "sql": "SELECT status,\n       COUNT(*)            AS orders,\n       ANY_VALUE(order_id) AS sample_order_id\nFROM orders\nGROUP BY status\nORDER BY status",
+     "status": "ok",
+     "columns": [
+      "status",
+      "orders",
+      "sample_order_id"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "pending",
+       2,
+       29
+      ],
+      [
+       "paid",
+       6,
+       4
+      ],
+      [
+       "shipped",
+       14,
+       8
+      ],
+      [
+       "delivered",
+       45,
+       2
+      ],
+      [
+       "cancelled",
+       8,
+       1
+      ],
+      [
+       "refunded",
+       5,
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:b9e1392fa77a": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, customer_id, status FROM orders ORDER BY order_id LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "status"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       1,
+       3,
+       "cancelled"
+      ],
+      [
+       2,
+       19,
+       "delivered"
+      ],
+      [
+       3,
+       18,
+       "delivered"
+      ],
+      [
+       4,
+       10,
+       "paid"
+      ],
+      [
+       5,
+       11,
+       "cancelled"
+      ],
+      [
+       6,
+       6,
+       "refunded"
+      ],
+      [
+       7,
+       18,
+       "delivered"
+      ],
+      [
+       8,
+       4,
+       "shipped"
+      ],
+      [
+       9,
+       14,
+       "delivered"
+      ],
+      [
+       10,
+       15,
+       "delivered"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:28e8e2a4cfe0": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS rows_after_where FROM orders WHERE status = 'delivered'",
+     "status": "ok",
+     "columns": [
+      "rows_after_where"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       45
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:5a3d4c66a416": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, GROUP_CONCAT(order_id ORDER BY order_id) AS orders_in_group\nFROM orders\nWHERE status = 'delivered'\nGROUP BY customer_id\nORDER BY customer_id\nLIMIT 8",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "orders_in_group"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       1,
+       "31,65"
+      ],
+      [
+       3,
+       "30,35"
+      ],
+      [
+       4,
+       "33,62"
+      ],
+      [
+       5,
+       "34"
+      ],
+      [
+       6,
+       "53"
+      ],
+      [
+       7,
+       "26,37"
+      ],
+      [
+       8,
+       "46,57"
+      ],
+      [
+       10,
+       "74,78"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:6c94cca2371f": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, COUNT(*) AS delivered_orders\nFROM orders\nWHERE status = 'delivered'\nGROUP BY customer_id\nORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "delivered_orders"
+     ],
+     "row_count": 18,
+     "rows": [
+      [
+       1,
+       2
+      ],
+      [
+       3,
+       2
+      ],
+      [
+       4,
+       2
+      ],
+      [
+       5,
+       1
+      ],
+      [
+       6,
+       1
+      ],
+      [
+       7,
+       2
+      ],
+      [
+       8,
+       2
+      ],
+      [
+       10,
+       2
+      ],
+      [
+       11,
+       4
+      ],
+      [
+       14,
+       5
+      ],
+      [
+       15,
+       1
+      ],
+      [
+       16,
+       1
+      ],
+      [
+       17,
+       1
+      ],
+      [
+       18,
+       6
+      ],
+      [
+       19,
+       5
+      ],
+      [
+       20,
+       2
+      ],
+      [
+       21,
+       2
+      ],
+      [
+       22,
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:e4c0a2814331": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, COUNT(*) AS delivered_orders\nFROM orders\nWHERE status = 'delivered'\nGROUP BY customer_id\nHAVING COUNT(*) >= 4\nORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "delivered_orders"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       11,
+       4
+      ],
+      [
+       14,
+       5
+      ],
+      [
+       18,
+       6
+      ],
+      [
+       19,
+       5
+      ],
+      [
+       22,
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:7f70ab1a3eb9": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, COUNT(*) AS delivered_orders,\n       DATE(MIN(order_date)) AS first_delivered, DATE(MAX(order_date)) AS last_delivered\nFROM orders\nWHERE status = 'delivered'\nGROUP BY customer_id\nHAVING COUNT(*) >= 4\nORDER BY delivered_orders DESC, customer_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "delivered_orders",
+      "first_delivered",
+      "last_delivered"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       18,
+       6,
+       "2024-02-11",
+       "2024-08-26"
+      ],
+      [
+       14,
+       5,
+       "2024-02-19",
+       "2024-12-08"
+      ],
+      [
+       19,
+       5,
+       "2024-06-14",
+       "2024-12-03"
+      ],
+      [
+       11,
+       4,
+       "2024-02-28",
+       "2024-11-05"
+      ],
+      [
+       22,
+       4,
+       "2024-01-05",
+       "2024-11-20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:150a78f928d6": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT customer_id, COUNT(*) AS delivered_orders\nFROM orders\nWHERE status = 'delivered'\nGROUP BY customer_id\nHAVING COUNT(*) >= 4",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (count(0) >= 4)  (cost=9.58 rows=13.3)\n    -> Group aggregate: count(0), count(0)  (cost=9.58 rows=13.3)\n        -> Filter: (orders.`status` = 'delivered')  (cost=8.25 rows=13.3)\n            -> Index scan on orders using idx_orders_customer  (cost=8.25 rows=80)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:fec23cf8f902": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)          AS customer_groups,\n       SUM(n)            AS orders_in_groups\nFROM (SELECT customer_id, COUNT(*) AS n\n      FROM orders WHERE status = 'delivered'\n      GROUP BY customer_id) AS g",
+     "status": "ok",
+     "columns": [
+      "customer_groups",
+      "orders_in_groups"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       18,
+       "45"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:7dd791285433": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, customer_id, status,\n       COUNT(*) OVER (PARTITION BY customer_id) AS customer_order_count\nFROM orders\nWHERE customer_id IN (1, 2)\nORDER BY customer_id, order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "status",
+      "customer_order_count"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       31,
+       1,
+       "delivered",
+       2
+      ],
+      [
+       65,
+       1,
+       "delivered",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:421fe1955c7b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT category_id, COUNT(*) AS products, AVG(price) AS avg_price\nFROM products\nWHERE category_id = 3\nGROUP BY category_id",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Group aggregate: count(0), avg(products.price)  (cost=1.55 rows=2)\n    -> Index lookup on products using idx_products_category (category_id=3)  (cost=1.15 rows=4)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:1214d3040b58": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT category_id, COUNT(*) AS products, AVG(price) AS avg_price\nFROM products\nGROUP BY category_id\nHAVING category_id = 3",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (products.category_id = 3)  (cost=6.25 rows=10)\n    -> Group aggregate: count(0), avg(products.price)  (cost=6.25 rows=10)\n        -> Index scan on products using idx_products_category  (cost=3.25 rows=30)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:b81c2764a72d": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT status, COUNT(*) FROM orders GROUP BY status",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Table scan on orders  (cost=8.25 rows=80)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:81c2289724d7": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Group aggregate: count(0)  (cost=16.2 rows=20)\n    -> Index scan on orders using idx_orders_customer  (cost=8.25 rows=80)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:0eac1efedd92": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, order_date, COUNT(*) AS orders\nFROM orders\nGROUP BY customer_id",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1055,
+      "message": "Expression #2 of SELECT list is not in GROUP BY clause and contains nonaggregated column 'orders.order_date' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s24:03bf84eafd57": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, MAX(order_date) AS latest_order, COUNT(*) AS orders\nFROM orders\nGROUP BY customer_id\nORDER BY customer_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "latest_order",
+      "orders"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "2024-09-21 11:15:00",
+       2
+      ],
+      [
+       3,
+       "2024-10-31 09:09:00",
+       3
+      ],
+      [
+       4,
+       "2024-12-01 19:06:00",
+       4
+      ],
+      [
+       5,
+       "2024-08-25 19:23:00",
+       2
+      ],
+      [
+       6,
+       "2024-12-21 13:06:00",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s25:b9f51e7ce491": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, COUNT(*) AS orders\nFROM orders\nWHERE COUNT(*) >= 6\nGROUP BY customer_id",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1111,
+      "message": "Invalid use of group function"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s26:47d24fb02035": {
+   "statements": [
+    {
+     "sql": "SELECT status, COUNT(*) FROM orders GROUP BY status DESC",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DESC' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s27:37ddd8bed554": {
+   "statements": [
+    {
+     "sql": "SELECT o.customer_id,\n       COUNT(*)                   AS wrong_order_count,\n       COUNT(DISTINCT o.order_id) AS order_count\nFROM orders o\nJOIN order_items oi ON oi.order_id = o.order_id\nGROUP BY o.customer_id\nORDER BY o.customer_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "wrong_order_count",
+      "order_count"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       3,
+       2
+      ],
+      [
+       3,
+       9,
+       3
+      ],
+      [
+       4,
+       10,
+       4
+      ],
+      [
+       5,
+       7,
+       2
+      ],
+      [
+       6,
+       4,
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

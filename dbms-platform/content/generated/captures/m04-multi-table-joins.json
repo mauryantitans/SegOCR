@@ -197,6 +197,7 @@
      "sql": "CREATE TABLE price_bands (\n  band      VARCHAR(10) PRIMARY KEY,\n  min_price DECIMAL(10,2) NOT NULL,\n  max_price DECIMAL(10,2) NOT NULL\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {

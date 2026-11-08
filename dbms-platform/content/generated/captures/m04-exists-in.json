@@ -1,0 +1,1018 @@
+{
+ "doc": "m04-exists-in",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:5b290090e27c": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, c.last_name\nFROM customers AS c\nWHERE EXISTS (SELECT 1\n              FROM orders AS o\n              WHERE o.customer_id = c.customer_id\n                AND o.order_date >= '2024-12-01')\nORDER BY c.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "last_name"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       4,
+       "Lopez"
+      ],
+      [
+       6,
+       "Miller"
+      ],
+      [
+       7,
+       "Kim"
+      ],
+      [
+       14,
+       "Novak"
+      ],
+      [
+       15,
+       "Brown"
+      ],
+      [
+       19,
+       "Moradi"
+      ],
+      [
+       20,
+       "Khan"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:6482e0a6ac08": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, c.last_name\nFROM customers AS c\nWHERE c.customer_id IN (SELECT o.customer_id FROM orders AS o WHERE o.order_date >= '2024-12-01')\nORDER BY c.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "last_name"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       4,
+       "Lopez"
+      ],
+      [
+       6,
+       "Miller"
+      ],
+      [
+       7,
+       "Kim"
+      ],
+      [
+       14,
+       "Novak"
+      ],
+      [
+       15,
+       "Brown"
+      ],
+      [
+       19,
+       "Moradi"
+      ],
+      [
+       20,
+       "Khan"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:e56b3a0ad81b": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, c.last_name\nFROM customers AS c\nJOIN orders AS o ON o.customer_id = c.customer_id\nWHERE o.order_date >= '2024-12-01'\nORDER BY c.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "last_name"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       4,
+       "Lopez"
+      ],
+      [
+       6,
+       "Miller"
+      ],
+      [
+       7,
+       "Kim"
+      ],
+      [
+       14,
+       "Novak"
+      ],
+      [
+       14,
+       "Novak"
+      ],
+      [
+       15,
+       "Brown"
+      ],
+      [
+       19,
+       "Moradi"
+      ],
+      [
+       20,
+       "Khan"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:66a1da5ad1da": {
+   "statements": [
+    {
+     "sql": "SELECT p.product_id, p.name\nFROM products AS p\nWHERE NOT EXISTS (SELECT 1 FROM order_items AS oi WHERE oi.product_id = p.product_id)\nORDER BY p.product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       4,
+       "Chromebook 11"
+      ],
+      [
+       7,
+       "USB-C Hub 7-in-1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:cb3c07c1e554": {
+   "statements": [
+    {
+     "sql": "SELECT c.category_id, c.name\nFROM categories AS c\nWHERE c.category_id NOT IN (SELECT p.category_id FROM products AS p)",
+     "status": "ok",
+     "columns": [
+      "category_id",
+      "name"
+     ],
+     "row_count": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s7:88dc788fe463": {
+   "statements": [
+    {
+     "sql": "SELECT c.category_id, c.name\nFROM categories AS c\nWHERE NOT EXISTS (SELECT 1 FROM products AS p WHERE p.category_id = c.category_id)",
+     "status": "ok",
+     "columns": [
+      "category_id",
+      "name"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "Electronics"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:359862c859d3": {
+   "statements": [
+    {
+     "sql": "SELECT c.category_id, c.name\nFROM categories AS c\nWHERE c.category_id NOT IN (SELECT p.category_id FROM products AS p WHERE p.category_id IS NOT NULL)",
+     "status": "ok",
+     "columns": [
+      "category_id",
+      "name"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "Electronics"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:d6b8aa1bc4c5": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE promo_codes (code VARCHAR(20) PRIMARY KEY, campaign VARCHAR(40) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO promo_codes VALUES\n  ('VIP20', 'VIP programme'), ('WELCOME10', 'New customers'), ('SPRING15', 'Spring sale'),\n  ('BLACKFRIDAY', 'Black Friday'), ('SUMMER5', 'Summer sale')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT code FROM promo_codes\nWHERE code NOT IN (SELECT discount_code FROM orders)",
+     "status": "ok",
+     "columns": [
+      "code"
+     ],
+     "row_count": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s10:1eb3fff63902": {
+   "statements": [
+    {
+     "sql": "SELECT pc.code, pc.campaign FROM promo_codes AS pc\nWHERE NOT EXISTS (SELECT 1 FROM orders AS o WHERE o.discount_code = pc.code)\nORDER BY pc.code",
+     "status": "ok",
+     "columns": [
+      "code",
+      "campaign"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "BLACKFRIDAY",
+       "Black Friday"
+      ],
+      [
+       "SUMMER5",
+       "Summer sale"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:8b8e983a1b9e": {
+   "statements": [
+    {
+     "sql": "SELECT\n  (SELECT COUNT(*) FROM products p\n   WHERE p.category_id NOT IN (SELECT category_id FROM categories WHERE parent_id IS NULL)) AS with_not_in,\n  (SELECT COUNT(*) FROM products p\n   WHERE NOT EXISTS (SELECT 1 FROM categories c\n                     WHERE c.parent_id IS NULL AND c.category_id = p.category_id)) AS with_not_exists",
+     "status": "ok",
+     "columns": [
+      "with_not_in",
+      "with_not_exists"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       22,
+       23
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:207810901f26": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, c.last_name\nFROM customers AS c\nWHERE EXISTS (SELECT 1\n              FROM orders AS o\n              JOIN order_items AS oi ON oi.order_id = o.order_id\n              JOIN products AS p ON p.product_id = oi.product_id\n              WHERE o.customer_id = c.customer_id\n                AND p.category_id = 7)\nORDER BY c.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "last_name"
+     ],
+     "row_count": 13,
+     "rows": [
+      [
+       3,
+       "Haddad"
+      ],
+      [
+       4,
+       "Lopez"
+      ],
+      [
+       5,
+       "Smith"
+      ],
+      [
+       6,
+       "Miller"
+      ],
+      [
+       8,
+       "Wang"
+      ],
+      [
+       10,
+       "Lin"
+      ],
+      [
+       11,
+       "Berg"
+      ],
+      [
+       14,
+       "Novak"
+      ],
+      [
+       15,
+       "Brown"
+      ],
+      [
+       17,
+       "Garcia"
+      ],
+      [
+       18,
+       "Martin"
+      ],
+      [
+       19,
+       "Moradi"
+      ],
+      [
+       22,
+       "Martin"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:cf7dd08b2870": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id,\n       EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id)  AS has_ordered,\n       EXISTS (SELECT 1 FROM reviews r WHERE r.customer_id = c.customer_id) AS has_reviewed\nFROM customers AS c\nWHERE c.customer_id IN (1, 2, 13, 18, 23)\nORDER BY c.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "has_ordered",
+      "has_reviewed"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       1,
+       1
+      ],
+      [
+       2,
+       0,
+       0
+      ],
+      [
+       13,
+       0,
+       0
+      ],
+      [
+       18,
+       1,
+       1
+      ],
+      [
+       23,
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:000590e2bc18": {
+   "statements": [
+    {
+     "sql": "SELECT DISTINCT category_id FROM products ORDER BY category_id",
+     "status": "ok",
+     "columns": [
+      "category_id"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       null
+      ],
+      [
+       2
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ],
+      [
+       5
+      ],
+      [
+       6
+      ],
+      [
+       7
+      ],
+      [
+       8
+      ],
+      [
+       9
+      ],
+      [
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:ca8f1ccda02f": {
+   "statements": [
+    {
+     "sql": "SELECT c.category_id, c.name,\n       c.category_id IN     (SELECT category_id FROM products) AS in_result,\n       c.category_id NOT IN (SELECT category_id FROM products) AS not_in_result\nFROM categories c ORDER BY c.category_id",
+     "status": "ok",
+     "columns": [
+      "category_id",
+      "name",
+      "in_result",
+      "not_in_result"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       1,
+       "Electronics",
+       null,
+       null
+      ],
+      [
+       2,
+       "Computers",
+       1,
+       0
+      ],
+      [
+       3,
+       "Laptops",
+       1,
+       0
+      ],
+      [
+       4,
+       "Accessories",
+       1,
+       0
+      ],
+      [
+       5,
+       "Audio",
+       1,
+       0
+      ],
+      [
+       6,
+       "Home & Kitchen",
+       1,
+       0
+      ],
+      [
+       7,
+       "Coffee",
+       1,
+       0
+      ],
+      [
+       8,
+       "Books",
+       1,
+       0
+      ],
+      [
+       9,
+       "Databases",
+       1,
+       0
+      ],
+      [
+       10,
+       "Fitness",
+       1,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:d816d5028d08": {
+   "statements": [
+    {
+     "sql": "SELECT c.category_id, c.name,\n       NOT EXISTS (SELECT 1 FROM products p WHERE p.category_id = c.category_id) AS not_exists_result\nFROM categories c ORDER BY c.category_id",
+     "status": "ok",
+     "columns": [
+      "category_id",
+      "name",
+      "not_exists_result"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       1,
+       "Electronics",
+       1
+      ],
+      [
+       2,
+       "Computers",
+       0
+      ],
+      [
+       3,
+       "Laptops",
+       0
+      ],
+      [
+       4,
+       "Accessories",
+       0
+      ],
+      [
+       5,
+       "Audio",
+       0
+      ],
+      [
+       6,
+       "Home & Kitchen",
+       0
+      ],
+      [
+       7,
+       "Coffee",
+       0
+      ],
+      [
+       8,
+       "Books",
+       0
+      ],
+      [
+       9,
+       "Databases",
+       0
+      ],
+      [
+       10,
+       "Fitness",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:73efa29e9d1a": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM categories WHERE category_id NOT IN (SELECT category_id FROM products)) AS not_in_rows,\n       (SELECT COUNT(*) FROM categories c WHERE NOT EXISTS (SELECT 1 FROM products p WHERE p.category_id = c.category_id)) AS not_exists_rows",
+     "status": "ok",
+     "columns": [
+      "not_in_rows",
+      "not_exists_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:f2136650227b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT c.name FROM categories c\nWHERE NOT EXISTS (SELECT 1 FROM products p WHERE p.category_id = c.category_id)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop antijoin  (cost=6.76 rows=30)\n    -> Index scan on c using uq_categories_name  (cost=1.25 rows=10)\n    -> Covering index lookup on p using idx_products_category (category_id=c.category_id)  (cost=0.842 rows=3)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'lab_b965bd9274e39235e562.c.category_id' of SELECT #2 was resolved in SELECT #1"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:08231f496b9c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT name FROM categories\nWHERE category_id NOT IN (SELECT category_id FROM products)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: <in_optimizer>(categories.category_id,categories.category_id in (select #2) is false)  (cost=1.25 rows=10)\n    -> Index scan on categories using uq_categories_name  (cost=1.25 rows=10)\n    -> Select #2 (subquery in condition; run only once)\n        -> Filter: ((categories.category_id = `<materialized_subquery>`.category_id))  (cost=6.35..6.35 rows=1)\n            -> Limit: 1 row(s)  (cost=6.25..6.25 rows=1)\n                -> Index lookup on <materialized_subquery> using <auto_distinct_key> (category_id=categories.category_id)\n                    -> Materialize with deduplication  (cost=6.25..6.25 rows=30)\n                        -> Index scan on products using idx_products_category  (cost=3.25 rows=30)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:22897c8b551d": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT name FROM categories\nWHERE category_id NOT IN (SELECT category_id FROM products WHERE category_id IS NOT NULL)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: <in_optimizer>(categories.category_id,<exists>(select #2) is false)  (cost=1.25 rows=10)\n    -> Index scan on categories using uq_categories_name  (cost=1.25 rows=10)\n    -> Select #2 (subquery in condition; dependent)\n        -> Limit: 1 row(s)\n            -> Filter: <is_not_null_test>(products.category_id)\n                -> Filter: ((products.category_id is not null) and ((<cache>(categories.category_id) = products.category_id) or (products.category_id is null)))\n                    -> Covering index lookup on products using idx_products_category (category_id=<cache>(categories.category_id) or NULL)  (cost=0.851 rows=6)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:9e04096ae1b1": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT c.customer_id FROM customers c\nWHERE c.customer_id NOT IN (SELECT o.customer_id FROM orders o)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop antijoin  (cost=19 rows=100)\n    -> Index scan on c using uq_customers_email  (cost=2.75 rows=25)\n    -> Covering index lookup on o using idx_orders_customer (customer_id=c.customer_id)  (cost=1.07 rows=4)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:86438de43d9a": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT p.product_id, p.name FROM products p\nWHERE p.product_id IN (SELECT i.product_id FROM order_items i WHERE i.quantity >= 3)",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "p",
+       null,
+       "ALL",
+       "PRIMARY",
+       null,
+       null,
+       null,
+       30,
+       100.0,
+       null
+      ],
+      [
+       1,
+       "SIMPLE",
+       "<subquery2>",
+       null,
+       "eq_ref",
+       "<auto_distinct_key>",
+       "<auto_distinct_key>",
+       "4",
+       "lab_b965bd9274e39235e562.p.product_id",
+       1,
+       100.0,
+       null
+      ],
+      [
+       2,
+       "MATERIALIZED",
+       "i",
+       null,
+       "ALL",
+       "idx_order_items_product",
+       null,
+       null,
+       null,
+       182,
+       33.33,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_b965bd9274e39235e562`.`p`.`product_id` AS `product_id`,`lab_b965bd9274e39235e562`.`p`.`name` AS `name` from `lab_b965bd9274e39235e562`.`products` `p` semi join (`lab_b965bd9274e39235e562`.`order_items` `i`) where ((`<subquery2>`.`product_id` = `lab_b965bd9274e39235e562`.`p`.`product_id`) and (`lab_b965bd9274e39235e562`.`i`.`quantity` >= 3))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:cb39102454f3": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ SEMIJOIN(@sq FIRSTMATCH) */ p.product_id, p.name FROM products p\nWHERE p.product_id IN (SELECT /*+ QB_NAME(sq) */ i.product_id FROM order_items i WHERE i.quantity >= 3)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Hash semijoin (i.product_id = p.product_id)  (cost=234 rows=607)\n    -> Table scan on p  (cost=3.25 rows=30)\n    -> Hash\n        -> Filter: (i.quantity >= 3)  (cost=38.7 rows=60.7)\n            -> Table scan on i  (cost=38.7 rows=182)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:d76cef562960": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ SEMIJOIN(@sq MATERIALIZATION) */ p.product_id, p.name FROM products p\nWHERE p.product_id IN (SELECT /*+ QB_NAME(sq) */ i.product_id FROM order_items i WHERE i.quantity >= 3)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=188 rows=1820)\n    -> Table scan on p  (cost=3.25 rows=30)\n    -> Single-row index lookup on <subquery2> using <auto_distinct_key> (product_id=p.product_id)  (cost=24.6..24.6 rows=1)\n        -> Materialize with deduplication  (cost=24.5..24.5 rows=60.7)\n            -> Filter: (i.quantity >= 3)  (cost=18.4 rows=60.7)\n                -> Table scan on i  (cost=18.4 rows=182)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:64e3b1f06c95": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ SEMIJOIN(@sq DUPSWEEDOUT) */ p.product_id, p.name FROM products p\nWHERE p.product_id IN (SELECT /*+ QB_NAME(sq) */ i.product_id FROM order_items i WHERE i.quantity >= 3)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Remove duplicate p rows using temporary table (weedout)  (cost=39.7 rows=60.7)\n    -> Nested loop inner join  (cost=39.7 rows=60.7)\n        -> Filter: (i.quantity >= 3)  (cost=18.4 rows=60.7)\n            -> Table scan on i  (cost=18.4 rows=182)\n        -> Single-row index lookup on p using PRIMARY (product_id=i.product_id)  (cost=0.509 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:b5a91ef8b5ce": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT /*+ SEMIJOIN(@sq LOOSESCAN) */ p.product_id FROM products p\nWHERE p.product_id IN (SELECT /*+ QB_NAME(sq) */ i.product_id FROM order_items i)",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "i",
+       null,
+       "index",
+       "idx_order_items_product",
+       "idx_order_items_product",
+       "4",
+       null,
+       182,
+       0.55,
+       "Using index; LooseScan"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "p",
+       null,
+       "eq_ref",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "lab_b965bd9274e39235e562.i.product_id",
+       1,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select /*+ SEMIJOIN(@`sq` LOOSESCAN) */ `lab_b965bd9274e39235e562`.`p`.`product_id` AS `product_id` from `lab_b965bd9274e39235e562`.`products` `p` semi join (`lab_b965bd9274e39235e562`.`order_items` `i`) where (`lab_b965bd9274e39235e562`.`p`.`product_id` = `lab_b965bd9274e39235e562`.`i`.`product_id`)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:622424a1b014": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ SEMIJOIN(@sq LOOSESCAN) */ p.product_id FROM products p\nWHERE p.product_id IN (SELECT /*+ QB_NAME(sq) */ i.product_id FROM order_items i)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=64.1 rows=182)\n    -> Remove duplicates from input sorted on idx_order_items_product  (cost=0.416 rows=182)\n        -> Index scan on i using idx_order_items_product  (cost=0.416 rows=182)\n    -> Single-row covering index lookup on p using PRIMARY (product_id=i.product_id)  (cost=45.6 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s24:a455cf1b232f": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ SUBQUERY(@sq INTOEXISTS) */ p.product_id FROM products p\nWHERE p.product_id IN (SELECT /*+ QB_NAME(sq) */ i.product_id FROM order_items i WHERE i.quantity >= 3)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: <in_optimizer>(p.product_id,<exists>(select #2))  (cost=3.25 rows=30)\n    -> Index scan on p using idx_products_category  (cost=3.25 rows=30)\n    -> Select #2 (subquery in condition; dependent)\n        -> Limit: 1 row(s)  (cost=13 rows=1)\n            -> Filter: ((i.quantity >= 3) and (<cache>(p.product_id) = i.product_id))  (cost=13 rows=6.07)\n                -> Table scan on i  (cost=13 rows=182)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s25:7caf233440c8": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT c.customer_id FROM customers c\nWHERE EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id AND o.order_date >= '2024-12-01')",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=8.31 rows=8)\n    -> Table scan on <subquery2>  (cost=4.99..7.26 rows=8)\n        -> Materialize with deduplication  (cost=4.66..4.66 rows=8)\n            -> Index range scan on o using idx_orders_date over ('2024-12-01 00:00:00' <= order_date), with index condition: (o.order_date >= TIMESTAMP'2024-12-01 00:00:00')  (cost=3.86 rows=8)\n    -> Single-row covering index lookup on c using PRIMARY (customer_id=`<subquery2>`.customer_id)  (cost=0.35 rows=1)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'lab_b965bd9274e39235e562.c.customer_id' of SELECT #2 was resolved in SELECT #1"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s26:a6cdaa475de4": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT DISTINCT c.customer_id FROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nWHERE o.order_date >= '2024-12-01'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (cost=7.79..10.1 rows=8)\n    -> Temporary table with deduplication  (cost=7.46..7.46 rows=8)\n        -> Nested loop inner join  (cost=6.66 rows=8)\n            -> Index range scan on o using idx_orders_date over ('2024-12-01 00:00:00' <= order_date), with index condition: (o.order_date >= TIMESTAMP'2024-12-01 00:00:00')  (cost=3.86 rows=8)\n            -> Single-row covering index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.263 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s27:d31e92f88d74": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS rows_from_join,\n       COUNT(DISTINCT c.customer_id) AS customers\nFROM customers c JOIN reviews r ON r.customer_id = c.customer_id",
+     "status": "ok",
+     "columns": [
+      "rows_from_join",
+      "customers"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       45,
+       16
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s28:6e15fd3bcdc8": {
+   "statements": [
+    {
+     "sql": "SELECT name FROM products\nWHERE product_id IN (SELECT product_id FROM order_items ORDER BY quantity DESC LIMIT 5)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1235,
+      "message": "This version of MySQL doesn't yet support 'LIMIT & IN/ALL/ANY/SOME subquery'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s29:e356fc03a827": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS customers_flagged\nFROM customers c\nWHERE EXISTS (SELECT 1 FROM orders o WHERE o.order_date >= '2024-12-01')",
+     "status": "ok",
+     "columns": [
+      "customers_flagged"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

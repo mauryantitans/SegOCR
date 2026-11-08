@@ -869,10 +869,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Limit/Offset: 10/100 row(s)  (cost=0.143 rows=10) (actual time=0.12..0.158 rows=10 loops=1)\n    -> Index scan on events using idx_events_created  (cost=0.143 rows=110) (actual time=0.0413..0.154 rows=110 loops=1)\n"
+       "-> Limit/Offset: 10/100 row(s)  (cost=0.143 rows=10) (actual time=0.142..0.152 rows=10 loops=1)\n    -> Index scan on events using idx_events_created  (cost=0.143 rows=110) (actual time=0.0842..0.147 rows=110 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 1.01
+     "elapsed_ms": 1.05
     }
    ],
    "measured": true
@@ -888,10 +888,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Limit/Offset: 10/150000 row(s)  (cost=20168 rows=10) (actual time=103..103 rows=10 loops=1)\n    -> Sort: `events`.created_at, `events`.event_id, limit input to 150010 row(s) per chunk  (cost=20168 rows=199202) (actual time=91.7..99.1 rows=150010 loops=1)\n        -> Table scan on events  (cost=20168 rows=199202) (actual time=0.0885..40.5 rows=200000 loops=1)\n"
+       "-> Limit/Offset: 10/150000 row(s)  (cost=20168 rows=10) (actual time=100..100 rows=10 loops=1)\n    -> Sort: `events`.created_at, `events`.event_id, limit input to 150010 row(s) per chunk  (cost=20168 rows=199202) (actual time=85.3..93.3 rows=150010 loops=1)\n        -> Table scan on events  (cost=20168 rows=199202) (actual time=0.106..34.9 rows=200000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 105.07
+     "elapsed_ms": 102.48
     }
    ],
    "measured": true
@@ -927,10 +927,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Limit: 10 row(s)  (cost=20168 rows=10) (actual time=0.0687..0.45 rows=10 loops=1)\n    -> Index range scan on events using idx_events_created over (created_at = '2024-02-04 17:20:00' AND 150000 < event_id) OR ('2024-02-04 17:20:00' < created_at), with index condition: ((`events`.created_at > TIMESTAMP'2024-02-04 17:20:00') or ((`events`.created_at = TIMESTAMP'2024-02-04 17:20:00') and (`events`.event_id > 150000)))  (cost=20168 rows=95014) (actual time=0.0676..0.448 rows=10 loops=1)\n"
+       "-> Limit: 10 row(s)  (cost=20168 rows=10) (actual time=0.0272..0.654 rows=10 loops=1)\n    -> Index range scan on events using idx_events_created over (created_at = '2024-02-04 17:20:00' AND 150000 < event_id) OR ('2024-02-04 17:20:00' < created_at), with index condition: ((`events`.created_at > TIMESTAMP'2024-02-04 17:20:00') or ((`events`.created_at = TIMESTAMP'2024-02-04 17:20:00') and (`events`.event_id > 150000)))  (cost=20168 rows=95014) (actual time=0.0264..0.652 rows=10 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 1.37
+     "elapsed_ms": 2.04
     }
    ],
    "measured": true
@@ -1002,10 +1002,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Limit: 10 row(s)  (cost=0.0125 rows=10) (actual time=111..111 rows=10 loops=1)\n    -> Filter: ((`events`.created_at,`events`.event_id) > ('2024-02-04 17:20:00',150000))  (cost=0.0125 rows=10) (actual time=111..111 rows=10 loops=1)\n        -> Index scan on events using idx_events_created  (cost=0.0125 rows=10) (actual time=0.0533..103 rows=150010 loops=1)\n"
+       "-> Limit: 10 row(s)  (cost=0.0125 rows=10) (actual time=121..121 rows=10 loops=1)\n    -> Filter: ((`events`.created_at,`events`.event_id) > ('2024-02-04 17:20:00',150000))  (cost=0.0125 rows=10) (actual time=121..121 rows=10 loops=1)\n        -> Index scan on events using idx_events_created  (cost=0.0125 rows=10) (actual time=0.0437..112 rows=150010 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 111.75
+     "elapsed_ms": 121.88
     }
    ],
    "measured": true

@@ -624,42 +624,27 @@
    ],
    "measured": null
   },
-  "w1.3:87bed3ccf597": {
+  "w1.3:c3303fb6d689": {
    "statements": [
     {
-     "sql": "SELECT product_id, name, price FROM products\nWHERE product_id IN (SELECT product_id FROM order_items GROUP BY product_id)\nORDER BY price DESC LIMIT 5",
+     "sql": "SELECT product_id, name, price FROM products\nWHERE product_id IN (12, 24)\nORDER BY product_id",
      "status": "ok",
      "columns": [
       "product_id",
       "name",
       "price"
      ],
-     "row_count": 5,
+     "row_count": 2,
      "rows": [
       [
-       3,
-       "Gaming Laptop 16",
-       "1799.00"
+       12,
+       "Wireless Earbuds",
+       "142.99"
       ],
       [
-       1,
-       "Ultrabook 14 Pro",
-       "1299.00"
-      ],
-      [
-       2,
-       "Ultrabook 13 Air",
-       "999.00"
-      ],
-      [
-       14,
-       "Espresso Machine",
-       "523.95"
-      ],
-      [
-       8,
-       "27\" 4K Monitor",
-       "379.00"
+       24,
+       "Fiction Bestseller",
+       "20.89"
       ]
      ]
     }
@@ -747,7 +732,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "30552",
+        "trxId": "37756",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 5,
@@ -915,7 +900,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "30705",
+        "trxId": "37910",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 5,

@@ -11,12 +11,14 @@
      "sql": "CREATE TABLE j_customers (\n  customer_id INT PRIMARY KEY,\n  name        VARCHAR(20) NOT NULL\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
      "sql": "CREATE TABLE j_orders (\n  order_id    INT PRIMARY KEY,\n  customer_id INT NOT NULL,\n  amount      DECIMAL(8,2) NOT NULL\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -995,10 +997,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=0.0907..0.0912 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=0.0895..0.0895 rows=5 loops=1)\n        -> Nested loop inner join  (cost=36.2 rows=80) (actual time=0.027..0.0654 rows=80 loops=1)\n            -> Covering index scan on o using idx_orders_customer  (cost=8.25 rows=80) (actual time=0.0187..0.0282 rows=80 loops=1)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.251 rows=1) (actual time=295e-6..316e-6 rows=1 loops=80)\n"
+       "-> Table scan on <temporary>  (actual time=0.131..0.131 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=0.13..0.13 rows=5 loops=1)\n        -> Nested loop inner join  (cost=36.2 rows=80) (actual time=0.0711..0.106 rows=80 loops=1)\n            -> Covering index scan on o using idx_orders_customer  (cost=8.25 rows=80) (actual time=0.0654..0.0734 rows=80 loops=1)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.251 rows=1) (actual time=242e-6..264e-6 rows=1 loops=80)\n"
       ]
      ],
-     "elapsed_ms": 1.09
+     "elapsed_ms": 1.14
     }
    ],
    "measured": true

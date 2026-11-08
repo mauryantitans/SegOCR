@@ -11,12 +11,14 @@
      "sql": "CREATE TABLE sizes  (size_code VARCHAR(3) PRIMARY KEY, sort_order INT NOT NULL)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
      "sql": "CREATE TABLE colors (color VARCHAR(10) PRIMARY KEY)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {

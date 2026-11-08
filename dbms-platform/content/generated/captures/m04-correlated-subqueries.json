@@ -1,0 +1,907 @@
+{
+ "doc": "m04-correlated-subqueries",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:18b50c9373ac": {
+   "statements": [
+    {
+     "sql": "SELECT e.employee_id, e.first_name, e.department_id, e.salary\nFROM employees AS e\nWHERE e.salary > (SELECT AVG(e2.salary)\n                  FROM employees AS e2\n                  WHERE e2.department_id = e.department_id)\nORDER BY e.department_id, e.salary DESC",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "department_id",
+      "salary"
+     ],
+     "row_count": 11,
+     "rows": [
+      [
+       101,
+       "Diego",
+       20,
+       "242500.00"
+      ],
+      [
+       104,
+       "Mei",
+       20,
+       "214500.00"
+      ],
+      [
+       123,
+       "Chen",
+       20,
+       "170000.00"
+      ],
+      [
+       111,
+       "Noah",
+       30,
+       "179500.00"
+      ],
+      [
+       125,
+       "Ingrid",
+       30,
+       "177000.00"
+      ],
+      [
+       105,
+       "Chloe",
+       30,
+       "162500.00"
+      ],
+      [
+       102,
+       "Mei",
+       40,
+       "238000.00"
+      ],
+      [
+       114,
+       "Amara",
+       40,
+       "149500.00"
+      ],
+      [
+       128,
+       "Marcus",
+       50,
+       "91500.00"
+      ],
+      [
+       120,
+       "Amara",
+       50,
+       "84500.00"
+      ],
+      [
+       103,
+       "Anika",
+       60,
+       "229500.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:75e8bd1a2e1a": {
+   "statements": [
+    {
+     "sql": "SELECT e.employee_id, e.first_name,\n       (SELECT COUNT(*) FROM employees r WHERE r.manager_id = e.employee_id) AS direct_reports\nFROM employees AS e\nWHERE e.employee_id IN (100, 104, 105, 106, 124)\nORDER BY e.employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "direct_reports"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       100,
+       "Kofi",
+       3
+      ],
+      [
+       104,
+       "Mei",
+       7
+      ],
+      [
+       105,
+       "Chloe",
+       5
+      ],
+      [
+       106,
+       "Kofi",
+       0
+      ],
+      [
+       124,
+       "Samuel",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:06f8143c4cda": {
+   "statements": [
+    {
+     "sql": "SELECT cur.employee_id, cur.effective_date, cur.salary,\n       (SELECT MIN(nx.effective_date)\n        FROM salary_history nx\n        WHERE nx.employee_id = cur.employee_id\n          AND nx.effective_date > cur.effective_date) AS next_change\nFROM salary_history AS cur\nWHERE cur.employee_id = 108\nORDER BY cur.effective_date",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "effective_date",
+      "salary",
+      "next_change"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       108,
+       "2015-08-30",
+       "109900.00",
+       "2016-08-28"
+      ],
+      [
+       108,
+       "2016-08-28",
+       "115100.00",
+       "2017-08-28"
+      ],
+      [
+       108,
+       "2017-08-28",
+       "123700.00",
+       "2018-08-28"
+      ],
+      [
+       108,
+       "2018-08-28",
+       "130300.00",
+       "2019-08-28"
+      ],
+      [
+       108,
+       "2019-08-28",
+       "141400.00",
+       "2020-08-28"
+      ],
+      [
+       108,
+       "2020-08-28",
+       "149800.00",
+       "2021-08-28"
+      ],
+      [
+       108,
+       "2021-08-28",
+       "150000.00",
+       "2022-08-28"
+      ],
+      [
+       108,
+       "2022-08-28",
+       "150000.00",
+       "2023-08-28"
+      ],
+      [
+       108,
+       "2023-08-28",
+       "150000.00",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:ea4f7cf13b2b": {
+   "statements": [
+    {
+     "sql": "SELECT e.department_id, e.employee_id, e.first_name, e.salary\nFROM employees AS e\nWHERE (SELECT COUNT(*)\n       FROM employees AS e2\n       WHERE e2.department_id = e.department_id\n         AND e2.salary > e.salary) < 2\nORDER BY e.department_id, e.salary DESC",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "employee_id",
+      "first_name",
+      "salary"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       null,
+       124,
+       "Samuel",
+       "120500.00"
+      ],
+      [
+       10,
+       100,
+       "Kofi",
+       "309000.00"
+      ],
+      [
+       20,
+       101,
+       "Diego",
+       "242500.00"
+      ],
+      [
+       20,
+       104,
+       "Mei",
+       "214500.00"
+      ],
+      [
+       30,
+       111,
+       "Noah",
+       "179500.00"
+      ],
+      [
+       30,
+       125,
+       "Ingrid",
+       "177000.00"
+      ],
+      [
+       40,
+       102,
+       "Mei",
+       "238000.00"
+      ],
+      [
+       40,
+       114,
+       "Amara",
+       "149500.00"
+      ],
+      [
+       50,
+       128,
+       "Marcus",
+       "91500.00"
+      ],
+      [
+       50,
+       120,
+       "Amara",
+       "84500.00"
+      ],
+      [
+       60,
+       103,
+       "Anika",
+       "229500.00"
+      ],
+      [
+       60,
+       122,
+       "Lucas",
+       "119500.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:ea16f2c11d69": {
+   "statements": [
+    {
+     "sql": "SELECT e.employee_id, e.first_name, e.salary\nFROM employees AS e\nWHERE e.department_id = 20\n  AND (SELECT COUNT(*) FROM employees e2\n       WHERE e2.department_id = e.department_id AND e2.salary < e.salary) < 3\nORDER BY e.salary",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "salary"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       127,
+       "Priya",
+       "125500.00"
+      ],
+      [
+       129,
+       "Ethan",
+       "146500.00"
+      ],
+      [
+       107,
+       "Grace",
+       "150000.00"
+      ],
+      [
+       108,
+       "Lucas",
+       "150000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:492dc30ab08f": {
+   "statements": [
+    {
+     "sql": "SELECT sh.employee_id, sh.effective_date, sh.salary\nFROM salary_history AS sh\nWHERE sh.effective_date = (SELECT MAX(s2.effective_date)\n                           FROM salary_history s2\n                           WHERE s2.employee_id = sh.employee_id)\n  AND sh.employee_id BETWEEN 105 AND 110\nORDER BY sh.employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "effective_date",
+      "salary"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       105,
+       "2023-06-28",
+       "162500.00"
+      ],
+      [
+       106,
+       "2023-08-28",
+       "165500.00"
+      ],
+      [
+       107,
+       "2023-09-24",
+       "150000.00"
+      ],
+      [
+       108,
+       "2023-08-28",
+       "150000.00"
+      ],
+      [
+       109,
+       "2023-12-03",
+       "153500.00"
+      ],
+      [
+       110,
+       "2023-09-11",
+       "121000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:fba78ded62f5": {
+   "statements": [
+    {
+     "sql": "SELECT d.department_id, d.name, d.location_id, ROUND(AVG(e.salary), 0) AS avg_salary\nFROM departments d\nJOIN employees e ON e.department_id = d.department_id\nGROUP BY d.department_id, d.name, d.location_id\nHAVING AVG(e.salary) > (SELECT AVG(e2.salary)\n                        FROM employees e2\n                        JOIN departments d2 ON d2.department_id = e2.department_id\n                        WHERE d2.location_id = d.location_id)\nORDER BY d.department_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "name",
+      "location_id",
+      "avg_salary"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       10,
+       "Executive",
+       1,
+       "309000"
+      ],
+      [
+       60,
+       "Finance",
+       2,
+       "153000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:0e9586e6ea98": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, department_id, salary FROM employees\nWHERE employee_id IN (100, 110, 111, 124) ORDER BY employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "department_id",
+      "salary"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       100,
+       10,
+       "309000.00"
+      ],
+      [
+       110,
+       30,
+       "121000.00"
+      ],
+      [
+       111,
+       30,
+       "179500.00"
+      ],
+      [
+       124,
+       null,
+       "120500.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:e01dcd9d6f94": {
+   "statements": [
+    {
+     "sql": "SELECT e.employee_id, e.department_id, e.salary,\n       (SELECT AVG(e2.salary) FROM employees e2 WHERE e2.department_id = e.department_id) AS dept_avg\nFROM employees e\nWHERE e.employee_id IN (100, 110, 111, 124)\nORDER BY e.employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "department_id",
+      "salary",
+      "dept_avg"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       100,
+       10,
+       "309000.00",
+       "309000.000000"
+      ],
+      [
+       110,
+       30,
+       "121000.00",
+       "149500.000000"
+      ],
+      [
+       111,
+       30,
+       "179500.00",
+       "149500.000000"
+      ],
+      [
+       124,
+       null,
+       "120500.00",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:69a1aa757773": {
+   "statements": [
+    {
+     "sql": "SELECT e.employee_id, e.salary,\n       (SELECT AVG(e2.salary) FROM employees e2 WHERE e2.department_id = e.department_id) AS dept_avg,\n       e.salary > (SELECT AVG(e2.salary) FROM employees e2 WHERE e2.department_id = e.department_id) AS passes\nFROM employees e\nWHERE e.employee_id IN (100, 110, 111, 124)\nORDER BY e.employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "salary",
+      "dept_avg",
+      "passes"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       100,
+       "309000.00",
+       "309000.000000",
+       0
+      ],
+      [
+       110,
+       "121000.00",
+       "149500.000000",
+       0
+      ],
+      [
+       111,
+       "179500.00",
+       "149500.000000",
+       1
+      ],
+      [
+       124,
+       "120500.00",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:f585ba84641a": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS above_department_average\nFROM employees e\nWHERE e.salary > (SELECT AVG(e2.salary) FROM employees e2 WHERE e2.department_id = e.department_id)",
+     "status": "ok",
+     "columns": [
+      "above_department_average"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       11
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:84ce2a3241fe": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT e.employee_id, e.salary\nFROM employees e\nWHERE e.salary > (SELECT AVG(e2.salary) FROM employees e2 WHERE e2.department_id = e.department_id)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (e.salary > (select #2))  (cost=3.25 rows=30) (actual time=0.0563..0.283 rows=11 loops=1)\n    -> Table scan on e  (cost=3.25 rows=30) (actual time=0.0292..0.0348 rows=30 loops=1)\n    -> Select #2 (subquery in condition; dependent)\n        -> Aggregate: avg(e2.salary)  (cost=0.85 rows=1) (actual time=0.00768..0.0077 rows=1 loops=30)\n            -> Filter: (e2.department_id = e.department_id)  (cost=0.55 rows=3) (actual time=0.00192..0.00702 rows=6.17 loops=30)\n                -> Table scan on e2  (cost=0.55 rows=30) (actual time=942e-6..0.00556 rows=30 loops=30)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'lab_3709f0028604e631a435.e.department_id' of SELECT #2 was resolved in SELECT #1"
+      }
+     ],
+     "elapsed_ms": 1.54
+    }
+   ],
+   "measured": true
+  },
+  "s10:5d5565a1f6ac": {
+   "statements": [
+    {
+     "sql": "SET SESSION optimizer_switch = 'subquery_to_derived=on'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s11:0430afddef84": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT e.employee_id, e.salary\nFROM employees e\nWHERE e.salary > (SELECT AVG(e2.salary) FROM employees e2 WHERE e2.department_id = e.department_id)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (e.salary > derived_1_2.`AVG(e2.salary)`)  (cost=12.1 rows=10)\n    -> Inner hash join (e.department_id = derived_1_2.department_id)  (cost=12.1 rows=10)\n        -> Table scan on e  (cost=0.0417 rows=30)\n        -> Hash\n            -> Table scan on derived_1_2  (cost=8.86..8.86 rows=1)\n                -> Materialize  (cost=6.35..6.35 rows=1)\n                    -> Group aggregate: avg(e2.salary)  (cost=6.25 rows=1)\n                        -> Index scan on e2 using idx_employees_department  (cost=3.25 rows=30)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'lab_3709f0028604e631a435.e.department_id' of SELECT #2 was resolved in SELECT #1"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:f585ba84641a": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS above_department_average\nFROM employees e\nWHERE e.salary > (SELECT AVG(e2.salary) FROM employees e2 WHERE e2.department_id = e.department_id)",
+     "status": "ok",
+     "columns": [
+      "above_department_average"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       11
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:104f2b525436": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT e.employee_id,\n       (SELECT COUNT(*) FROM employees r WHERE r.manager_id = e.employee_id) AS direct_reports\nFROM employees e",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop left join  (cost=28.8 rows=30)\n    -> Index scan on e using idx_employees_department  (cost=3.25 rows=30)\n    -> Index lookup on derived_1_2 using <auto_key0> (manager_id=e.employee_id)  (cost=6.6..7.11 rows=3)\n        -> Materialize  (cost=6.35..6.35 rows=1)\n            -> Group aggregate: count(0)  (cost=6.25 rows=1)\n                -> Index scan on r using idx_employees_manager  (cost=3.25 rows=30)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'lab_3709f0028604e631a435.e.employee_id' of SELECT #2 was resolved in SELECT #1"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:d6862529b8fc": {
+   "statements": [
+    {
+     "sql": "SET SESSION optimizer_switch = 'subquery_to_derived=off'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s15:ea33457d609f": {
+   "statements": [
+    {
+     "sql": "-- A: join with a pre-aggregated derived table (manual decorrelation)\nSELECT COUNT(*) AS n\nFROM employees e\nJOIN (SELECT department_id, AVG(salary) AS avg_sal\n      FROM employees GROUP BY department_id) AS d ON d.department_id = e.department_id\nWHERE e.salary > d.avg_sal",
+     "status": "ok",
+     "columns": [
+      "n"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       11
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:784027216f13": {
+   "statements": [
+    {
+     "sql": "-- B: window function — one pass, no second table access\nSELECT COUNT(*) AS n\nFROM (SELECT salary, AVG(salary) OVER (PARTITION BY department_id) AS avg_sal\n      FROM employees) AS w\nWHERE w.salary > w.avg_sal",
+     "status": "ok",
+     "columns": [
+      "n"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       11
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:fd183f3c814a": {
+   "statements": [
+    {
+     "sql": "-- C: window function ranking (window functions are covered later in this module)\nSELECT department_id, employee_id, salary\nFROM (SELECT department_id, employee_id, salary,\n             RANK() OVER (PARTITION BY department_id ORDER BY salary DESC) AS rnk\n      FROM employees) AS r\nWHERE rnk <= 2\nORDER BY department_id, salary DESC",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "employee_id",
+      "salary"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       null,
+       124,
+       "120500.00"
+      ],
+      [
+       10,
+       100,
+       "309000.00"
+      ],
+      [
+       20,
+       101,
+       "242500.00"
+      ],
+      [
+       20,
+       104,
+       "214500.00"
+      ],
+      [
+       30,
+       111,
+       "179500.00"
+      ],
+      [
+       30,
+       125,
+       "177000.00"
+      ],
+      [
+       40,
+       102,
+       "238000.00"
+      ],
+      [
+       40,
+       114,
+       "149500.00"
+      ],
+      [
+       50,
+       128,
+       "91500.00"
+      ],
+      [
+       50,
+       120,
+       "84500.00"
+      ],
+      [
+       60,
+       103,
+       "229500.00"
+      ],
+      [
+       60,
+       122,
+       "119500.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:171370c97fad": {
+   "statements": [
+    {
+     "sql": "SELECT d.department_id, d.name, top2.employee_id, top2.salary\nFROM departments AS d\nLEFT JOIN LATERAL (SELECT e.employee_id, e.salary\n                   FROM employees e\n                   WHERE e.department_id = d.department_id\n                   ORDER BY e.salary DESC, e.employee_id\n                   LIMIT 2) AS top2 ON TRUE\nORDER BY d.department_id, top2.salary DESC",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "name",
+      "employee_id",
+      "salary"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       10,
+       "Executive",
+       100,
+       "309000.00"
+      ],
+      [
+       20,
+       "Engineering",
+       101,
+       "242500.00"
+      ],
+      [
+       20,
+       "Engineering",
+       104,
+       "214500.00"
+      ],
+      [
+       30,
+       "Data Platform",
+       111,
+       "179500.00"
+      ],
+      [
+       30,
+       "Data Platform",
+       125,
+       "177000.00"
+      ],
+      [
+       40,
+       "Sales",
+       102,
+       "238000.00"
+      ],
+      [
+       40,
+       "Sales",
+       114,
+       "149500.00"
+      ],
+      [
+       50,
+       "Marketing",
+       128,
+       "91500.00"
+      ],
+      [
+       50,
+       "Marketing",
+       120,
+       "84500.00"
+      ],
+      [
+       60,
+       "Finance",
+       103,
+       "229500.00"
+      ],
+      [
+       60,
+       "Finance",
+       122,
+       "119500.00"
+      ],
+      [
+       70,
+       "Research",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:cc09da45897d": {
+   "statements": [
+    {
+     "sql": "-- Intended: above own department average. Actual: e2.department_id = e2.department_id (always true unless NULL)\nSELECT COUNT(*) AS n\nFROM employees e\nWHERE e.salary > (SELECT AVG(e2.salary) FROM employees e2 WHERE e2.department_id = department_id)",
+     "status": "ok",
+     "columns": [
+      "n"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       14
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:02acd1ed856e": {
+   "statements": [
+    {
+     "sql": "SELECT d.name,\n       (SELECT e.first_name FROM employees e WHERE e.department_id = d.department_id) AS employee\nFROM departments d",
+     "status": "error",
+     "columns": [
+      "name",
+      "employee"
+     ],
+     "rows": [],
+     "error": {
+      "code": 1242,
+      "message": "Subquery returns more than 1 row"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

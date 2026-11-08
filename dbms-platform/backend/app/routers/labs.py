@@ -1,6 +1,7 @@
 """SQL sandbox endpoints. All learner SQL goes through LabManager (per-lab MySQL account)."""
 from __future__ import annotations
 
+import hashlib
 import logging
 import re
 
@@ -8,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
+from ..config import get_settings
 from ..models import User
 from ..sandbox.manager import SandboxError, SessionBusy
 from ..sandbox.splitter import split_sql, strip_leading_comments
@@ -22,7 +24,9 @@ SESSIONS = {"main", "A", "B", "C"}
 
 
 def owner_of(user: User) -> str:
-    return f"user:{user.id}"
+    s = get_settings()
+    ns = s.lab_namespace or hashlib.sha256(s.app_database_url.encode()).hexdigest()[:8]
+    return f"{ns}:user:{user.id}"
 
 
 def _check_lab(lab: str):

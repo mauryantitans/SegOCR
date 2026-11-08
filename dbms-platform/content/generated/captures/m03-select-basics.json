@@ -1003,7 +1003,7 @@
        "idx_orders_customer",
        "4",
        null,
-       21,
+       2,
        100.0,
        "Using index for group-by"
       ]

@@ -304,6 +304,7 @@ class LabManager:
             )
             with self._admin.cursor() as c:
                 c.execute("SET SESSION information_schema_stats_expiry = 0")
+                c.execute("SET SESSION lock_wait_timeout = 20")  # never let a reset hang on a metadata lock
         else:
             try:
                 self._admin.ping(reconnect=False)
@@ -370,6 +371,7 @@ class LabManager:
         s = self.settings
         with self._lab_lock(schema):
             self._close_sessions(schema)
+            self._kill_stray_connections(schema)
             account = f"'{schema}'@'{s.sandbox_account_host}'"
             self.admin(f"DROP DATABASE IF EXISTS `{schema}`")
             self.admin(f"CREATE DATABASE `{schema}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci")
@@ -403,9 +405,17 @@ class LabManager:
         finally:
             conn.close()
 
+    def _kill_stray_connections(self, schema: str):
+        """Kill connections of the lab account not owned by this process (e.g. left by a crashed or
+        restarted backend). An open transaction there would otherwise block DROP DATABASE on a metadata lock."""
+        rows = self.admin("SELECT id FROM information_schema.processlist WHERE user = %s", (schema,), fetch=True)
+        for (tid,) in rows:
+            self.kill_connection(tid)
+
     def drop_lab(self, schema: str):
         with self._lab_lock(schema):
             self._close_sessions(schema)
+            self._kill_stray_connections(schema)
             self.admin(f"DROP DATABASE IF EXISTS `{schema}`")
             self.admin(f"DROP USER IF EXISTS '{schema}'@'{self.settings.sandbox_account_host}'")
             self.admin(f"DELETE FROM {META_SCHEMA}.labs WHERE schema_name=%s", (schema,))
