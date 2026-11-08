@@ -224,6 +224,12 @@ ORDER BY d.department_id;
 
 ## Execution Walkthrough
 
+Execution plans depend on **index statistics**. InnoDB computes them in the background after a table is loaded, so in a freshly reset lab they may not be settled yet and plans can vary from run to run. `ANALYZE TABLE` recomputes them now, which makes the plans below reproducible (statistics are covered in depth in Module 7):
+
+```sql run
+ANALYZE TABLE employees, departments, salary_history;
+```
+
 Trace the per-row semantics of "above department average" on four employees, then compare the two physical strategies.
 
 ```walkthrough

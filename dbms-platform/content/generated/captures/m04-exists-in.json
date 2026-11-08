@@ -613,7 +613,67 @@
    ],
    "measured": null
   },
-  "s14:f2136650227b": {
+  "s14:c70b1b2c43e2": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE customers, orders, order_items, products, categories, reviews, promo_codes",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "lab_b965bd9274e39235e562.customers",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_b965bd9274e39235e562.orders",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_b965bd9274e39235e562.order_items",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_b965bd9274e39235e562.products",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_b965bd9274e39235e562.categories",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_b965bd9274e39235e562.reviews",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_b965bd9274e39235e562.promo_codes",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:f2136650227b": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT c.name FROM categories c\nWHERE NOT EXISTS (SELECT 1 FROM products p WHERE p.category_id = c.category_id)",
@@ -638,7 +698,7 @@
    ],
    "measured": null
   },
-  "s15:08231f496b9c": {
+  "s16:08231f496b9c": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT name FROM categories\nWHERE category_id NOT IN (SELECT category_id FROM products)",
@@ -656,7 +716,7 @@
    ],
    "measured": null
   },
-  "s16:22897c8b551d": {
+  "s17:22897c8b551d": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT name FROM categories\nWHERE category_id NOT IN (SELECT category_id FROM products WHERE category_id IS NOT NULL)",
@@ -674,7 +734,7 @@
    ],
    "measured": null
   },
-  "s17:9e04096ae1b1": {
+  "s18:9e04096ae1b1": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT c.customer_id FROM customers c\nWHERE c.customer_id NOT IN (SELECT o.customer_id FROM orders o)",
@@ -692,7 +752,7 @@
    ],
    "measured": null
   },
-  "s18:86438de43d9a": {
+  "s19:86438de43d9a": {
    "statements": [
     {
      "sql": "EXPLAIN\nSELECT p.product_id, p.name FROM products p\nWHERE p.product_id IN (SELECT i.product_id FROM order_items i WHERE i.quantity >= 3)",
@@ -767,7 +827,7 @@
    ],
    "measured": null
   },
-  "s19:cb39102454f3": {
+  "s20:cb39102454f3": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ SEMIJOIN(@sq FIRSTMATCH) */ p.product_id, p.name FROM products p\nWHERE p.product_id IN (SELECT /*+ QB_NAME(sq) */ i.product_id FROM order_items i WHERE i.quantity >= 3)",
@@ -778,14 +838,14 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Hash semijoin (i.product_id = p.product_id)  (cost=234 rows=607)\n    -> Table scan on p  (cost=3.25 rows=30)\n    -> Hash\n        -> Filter: (i.quantity >= 3)  (cost=38.7 rows=60.7)\n            -> Table scan on i  (cost=38.7 rows=182)\n"
+       "-> Nested loop semijoin  (cost=45.2 rows=65)\n    -> Table scan on p  (cost=3.25 rows=30)\n    -> Filter: (i.quantity >= 3)  (cost=1.64 rows=2.17)\n        -> Index lookup on i using idx_order_items_product (product_id=p.product_id)  (cost=1.64 rows=6.5)\n"
       ]
      ]
     }
    ],
    "measured": null
   },
-  "s20:d76cef562960": {
+  "s21:d76cef562960": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ SEMIJOIN(@sq MATERIALIZATION) */ p.product_id, p.name FROM products p\nWHERE p.product_id IN (SELECT /*+ QB_NAME(sq) */ i.product_id FROM order_items i WHERE i.quantity >= 3)",
@@ -803,7 +863,7 @@
    ],
    "measured": null
   },
-  "s21:64e3b1f06c95": {
+  "s22:64e3b1f06c95": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ SEMIJOIN(@sq DUPSWEEDOUT) */ p.product_id, p.name FROM products p\nWHERE p.product_id IN (SELECT /*+ QB_NAME(sq) */ i.product_id FROM order_items i WHERE i.quantity >= 3)",
@@ -821,7 +881,7 @@
    ],
    "measured": null
   },
-  "s22:b5a91ef8b5ce": {
+  "s23:b5a91ef8b5ce": {
    "statements": [
     {
      "sql": "EXPLAIN\nSELECT /*+ SEMIJOIN(@sq LOOSESCAN) */ p.product_id FROM products p\nWHERE p.product_id IN (SELECT /*+ QB_NAME(sq) */ i.product_id FROM order_items i)",
@@ -853,7 +913,7 @@
        "4",
        null,
        182,
-       0.55,
+       15.38,
        "Using index; LooseScan"
       ],
       [
@@ -882,7 +942,7 @@
    ],
    "measured": null
   },
-  "s23:622424a1b014": {
+  "s24:622424a1b014": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ SEMIJOIN(@sq LOOSESCAN) */ p.product_id FROM products p\nWHERE p.product_id IN (SELECT /*+ QB_NAME(sq) */ i.product_id FROM order_items i)",
@@ -893,14 +953,14 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Nested loop inner join  (cost=64.1 rows=182)\n    -> Remove duplicates from input sorted on idx_order_items_product  (cost=0.416 rows=182)\n        -> Index scan on i using idx_order_items_product  (cost=0.416 rows=182)\n    -> Single-row covering index lookup on p using PRIMARY (product_id=i.product_id)  (cost=45.6 rows=1)\n"
+       "-> Nested loop inner join  (cost=66.8 rows=182)\n    -> Remove duplicates from input sorted on idx_order_items_product  (cost=3.12 rows=182)\n        -> Index scan on i using idx_order_items_product  (cost=3.12 rows=182)\n    -> Single-row covering index lookup on p using PRIMARY (product_id=i.product_id)  (cost=45.6 rows=1)\n"
       ]
      ]
     }
    ],
    "measured": null
   },
-  "s24:a455cf1b232f": {
+  "s25:a455cf1b232f": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ SUBQUERY(@sq INTOEXISTS) */ p.product_id FROM products p\nWHERE p.product_id IN (SELECT /*+ QB_NAME(sq) */ i.product_id FROM order_items i WHERE i.quantity >= 3)",
@@ -911,14 +971,14 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Filter: <in_optimizer>(p.product_id,<exists>(select #2))  (cost=3.25 rows=30)\n    -> Index scan on p using idx_products_category  (cost=3.25 rows=30)\n    -> Select #2 (subquery in condition; dependent)\n        -> Limit: 1 row(s)  (cost=13 rows=1)\n            -> Filter: ((i.quantity >= 3) and (<cache>(p.product_id) = i.product_id))  (cost=13 rows=6.07)\n                -> Table scan on i  (cost=13 rows=182)\n"
+       "-> Filter: <in_optimizer>(p.product_id,<exists>(select #2))  (cost=3.25 rows=30)\n    -> Index scan on p using idx_products_category  (cost=3.25 rows=30)\n    -> Select #2 (subquery in condition; dependent)\n        -> Limit: 1 row(s)\n            -> Filter: (i.quantity >= 3)\n                -> Index lookup on i using idx_order_items_product (product_id=<cache>(p.product_id))  (cost=0.967 rows=6.5)\n"
       ]
      ]
     }
    ],
    "measured": null
   },
-  "s25:7caf233440c8": {
+  "s26:7caf233440c8": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT c.customer_id FROM customers c\nWHERE EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id AND o.order_date >= '2024-12-01')",
@@ -943,7 +1003,7 @@
    ],
    "measured": null
   },
-  "s26:a6cdaa475de4": {
+  "s27:a6cdaa475de4": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT DISTINCT c.customer_id FROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nWHERE o.order_date >= '2024-12-01'",
@@ -961,7 +1021,7 @@
    ],
    "measured": null
   },
-  "s27:d31e92f88d74": {
+  "s28:d31e92f88d74": {
    "statements": [
     {
      "sql": "SELECT COUNT(*) AS rows_from_join,\n       COUNT(DISTINCT c.customer_id) AS customers\nFROM customers c JOIN reviews r ON r.customer_id = c.customer_id",
@@ -981,7 +1041,7 @@
    ],
    "measured": null
   },
-  "s28:6e15fd3bcdc8": {
+  "s29:6e15fd3bcdc8": {
    "statements": [
     {
      "sql": "SELECT name FROM products\nWHERE product_id IN (SELECT product_id FROM order_items ORDER BY quantity DESC LIMIT 5)",
@@ -996,7 +1056,7 @@
    ],
    "measured": null
   },
-  "s29:e356fc03a827": {
+  "s30:e356fc03a827": {
    "statements": [
     {
      "sql": "SELECT COUNT(*) AS customers_flagged\nFROM customers c\nWHERE EXISTS (SELECT 1 FROM orders o WHERE o.order_date >= '2024-12-01')",

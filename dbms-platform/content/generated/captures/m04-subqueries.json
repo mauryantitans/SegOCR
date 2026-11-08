@@ -442,6 +442,48 @@
    ],
    "measured": null
   },
+  "s11:7d10c0023502": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE customers, orders, products, categories",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "lab_a47b968370de1aaf6acb.customers",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_a47b968370de1aaf6acb.orders",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_a47b968370de1aaf6acb.products",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_a47b968370de1aaf6acb.categories",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
   "w1.0:e77683655bb3": {
    "statements": [
     {
@@ -626,7 +668,7 @@
    ],
    "measured": null
   },
-  "s11:b2fd97773e9a": {
+  "s12:b2fd97773e9a": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT name, price FROM products WHERE price > (SELECT AVG(price) FROM products)",
@@ -644,7 +686,7 @@
    ],
    "measured": null
   },
-  "s12:b34261a16ee9": {
+  "s13:b34261a16ee9": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT * FROM (SELECT * FROM orders WHERE status = 'delivered') AS d\nWHERE d.customer_id = 18",
@@ -662,7 +704,7 @@
    ],
    "measured": null
   },
-  "s13:270351d57a8e": {
+  "s14:270351d57a8e": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ NO_MERGE(d) */ * FROM (SELECT * FROM orders WHERE status = 'delivered') AS d\nWHERE d.customer_id = 18",
@@ -680,7 +722,7 @@
    ],
    "measured": null
   },
-  "s14:57740fcc088b": {
+  "s15:57740fcc088b": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT * FROM (SELECT customer_id, COUNT(*) AS n FROM orders GROUP BY customer_id) AS t\nWHERE t.customer_id BETWEEN 18 AND 19",
@@ -698,7 +740,7 @@
    ],
    "measured": null
   },
-  "s15:405324afdfa7": {
+  "s16:405324afdfa7": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT c.customer_id, lo.order_id\nFROM customers c\nJOIN LATERAL (SELECT o.order_id FROM orders o WHERE o.customer_id = c.customer_id\n              ORDER BY o.order_date DESC LIMIT 1) AS lo ON TRUE",
@@ -723,7 +765,7 @@
    ],
    "measured": null
   },
-  "s16:5a7e9d9c6094": {
+  "s17:5a7e9d9c6094": {
    "statements": [
     {
      "sql": "SELECT ROUND(AVG(n_orders), 2) AS avg_orders_all_customers\nFROM (\n  SELECT c.customer_id, COUNT(o.order_id) AS n_orders\n  FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id\n  GROUP BY c.customer_id\n) AS per_customer",
@@ -741,7 +783,7 @@
    ],
    "measured": null
   },
-  "s17:f57c406c94db": {
+  "s18:f57c406c94db": {
    "statements": [
     {
      "sql": "SELECT name, price, ROUND(avg_price, 2) AS avg_price\nFROM (SELECT name, price, AVG(price) OVER () AS avg_price FROM products) AS w\nWHERE price > avg_price\nORDER BY price DESC\nLIMIT 5",
@@ -783,7 +825,7 @@
    ],
    "measured": null
   },
-  "s18:4a7a12ef92eb": {
+  "s19:4a7a12ef92eb": {
    "statements": [
     {
      "sql": "SELECT c.last_name,\n       (SELECT o.order_id FROM orders o WHERE o.customer_id = c.customer_id) AS order_id\nFROM customers c\nWHERE c.customer_id = 18",
@@ -801,7 +843,7 @@
    ],
    "measured": null
   },
-  "s19:4a4c46be56bf": {
+  "s20:4a4c46be56bf": {
    "statements": [
     {
      "sql": "SELECT name FROM products\nWHERE price = (SELECT price, cost FROM products WHERE product_id = 1)",
@@ -816,7 +858,7 @@
    ],
    "measured": null
   },
-  "s20:1f88f17fd1af": {
+  "s21:1f88f17fd1af": {
    "statements": [
     {
      "sql": "SELECT COUNT(*) FROM (SELECT customer_id FROM orders GROUP BY customer_id)",
@@ -831,7 +873,7 @@
    ],
    "measured": null
   },
-  "s21:4abf928423fc": {
+  "s22:4abf928423fc": {
    "statements": [
     {
      "sql": "UPDATE product_flags\nSET below_category_avg = 1\nWHERE price < (SELECT AVG(price) FROM product_flags)",
@@ -846,7 +888,7 @@
    ],
    "measured": null
   },
-  "s22:d6418a86fa8f": {
+  "s23:d6418a86fa8f": {
    "statements": [
     {
      "sql": "UPDATE product_flags\nSET below_category_avg = 1\nWHERE price < (SELECT avg_price FROM (SELECT AVG(price) AS avg_price FROM product_flags) AS a)",
@@ -872,7 +914,7 @@
    ],
    "measured": null
   },
-  "s23:43fc62d10a36": {
+  "s24:43fc62d10a36": {
    "statements": [
     {
      "sql": "SELECT c.customer_id, x.order_id\nFROM customers c\nJOIN (SELECT o.order_id FROM orders o WHERE o.customer_id = c.customer_id LIMIT 1) AS x ON TRUE",

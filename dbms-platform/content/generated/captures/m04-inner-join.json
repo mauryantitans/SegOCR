@@ -774,7 +774,49 @@
    ],
    "measured": null
   },
-  "s14:fdcb6bb8b035": {
+  "s14:282debee8f3e": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE j_customers, j_orders, customers, orders",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "lab_2753e02500b457798312.j_customers",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_2753e02500b457798312.j_orders",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_2753e02500b457798312.customers",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_2753e02500b457798312.orders",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:fdcb6bb8b035": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT c.name, o.order_id, o.amount\nFROM j_customers c JOIN j_orders o ON o.customer_id = c.customer_id",
@@ -792,7 +834,7 @@
    ],
    "measured": null
   },
-  "s15:88e90ba0db54": {
+  "s16:88e90ba0db54": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT c.name, o.order_id, o.amount\nFROM j_customers AS c IGNORE INDEX (PRIMARY)\nJOIN j_orders AS o ON o.customer_id = c.customer_id",
@@ -810,7 +852,7 @@
    ],
    "measured": null
   },
-  "s16:87845ceb5db4": {
+  "s17:87845ceb5db4": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ NO_BNL(c, o) */ c.name, o.order_id, o.amount\nFROM j_customers AS c IGNORE INDEX (PRIMARY)\nJOIN j_orders AS o ON o.customer_id = c.customer_id",
@@ -828,7 +870,7 @@
    ],
    "measured": null
   },
-  "s17:35b0a5ce2bd1": {
+  "s18:35b0a5ce2bd1": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT c.last_name, o.order_id\nFROM customers c JOIN orders o ON o.customer_id = c.customer_id",
@@ -846,7 +888,7 @@
    ],
    "measured": null
   },
-  "s18:5c2b881154a1": {
+  "s19:5c2b881154a1": {
    "statements": [
     {
      "sql": "SELECT c.name, COUNT(*) AS orders, SUM(o.amount) AS total\nFROM j_customers c JOIN j_orders o ON o.customer_id = c.customer_id\nGROUP BY c.customer_id, c.name\nORDER BY c.customer_id",
@@ -878,7 +920,7 @@
    ],
    "measured": null
   },
-  "s19:ebb4689eb14e": {
+  "s20:ebb4689eb14e": {
    "statements": [
     {
      "sql": "-- A: explicit inner join (preferred)\nSELECT o.order_id, c.last_name\nFROM orders o JOIN customers c ON c.customer_id = o.customer_id\nWHERE o.status = 'refunded'\nORDER BY o.order_id",
@@ -914,7 +956,7 @@
    ],
    "measured": null
   },
-  "s20:4129ed79309e": {
+  "s21:4129ed79309e": {
    "statements": [
     {
      "sql": "-- B: comma join with the predicate in WHERE (legacy SQL-89 style, same result)\nSELECT o.order_id, c.last_name\nFROM orders o, customers c\nWHERE c.customer_id = o.customer_id AND o.status = 'refunded'\nORDER BY o.order_id",
@@ -950,7 +992,7 @@
    ],
    "measured": null
   },
-  "s21:a834cb6a512c": {
+  "s22:a834cb6a512c": {
    "statements": [
     {
      "sql": "-- C: scalar subquery in the SELECT list (one lookup per order)\nSELECT o.order_id,\n       (SELECT c.last_name FROM customers c WHERE c.customer_id = o.customer_id) AS last_name\nFROM orders o\nWHERE o.status = 'refunded'\nORDER BY o.order_id",
@@ -986,7 +1028,7 @@
    ],
    "measured": null
   },
-  "s22:a4ffcb9d4725": {
+  "s23:a4ffcb9d4725": {
    "statements": [
     {
      "sql": "EXPLAIN ANALYZE\nSELECT c.state, COUNT(*) AS orders\nFROM customers c JOIN orders o ON o.customer_id = c.customer_id\nGROUP BY c.state",
@@ -997,15 +1039,15 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=0.131..0.131 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=0.13..0.13 rows=5 loops=1)\n        -> Nested loop inner join  (cost=36.2 rows=80) (actual time=0.0711..0.106 rows=80 loops=1)\n            -> Covering index scan on o using idx_orders_customer  (cost=8.25 rows=80) (actual time=0.0654..0.0734 rows=80 loops=1)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.251 rows=1) (actual time=242e-6..264e-6 rows=1 loops=80)\n"
+       "-> Table scan on <temporary>  (actual time=0.088..0.0886 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=0.0869..0.0869 rows=5 loops=1)\n        -> Nested loop inner join  (cost=36.2 rows=80) (actual time=0.0262..0.0645 rows=80 loops=1)\n            -> Covering index scan on o using idx_orders_customer  (cost=8.25 rows=80) (actual time=0.0186..0.028 rows=80 loops=1)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.251 rows=1) (actual time=287e-6..309e-6 rows=1 loops=80)\n"
       ]
      ],
-     "elapsed_ms": 1.14
+     "elapsed_ms": 0.98
     }
    ],
    "measured": true
   },
-  "s23:db8206ac5137": {
+  "s24:db8206ac5137": {
    "statements": [
     {
      "sql": "SELECT customer_id, order_id, last_name\nFROM orders JOIN customers ON customers.customer_id = orders.customer_id",
@@ -1020,7 +1062,7 @@
    ],
    "measured": null
   },
-  "s24:08e6f471031b": {
+  "s25:08e6f471031b": {
    "statements": [
     {
      "sql": "SELECT COUNT(*) AS accidental_cartesian_rows\nFROM orders JOIN customers",
@@ -1038,7 +1080,7 @@
    ],
    "measured": null
   },
-  "s25:8ffdc787a3bb": {
+  "s26:8ffdc787a3bb": {
    "statements": [
     {
      "sql": "SELECT orders.order_id, c.last_name\nFROM orders AS o JOIN customers AS c ON c.customer_id = o.customer_id",
@@ -1053,7 +1095,7 @@
    ],
    "measured": null
   },
-  "s26:efda177f7134": {
+  "s27:efda177f7134": {
    "statements": [
     {
      "sql": "SELECT COUNT(*) AS wrong_customer_count,\n       COUNT(DISTINCT c.customer_id) AS right_customer_count\nFROM customers c JOIN orders o ON o.customer_id = c.customer_id",

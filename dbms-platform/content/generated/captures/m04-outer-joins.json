@@ -749,7 +749,61 @@
    ],
    "measured": null
   },
-  "s15:30e741db03fe": {
+  "s15:1fda76745402": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE departments, employees, locations, jobs, j_depts, j_emps",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "lab_e97b531941850032d4ed.departments",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_e97b531941850032d4ed.employees",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_e97b531941850032d4ed.locations",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_e97b531941850032d4ed.jobs",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_e97b531941850032d4ed.j_depts",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_e97b531941850032d4ed.j_emps",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:30e741db03fe": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT d.name, e.employee_id\nFROM departments d LEFT JOIN employees e ON e.department_id = d.department_id",
@@ -767,7 +821,7 @@
    ],
    "measured": null
   },
-  "s16:8a63953bda8b": {
+  "s17:8a63953bda8b": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT d.name, e.employee_id\nFROM departments d LEFT JOIN employees e ON e.department_id = d.department_id\nWHERE e.salary >= 170000",
@@ -785,7 +839,7 @@
    ],
    "measured": null
   },
-  "s17:7ba0a1231527": {
+  "s18:7ba0a1231527": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT d.name\nFROM departments d LEFT JOIN employees e ON e.department_id = d.department_id\nWHERE e.employee_id IS NULL",
@@ -803,7 +857,7 @@
    ],
    "measured": null
   },
-  "s18:943009d3904b": {
+  "s19:943009d3904b": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT d.name, e.employee_id\nFROM employees e RIGHT JOIN departments d ON e.department_id = d.department_id",
@@ -821,7 +875,7 @@
    ],
    "measured": null
   },
-  "s19:b5215b9cd384": {
+  "s20:b5215b9cd384": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT d.name, e.employee_id\nFROM departments d\nLEFT JOIN employees e IGNORE INDEX (idx_employees_department)\n       ON e.department_id = d.department_id",
@@ -839,7 +893,7 @@
    ],
    "measured": null
   },
-  "s20:1ca71b12f1b9": {
+  "s21:1ca71b12f1b9": {
    "statements": [
     {
      "sql": "SELECT d.name,\n       CASE WHEN e.employee_id IS NULL THEN 'no match' ELSE 'matched' END AS match_status,\n       COUNT(e.employee_id) AS employees\nFROM departments d\nLEFT JOIN employees e ON e.department_id = d.department_id\nGROUP BY d.department_id, d.name, match_status\nORDER BY d.department_id",
@@ -891,7 +945,7 @@
    ],
    "measured": null
   },
-  "s21:e9a15e64945a": {
+  "s22:e9a15e64945a": {
    "statements": [
     {
      "sql": "-- A: LEFT JOIN anti-join\nSELECT d.name FROM departments d\nLEFT JOIN employees e ON e.department_id = d.department_id\nWHERE e.employee_id IS NULL",
@@ -909,7 +963,7 @@
    ],
    "measured": null
   },
-  "s22:a01d8d7fb6ff": {
+  "s23:a01d8d7fb6ff": {
    "statements": [
     {
      "sql": "-- B: NOT EXISTS (correlated subquery)\nSELECT d.name FROM departments d\nWHERE NOT EXISTS (SELECT 1 FROM employees e WHERE e.department_id = d.department_id)",
@@ -927,7 +981,7 @@
    ],
    "measured": null
   },
-  "s23:30d10017181c": {
+  "s24:30d10017181c": {
    "statements": [
     {
      "sql": "-- C: NOT IN — correct here only because the subquery filters out NULLs\nSELECT d.name FROM departments d\nWHERE d.department_id NOT IN (SELECT e.department_id FROM employees e WHERE e.department_id IS NOT NULL)",
@@ -945,7 +999,7 @@
    ],
    "measured": null
   },
-  "s24:fde40c56b13d": {
+  "s25:fde40c56b13d": {
    "statements": [
     {
      "sql": "-- Wrong: Research and any department without recent hires disappear\nSELECT d.name, COUNT(e.employee_id) AS hired_since_2020\nFROM departments d\nLEFT JOIN employees e ON e.department_id = d.department_id\nWHERE e.hire_date >= '2020-01-01'\nGROUP BY d.department_id, d.name\nORDER BY d.department_id",
@@ -981,7 +1035,7 @@
    ],
    "measured": null
   },
-  "s25:267186f3ed10": {
+  "s26:267186f3ed10": {
    "statements": [
     {
      "sql": "-- Correct: the date restricts what counts as a match\nSELECT d.name, COUNT(e.employee_id) AS hired_since_2020\nFROM departments d\nLEFT JOIN employees e ON e.department_id = d.department_id\n                     AND e.hire_date >= '2020-01-01'\nGROUP BY d.department_id, d.name\nORDER BY d.department_id",
@@ -1025,7 +1079,7 @@
    ],
    "measured": null
   },
-  "s26:f54cedcb9f1d": {
+  "s27:f54cedcb9f1d": {
    "statements": [
     {
      "sql": "SELECT d.name, e.first_name, j.title\nFROM departments d\nLEFT JOIN employees e ON e.department_id = d.department_id\nJOIN jobs j           ON j.job_id = e.job_id\nWHERE d.department_id IN (50, 70)\nORDER BY d.department_id, e.employee_id",
@@ -1057,7 +1111,7 @@
    ],
    "measured": null
   },
-  "s27:518f3cebc550": {
+  "s28:518f3cebc550": {
    "statements": [
     {
      "sql": "SELECT d.name, e.first_name\nFROM j_depts d FULL OUTER JOIN j_emps e ON e.department_id = d.department_id",
@@ -1072,7 +1126,7 @@
    ],
    "measured": null
   },
-  "s28:7130f7f5ee46": {
+  "s29:7130f7f5ee46": {
    "statements": [
     {
      "sql": "SELECT department_id, first_name\nFROM j_depts FULL JOIN j_emps USING (department_id)\nORDER BY department_id, employee_id",

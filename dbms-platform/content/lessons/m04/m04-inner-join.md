@@ -340,6 +340,12 @@ steps:
 
 ### What MySQL really does — nested loop with an index lookup
 
+Execution plans depend on **index statistics**. InnoDB computes them in the background after a table is loaded, so in a freshly reset lab they may not be settled yet and plans can vary from run to run. `ANALYZE TABLE` recomputes them now, which makes the plans below reproducible (statistics are covered in depth in Module 7):
+
+```sql run
+ANALYZE TABLE j_customers, j_orders, customers, orders;
+```
+
 Ask MySQL for the plan it actually executes:
 
 ```sql run

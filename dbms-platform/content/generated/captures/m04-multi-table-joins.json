@@ -452,7 +452,67 @@
    ],
    "measured": null
   },
-  "s10:40cc41c2b27d": {
+  "s10:fa1e60f9303a": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE customers, orders, order_items, products, categories, payments, price_bands",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "lab_b318b274fd4fe640bb01.customers",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_b318b274fd4fe640bb01.orders",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_b318b274fd4fe640bb01.order_items",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_b318b274fd4fe640bb01.products",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_b318b274fd4fe640bb01.categories",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_b318b274fd4fe640bb01.payments",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_b318b274fd4fe640bb01.price_bands",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:40cc41c2b27d": {
    "statements": [
     {
      "sql": "EXPLAIN\nSELECT c.state, SUM(oi.quantity * oi.unit_price) AS revenue\nFROM customers   AS c\nJOIN orders      AS o  ON o.customer_id  = c.customer_id\nJOIN order_items AS oi ON oi.order_id    = o.order_id\nJOIN products    AS p  ON p.product_id   = oi.product_id\nJOIN categories  AS ca ON ca.category_id = p.category_id\nWHERE ca.name = 'Coffee'\nGROUP BY c.state",
@@ -490,30 +550,30 @@
       [
        1,
        "SIMPLE",
-       "oi",
+       "p",
        null,
-       "ALL",
-       "PRIMARY,idx_order_items_product",
-       null,
-       null,
-       null,
-       182,
+       "ref",
+       "PRIMARY,idx_products_category",
+       "idx_products_category",
+       "5",
+       "const",
+       4,
        100.0,
-       null
+       "Using index"
       ],
       [
        1,
        "SIMPLE",
-       "p",
+       "oi",
        null,
-       "eq_ref",
-       "PRIMARY,idx_products_category",
-       "PRIMARY",
+       "ref",
+       "PRIMARY,idx_order_items_product",
+       "idx_order_items_product",
        "4",
-       "lab_b318b274fd4fe640bb01.oi.product_id",
-       1,
-       13.33,
-       "Using where"
+       "lab_b318b274fd4fe640bb01.p.product_id",
+       6,
+       100.0,
+       null
       ],
       [
        1,
@@ -548,14 +608,14 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_b318b274fd4fe640bb01`.`c`.`state` AS `state`,sum((`lab_b318b274fd4fe640bb01`.`oi`.`quantity` * `lab_b318b274fd4fe640bb01`.`oi`.`unit_price`)) AS `revenue` from `lab_b318b274fd4fe640bb01`.`customers` `c` join `lab_b318b274fd4fe640bb01`.`orders` `o` join `lab_b318b274fd4fe640bb01`.`order_items` `oi` join `lab_b318b274fd4fe640bb01`.`products` `p` join `lab_b318b274fd4fe640bb01`.`categories` `ca` where ((`lab_b318b274fd4fe640bb01`.`c`.`customer_id` = `lab_b318b274fd4fe640bb01`.`o`.`customer_id`) and (`lab_b318b274fd4fe640bb01`.`o`.`order_id` = `lab_b318b274fd4fe640bb01`.`oi`.`order_id`) and (`lab_b318b274fd4fe640bb01`.`p`.`product_id` = `lab_b318b274fd4fe640bb01`.`oi`.`product_id`) and (`lab_b318b274fd4fe640bb01`.`p`.`category_id` = '7')) group by `lab_b318b274fd4fe640bb01`.`c`.`state`"
+       "message": "/* select#1 */ select `lab_b318b274fd4fe640bb01`.`c`.`state` AS `state`,sum((`lab_b318b274fd4fe640bb01`.`oi`.`quantity` * `lab_b318b274fd4fe640bb01`.`oi`.`unit_price`)) AS `revenue` from `lab_b318b274fd4fe640bb01`.`customers` `c` join `lab_b318b274fd4fe640bb01`.`orders` `o` join `lab_b318b274fd4fe640bb01`.`order_items` `oi` join `lab_b318b274fd4fe640bb01`.`products` `p` join `lab_b318b274fd4fe640bb01`.`categories` `ca` where ((`lab_b318b274fd4fe640bb01`.`c`.`customer_id` = `lab_b318b274fd4fe640bb01`.`o`.`customer_id`) and (`lab_b318b274fd4fe640bb01`.`o`.`order_id` = `lab_b318b274fd4fe640bb01`.`oi`.`order_id`) and (`lab_b318b274fd4fe640bb01`.`oi`.`product_id` = `lab_b318b274fd4fe640bb01`.`p`.`product_id`) and (`lab_b318b274fd4fe640bb01`.`p`.`category_id` = '7')) group by `lab_b318b274fd4fe640bb01`.`c`.`state`"
       }
      ]
     }
    ],
    "measured": null
   },
-  "s11:c2ad1e122a90": {
+  "s12:c2ad1e122a90": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT c.state, SUM(oi.quantity * oi.unit_price) AS revenue\nFROM customers   AS c\nJOIN orders      AS o  ON o.customer_id  = c.customer_id\nJOIN order_items AS oi ON oi.order_id    = o.order_id\nJOIN products    AS p  ON p.product_id   = oi.product_id\nJOIN categories  AS ca ON ca.category_id = p.category_id\nWHERE ca.name = 'Coffee'\nGROUP BY c.state",
@@ -566,14 +626,14 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Nested loop inner join  (cost=99.1 rows=24.3)\n            -> Nested loop inner join  (cost=90.6 rows=24.3)\n                -> Nested loop inner join  (cost=82.2 rows=24.3)\n                    -> Table scan on oi  (cost=18.4 rows=182)\n                    -> Filter: (p.category_id = '7')  (cost=0.25 rows=0.133)\n                        -> Single-row index lookup on p using PRIMARY (product_id=oi.product_id)  (cost=0.25 rows=1)\n                -> Single-row index lookup on o using PRIMARY (order_id=oi.order_id)  (cost=0.254 rows=1)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.254 rows=1)\n"
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Nested loop inner join  (cost=24.5 rows=26)\n            -> Nested loop inner join  (cost=15.4 rows=26)\n                -> Nested loop inner join  (cost=6.25 rows=26)\n                    -> Covering index lookup on p using idx_products_category (category_id='7')  (cost=0.651 rows=4)\n                    -> Index lookup on oi using idx_order_items_product (product_id=p.product_id)  (cost=0.912 rows=6.5)\n                -> Single-row index lookup on o using PRIMARY (order_id=oi.order_id)  (cost=0.254 rows=1)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.254 rows=1)\n"
       ]
      ]
     }
    ],
    "measured": null
   },
-  "s12:a13d5a2c95ac": {
+  "s13:a13d5a2c95ac": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT STRAIGHT_JOIN c.state, SUM(oi.quantity * oi.unit_price) AS revenue\nFROM customers   AS c\nJOIN orders      AS o  ON o.customer_id  = c.customer_id\nJOIN order_items AS oi ON oi.order_id    = o.order_id\nJOIN products    AS p  ON p.product_id   = oi.product_id\nJOIN categories  AS ca ON ca.category_id = p.category_id\nWHERE ca.name = 'Coffee'\nGROUP BY c.state",
@@ -584,14 +644,14 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Nested loop inner join  (cost=5570 rows=1820)\n            -> Nested loop inner join  (cost=3705 rows=18200)\n                -> Inner hash join (oi.order_id = o.order_id)  (cost=1839 rows=18200)\n                    -> Table scan on oi  (cost=0.185 rows=182)\n                    -> Hash\n                        -> Nested loop inner join  (cost=19 rows=100)\n                            -> Table scan on c  (cost=2.75 rows=25)\n                            -> Covering index lookup on o using idx_orders_customer (customer_id=c.customer_id)  (cost=0.267 rows=4)\n                -> Filter: (p.category_id is not null)  (cost=0.00251 rows=1)\n                    -> Single-row index lookup on p using PRIMARY (product_id=oi.product_id)  (cost=0.00251 rows=1)\n            -> Filter: (ca.`name` = 'Coffee')  (cost=0.0025 rows=0.1)\n                -> Single-row index lookup on ca using PRIMARY (category_id=p.category_id)  (cost=0.0025 rows=1)\n"
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Nested loop inner join  (cost=251 rows=22.8)\n            -> Nested loop inner join  (cost=171 rows=228)\n                -> Nested loop inner join  (cost=91.8 rows=228)\n                    -> Nested loop inner join  (cost=19 rows=100)\n                        -> Table scan on c  (cost=2.75 rows=25)\n                        -> Covering index lookup on o using idx_orders_customer (customer_id=c.customer_id)  (cost=0.267 rows=4)\n                    -> Index lookup on oi using PRIMARY (order_id=o.order_id)  (cost=0.502 rows=2.28)\n                -> Filter: (p.category_id is not null)  (cost=0.25 rows=1)\n                    -> Single-row index lookup on p using PRIMARY (product_id=oi.product_id)  (cost=0.25 rows=1)\n            -> Filter: (ca.`name` = 'Coffee')  (cost=0.25 rows=0.1)\n                -> Single-row index lookup on ca using PRIMARY (category_id=p.category_id)  (cost=0.25 rows=1)\n"
       ]
      ]
     }
    ],
    "measured": null
   },
-  "s13:0970a45ca0d8": {
+  "s14:0970a45ca0d8": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ JOIN_ORDER(o, c) */ c.state, COUNT(*) AS orders\nFROM orders AS o JOIN customers AS c ON c.customer_id = o.customer_id\nGROUP BY c.state",
@@ -609,7 +669,7 @@
    ],
    "measured": null
   },
-  "s14:c3754c7b9f35": {
+  "s15:c3754c7b9f35": {
    "statements": [
     {
      "sql": "SELECT o.customer_id,\n       SUM((SELECT SUM(oi.quantity * oi.unit_price) FROM order_items oi WHERE oi.order_id = o.order_id)) AS item_revenue,\n       SUM((SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.order_id = o.order_id AND p.status = 'succeeded')) AS amount_paid\nFROM orders AS o\nWHERE o.customer_id IN (18, 19)\nGROUP BY o.customer_id\nORDER BY o.customer_id",
@@ -636,7 +696,7 @@
    ],
    "measured": null
   },
-  "s15:8be0d7f387f8": {
+  "s16:8be0d7f387f8": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT b.band, COUNT(*) FROM products p\nJOIN price_bands b ON p.price BETWEEN b.min_price AND b.max_price\nGROUP BY b.band",
@@ -654,7 +714,7 @@
    ],
    "measured": null
   },
-  "s16:3a3d8170c36a": {
+  "s17:3a3d8170c36a": {
    "statements": [
     {
      "sql": "SELECT SUM(amount)          AS true_total,\n       SUM(DISTINCT amount) AS sum_distinct_values\nFROM payments\nWHERE status = 'succeeded'",
@@ -674,7 +734,7 @@
    ],
    "measured": null
   },
-  "s17:fde47280eb0e": {
+  "s18:fde47280eb0e": {
    "statements": [
     {
      "sql": "SELECT o.order_id, p.name\nFROM orders AS o\nJOIN order_items AS oi ON oi.order_id = o.order_id AND p.is_active = 1\nJOIN products    AS p  ON p.product_id = oi.product_id",
@@ -689,7 +749,7 @@
    ],
    "measured": null
   },
-  "s18:37b741c1ad79": {
+  "s19:37b741c1ad79": {
    "statements": [
     {
      "sql": "SELECT (SELECT COUNT(*) FROM products) AS all_products,\n       COUNT(*) AS products_after_inner_join_to_categories\nFROM products p JOIN categories ca ON ca.category_id = p.category_id",

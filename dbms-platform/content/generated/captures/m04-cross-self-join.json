@@ -909,7 +909,43 @@
    ],
    "measured": null
   },
-  "s13:4ab96911b402": {
+  "s13:5868d63c5fe2": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE employees, colors, sizes",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "lab_6cc902c772ad1e769a52.employees",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_6cc902c772ad1e769a52.colors",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_6cc902c772ad1e769a52.sizes",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:4ab96911b402": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT c.color, s.size_code FROM colors c CROSS JOIN sizes s",
@@ -927,7 +963,7 @@
    ],
    "measured": null
   },
-  "s14:795bc74ca649": {
+  "s15:795bc74ca649": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT e.first_name, m.first_name AS manager\nFROM employees e JOIN employees m ON m.employee_id = e.manager_id",
@@ -945,7 +981,7 @@
    ],
    "measured": null
   },
-  "s15:df6b1f1cf657": {
+  "s16:df6b1f1cf657": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT m.first_name, e.first_name AS report\nFROM employees m JOIN employees e ON e.manager_id = m.employee_id\nWHERE m.employee_id = 104",
@@ -963,7 +999,7 @@
    ],
    "measured": null
   },
-  "s16:21b81af98aa8": {
+  "s17:21b81af98aa8": {
    "statements": [
     {
      "sql": "SELECT employee_id, effective_date, salary,\n       salary - LAG(salary) OVER (PARTITION BY employee_id ORDER BY effective_date) AS raise\nFROM salary_history\nWHERE employee_id = 108\nORDER BY effective_date",
@@ -1035,7 +1071,7 @@
    ],
    "measured": null
   },
-  "s17:d076c8e4bfb2": {
+  "s18:d076c8e4bfb2": {
    "statements": [
     {
      "sql": "SELECT employees.first_name, employees.first_name\nFROM employees JOIN employees ON employees.employee_id = employees.manager_id",
@@ -1050,7 +1086,7 @@
    ],
    "measured": null
   },
-  "s18:91bfd57790a2": {
+  "s19:91bfd57790a2": {
    "statements": [
     {
      "sql": "SELECT COUNT(*) AS rows_in_org_chart\nFROM employees e JOIN employees m ON m.employee_id = e.manager_id",
@@ -1068,7 +1104,7 @@
    ],
    "measured": null
   },
-  "s19:bc9812cec395": {
+  "s20:bc9812cec395": {
    "statements": [
     {
      "sql": "SELECT SUM(a.employee_id <> b.employee_id) AS with_not_equal,\n       SUM(a.employee_id <  b.employee_id) AS with_less_than\nFROM employees a JOIN employees b ON b.department_id = a.department_id",

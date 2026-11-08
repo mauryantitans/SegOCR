@@ -407,6 +407,42 @@
    ],
    "measured": null
   },
+  "s9:f0126e4adc72": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE employees, departments, salary_history",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "lab_3709f0028604e631a435.employees",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_3709f0028604e631a435.departments",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_3709f0028604e631a435.salary_history",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
   "w1.0:0e9586e6ea98": {
    "statements": [
     {
@@ -546,7 +582,7 @@
    ],
    "measured": null
   },
-  "s9:84ce2a3241fe": {
+  "s10:84ce2a3241fe": {
    "statements": [
     {
      "sql": "EXPLAIN ANALYZE\nSELECT e.employee_id, e.salary\nFROM employees e\nWHERE e.salary > (SELECT AVG(e2.salary) FROM employees e2 WHERE e2.department_id = e.department_id)",
@@ -557,7 +593,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Filter: (e.salary > (select #2))  (cost=3.25 rows=30) (actual time=0.0563..0.283 rows=11 loops=1)\n    -> Table scan on e  (cost=3.25 rows=30) (actual time=0.0292..0.0348 rows=30 loops=1)\n    -> Select #2 (subquery in condition; dependent)\n        -> Aggregate: avg(e2.salary)  (cost=0.85 rows=1) (actual time=0.00768..0.0077 rows=1 loops=30)\n            -> Filter: (e2.department_id = e.department_id)  (cost=0.55 rows=3) (actual time=0.00192..0.00702 rows=6.17 loops=30)\n                -> Table scan on e2  (cost=0.55 rows=30) (actual time=942e-6..0.00556 rows=30 loops=30)\n"
+       "-> Filter: (e.salary > (select #2))  (cost=3.25 rows=30) (actual time=0.0497..0.234 rows=11 loops=1)\n    -> Table scan on e  (cost=3.25 rows=30) (actual time=0.013..0.0203 rows=30 loops=1)\n    -> Select #2 (subquery in condition; dependent)\n        -> Aggregate: avg(e2.salary)  (cost=1.61 rows=1) (actual time=0.00586..0.00589 rows=1 loops=30)\n            -> Index lookup on e2 using idx_employees_department (department_id=e.department_id)  (cost=1.18 rows=4.29) (actual time=0.00319..0.00509 rows=6.17 loops=30)\n"
       ]
      ],
      "warnings": [
@@ -567,12 +603,12 @@
        "message": "Field or reference 'lab_3709f0028604e631a435.e.department_id' of SELECT #2 was resolved in SELECT #1"
       }
      ],
-     "elapsed_ms": 1.54
+     "elapsed_ms": 2.11
     }
    ],
    "measured": true
   },
-  "s10:5d5565a1f6ac": {
+  "s11:5d5565a1f6ac": {
    "statements": [
     {
      "sql": "SET SESSION optimizer_switch = 'subquery_to_derived=on'",
@@ -584,7 +620,7 @@
    ],
    "measured": null
   },
-  "s11:0430afddef84": {
+  "s12:0430afddef84": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT e.employee_id, e.salary\nFROM employees e\nWHERE e.salary > (SELECT AVG(e2.salary) FROM employees e2 WHERE e2.department_id = e.department_id)",
@@ -595,7 +631,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Filter: (e.salary > derived_1_2.`AVG(e2.salary)`)  (cost=12.1 rows=10)\n    -> Inner hash join (e.department_id = derived_1_2.department_id)  (cost=12.1 rows=10)\n        -> Table scan on e  (cost=0.0417 rows=30)\n        -> Hash\n            -> Table scan on derived_1_2  (cost=8.86..8.86 rows=1)\n                -> Materialize  (cost=6.35..6.35 rows=1)\n                    -> Group aggregate: avg(e2.salary)  (cost=6.25 rows=1)\n                        -> Index scan on e2 using idx_employees_department  (cost=3.25 rows=30)\n"
+       "-> Nested loop inner join  (cost=41.2 rows=42.9)\n    -> Filter: (derived_1_2.department_id is not null)  (cost=6.91..5.88 rows=30)\n        -> Table scan on derived_1_2  (cost=7.32..9.54 rows=7)\n            -> Materialize  (cost=6.95..6.95 rows=7)\n                -> Group aggregate: avg(e2.salary)  (cost=6.25 rows=7)\n                    -> Index scan on e2 using idx_employees_department  (cost=3.25 rows=30)\n    -> Filter: (e.salary > derived_1_2.`AVG(e2.salary)`)  (cost=0.755 rows=1.43)\n        -> Index lookup on e using idx_employees_department (department_id=derived_1_2.department_id)  (cost=0.755 rows=4.29)\n"
       ]
      ],
      "warnings": [
@@ -609,7 +645,7 @@
    ],
    "measured": null
   },
-  "s12:f585ba84641a": {
+  "s13:f585ba84641a": {
    "statements": [
     {
      "sql": "SELECT COUNT(*) AS above_department_average\nFROM employees e\nWHERE e.salary > (SELECT AVG(e2.salary) FROM employees e2 WHERE e2.department_id = e.department_id)",
@@ -627,7 +663,7 @@
    ],
    "measured": null
   },
-  "s13:104f2b525436": {
+  "s14:104f2b525436": {
    "statements": [
     {
      "sql": "EXPLAIN FORMAT=TREE\nSELECT e.employee_id,\n       (SELECT COUNT(*) FROM employees r WHERE r.manager_id = e.employee_id) AS direct_reports\nFROM employees e",
@@ -638,7 +674,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Nested loop left join  (cost=28.8 rows=30)\n    -> Index scan on e using idx_employees_department  (cost=3.25 rows=30)\n    -> Index lookup on derived_1_2 using <auto_key0> (manager_id=e.employee_id)  (cost=6.6..7.11 rows=3)\n        -> Materialize  (cost=6.35..6.35 rows=1)\n            -> Group aggregate: count(0)  (cost=6.25 rows=1)\n                -> Index scan on r using idx_employees_manager  (cost=3.25 rows=30)\n"
+       "-> Nested loop left join  (cost=52.8 rows=270)\n    -> Index scan on e using idx_employees_department  (cost=3.25 rows=30)\n    -> Index lookup on derived_1_2 using <auto_key0> (manager_id=e.employee_id)  (cost=7.4..7.91 rows=3)\n        -> Materialize  (cost=7.15..7.15 rows=9)\n            -> Group aggregate: count(0)  (cost=6.25 rows=9)\n                -> Index scan on r using idx_employees_manager  (cost=3.25 rows=30)\n"
       ]
      ],
      "warnings": [
@@ -652,7 +688,7 @@
    ],
    "measured": null
   },
-  "s14:d6862529b8fc": {
+  "s15:d6862529b8fc": {
    "statements": [
     {
      "sql": "SET SESSION optimizer_switch = 'subquery_to_derived=off'",
@@ -664,7 +700,7 @@
    ],
    "measured": null
   },
-  "s15:ea33457d609f": {
+  "s16:ea33457d609f": {
    "statements": [
     {
      "sql": "-- A: join with a pre-aggregated derived table (manual decorrelation)\nSELECT COUNT(*) AS n\nFROM employees e\nJOIN (SELECT department_id, AVG(salary) AS avg_sal\n      FROM employees GROUP BY department_id) AS d ON d.department_id = e.department_id\nWHERE e.salary > d.avg_sal",
@@ -682,7 +718,7 @@
    ],
    "measured": null
   },
-  "s16:784027216f13": {
+  "s17:784027216f13": {
    "statements": [
     {
      "sql": "-- B: window function — one pass, no second table access\nSELECT COUNT(*) AS n\nFROM (SELECT salary, AVG(salary) OVER (PARTITION BY department_id) AS avg_sal\n      FROM employees) AS w\nWHERE w.salary > w.avg_sal",
@@ -700,7 +736,7 @@
    ],
    "measured": null
   },
-  "s17:fd183f3c814a": {
+  "s18:fd183f3c814a": {
    "statements": [
     {
      "sql": "-- C: window function ranking (window functions are covered later in this module)\nSELECT department_id, employee_id, salary\nFROM (SELECT department_id, employee_id, salary,\n             RANK() OVER (PARTITION BY department_id ORDER BY salary DESC) AS rnk\n      FROM employees) AS r\nWHERE rnk <= 2\nORDER BY department_id, salary DESC",
@@ -777,7 +813,7 @@
    ],
    "measured": null
   },
-  "s18:171370c97fad": {
+  "s19:171370c97fad": {
    "statements": [
     {
      "sql": "SELECT d.department_id, d.name, top2.employee_id, top2.salary\nFROM departments AS d\nLEFT JOIN LATERAL (SELECT e.employee_id, e.salary\n                   FROM employees e\n                   WHERE e.department_id = d.department_id\n                   ORDER BY e.salary DESC, e.employee_id\n                   LIMIT 2) AS top2 ON TRUE\nORDER BY d.department_id, top2.salary DESC",
@@ -867,7 +903,7 @@
    ],
    "measured": null
   },
-  "s19:cc09da45897d": {
+  "s20:cc09da45897d": {
    "statements": [
     {
      "sql": "-- Intended: above own department average. Actual: e2.department_id = e2.department_id (always true unless NULL)\nSELECT COUNT(*) AS n\nFROM employees e\nWHERE e.salary > (SELECT AVG(e2.salary) FROM employees e2 WHERE e2.department_id = department_id)",
@@ -885,7 +921,7 @@
    ],
    "measured": null
   },
-  "s20:02acd1ed856e": {
+  "s21:02acd1ed856e": {
    "statements": [
     {
      "sql": "SELECT d.name,\n       (SELECT e.first_name FROM employees e WHERE e.department_id = d.department_id) AS employee\nFROM departments d",

@@ -274,6 +274,12 @@ LIMIT 5;
 
 ## Execution Walkthrough
 
+Execution plans depend on **index statistics**. InnoDB computes them in the background after a table is loaded, so in a freshly reset lab they may not be settled yet and plans can vary from run to run. `ANALYZE TABLE` recomputes them now, which makes the plans below reproducible (statistics are covered in depth in Module 7):
+
+```sql run
+ANALYZE TABLE customers, orders, products, categories;
+```
+
 Trace a derived-table query layer by layer: "average and maximum orders per ordering customer".
 
 ```walkthrough

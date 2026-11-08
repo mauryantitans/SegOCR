@@ -320,6 +320,12 @@ steps:
 
 ### Reading a multi-table plan
 
+Execution plans depend on **index statistics**. InnoDB computes them in the background after a table is loaded, so in a freshly reset lab they may not be settled yet and plans can vary from run to run. `ANALYZE TABLE` recomputes them now, which makes the plans below reproducible (statistics are covered in depth in Module 7):
+
+```sql run
+ANALYZE TABLE customers, orders, order_items, products, categories, payments, price_bands;
+```
+
 Traditional `EXPLAIN` lists one row per table **in join order** — the first row drives, each following row is joined to everything above it:
 
 ```sql run

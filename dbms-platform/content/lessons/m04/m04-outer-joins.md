@@ -353,6 +353,12 @@ steps:
 
 ### What the optimizer does with each form
 
+Execution plans depend on **index statistics**. InnoDB computes them in the background after a table is loaded, so in a freshly reset lab they may not be settled yet and plans can vary from run to run. `ANALYZE TABLE` recomputes them now, which makes the plans below reproducible (statistics are covered in depth in Module 7):
+
+```sql run
+ANALYZE TABLE departments, employees, locations, jobs, j_depts, j_emps;
+```
+
 The plain left join is executed as a nested loop left join, driving from the preserved table and using the index on `employees.department_id` for the inner lookups:
 
 ```sql run
