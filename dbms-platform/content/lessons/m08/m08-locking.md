@@ -357,7 +357,7 @@ steps:
 
 The first snapshot is surprising: A and B each modified a row, yet the only locks listed are their two `IX` table locks. The new rows are protected by **implicit** locks — their `DB_TRX_ID` — which `data_locks` cannot list. When C requested an S lock on record 12, InnoDB converted A's implicit lock into an explicit `X,REC_NOT_GAP` lock on 12 and queued C's `S,REC_NOT_GAP` request behind it.
 
-Read the second snapshot carefully: the converted `X,REC_NOT_GAP` lock is labelled with session **C**, because `data_locks` reports the thread that *created* the lock structure — C's thread performed the conversion. The transaction columns tell the truth: A's `lockStructs` rose from 1 to 2 and its `rowsLocked` from 0 to 1, so the lock belongs to A's transaction. When diagnosing real systems, join `data_locks` on `ENGINE_TRANSACTION_ID` (and use `data_lock_waits` / `sys.innodb_lock_waits` for who-blocks-whom) rather than trusting `THREAD_ID` alone.
+Read the second snapshot carefully: the converted `X,REC_NOT_GAP` lock is listed under session **A** — the snapshot attributes locks to the transaction that owns them (`ENGINE_TRANSACTION_ID`) — with a note that it was reported *via C's thread*. Raw `performance_schema.data_locks` puts C's thread in `THREAD_ID`, because that column names the thread that *created* the lock structure, and C's thread performed the conversion. The transaction columns confirm the owner: A's `lockStructs` rose from 1 to 2 and its `rowsLocked` from 0 to 1. When diagnosing real systems, join `data_locks` on `ENGINE_TRANSACTION_ID` (and use `data_lock_waits` / `sys.innodb_lock_waits` for who-blocks-whom) rather than trusting `THREAD_ID` alone.
 
 ### 7. Metadata locks — the ALTER TABLE pile-up
 
@@ -461,7 +461,7 @@ steps:
 - **Gap locks** (Example 3): two transactions held `X,GAP` on the gap before 20 simultaneously; the insert of 12 waited for both to finish.
 - **Next-key locks** (Example 4): `X` on 20 plus `X,GAP` on 30; insert of 25 waited with `X,GAP,INSERT_INTENTION`; record 30 and inserts of 35 and 5 were unaffected.
 - **Secondary index** (Example 5): locks on `idx_k` (`20, 20` next-key, `30, 30` gap) and on `PRIMARY` 20; insert of k = 15 waited, k = 5 and k = 35 did not.
-- **Implicit locks** (Example 6): no record locks listed after two inserts; a conflicting request materialised A's lock (displayed under the converting session's thread).
+- **Implicit locks** (Example 6): no record locks listed after two inserts; a conflicting request materialised A's lock (owned by A's transaction, but reported in `data_locks.THREAD_ID` under the converting session's thread).
 - **Metadata locks** (Example 7): no InnoDB locks, but an `ALTER TABLE` and a subsequent `SELECT` both waited for an idle open transaction.
 - **SKIP LOCKED / NOWAIT** (Example 8): two workers claimed disjoint jobs; `NOWAIT` returned error 3572 immediately.
 

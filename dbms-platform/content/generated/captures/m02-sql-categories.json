@@ -1,0 +1,819 @@
+{
+ "doc": "m02-sql-categories",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:3987502bed24": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE audit_log (\n  id  INT PRIMARY KEY,\n  msg VARCHAR(40) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Com_create_table'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Com_create_table",
+       "1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:86e85929b8a7": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO audit_log VALUES (1, 'inserted inside the transaction')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE helper (x INT)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- DDL: implicit COMMIT happens here\nROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- nothing left to roll back\nSELECT * FROM audit_log",
+     "status": "ok",
+     "columns": [
+      "id",
+      "msg"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "inserted inside the transaction"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:67a3e316916d": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO audit_log VALUES (2, 'will be rolled back')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE audit_log SET msg = 'changed' WHERE id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM audit_log",
+     "status": "ok",
+     "columns": [
+      "id",
+      "msg"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "inserted inside the transaction"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:9ae6f9a81326": {
+   "statements": [
+    {
+     "sql": "SHOW GRANTS",
+     "status": "ok",
+     "columns": [
+      "Grants for lab_14320c1f7d591ed053c1@localhost"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "GRANT USAGE ON *.* TO `your_lab`@`localhost`"
+      ],
+      [
+       "GRANT ALL PRIVILEGES ON `your_lab`.* TO `your_lab`@`localhost`"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:498cd228b320": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE scratch_rows (id INT PRIMARY KEY)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO scratch_rows VALUES (1), (2), (3)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM scratch_rows",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "rows": []
+    },
+    {
+     "sql": "-- DML: undoable\nROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS after_delete_rollback FROM scratch_rows",
+     "status": "ok",
+     "columns": [
+      "after_delete_rollback"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:678d0d7e0859": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "TRUNCATE TABLE scratch_rows",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- DDL: implicit commit, drops and recreates the table\nROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS after_truncate_rollback FROM scratch_rows",
+     "status": "ok",
+     "columns": [
+      "after_truncate_rollback"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:4a5d7b3186ca": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO audit_log VALUES (10, 'step 1')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SAVEPOINT after_step_1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO audit_log VALUES (11, 'step 2 - will be undone')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK TO SAVEPOINT after_step_1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO audit_log VALUES (12, 'step 2 retried')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM audit_log WHERE id >= 10 ORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "msg"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       10,
+       "step 1"
+      ],
+      [
+       12,
+       "step 2 retried"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:6f2d572b8cdb": {
+   "statements": [
+    {
+     "sql": "SET SESSION autocommit = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO audit_log VALUES (20, 'not committed yet')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION autocommit = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS row_20_exists FROM audit_log WHERE id = 20",
+     "status": "ok",
+     "columns": [
+      "row_20_exists"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:63886af276c7": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO audit_log VALUES (30, 'first transaction')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- implicit COMMIT of the first transaction\nROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- rolls back the (empty) second one\nSELECT COUNT(*) AS row_30_exists FROM audit_log WHERE id = 30",
+     "status": "ok",
+     "columns": [
+      "row_30_exists"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:36b6ece74f76": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO audit_log VALUES (40, 'should disappear')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TEMPORARY TABLE tmp_work (x INT)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1751,
+       "message": "The creation of some temporary tables could not be rolled back."
+      }
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS row_40_exists FROM audit_log WHERE id = 40",
+     "status": "ok",
+     "columns": [
+      "row_40_exists"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:bebad982a94c": {
+   "statements": [
+    {
+     "sql": "DROP TABLE scratch_rows, table_that_does_not_exist",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1051,
+      "message": "Unknown table 'table_that_does_not_exist'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s13:40f11dc31fd9": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME FROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'scratch_rows'",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "scratch_rows"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:bffb2b475f8f": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE price_change (sku VARCHAR(10) PRIMARY KEY, new_price DECIMAL(8,2))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO price_change VALUES ('A-1', 10.00), ('B-2', 20.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM price_change ORDER BY sku",
+     "status": "ok",
+     "columns": [
+      "sku",
+      "new_price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "A-1",
+       "10.00"
+      ],
+      [
+       "B-2",
+       "20.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:e5ee34b04e9b": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE price_change SET new_price = 11.00 WHERE sku = 'A-1'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM price_change ORDER BY sku",
+     "status": "ok",
+     "columns": [
+      "sku",
+      "new_price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "A-1",
+       "11.00"
+      ],
+      [
+       "B-2",
+       "20.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:1479617e0400": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE price_change ADD COLUMN reason VARCHAR(30) NULL",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:d7177ff3841a": {
+   "statements": [
+    {
+     "sql": "UPDATE price_change SET new_price = 21.00, reason = 'supplier' WHERE sku = 'B-2'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:730de1d8b567": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM price_change ORDER BY sku",
+     "status": "ok",
+     "columns": [
+      "sku",
+      "new_price",
+      "reason"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "A-1",
+       "11.00",
+       null
+      ],
+      [
+       "B-2",
+       "21.00",
+       "supplier"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:14dc5520edc6": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE important_copy AS SELECT customer_id, email FROM customers",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "info": "Records: 25  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "DROP TABLE important_copy",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS tables_named_important_copy\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'important_copy'",
+     "status": "ok",
+     "columns": [
+      "tables_named_important_copy"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:5421181535d8": {
+   "statements": [
+    {
+     "sql": "SELECT 'Ada' || ' Lovelace' AS what_you_expected",
+     "status": "ok",
+     "columns": [
+      "what_you_expected"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'|| as a synonym for OR' is deprecated and will be removed in a future release. Please use OR instead"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'Ada'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: ' Lovelace'"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:1bce2d9bf879": {
+   "statements": [
+    {
+     "sql": "SET SESSION sql_mode = CONCAT(@@SESSION.sql_mode, ',PIPES_AS_CONCAT')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT 'Ada' || ' Lovelace' AS with_pipes_as_concat, CONCAT('Ada', ' Lovelace') AS portable_in_mysql",
+     "status": "ok",
+     "columns": [
+      "with_pipes_as_concat",
+      "portable_in_mysql"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Ada Lovelace",
+       "Ada Lovelace"
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION sql_mode = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s17:0f76f5180ed1": {
+   "statements": [
+    {
+     "sql": "SELECT \"email\" AS double_quoted, `email` AS backtick_quoted\nFROM customers ORDER BY customer_id LIMIT 3",
+     "status": "ok",
+     "columns": [
+      "double_quoted",
+      "backtick_quoted"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "email",
+       "amara.sharma1@example.com"
+      ],
+      [
+       "email",
+       "kwame.garcia2@example.com"
+      ],
+      [
+       "email",
+       "diego.haddad3@example.com"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:451951b99ece": {
+   "statements": [
+    {
+     "sql": "SELECT order_id FROM orders ORDER BY order_id FETCH FIRST 3 ROWS ONLY",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FETCH FIRST 3 ROWS ONLY' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s19:4784c23b11a5": {
+   "statements": [
+    {
+     "sql": "SELECT order_id FROM orders ORDER BY order_id LIMIT 3",
+     "status": "ok",
+     "columns": [
+      "order_id"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1
+      ],
+      [
+       2
+      ],
+      [
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

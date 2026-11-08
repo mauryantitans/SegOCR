@@ -1,0 +1,520 @@
+{
+ "doc": "m01-cap-theorem",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:6bb104e3b22c": {
+   "statements": [
+    {
+     "sql": "SELECT @@server_id               AS server_id,\n       @@read_only               AS read_only,\n       @@super_read_only         AS super_read_only,\n       @@gtid_mode               AS gtid_mode,\n       @@enforce_gtid_consistency AS enforce_gtid_consistency,\n       @@binlog_format           AS binlog_format",
+     "status": "ok",
+     "columns": [
+      "server_id",
+      "read_only",
+      "super_read_only",
+      "gtid_mode",
+      "enforce_gtid_consistency",
+      "binlog_format"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       0,
+       0,
+       "OFF",
+       "OFF",
+       "ROW"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'@@binlog_format' is deprecated and will be removed in a future release."
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:712c6429d6ea": {
+   "statements": [
+    {
+     "sql": "SHOW VARIABLES LIKE 'group_replication_consistency'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "group_replication_consistency",
+       "EVENTUAL"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:6b7e81484f96": {
+   "statements": [
+    {
+     "sql": "SELECT GTID_SUBSET('3e11fa47-71ca-11e1-9e33-c80aa9429562:1-1042',\n                   '3e11fa47-71ca-11e1-9e33-c80aa9429562:1-1050') AS replica_has_my_write,\n       GTID_SUBSET('3e11fa47-71ca-11e1-9e33-c80aa9429562:1-1042',\n                   '3e11fa47-71ca-11e1-9e33-c80aa9429562:1-1037') AS lagging_replica_has_it,\n       GTID_SUBTRACT('3e11fa47-71ca-11e1-9e33-c80aa9429562:1-1042',\n                     '3e11fa47-71ca-11e1-9e33-c80aa9429562:1-1037') AS missing_on_lagging_replica",
+     "status": "ok",
+     "columns": [
+      "replica_has_my_write",
+      "lagging_replica_has_it",
+      "missing_on_lagging_replica"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       0,
+       "3e11fa47-71ca-11e1-9e33-c80aa9429562:1038-1042"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:9028fea1a12f": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE repl_log (\n  seq         INT PRIMARY KEY,                 -- like the GTID sequence number\n  account_id  INT UNSIGNED NOT NULL,\n  new_balance DECIMAL(14,2) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE replica_accounts (account_id INT UNSIGNED PRIMARY KEY, balance DECIMAL(14,2) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO replica_accounts SELECT account_id, balance FROM accounts",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "info": "Records: 25  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE replica_state (id TINYINT PRIMARY KEY, applied_seq INT NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO replica_state VALUES (1, 0)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS replica_rows, (SELECT applied_seq FROM replica_state) AS applied_seq FROM replica_accounts",
+     "status": "ok",
+     "columns": [
+      "replica_rows",
+      "applied_seq"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:8095b8d3a2c9": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance - 200.00 WHERE account_id = 3",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance + 200.00 WHERE account_id = 4",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO repl_log SELECT 1, account_id, balance FROM accounts WHERE account_id = 3",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO repl_log SELECT 2, account_id, balance FROM accounts WHERE account_id = 4",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance + 500.00 WHERE account_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO repl_log SELECT 3, account_id, balance FROM accounts WHERE account_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT seq, account_id, new_balance FROM repl_log ORDER BY seq",
+     "status": "ok",
+     "columns": [
+      "seq",
+      "account_id",
+      "new_balance"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       3,
+       "10032.88"
+      ],
+      [
+       2,
+       4,
+       "8146.37"
+      ],
+      [
+       3,
+       1,
+       "992.57"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:715979f911be": {
+   "statements": [
+    {
+     "sql": "SELECT p.account_id, p.balance AS primary_balance, r.balance AS replica_balance,\n       p.balance <> r.balance AS stale\nFROM accounts AS p JOIN replica_accounts AS r ON r.account_id = p.account_id\nWHERE p.account_id IN (1, 3, 4)\nORDER BY p.account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "primary_balance",
+      "replica_balance",
+      "stale"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "992.57",
+       "492.57",
+       1
+      ],
+      [
+       3,
+       "10032.88",
+       "10232.88",
+       1
+      ],
+      [
+       4,
+       "8146.37",
+       "7946.37",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:131f138e2ef3": {
+   "statements": [
+    {
+     "sql": "UPDATE replica_accounts AS r\nJOIN repl_log AS l ON l.account_id = r.account_id\nSET r.balance = l.new_balance\nWHERE l.seq <= 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Rows matched: 2  Changed: 2  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE replica_state SET applied_seq = 2 WHERE id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT p.account_id, p.balance AS primary_balance, r.balance AS replica_balance,\n       p.balance <> r.balance AS stale\nFROM accounts AS p JOIN replica_accounts AS r ON r.account_id = p.account_id\nWHERE p.account_id IN (1, 3, 4)\nORDER BY p.account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "primary_balance",
+      "replica_balance",
+      "stale"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "992.57",
+       "492.57",
+       1
+      ],
+      [
+       3,
+       "10032.88",
+       "10032.88",
+       0
+      ],
+      [
+       4,
+       "8146.37",
+       "8146.37",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:61788748e327": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE client_sessions (session_name VARCHAR(20) PRIMARY KEY, last_write_seq INT NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO client_sessions VALUES ('teller-a', 2), ('mobile-b', 3), ('reporting', 0)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT c.session_name, c.last_write_seq, s.applied_seq,\n       CASE WHEN s.applied_seq >= c.last_write_seq THEN 'replica' ELSE 'primary' END AS route_reads_to\nFROM client_sessions AS c CROSS JOIN replica_state AS s\nORDER BY c.session_name",
+     "status": "ok",
+     "columns": [
+      "session_name",
+      "last_write_seq",
+      "applied_seq",
+      "route_reads_to"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "mobile-b",
+       3,
+       2,
+       "primary"
+      ],
+      [
+       "reporting",
+       0,
+       2,
+       "replica"
+      ],
+      [
+       "teller-a",
+       2,
+       2,
+       "replica"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:c4407ee742ed": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE gr_members (member VARCHAR(10) PRIMARY KEY, dc VARCHAR(10) NOT NULL, side CHAR(1) NOT NULL, role VARCHAR(10) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO gr_members VALUES\n  ('db1','east','X','PRIMARY'), ('db2','east','X','SECONDARY'), ('db3','east','X','SECONDARY'),\n  ('db4','west','Y','SECONDARY'), ('db5','west','Y','SECONDARY')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT member, dc, role FROM gr_members ORDER BY member",
+     "status": "ok",
+     "columns": [
+      "member",
+      "dc",
+      "role"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "db1",
+       "east",
+       "PRIMARY"
+      ],
+      [
+       "db2",
+       "east",
+       "SECONDARY"
+      ],
+      [
+       "db3",
+       "east",
+       "SECONDARY"
+      ],
+      [
+       "db4",
+       "west",
+       "SECONDARY"
+      ],
+      [
+       "db5",
+       "west",
+       "SECONDARY"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:4b2a01f7ad62": {
+   "statements": [
+    {
+     "sql": "SELECT side, COUNT(*) AS reachable_members,\n       (SELECT COUNT(*) FROM gr_members) AS configured_members,\n       COUNT(*) > (SELECT COUNT(*) FROM gr_members) / 2 AS has_quorum\nFROM gr_members\nGROUP BY side\nORDER BY side",
+     "status": "ok",
+     "columns": [
+      "side",
+      "reachable_members",
+      "configured_members",
+      "has_quorum"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "X",
+       3,
+       5,
+       1
+      ],
+      [
+       "Y",
+       2,
+       5,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:3ebec16c0d61": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT MAX(seq) FROM repl_log)                      AS primary_last_seq,\n       (SELECT applied_seq FROM replica_state)              AS replica_applied_seq,\n       (SELECT MAX(seq) FROM repl_log) - (SELECT applied_seq FROM replica_state) AS lag_in_transactions,\n       (SELECT GROUP_CONCAT(p.account_id ORDER BY p.account_id)\n        FROM accounts AS p JOIN replica_accounts AS r ON r.account_id = p.account_id\n        WHERE p.balance <> r.balance)                       AS stale_accounts",
+     "status": "ok",
+     "columns": [
+      "primary_last_seq",
+      "replica_applied_seq",
+      "lag_in_transactions",
+      "stale_accounts"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3,
+       2,
+       1,
+       "1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:77122d521aaf": {
+   "statements": [
+    {
+     "sql": "-- The mobile session deposited into account 1 (seq 3) and now reads from the replica\nSELECT r.balance AS balance_shown_to_user, p.balance AS actual_balance\nFROM replica_accounts AS r JOIN accounts AS p ON p.account_id = r.account_id\nWHERE r.account_id = 1",
+     "status": "ok",
+     "columns": [
+      "balance_shown_to_user",
+      "actual_balance"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "492.57",
+       "992.57"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

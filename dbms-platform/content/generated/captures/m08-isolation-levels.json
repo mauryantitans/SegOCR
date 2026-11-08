@@ -576,8 +576,8 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "A",
-        "trxId": "421279494828840",
+        "session": "B",
+        "trxId": "421279494829648",
         "state": "RUNNING",
         "isolation": "SERIALIZABLE",
         "rowsLocked": 5,
@@ -585,8 +585,8 @@
         "lockStructs": 4
        },
        {
-        "session": "B",
-        "trxId": "421279494829648",
+        "session": "A",
+        "trxId": "421279494828840",
         "state": "RUNNING",
         "isolation": "SERIALIZABLE",
         "rowsLocked": 5,
@@ -825,7 +825,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "193803",
+        "trxId": "206180",
         "state": "RUNNING",
         "isolation": "READ COMMITTED",
         "rowsLocked": 5,
@@ -988,7 +988,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "193913",
+        "trxId": "206286",
         "state": "RUNNING",
         "isolation": "READ COMMITTED",
         "rowsLocked": 1,

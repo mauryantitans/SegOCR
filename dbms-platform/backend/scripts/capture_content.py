@@ -197,9 +197,24 @@ def capture_concurrency(m, doc_id: str, seg: dict, default_ds: str) -> tuple[dic
     steps_out: list[dict] = []
     pending: dict[str, int] = {}
     label = f"concurrency {seg['id']}"
+    pos = {}  # step index -> position in steps_out
+
+    def collect_pending(after_step: int):
+        for s2, idx in list(pending.items()):
+            done = m.poll(OWNER, lab, s2)
+            if done:
+                final = done[-1].to_dict()
+                out = steps_out[pos[idx]]
+                out["statements"][-1] = trim_statement(final, False)
+                out["completedAfterStep"] = after_step
+                out["finalStatus"] = "error" if final["status"] == "error" else "ok"
+                del pending[s2]
+
     try:
         for k, st in enumerate(seg["steps"]):
             if st.get("observe"):
+                time.sleep(0.4)
+                collect_pending(k - 1)  # a blocked statement may have finished (or failed) since the last step
                 steps_out.append({"step": k, "observe": "locks", "status": "ok", "snapshot": m.inspect_locks(OWNER, lab)})
                 continue
             sess = st["session"]
@@ -215,18 +230,11 @@ def capture_concurrency(m, doc_id: str, seg: dict, default_ds: str) -> tuple[dic
                 status = "error"
             else:
                 status = "ok"
+            pos[k] = len(steps_out)
             steps_out.append({"step": k, "session": sess, "status": status,
                               "statements": [trim_statement(s, False) for s in sts]})
             time.sleep(0.4)
-            for s2, idx in list(pending.items()):
-                done = m.poll(OWNER, lab, s2)
-                if done:
-                    final = done[-1].to_dict()
-                    out = steps_out[idx]
-                    out["statements"][-1] = trim_statement(final, False)
-                    out["completedAfterStep"] = k
-                    out["finalStatus"] = "error" if final["status"] == "error" else "ok"
-                    del pending[s2]
+            collect_pending(k)
         # expectations
         for out in steps_out:
             st = seg["steps"][out["step"]]

@@ -23,7 +23,7 @@ export default function LockTable({ snap }: { snap: LockSnapshot }) {
             <tbody>{snap.locks.map((l, i) => (
               <tr key={i} className={clsx(l.status === "WAITING" && "bg-amber-500/10")}>
                 <td className={clsx("pr-3 font-semibold", SESSION_COLOR[l.session])}>{l.session}</td><td className="pr-3">{l.table}</td><td className="pr-3">{l.index ?? "—"}</td>
-                <td className="pr-3">{l.lockType}</td><td className="pr-3 text-sky-200">{l.lockMode}</td>
+                <td className="pr-3">{l.lockType}{l.reportedByThreadOf && <span className="ml-1 text-[10px] text-slate-500" title="performance_schema.data_locks.THREAD_ID names this session's thread: it converted the owner's implicit lock">(via {l.reportedByThreadOf}'s thread)</span>}</td><td className="pr-3 text-sky-200">{l.lockMode}</td>
                 <td className={clsx("pr-3", l.status === "WAITING" ? "text-amber-300" : "text-emerald-300")}>{l.status}</td><td>{l.lockData ?? "—"}</td></tr>
             ))}</tbody>
           </table>

@@ -162,7 +162,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "195332",
+        "trxId": "207489",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -346,17 +346,8 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "A",
-        "trxId": "421279494828840",
-        "state": "RUNNING",
-        "isolation": "REPEATABLE READ",
-        "rowsLocked": 1,
-        "rowsModified": 0,
-        "lockStructs": 2
-       },
-       {
         "session": "C",
-        "trxId": "195376",
+        "trxId": "207532",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -366,6 +357,15 @@
        {
         "session": "B",
         "trxId": "421279494829648",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "A",
+        "trxId": "421279494828840",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -536,8 +536,17 @@
      "snapshot": {
       "transactions": [
        {
+        "session": "B",
+        "trxId": "207577",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
         "session": "C",
-        "trxId": "195419",
+        "trxId": "207575",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -546,17 +555,8 @@
        },
        {
         "session": "A",
-        "trxId": "195417",
+        "trxId": "207573",
         "state": "RUNNING",
-        "isolation": "REPEATABLE READ",
-        "rowsLocked": 1,
-        "rowsModified": 0,
-        "lockStructs": 2
-       },
-       {
-        "session": "B",
-        "trxId": "195422",
-        "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
         "rowsModified": 0,
@@ -642,18 +642,18 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "C",
-        "trxId": "195419",
-        "state": "RUNNING",
+        "session": "B",
+        "trxId": "207577",
+        "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
         "rowsModified": 0,
         "lockStructs": 2
        },
        {
-        "session": "B",
-        "trxId": "195422",
-        "state": "LOCK WAIT",
+        "session": "C",
+        "trxId": "207575",
+        "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
         "rowsModified": 0,
@@ -841,7 +841,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "195464",
+        "trxId": "207620",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 2,
@@ -850,7 +850,7 @@
        },
        {
         "session": "B",
-        "trxId": "195472",
+        "trxId": "207628",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -964,7 +964,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "195512",
+        "trxId": "208272",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 3,
@@ -1057,7 +1057,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "195512",
+        "trxId": "208272",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 3,
@@ -1066,7 +1066,7 @@
        },
        {
         "session": "B",
-        "trxId": "195518",
+        "trxId": "208278",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -1199,8 +1199,8 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "A",
-        "trxId": "195558",
+        "session": "B",
+        "trxId": "208316",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 0,
@@ -1208,8 +1208,8 @@
         "lockStructs": 1
        },
        {
-        "session": "B",
-        "trxId": "195561",
+        "session": "A",
+        "trxId": "208314",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 0,
@@ -1272,22 +1272,22 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "A",
-        "trxId": "195558",
-        "state": "RUNNING",
-        "isolation": "REPEATABLE READ",
-        "rowsLocked": 1,
-        "rowsModified": 1,
-        "lockStructs": 2
-       },
-       {
         "session": "B",
-        "trxId": "195561",
+        "trxId": "208316",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 0,
         "rowsModified": 1,
         "lockStructs": 1
+       },
+       {
+        "session": "A",
+        "trxId": "208314",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
+        "lockStructs": 2
        },
        {
         "session": "C",
@@ -1310,6 +1310,16 @@
         "lockData": null
        },
        {
+        "session": "A",
+        "table": "slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "12",
+        "reportedByThreadOf": "C"
+       },
+       {
         "session": "B",
         "table": "slots",
         "index": null,
@@ -1326,15 +1336,6 @@
         "lockMode": "IS",
         "status": "GRANTED",
         "lockData": null
-       },
-       {
-        "session": "C",
-        "table": "slots",
-        "index": "PRIMARY",
-        "lockType": "RECORD",
-        "lockMode": "X,REC_NOT_GAP",
-        "status": "GRANTED",
-        "lockData": "12"
        },
        {
         "session": "C",
@@ -1589,7 +1590,7 @@
       "transactions": [
        {
         "session": "B",
-        "trxId": "195653",
+        "trxId": "208675",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 4,
@@ -1598,7 +1599,7 @@
        },
        {
         "session": "A",
-        "trxId": "195651",
+        "trxId": "208416",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 4,

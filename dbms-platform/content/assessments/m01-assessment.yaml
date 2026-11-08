@@ -1,0 +1,497 @@
+id: m01-assessment
+module: m01
+title: "Module 1 Assessment — DBMS Fundamentals & the Relational Model"
+passMark: 70
+description: >-
+  Covers all of Module 1: data versus information and what a DBMS provides, file systems versus a DBMS, the
+  database landscape and the people who work with databases, schemas and the three-schema architecture, system
+  architectures, the relational model, keys, integrity constraints, relational algebra (including joins,
+  semi-/anti-joins and division), relational calculus, the design lifecycle, ACID transactions, and CAP/PACELC
+  with MySQL replication. Questions test precise understanding rather than recall; the SQL challenges are graded
+  on the university, bank, library and shop datasets; the interview questions ask you to explain trade-offs as
+  you would to a senior engineer.
+questions:
+  - id: q1
+    question: "Which statement best distinguishes data from information?"
+    options:
+      - "Data is stored in databases; information is stored in files"
+      - "Data are recorded facts; information is data processed and placed in context so that it answers a question or supports a decision"
+      - "Information is always numeric; data is textual"
+      - "There is no difference; the terms are synonyms"
+    answer: 1
+    explanation: "A column of loan dates is data; 'seven loans are overdue, three of them for more than a month' is information derived from it. Storage location and value type are irrelevant to the distinction."
+    concepts: [data-vs-information]
+  - id: q2
+    type: multi
+    question: "Which are genuine costs or limitations of adopting a DBMS compared with plain files? (Select all that apply.)"
+    options:
+      - "Software, hardware and administration overhead"
+      - "Generality: a simple, single-purpose program may run faster against a custom file format"
+      - "A DBMS cannot store more than one table per file"
+      - "Staff need training in design, SQL and operations"
+    answer: [0, 1, 3]
+    explanation: "A DBMS adds licensing/operational cost, its generality has overhead that a hand-tuned single-purpose program can avoid, and it requires skills. How tables map to files is an internal storage detail, not a limitation."
+    concepts: [dbms-costs]
+  - id: q3
+    question: "A batch program updates an order file and then a separate inventory file. It crashes between the two writes. Which file-processing problem is this, and what DBMS feature solves it?"
+    options:
+      - "Data isolation; solved by views"
+      - "Atomicity problem; solved by transactions with undo/redo logging"
+      - "Security problem; solved by GRANT"
+      - "Redundancy; solved by normalization"
+    answer: 1
+    explanation: "The two updates should be all-or-nothing. A DBMS transaction rolls back the first write (undo log) if the second never happens. Views, privileges and normalization address different problems."
+    concepts: [atomicity, file-processing]
+  - id: q4
+    question: "Two clerks read the same balance (500), each add a deposit of 100 and write the result back. The final balance is 600. What is this anomaly called?"
+    options: ["Dirty read", "Lost update", "Phantom read", "Deadlock"]
+    answer: 1
+    explanation: "Both writes were based on the same old value, so one deposit was overwritten. A DBMS prevents it with row locks (InnoDB makes the second UPDATE wait) or optimistic version checks. A dirty read would involve uncommitted data; a phantom involves new rows matching a predicate."
+    concepts: [lost-update, concurrency-anomalies]
+  - id: q5
+    question: "A recommendation feature must repeatedly answer 'friends of friends who bought this product', traversing relationships several hops deep. Which data model is designed for this access pattern?"
+    options: ["Key-value", "Graph", "Wide-column", "Time-series"]
+    answer: 1
+    explanation: "Graph databases store relationships as first-class edges and traverse them efficiently. Relational databases can answer it with joins or recursive CTEs, but deep variable-length traversals are the graph model's specialty. Key-value and time-series stores are poor fits."
+    concepts: [graph-model, relational-model]
+  - id: q6
+    question: "Which statement about schemas and instances is correct?"
+    options:
+      - "The schema changes with every INSERT"
+      - "The schema is the structure (intension) and changes rarely; the instance is the data at a moment (extension) and changes constantly"
+      - "An instance can exist without a schema in a relational DBMS"
+      - "information_schema stores the instance of every table"
+    answer: 1
+    explanation: "DDL changes the schema; DML changes the instance. information_schema exposes metadata (schema), not table contents."
+    concepts: [schema-vs-instance]
+  - id: q7
+    question: "A DBA adds an index and moves a table to a new tablespace; no application query changes. Separately, a table is split in two and a view with the old name is created so reports keep working. Which kinds of data independence are illustrated, in order?"
+    options:
+      - "Logical, then physical"
+      - "Physical, then logical"
+      - "Physical in both cases"
+      - "Neither; both changes break applications"
+    answer: 1
+    explanation: "Storage and access-path changes that leave the logical schema intact illustrate physical data independence. Restructuring the logical schema while preserving an external view illustrates logical data independence."
+    concepts: [physical-data-independence, logical-data-independence, views]
+  - id: q8
+    question: "In a classic three-tier web architecture, where does MySQL sit, and who connects to it?"
+    options:
+      - "In the presentation tier; browsers connect directly"
+      - "In the data tier; the application (business-logic) tier connects to it, typically through a connection pool"
+      - "In the application tier, embedded in the web server process"
+      - "Outside the architecture; it is accessed only by DBAs"
+    answer: 1
+    explanation: "Browsers talk to the application servers, which hold credentials and connect to the database tier. Direct client-to-database access is the two-tier model and is avoided for security and scalability reasons."
+    concepts: [n-tier, client-server]
+  - id: q9
+    type: multi
+    question: "Which are properties of a relation in the relational model? (Select all that apply.)"
+    options:
+      - "Tuples are unordered"
+      - "No two tuples are identical"
+      - "Attribute values are atomic with respect to the DBMS"
+      - "Columns are identified by their position, so their order matters"
+    answer: [0, 1, 2]
+    explanation: "A relation is a set of tuples: unordered and without duplicates; values are drawn from atomic domains. Attributes are identified by name, so their order is not significant. (SQL tables relax some of these: they may contain duplicate rows if no key is declared.)"
+    concepts: [relational-model]
+  - id: q10
+    question: "A relation Enrollments(student_id, section_id, grade) has 146 tuples. What are its degree and cardinality?"
+    options: ["Degree 146, cardinality 3", "Degree 3, cardinality 146", "Degree 2, cardinality 146", "Degree 3, cardinality 3"]
+    answer: 1
+    explanation: "Degree is the number of attributes (3); cardinality is the number of tuples (146)."
+    concepts: [relational-model]
+  - id: q11
+    question: "In Students(student_id, email, name), both student_id and email are unique. Which statement is correct?"
+    options:
+      - "{student_id, name} is a candidate key"
+      - "{student_id} and {email} are candidate keys; {student_id, name} is a superkey but not a candidate key because it is not minimal"
+      - "Only the primary key can be a candidate key"
+      - "email cannot be a key because it is a string"
+    answer: 1
+    explanation: "A candidate key is a minimal superkey. Adding name to student_id keeps uniqueness but breaks minimality. Whichever candidate key is not chosen as primary becomes an alternate key, typically declared UNIQUE in MySQL."
+    concepts: [superkey, candidate-key, alternate-key]
+  - id: q12
+    question: "Why does the relational model's entity-integrity rule forbid NULL in a primary key?"
+    options:
+      - "Because NULL takes more storage"
+      - "Because the primary key identifies each tuple; an unknown identifier cannot distinguish a tuple from others or be referenced by foreign keys"
+      - "Because InnoDB cannot index NULL values"
+      - "Because SQL has no NULL"
+    answer: 1
+    explanation: "Identification is the point of a primary key. MySQL enforces it by making PRIMARY KEY columns NOT NULL. InnoDB secondary indexes can contain NULLs; storage size is irrelevant."
+    concepts: [entity-integrity, primary-key]
+  - id: q13
+    question: "A parent row is deleted. The child table's foreign key is declared `ON DELETE SET NULL`, but the child column is NOT NULL. What happens in MySQL?"
+    options:
+      - "The child rows are deleted instead"
+      - "The CREATE/ALTER TABLE that declared this foreign key would already have been rejected, because SET NULL is impossible on a NOT NULL column"
+      - "The child column silently gets 0"
+      - "The parent is deleted and the child rows keep the old value"
+    answer: 1
+    explanation: "MySQL rejects a foreign key whose SET NULL action targets a NOT NULL column at definition time. The options are RESTRICT/NO ACTION (the InnoDB default; checked immediately), CASCADE, SET NULL (nullable column required); SET DEFAULT is not implemented by InnoDB (MySQL 8.0.46 accepts the clause but blocks the parent delete exactly like RESTRICT)."
+    concepts: [referential-integrity, on-delete-actions]
+  - id: q14
+    type: multi
+    question: "Which statements about foreign keys and CHECK constraints in MySQL 8.4 with InnoDB are true? (Select all that apply.)"
+    options:
+      - "InnoDB requires an index on the referencing columns and creates one if none exists"
+      - "CHECK constraints are enforced (since 8.0.16)"
+      - "Rows changed by cascading foreign-key actions fire the child table's triggers"
+      - "Foreign-key checks are deferred until COMMIT"
+    answer: [0, 1]
+    explanation: "InnoDB needs an index on foreign-key columns and enforces CHECK since 8.0.16. Cascaded foreign-key actions do not activate triggers, and InnoDB checks foreign keys immediately (row by row), not at commit."
+    concepts: [referential-integrity, check-constraints]
+  - id: q15
+    question: "Value 4 appears twice in R and three times in S. How many copies of 4 do `R UNION ALL S`, `R UNION S` and `S EXCEPT ALL R` return?"
+    options: ["5, 1, 1", "5, 2, 1", "3, 1, 0", "5, 1, 0"]
+    answer: 0
+    explanation: "Bag union adds multiplicities (2 + 3 = 5); set union keeps one copy; bag difference keeps max(3 − 2, 0) = 1."
+    concepts: [bag-semantics, set-operations]
+  - id: q16
+    question: "Which relational algebra operator corresponds to `SELECT DISTINCT dept_id FROM courses`, and why is DISTINCT needed?"
+    options:
+      - "Selection σ; DISTINCT filters rows"
+      - "Projection π; classical algebra works on sets, while SQL's projection keeps duplicates unless DISTINCT is specified"
+      - "Rename ρ; DISTINCT renames the column"
+      - "Product ×; DISTINCT removes pairs"
+    answer: 1
+    explanation: "π returns a set of tuples. SQL's SELECT list is a bag projection; DISTINCT adds duplicate elimination (δ)."
+    concepts: [projection, bag-semantics]
+  - id: q17
+    question: "`SELECT id FROM a WHERE id NOT IN (SELECT a_id FROM b)` returns no rows, although several a.id values are absent from b. What is the cause and the fix?"
+    options:
+      - "b.a_id contains a NULL; use NOT EXISTS (or filter NULLs from the subquery)"
+      - "The subquery is too large; add LIMIT"
+      - "NOT IN is not supported with subqueries; use EXCEPT ALL"
+      - "a.id needs an index"
+    answer: 0
+    explanation: "x NOT IN (…, NULL) contains x <> NULL, which is UNKNOWN, so no row ever qualifies. NOT EXISTS (or EXCEPT, which treats NULLs as equal) expresses the anti-join correctly."
+    concepts: [anti-join, null-handling]
+  - id: q18
+    question: "Departments(3 rows) is joined to Employees on dept_id: one department has 4 employees, one has 1, one has none. How many rows do an inner join, a semi-join (EXISTS) and a left outer join return?"
+    options: ["5, 2, 6", "5, 2, 5", "3, 2, 6", "5, 3, 6"]
+    answer: 0
+    explanation: "Inner join: one row per matching pair (4 + 1 = 5). Semi-join: each department with at least one partner once (2). Left outer join: the 5 pairs plus the unmatched department padded with NULLs (6)."
+    concepts: [equi-join, semi-join, outer-join]
+  - id: q19
+    question: "Which SQL pattern expresses relational division — students who have taken every required course?"
+    options:
+      - "WHERE course_id IN (SELECT course_id FROM required)"
+      - "WHERE NOT EXISTS (SELECT 1 FROM required r WHERE NOT EXISTS (SELECT 1 FROM took t WHERE t.student = s.student AND t.course = r.course))"
+      - "NATURAL JOIN required"
+      - "WHERE EXISTS (SELECT 1 FROM required)"
+    answer: 1
+    explanation: "Division is a universal (∀) condition, written as a double negation ¬∃¬. IN and NATURAL JOIN express 'at least one'; the last option is not correlated with the student at all."
+    concepts: [division, quantifiers]
+  - id: q20
+    question: "`EXPLAIN FORMAT=TREE` shows a filter on `departments.budget` applied directly above the departments scan, below the join, although the query wrote the condition in an outer WHERE over a derived table. Which equivalence did the optimizer use?"
+    options:
+      - "Join commutativity"
+      - "Selection pushdown: σθ(E1 ⋈ E2) ≡ σθ(E1) ⋈ E2 when θ references only E1 (after merging the derived table)"
+      - "Projection pushdown"
+      - "Outer-to-inner join conversion"
+    answer: 1
+    explanation: "A predicate that references only one input can be evaluated before the join, shrinking the join's input. MySQL merges derived tables and pushes such conditions to the table access."
+    concepts: [algebraic-equivalences, query-trees]
+  - id: q21
+    question: "Which tuple relational calculus formula, translated to SQL, gives 'departments in which every course has 3 credits'?"
+    options:
+      - "{ d | d ∈ Departments ∧ ∃c ∈ Courses (c.dept_id = d.dept_id ∧ c.credits = 3) }"
+      - "{ d | d ∈ Departments ∧ ¬∃c ∈ Courses (c.dept_id = d.dept_id ∧ c.credits ≠ 3) }"
+      - "{ d | ¬(d ∈ Departments) }"
+      - "{ d | d ∈ Departments ∧ ∀c ∈ Courses (c.credits = 3) }"
+    answer: 1
+    explanation: "∀c (P → Q) ≡ ¬∃c (P ∧ ¬Q), which becomes NOT EXISTS (… AND credits <> 3). Option A is ∃ (at least one), C is unsafe, and D ignores which department the course belongs to."
+    concepts: [tuple-relational-calculus, quantifiers]
+  - id: q22
+    question: "What does `SELECT 10 > ALL (SELECT credits FROM courses WHERE 1 = 0)` return, and why?"
+    options:
+      - "NULL, because the subquery is empty"
+      - "1 (TRUE), because a universal statement over an empty set is vacuously true"
+      - "0 (FALSE), because there is nothing to compare"
+      - "An error"
+    answer: 1
+    explanation: "ALL is the universal quantifier; over no rows it is TRUE. The MAX-based rewrite `10 > (SELECT MAX(...))` would yield NULL — the two are not interchangeable at the empty set."
+    concepts: [quantifiers]
+  - id: q23
+    question: "In which design stage do you decide that a book can have many authors and an author many books — and how is it realised in the next stage?"
+    options:
+      - "Physical design; by adding an index"
+      - "Conceptual design (an M:N relationship in the ER model); in logical design it becomes a junction relation with a composite primary key of two foreign keys"
+      - "Logical design; by adding author1, author2, author3 columns"
+      - "Requirements analysis; it needs no further design"
+    answer: 1
+    explanation: "Entities and relationship cardinalities are conceptual decisions; the ER-to-relational mapping turns an M:N relationship into a junction relation such as book_authors(book_id, author_id). Repeating columns violate first normal form."
+    concepts: [conceptual-model, logical-model]
+  - id: q24
+    question: "Inside `START TRANSACTION`, an INSERT succeeds, then `ALTER TABLE t ADD COLUMN c INT` runs, then the session issues ROLLBACK. What happens to the INSERT?"
+    options:
+      - "It is rolled back"
+      - "It is committed, because the ALTER TABLE caused an implicit commit before executing"
+      - "ALTER TABLE is rejected inside a transaction"
+      - "Both the INSERT and the ALTER are rolled back"
+    answer: 1
+    explanation: "Most DDL statements in MySQL implicitly commit the current transaction. The ROLLBACK then has nothing to undo, and the DDL itself is not transactional in the SQL sense."
+    concepts: [transactions, atomicity]
+  - id: q25
+    question: "With MySQL's default settings, what guarantees that a committed transaction survives a power failure one millisecond after the client receives OK?"
+    options:
+      - "The data pages were written to the tablespace before OK"
+      - "innodb_flush_log_at_trx_commit = 1 flushed the redo log (and sync_binlog = 1 the binary log) before OK; recovery replays the redo log"
+      - "The query cache"
+      - "The transaction was replicated to a replica"
+    answer: 1
+    explanation: "Write-ahead logging makes the redo log the durability mechanism; pages are flushed later. The query cache was removed in MySQL 8.0, and default replication is asynchronous."
+    concepts: [durability]
+  - id: q26
+    question: "Which is the most precise statement of the CAP theorem?"
+    options:
+      - "A database can have at most two of consistency, availability and partition tolerance"
+      - "During a network partition, a replicated system must choose between linearizable consistency and availability of every non-failing node"
+      - "Distributed databases cannot support transactions"
+      - "Single-server databases are always CP"
+    answer: 1
+    explanation: "CAP constrains behaviour during partitions; without a partition both C and A are possible. It is unrelated to transactions, and a single server is outside the theorem's setting."
+    concepts: [cap-theorem]
+  - id: q27
+    type: multi
+    question: "Which statements about MySQL replication modes are correct? (Select all that apply.)"
+    options:
+      - "Asynchronous replication can lose recently committed transactions on failover"
+      - "With semi-synchronous replication, the source falls back to asynchronous mode after rpl_semi_sync_source_timeout without acknowledgements"
+      - "A semi-sync acknowledgement guarantees the replica has applied the transaction and will return it to reads"
+      - "In Group Replication, members on the minority side of a partition cannot commit write transactions"
+    answer: [0, 1, 3]
+    explanation: "Async ships changes after commit; semi-sync degrades to async on timeout (availability preferred); the acknowledgement means written to the relay log, not applied; Group Replication requires majority agreement, so the minority blocks (CP)."
+    concepts: [replication, semi-synchronous-replication, group-replication]
+challenges:
+  - id: c1
+    title: Classmates who took everything Tomas took (division)
+    dataset: university
+    difficulty: hard
+    concepts: [division, quantifiers, relational-calculus]
+    prompt: |
+      An advisor wants students who have taken **every course** (any section, any term) that student
+      **20230004** (Tomas Silva) has taken. Return `student_id` and `name`, excluding Tomas himself.
+      Enrollments reference sections; a section belongs to a course.
+    hints:
+      - "The divisor is π course_id of Tomas's enrollments ⋈ sections; the dividend is (student, course) pairs."
+      - "Double negation: students for whom there is no course Tomas took that they have not taken."
+      - "Alternatively, join to Tomas's course set, GROUP BY student and compare COUNT(DISTINCT course_id) with the size of the set."
+    solution: |
+      SELECT s.student_id, s.name
+      FROM students AS s
+      WHERE s.student_id <> 20230004
+        AND NOT EXISTS (
+          SELECT 1
+          FROM enrollments AS e0
+          JOIN sections AS x0 ON x0.section_id = e0.section_id
+          WHERE e0.student_id = 20230004
+            AND NOT EXISTS (
+              SELECT 1
+              FROM enrollments AS e
+              JOIN sections AS x ON x.section_id = e.section_id
+              WHERE e.student_id = s.student_id AND x.course_id = x0.course_id));
+    explanation: |
+      Tomas took MATH-042 and MATH-161A, so the answer is every other student with an enrollment in both.
+      A frequent wrong answer uses `IN`, returning students who share *any* course. The counting form must use
+      `COUNT(DISTINCT course_id)`: a student enrolled in two sections of MATH-161A must not count it twice.
+  - id: c2
+    title: Reconstruct transfers from the ledger (self-join)
+    dataset: bank
+    difficulty: medium
+    concepts: [equi-join, transactions, consistency]
+    prompt: |
+      Each transfer is stored as a `transfer_out` row and a `transfer_in` row with the same `reference`.
+      Return one row per transfer with columns `reference`, `from_account`, `to_account` and `amount`
+      (the transfer_out amount).
+    hints:
+      - "Join the transactions table to itself (two aliases) on reference."
+      - "Restrict one alias to transfer_out and the other to transfer_in."
+    solution: |
+      SELECT o.reference, o.account_id AS from_account, i.account_id AS to_account, o.amount
+      FROM transactions AS o
+      JOIN transactions AS i ON i.reference = o.reference
+      WHERE o.txn_type = 'transfer_out' AND i.txn_type = 'transfer_in';
+    explanation: |
+      This is ρ o(Transactions) ⋈ ρ i(Transactions) with the rename that every self-join requires. It returns
+      one row per reference because each transfer was written atomically as exactly one pair. If a half-pair had
+      been committed without its partner (an atomicity bug), the inner join would hide it — an anti-join check
+      (`NOT EXISTS` the partner row) would reveal it.
+  - id: c3
+    title: Members who always return on time (∀ with a guard)
+    dataset: library
+    difficulty: hard
+    concepts: [quantifiers, anti-join, exists]
+    prompt: |
+      Return `member_id` and `name` of every member who has **at least one returned loan** and has **never**
+      returned a loan late (`returned_at > due_at`). Ignore loans that are still open.
+    hints:
+      - "Two conditions: ∃ a returned loan, and ¬∃ a loan with returned_at > due_at."
+      - "Without the EXISTS guard, members who never borrowed would qualify vacuously."
+    solution: |
+      SELECT m.member_id, m.name
+      FROM members AS m
+      WHERE EXISTS (SELECT 1 FROM loans AS l
+                    WHERE l.member_id = m.member_id AND l.returned_at IS NOT NULL)
+        AND NOT EXISTS (SELECT 1 FROM loans AS l
+                        WHERE l.member_id = m.member_id AND l.returned_at > l.due_at);
+    explanation: |
+      `l.returned_at > l.due_at` is UNKNOWN for open loans (returned_at IS NULL), so they never count as
+      violations — which matches "ignore open loans". Members 19 and 20, who never borrowed, are excluded by the
+      existential guard. A grouping version is
+      `GROUP BY member_id HAVING COUNT(returned_at) > 0 AND SUM(returned_at > due_at) = 0`.
+  - id: c4
+    title: Loyal customers who never reviewed (set operations)
+    dataset: shop
+    difficulty: medium
+    concepts: [set-operations, intersection, difference]
+    prompt: |
+      Marketing wants to survey loyal customers who have not given feedback: customers who placed at least one
+      order in **Q1 2024** (before 2024-04-01) **and** at least one order in **Q4 2024** (on or after
+      2024-10-01), but who have **never written a review**. Return one column, `customer_id`.
+    hints:
+      - "This is (Q1 customers ∩ Q4 customers) − reviewers."
+      - "MySQL 8.0.31+ supports INTERSECT and EXCEPT; INTERSECT binds more tightly than EXCEPT, but parentheses make the intent explicit."
+    solution: |
+      (SELECT customer_id FROM orders WHERE order_date < '2024-04-01'
+       INTERSECT
+       SELECT customer_id FROM orders WHERE order_date >= '2024-10-01')
+      EXCEPT
+      SELECT customer_id FROM reviews;
+    explanation: |
+      Set semantics are what we want here: each customer once. A single query with
+      `WHERE order_date < '2024-04-01' AND order_date >= '2024-10-01'` returns nothing, because the conditions
+      must hold for *different* rows. An `EXISTS`/`NOT EXISTS` version over `customers` is equivalent and works
+      on servers older than 8.0.31.
+interview:
+  - id: i1
+    question: "A startup stores orders in CSV files processed by scripts. Explain, with concrete failure scenarios, what moving to a DBMS such as MySQL would fix — and what it would cost."
+    answer: |
+      **What breaks with files.** (1) *Redundancy and inconsistency*: the customer's address is copied into
+      every order file and drifts. (2) *Data isolation*: each new question needs a new script that understands
+      the file format. (3) *Integrity*: nothing stops an order for a non-existent product or a negative
+      quantity. (4) *Atomicity*: a crash between writing the order and decrementing inventory leaves them
+      inconsistent. (5) *Concurrency*: two scripts updating stock simultaneously lose updates. (6) *Security*:
+      file permissions are all-or-nothing per file.
+
+      **What a DBMS provides.** A shared, self-describing schema queried with SQL; declared constraints
+      (`PRIMARY KEY`, `FOREIGN KEY`, `CHECK`, `NOT NULL`) enforced for every writer; ACID transactions (undo and
+      redo logs, locking/MVCC) for atomicity, isolation and durability; fine-grained privileges and views;
+      backups and replication.
+
+      **Costs.** Operating a server (or paying for a managed service), schema design effort, learning SQL and
+      operations, and some overhead versus a hand-tuned single-purpose program. For a growing business with
+      concurrent writers and money involved, the trade is clearly worth it.
+    concepts: [dbms-functions, file-processing, dbms-costs]
+  - id: i2
+    question: "Explain the three-schema architecture and the two kinds of data independence. How does MySQL support each level?"
+    answer: |
+      The ANSI/SPARC architecture separates the **external level** (views tailored to user groups), the
+      **conceptual level** (the logical schema of the whole database: relations, keys, constraints) and the
+      **internal level** (storage structures and access paths). Mappings between levels provide independence:
+
+      - **Physical data independence** — change the internal level (add an index, change row format, move a
+        tablespace, partition a table) without changing the conceptual schema or queries.
+      - **Logical data independence** — change the conceptual schema (split or extend a table) while keeping
+        external schemas working, typically by redefining views. It is harder to achieve because views over
+        changed tables may become non-updatable.
+
+      In MySQL: views (`CREATE VIEW`) and privileges implement external schemas; `CREATE TABLE` with keys and
+      constraints defines the conceptual schema, recorded in the data dictionary and exposed through
+      `information_schema`; InnoDB clustered and secondary B+ tree indexes, tablespaces and partitioning form the
+      internal level. `EXPLAIN` shows how the optimizer maps a declarative query onto internal structures.
+    concepts: [three-schema-architecture, logical-data-independence, physical-data-independence]
+  - id: i3
+    question: "Natural or surrogate primary key? Discuss for a `customers` table and for a junction table such as `book_authors`."
+    answer: |
+      A **natural key** (email, ISBN, national ID) carries business meaning; a **surrogate key** (an
+      `AUTO_INCREMENT` integer or a UUID) does not.
+
+      For `customers`, emails change, can be recycled and are long; using them as the primary key forces
+      cascading updates through every referencing table and makes every InnoDB secondary index wider (each
+      secondary index entry stores the primary key). A compact surrogate (`INT UNSIGNED`/`BIGINT UNSIGNED`
+      `AUTO_INCREMENT`) is the usual choice, **with the natural key kept as an alternate key** (`UNIQUE (email)`)
+      so duplicates are still prevented. Random UUIDs as clustered keys scatter inserts; if UUIDs are needed,
+      store them as `BINARY(16)` and prefer time-ordered variants.
+
+      For a junction table, the natural composite key `(book_id, author_id)` is ideal: it prevents duplicate
+      pairs, is compact (two integers) and its leftmost column serves one of the foreign keys; a surrogate would
+      add a column and still need a `UNIQUE (book_id, author_id)` constraint.
+    concepts: [primary-key, surrogate-key, candidate-key, composite-key]
+  - id: i4
+    question: "How does InnoDB enforce referential integrity, and how do you choose ON DELETE actions?"
+    answer: |
+      InnoDB checks foreign keys **immediately, row by row**: inserting or updating a child row requires a
+      matching parent (via an index lookup on the parent's key); deleting or updating a parent key checks the
+      child table through the **index InnoDB requires on the foreign-key columns** (created automatically if
+      missing). Locks taken during these checks (shared locks on the parent row) keep them correct under
+      concurrency. Checks cannot be deferred to commit, and `foreign_key_checks = 0` disables them for bulk loads
+      (leaving responsibility with the operator).
+
+      Actions: **RESTRICT / NO ACTION** (default) reject deleting a referenced parent — right for financial or
+      historical data (an account with ledger rows). **CASCADE** deletes or updates dependants — right for
+      composition, where children have no meaning without the parent (order lines of a deleted draft order),
+      but dangerous on large trees and invisible to triggers (cascaded changes do not fire them). **SET NULL**
+      keeps the child but removes the link (an employee whose manager left) and requires a nullable column.
+      `SET DEFAULT` is not implemented by InnoDB (the clause is parsed, but the parent delete is refused as with RESTRICT). Choose per relationship based on the domain semantics, never
+      globally.
+    concepts: [referential-integrity, on-delete-actions]
+  - id: i5
+    question: "Why should an engineer who writes SQL understand relational algebra? Give two examples of algebraic equivalences the MySQL optimizer uses and how you would see them."
+    answer: |
+      SQL is declarative; the optimizer translates it into an operator tree (relational algebra plus aggregation)
+      and rewrites it using equivalences that provably preserve the result. Knowing the algebra lets you predict
+      semantics (set vs bag, semi-join vs join, NULLs in anti-joins), read plans, and write queries the optimizer
+      can transform.
+
+      Examples visible in `EXPLAIN FORMAT=TREE`: (1) **Selection pushdown** — σθ(R ⋈ S) ≡ σθ(R) ⋈ S when θ uses
+      only R; the plan shows the `Filter` directly above R's scan or folded into an index lookup, below the join,
+      even if you wrote it in an outer query over a derived table (which MySQL merges). (2) **Join reordering** —
+      inner joins are commutative and associative, so MySQL starts from the most selective filtered table
+      regardless of the written order. (3) **Subquery to semi-/anti-join** — `EXISTS` becomes a semi-join (or a
+      plain join when the inner side is unique on the key), `NOT EXISTS` an `antijoin` iterator. (4)
+      **Outer-to-inner conversion** — a `LEFT JOIN` whose `WHERE` rejects NULLs on the right side is executed as
+      an inner join, freeing the join order.
+    concepts: [relational-algebra, algebraic-equivalences, semi-join]
+  - id: i6
+    question: "Walk through the ACID properties using a bank transfer in MySQL, including what happens if one statement fails."
+    answer: |
+      The transfer is `START TRANSACTION; UPDATE … debit; UPDATE … credit; INSERT two ledger rows; COMMIT;`.
+
+      - **Atomicity**: InnoDB writes undo records for every change; `ROLLBACK` or crash recovery reverses an
+        incomplete transaction. Importantly, in MySQL a failing statement (e.g. a CHECK violation on the debit)
+        rolls back **only that statement** — the transaction stays open with earlier changes pending — so the
+        application or a stored-procedure `EXIT HANDLER` must issue `ROLLBACK`. Deadlocks (1213) roll back the
+        whole transaction and should be retried.
+      - **Consistency**: declared constraints (`CHECK (balance >= 0)`, foreign keys) are enforced by InnoDB; the
+        business invariant "money is conserved" is the application's responsibility, verified by reconciliation.
+      - **Isolation**: row locks make a concurrent update of the same account wait (no lost update); MVCC lets
+        plain reads see the last committed state without waiting (no dirty reads). Default level: REPEATABLE READ.
+      - **Durability**: with `innodb_flush_log_at_trx_commit = 1` the redo log is flushed at commit (and the
+        binary log with `sync_binlog = 1`, coordinated by an internal two-phase commit); after a crash, redo is
+        replayed. Avoid DDL inside the transaction — it commits implicitly.
+    concepts: [acid, atomicity, consistency, isolation, durability]
+  - id: i7
+    question: "Your team runs MySQL with one primary and two asynchronous read replicas and is considering semi-synchronous replication or InnoDB Cluster. Explain the trade-offs in CAP and PACELC terms."
+    answer: |
+      **Async (today): PA/EL.** Commits do not wait for replicas, so latency is minimal, but replicas lag
+      (stale reads; read-your-writes needs routing or GTID waits) and a failover can lose transactions not yet
+      received. Without fencing, a partition plus a promotion can create split brain.
+
+      **Semi-sync (AFTER_SYNC).** Each commit waits for at least one replica to acknowledge receipt into its
+      relay log: an extra round trip per commit (latency for durability), and an acknowledged transaction survives
+      failover to that replica. Replica reads can still be stale (received ≠ applied). After
+      `rpl_semi_sync_source_timeout` without acknowledgements the source falls back to async — availability
+      preferred during partitions — so fallbacks must be monitored.
+
+      **InnoDB Cluster / Group Replication (single-primary): PC.** Transactions commit only after majority
+      agreement; the minority side of a partition cannot commit, which prevents split brain and gives automatic
+      failover without data loss on the majority side. Costs: a group round trip and certification per write,
+      transaction size limits, at least three members (an odd number across failure domains). Read consistency
+      on secondaries is tunable via `group_replication_consistency` (EVENTUAL → EL; BEFORE/AFTER → EC).
+
+      Choose by data: balances and orders need the PC option or careful semi-sync operation; read-heavy,
+      staleness-tolerant features can stay on async replicas.
+    concepts: [cap-theorem, pacelc, replication, group-replication]

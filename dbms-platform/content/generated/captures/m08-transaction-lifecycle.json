@@ -844,7 +844,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "188602",
+        "trxId": "202137",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 2,
@@ -1232,21 +1232,21 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "B",
-        "trxId": "188940",
-        "state": "LOCK WAIT",
-        "isolation": "REPEATABLE READ",
-        "rowsLocked": 1,
-        "rowsModified": 0,
-        "lockStructs": 2
-       },
-       {
         "session": "A",
-        "trxId": "188935",
+        "trxId": "202474",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
         "rowsModified": 1,
+        "lockStructs": 2
+       },
+       {
+        "session": "B",
+        "trxId": "202480",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
         "lockStructs": 2
        }
       ],

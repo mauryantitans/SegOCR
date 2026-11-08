@@ -725,7 +725,7 @@
       "transactions": [
        {
         "session": "B",
-        "trxId": "197351",
+        "trxId": "218004",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 3,
@@ -734,7 +734,7 @@
        },
        {
         "session": "A",
-        "trxId": "197349",
+        "trxId": "218002",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 2,
@@ -999,7 +999,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "197401",
+        "trxId": "218052",
         "state": "RUNNING",
         "isolation": "READ COMMITTED",
         "rowsLocked": 2,
@@ -1008,7 +1008,7 @@
        },
        {
         "session": "B",
-        "trxId": "197404",
+        "trxId": "218055",
         "state": "RUNNING",
         "isolation": "READ COMMITTED",
         "rowsLocked": 2,

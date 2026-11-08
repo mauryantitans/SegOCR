@@ -122,7 +122,7 @@ Rules for `run` blocks:
   `content/generated/captures/<id>.json` and make sure every number/claim in your prose matches the capture.
   Prefer phrasing like "the result shows 20 of 25 customers have a phone" only after checking it.
 - Blocks share one session: tables you create stay for later blocks; session variables persist.
-- One block may contain several statements separated by `;`. Stored programs work without `DELIMITER`
+- One block may contain at most 60 statements separated by `;` (sandbox limit per run). Stored programs work without `DELIMITER`
   (the splitter understands `BEGIN … END`), but `DELIMITER //` is also supported.
 - Make multi-row outputs deterministic (`ORDER BY` with a unique tie-breaker) and keep them readable
   (`LIMIT` ≈ 5–20 rows). The display keeps at most 50 rows.
@@ -207,6 +207,11 @@ steps:
     sql: SELECT * FROM t;
 ```
 
+- Each step must finish within ~1.5 s or it is recorded as *blocked*; wrap bulk setup in one transaction or put
+  it in `setup`.
+- `observe: locks` attributes every lock to the session whose transaction owns it (`ENGINE_TRANSACTION_ID`); when
+  `performance_schema` reports it on another session's thread (an implicit lock converted by that session), the
+  snapshot also records `reportedByThreadOf`.
 - Sessions are `A`, `B`, `C`. Each is its own connection (autocommit ON unless you start a transaction).
 - A step with `expect: blocks` must contain **exactly one statement**, and a later step must release the lock.
   The capture records when it completed.

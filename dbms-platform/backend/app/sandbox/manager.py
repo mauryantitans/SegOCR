@@ -543,17 +543,24 @@ class LabManager:
             "SELECT trx_mysql_thread_id, trx_id, trx_state, trx_isolation_level, trx_rows_locked, trx_rows_modified, "
             "trx_lock_structs, trx_started FROM information_schema.innodb_trx "
             f"WHERE trx_mysql_thread_id IN ({ids}) ORDER BY trx_started", fetch=True)
+        # Attribute each lock to the transaction that OWNS it (ENGINE_TRANSACTION_ID). THREAD_ID names the thread
+        # that created the lock structure, which differs when another session converts an implicit lock.
         locks = self.admin(
-            "SELECT t.PROCESSLIST_ID, l.OBJECT_NAME, l.INDEX_NAME, l.LOCK_TYPE, l.LOCK_MODE, l.LOCK_STATUS, l.LOCK_DATA "
-            "FROM performance_schema.data_locks l JOIN performance_schema.threads t ON t.THREAD_ID = l.THREAD_ID "
-            f"WHERE t.PROCESSLIST_ID IN ({ids}) AND l.OBJECT_SCHEMA = %s "
-            "ORDER BY t.PROCESSLIST_ID, l.OBJECT_NAME, l.LOCK_TYPE DESC, l.INDEX_NAME, l.LOCK_DATA",
+            "SELECT x.trx_mysql_thread_id, l.OBJECT_NAME, l.INDEX_NAME, l.LOCK_TYPE, l.LOCK_MODE, l.LOCK_STATUS, l.LOCK_DATA, "
+            "t.PROCESSLIST_ID "
+            "FROM performance_schema.data_locks l "
+            "JOIN information_schema.innodb_trx x ON x.trx_id = l.ENGINE_TRANSACTION_ID "
+            "LEFT JOIN performance_schema.threads t ON t.THREAD_ID = l.THREAD_ID "
+            f"WHERE x.trx_mysql_thread_id IN ({ids}) AND l.OBJECT_SCHEMA = %s "
+            "ORDER BY x.trx_mysql_thread_id, l.OBJECT_NAME, l.LOCK_TYPE DESC, l.INDEX_NAME, l.LOCK_DATA",
             (schema,), fetch=True)
         return {
             "transactions": [{"session": sessions.get(r[0], "?"), "trxId": str(r[1]), "state": r[2], "isolation": r[3],
                               "rowsLocked": r[4], "rowsModified": r[5], "lockStructs": r[6]} for r in trx],
             "locks": [{"session": sessions.get(r[0], "?"), "table": r[1], "index": r[2], "lockType": r[3],
-                       "lockMode": r[4], "status": r[5], "lockData": r[6]} for r in locks],
+                       "lockMode": r[4], "status": r[5], "lockData": r[6],
+                       **({"reportedByThreadOf": sessions.get(r[7], "?")} if r[7] is not None and r[7] != r[0] else {})}
+                      for r in locks],
         }
 
     def _quota_notice(self, schema: str) -> str | None:

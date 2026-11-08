@@ -1,0 +1,546 @@
+{
+ "doc": "m02-databases",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s3:ff09b8741941": {
+   "statements": [
+    {
+     "sql": "SELECT DATABASE() AS current_database, SCHEMA() AS synonym",
+     "status": "ok",
+     "columns": [
+      "current_database",
+      "synonym"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "your_lab",
+       "your_lab"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:1c77ce72e092": {
+   "statements": [
+    {
+     "sql": "SHOW DATABASES",
+     "status": "ok",
+     "columns": [
+      "Database"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "information_schema"
+      ],
+      [
+       "your_lab"
+      ],
+      [
+       "performance_schema"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:84ee06925e8a": {
+   "statements": [
+    {
+     "sql": "SELECT CATALOG_NAME, SCHEMA_NAME, DEFAULT_CHARACTER_SET_NAME, DEFAULT_COLLATION_NAME, DEFAULT_ENCRYPTION\nFROM information_schema.SCHEMATA\nORDER BY SCHEMA_NAME",
+     "status": "ok",
+     "columns": [
+      "CATALOG_NAME",
+      "SCHEMA_NAME",
+      "DEFAULT_CHARACTER_SET_NAME",
+      "DEFAULT_COLLATION_NAME",
+      "DEFAULT_ENCRYPTION"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "def",
+       "information_schema",
+       "utf8mb3",
+       "utf8mb3_general_ci",
+       "NO"
+      ],
+      [
+       "def",
+       "your_lab",
+       "utf8mb4",
+       "utf8mb4_0900_ai_ci",
+       "NO"
+      ],
+      [
+       "def",
+       "performance_schema",
+       "utf8mb4",
+       "utf8mb4_0900_ai_ci",
+       "NO"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:4174d85dfa55": {
+   "statements": [
+    {
+     "sql": "SET @stmt = CONCAT('SHOW CREATE DATABASE `', DATABASE(), '`')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "PREPARE show_db FROM @stmt",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Statement prepared",
+     "rows": []
+    },
+    {
+     "sql": "EXECUTE show_db",
+     "status": "ok",
+     "columns": [
+      "Database",
+      "Create Database"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "your_lab",
+       "CREATE DATABASE `your_lab` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */"
+      ]
+     ]
+    },
+    {
+     "sql": "DEALLOCATE PREPARE show_db",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s8:6bb5acf4f706": {
+   "statements": [
+    {
+     "sql": "SELECT 'tables'  AS object_type, COUNT(*) AS n FROM information_schema.TABLES  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'\nUNION ALL\nSELECT 'views',   COUNT(*) FROM information_schema.VIEWS   WHERE TABLE_SCHEMA = DATABASE()\nUNION ALL\nSELECT 'columns', COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()\nUNION ALL\nSELECT 'routines', COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE()\nUNION ALL\nSELECT 'triggers', COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE()",
+     "status": "ok",
+     "columns": [
+      "object_type",
+      "n"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "tables",
+       7
+      ],
+      [
+       "views",
+       0
+      ],
+      [
+       "columns",
+       43
+      ],
+      [
+       "routines",
+       0
+      ],
+      [
+       "triggers",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:31ce13c9d2cc": {
+   "statements": [
+    {
+     "sql": "SELECT ORDINAL_POSITION, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT, CHARACTER_SET_NAME\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers'\nORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "ORDINAL_POSITION",
+      "COLUMN_NAME",
+      "COLUMN_TYPE",
+      "IS_NULLABLE",
+      "COLUMN_DEFAULT",
+      "CHARACTER_SET_NAME"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       1,
+       "customer_id",
+       "int unsigned",
+       "NO",
+       null,
+       null
+      ],
+      [
+       2,
+       "first_name",
+       "varchar(50)",
+       "NO",
+       null,
+       "utf8mb4"
+      ],
+      [
+       3,
+       "last_name",
+       "varchar(50)",
+       "NO",
+       null,
+       "utf8mb4"
+      ],
+      [
+       4,
+       "email",
+       "varchar(255)",
+       "NO",
+       null,
+       "utf8mb4"
+      ],
+      [
+       5,
+       "phone",
+       "varchar(20)",
+       "YES",
+       null,
+       "utf8mb4"
+      ],
+      [
+       6,
+       "city",
+       "varchar(60)",
+       "NO",
+       null,
+       "utf8mb4"
+      ],
+      [
+       7,
+       "state",
+       "char(2)",
+       "NO",
+       null,
+       "utf8mb4"
+      ],
+      [
+       8,
+       "loyalty_tier",
+       "enum('bronze','silver','gold')",
+       "YES",
+       null,
+       "utf8mb4"
+      ],
+      [
+       9,
+       "signup_date",
+       "date",
+       "NO",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:1d70ca47ad2c": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME,\n       ENGINE,\n       TABLE_ROWS                       AS approx_rows,\n       DATA_LENGTH                      AS data_bytes,\n       INDEX_LENGTH                     AS index_bytes,\n       DATA_LENGTH + INDEX_LENGTH       AS total_bytes\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE()\nORDER BY total_bytes DESC, TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "ENGINE",
+      "approx_rows",
+      "data_bytes",
+      "index_bytes",
+      "total_bytes"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "categories",
+       "InnoDB",
+       10,
+       16384,
+       32768,
+       49152
+      ],
+      [
+       "orders",
+       "InnoDB",
+       80,
+       16384,
+       32768,
+       49152
+      ],
+      [
+       "products",
+       "InnoDB",
+       30,
+       16384,
+       32768,
+       49152
+      ],
+      [
+       "reviews",
+       "InnoDB",
+       45,
+       16384,
+       32768,
+       49152
+      ],
+      [
+       "customers",
+       "InnoDB",
+       25,
+       16384,
+       16384,
+       32768
+      ],
+      [
+       "order_items",
+       "InnoDB",
+       182,
+       16384,
+       16384,
+       32768
+      ],
+      [
+       "payments",
+       "InnoDB",
+       76,
+       16384,
+       16384,
+       32768
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:38c59e958625": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE inherit_demo (\n  plain_name   VARCHAR(20),\n  binary_code  VARCHAR(20) COLLATE utf8mb4_bin\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @@character_set_database AS db_charset, @@collation_database AS db_collation",
+     "status": "ok",
+     "columns": [
+      "db_charset",
+      "db_collation"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "utf8mb4",
+       "utf8mb4_0900_ai_ci"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COLUMN_NAME, CHARACTER_SET_NAME, COLLATION_NAME\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'inherit_demo'\nORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "CHARACTER_SET_NAME",
+      "COLLATION_NAME"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "plain_name",
+       "utf8mb4",
+       "utf8mb4_0900_ai_ci"
+      ],
+      [
+       "binary_code",
+       "utf8mb4",
+       "utf8mb4_bin"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:c7194dc937db": {
+   "statements": [
+    {
+     "sql": "SELECT @@lower_case_table_names AS lctn, @@lower_case_file_system AS case_insensitive_fs",
+     "status": "ok",
+     "columns": [
+      "lctn",
+      "case_insensitive_fs"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "CREATE TABLE `Invoice` (id INT PRIMARY KEY)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s13:6beebb6272f1": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM invoice",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1146,
+      "message": "Table 'invoice' doesn't exist"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:05429d0e7a6b": {
+   "statements": [
+    {
+     "sql": "SELECT t.TABLE_NAME,\n       COUNT(c.COLUMN_NAME) AS columns\nFROM information_schema.TABLES  AS t\nJOIN information_schema.COLUMNS AS c\n  ON c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME\nWHERE t.TABLE_SCHEMA = DATABASE() AND t.TABLE_TYPE = 'BASE TABLE'\nGROUP BY t.TABLE_NAME\nORDER BY columns DESC, t.TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "columns"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       "customers",
+       9
+      ],
+      [
+       "products",
+       9
+      ],
+      [
+       "orders",
+       6
+      ],
+      [
+       "payments",
+       6
+      ],
+      [
+       "reviews",
+       6
+      ],
+      [
+       "order_items",
+       4
+      ],
+      [
+       "categories",
+       3
+      ],
+      [
+       "inherit_demo",
+       2
+      ],
+      [
+       "Invoice",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:1430c0beb1a1": {
+   "statements": [
+    {
+     "sql": "SELECT DATABASE() AS session_default_database",
+     "status": "ok",
+     "columns": [
+      "session_default_database"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "your_lab"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:5fed604f1cb5": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE lifecycle_demo (id INT PRIMARY KEY, note VARCHAR(30))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME, TABLE_TYPE, ENGINE, TABLE_COLLATION\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lifecycle_demo'",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "TABLE_TYPE",
+      "ENGINE",
+      "TABLE_COLLATION"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lifecycle_demo",
+       "BASE TABLE",
+       "InnoDB",
+       "utf8mb4_0900_ai_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:d383f2e477de": {
+   "statements": [
+    {
+     "sql": "DROP DATABASE IF EXISTS shop_test",
+     "status": "rejected",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": null,
+      "message": "DROP DATABASE is disabled in the sandbox. Your lab already has its own private schema; use the Reset button for a fresh copy."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}
