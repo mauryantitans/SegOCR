@@ -1366,10 +1366,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Window aggregate: sum(win_big.val) OVER (PARTITION BY win_big.grp ORDER BY win_big.val ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)   (actual time=10.8..19.7 rows=50000 loops=1)\n    -> Sort: win_big.grp, win_big.val  (cost=5070 rows=50298) (actual time=10.8..12.4 rows=50000 loops=1)\n        -> Index scan on win_big using idx_grp_val  (cost=5070 rows=50298) (actual time=0.392..5.67 rows=50000 loops=1)\n"
+       "-> Window aggregate: sum(win_big.val) OVER (PARTITION BY win_big.grp ORDER BY win_big.val ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)   (actual time=15.8..25.6 rows=50000 loops=1)\n    -> Sort: win_big.grp, win_big.val  (cost=5070 rows=50298) (actual time=15.8..17.7 rows=50000 loops=1)\n        -> Index scan on win_big using idx_grp_val  (cost=5070 rows=50298) (actual time=0.384..8.65 rows=50000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 24.3
+     "elapsed_ms": 31.28
     }
    ],
    "measured": true

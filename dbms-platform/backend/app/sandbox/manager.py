@@ -208,7 +208,7 @@ class LabSession:
         except pymysql.err.MySQLError as e:
             code = e.args[0] if e.args else None
             msg = e.args[1] if len(e.args) > 1 else str(e)
-            msg = msg.replace(f"{self.schema}.", "")  # lab schema names are noise for learners
+            msg = self.scrub(msg)  # lab schema names are noise for learners
             res.status = "error"
             res.error = {"code": code, "message": msg, "hint": explain_error(code, msg, self.statement_timeout_ms)}
             if isinstance(e, (pymysql.err.OperationalError, pymysql.err.InterfaceError)) and code in (2006, 2013, 2014, 0):
@@ -219,6 +219,14 @@ class LabSession:
             res.elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
             self.last_used = time.monotonic()
         return res
+
+    def scrub(self, v):
+        """Remove the private lab schema name from server text (EXPLAIN notes, ANALYZE output, warnings)."""
+        if not isinstance(v, str) or self.schema not in v:
+            return v
+        for qualified in (f"`{self.schema}`.", f"{self.schema}."):
+            v = v.replace(qualified, "")
+        return v.replace(f"`{self.schema}`", "`your_lab`").replace(self.schema, "your_lab")
 
     def close_conn_only(self):
         try:
@@ -237,10 +245,7 @@ class LabSession:
                     res.columns = [d[0] for d in cur.description]
                     rows = cur.fetchmany(limit + 1)
                     res.truncated = len(rows) > limit
-                    res.rows = [[to_jsonable(v) for v in r] for r in rows[:limit]]
-                    if res.verb == "EXPLAIN":  # plans qualify columns with the private lab schema name
-                        prefix = self.schema + "."
-                        res.rows = [[c.replace(prefix, "") if isinstance(c, str) else c for c in r] for r in res.rows]
+                    res.rows = [[self.scrub(to_jsonable(v)) for v in r] for r in rows[:limit]]
                     count = len(rows[:limit])
                     if res.truncated:  # drain the rest to count it
                         for _ in cur:
@@ -257,7 +262,7 @@ class LabSession:
                 msg = getattr(cur._result, "message", None) if getattr(cur, "_result", None) else None
                 if msg:
                     text = msg.decode("utf-8", "replace") if isinstance(msg, bytes) else str(msg)
-                    res.info = re.sub(r"^[^A-Za-z]+", "", text).strip() or None
+                    res.info = self.scrub(re.sub(r"^[^A-Za-z]+", "", text).strip()) or None
             if not cur.nextset():
                 break
 
@@ -265,7 +270,7 @@ class LabSession:
         try:
             with self.conn.cursor() as c2:
                 c2.execute("SHOW WARNINGS LIMIT 10")
-                return [{"level": r[0], "code": r[1], "message": r[2]} for r in c2.fetchall()]
+                return [{"level": r[0], "code": r[1], "message": self.scrub(r[2])} for r in c2.fetchall()]
         except pymysql.err.MySQLError:
             return []
 

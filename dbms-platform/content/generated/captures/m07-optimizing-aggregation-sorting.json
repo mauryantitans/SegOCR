@@ -1,0 +1,926 @@
+{
+ "doc": "m07-optimizing-aggregation-sorting",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:ef6777074706": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 300000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE events (\n  event_id   INT UNSIGNED  NOT NULL PRIMARY KEY,\n  account_id INT UNSIGNED  NOT NULL,\n  kind       VARCHAR(10)   NOT NULL,\n  created_at DATETIME      NOT NULL,\n  amount     DECIMAL(10,2) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO events\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 250000)\nSELECT n,\n       1 + (n * 7919) % 5000,\n       ELT(1 + n % 4, 'view', 'click', 'cart', 'purchase'),\n       TIMESTAMP '2024-01-01 00:00:00' + INTERVAL n * 2 MINUTE,\n       ((n * 31) % 40000) / 100\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 250000,
+     "info": "Records: 250000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE events",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_08e5ab4a79cbbde9afb5.events",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:95748cb2b9de": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT account_id, COUNT(*) AS events, MAX(created_at) AS last_seen\nFROM events GROUP BY account_id ORDER BY account_id LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       249565,
+       100.0,
+       "Using temporary; Using filesort"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id` AS `account_id`,count(0) AS `events`,max(`lab_08e5ab4a79cbbde9afb5`.`events`.`created_at`) AS `last_seen` from `lab_08e5ab4a79cbbde9afb5`.`events` group by `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id` order by `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id` limit 5"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT account_id, COUNT(*) AS events, MAX(created_at) AS last_seen\nFROM events GROUP BY account_id ORDER BY account_id LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 5 row(s)\n    -> Sort: `events`.account_id, limit input to 5 row(s) per chunk\n        -> Table scan on <temporary>\n            -> Aggregate using temporary table\n                -> Table scan on events  (cost=25141 rows=249565)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:eaa28f23e8dc": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_account_time ON events (account_id, created_at)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE events",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_08e5ab4a79cbbde9afb5.events",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN\nSELECT account_id, COUNT(*) AS events, MAX(created_at) AS last_seen\nFROM events GROUP BY account_id ORDER BY account_id LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events",
+       null,
+       "index",
+       "idx_account_time",
+       "idx_account_time",
+       "9",
+       null,
+       5,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id` AS `account_id`,count(0) AS `events`,max(`lab_08e5ab4a79cbbde9afb5`.`events`.`created_at`) AS `last_seen` from `lab_08e5ab4a79cbbde9afb5`.`events` group by `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id` order by `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id` limit 5"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:bab98f8b931e": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT account_id, MAX(created_at) AS last_seen FROM events GROUP BY account_id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events",
+       null,
+       "range",
+       "idx_account_time",
+       "idx_account_time",
+       "4",
+       null,
+       5017,
+       100.0,
+       "Using index for group-by"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id` AS `account_id`,max(`lab_08e5ab4a79cbbde9afb5`.`events`.`created_at`) AS `last_seen` from `lab_08e5ab4a79cbbde9afb5`.`events` group by `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id`"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT account_id, MAX(created_at) AS last_seen FROM events GROUP BY account_id",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Covering index skip scan for grouping on events using idx_account_time  (cost=1901 rows=5017)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:33dbbdde6f24": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(DISTINCT account_id) FROM events",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events",
+       null,
+       "range",
+       "idx_account_time",
+       "idx_account_time",
+       "4",
+       null,
+       5017,
+       100.0,
+       "Using index for group-by"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(distinct `lab_08e5ab4a79cbbde9afb5`.`events`.`account_id`) AS `COUNT(DISTINCT account_id)` from `lab_08e5ab4a79cbbde9afb5`.`events`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:4cbabafc9e42": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT DATE(created_at) AS day, COUNT(*) AS events FROM events GROUP BY day",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events",
+       null,
+       "index",
+       "idx_account_time",
+       "idx_account_time",
+       "9",
+       null,
+       249565,
+       100.0,
+       "Using index; Using temporary"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select cast(`lab_08e5ab4a79cbbde9afb5`.`events`.`created_at` as date) AS `day`,count(0) AS `events` from `lab_08e5ab4a79cbbde9afb5`.`events` group by `day`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:91c37474ed78": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Created_tmp_tables'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Created_tmp_tables",
+       "1"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT DATE(created_at) AS day, COUNT(*) AS events FROM events GROUP BY day ORDER BY day LIMIT 3",
+     "status": "ok",
+     "columns": [
+      "day",
+      "events"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "2024-01-01",
+       719
+      ],
+      [
+       "2024-01-02",
+       720
+      ],
+      [
+       "2024-01-03",
+       720
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Created_tmp_tables'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Created_tmp_tables",
+       "2"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:9cbabd3e7fcc": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT event_id, amount FROM events ORDER BY amount DESC, event_id LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 10 row(s)  (cost=25141 rows=10)\n    -> Sort: `events`.amount DESC, `events`.event_id, limit input to 10 row(s) per chunk  (cost=25141 rows=249565)\n        -> Table scan on events  (cost=25141 rows=249565)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:adcee62a9d1a": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Sort_rows', 'Sort_scan', 'Sort_merge_passes')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Sort_merge_passes",
+       "0"
+      ],
+      [
+       "Sort_rows",
+       "3"
+      ],
+      [
+       "Sort_scan",
+       "1"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT event_id, amount FROM events ORDER BY amount DESC, event_id LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "amount"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       36129,
+       "399.99"
+      ],
+      [
+       76129,
+       "399.99"
+      ],
+      [
+       116129,
+       "399.99"
+      ],
+      [
+       156129,
+       "399.99"
+      ],
+      [
+       196129,
+       "399.99"
+      ],
+      [
+       236129,
+       "399.99"
+      ],
+      [
+       32258,
+       "399.98"
+      ],
+      [
+       72258,
+       "399.98"
+      ],
+      [
+       112258,
+       "399.98"
+      ],
+      [
+       152258,
+       "399.98"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Sort_rows', 'Sort_scan', 'Sort_merge_passes')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Sort_merge_passes",
+       "0"
+      ],
+      [
+       "Sort_rows",
+       "13"
+      ],
+      [
+       "Sort_scan",
+       "2"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:08ebc05e014a": {
+   "statements": [
+    {
+     "sql": "SET SESSION sort_buffer_size = 32768",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Sort_merge_passes'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Sort_merge_passes",
+       "0"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*), MAX(x) FROM (SELECT amount AS x FROM events ORDER BY amount, event_id LIMIT 200000) AS t",
+     "status": "ok",
+     "columns": [
+      "COUNT(*)",
+      "MAX(x)"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       200000,
+       "319.68"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Sort_merge_passes'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Sort_merge_passes",
+       "39"
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION sort_buffer_size = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s11:be195dafae8d": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT event_id, created_at, amount FROM events\nWHERE kind = 'purchase' ORDER BY created_at DESC LIMIT 20",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       249565,
+       10.0,
+       "Using where; Using filesort"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_08e5ab4a79cbbde9afb5`.`events`.`event_id` AS `event_id`,`lab_08e5ab4a79cbbde9afb5`.`events`.`created_at` AS `created_at`,`lab_08e5ab4a79cbbde9afb5`.`events`.`amount` AS `amount` from `lab_08e5ab4a79cbbde9afb5`.`events` where (`lab_08e5ab4a79cbbde9afb5`.`events`.`kind` = 'purchase') order by `lab_08e5ab4a79cbbde9afb5`.`events`.`created_at` desc limit 20"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:72b9c54c0f9c": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_kind_time ON events (kind, created_at)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE events",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_08e5ab4a79cbbde9afb5.events",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN\nSELECT event_id, created_at, amount FROM events\nWHERE kind = 'purchase' ORDER BY created_at DESC LIMIT 20",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events",
+       null,
+       "ref",
+       "idx_kind_time",
+       "idx_kind_time",
+       "42",
+       "const",
+       117504,
+       100.0,
+       "Backward index scan"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_08e5ab4a79cbbde9afb5`.`events`.`event_id` AS `event_id`,`lab_08e5ab4a79cbbde9afb5`.`events`.`created_at` AS `created_at`,`lab_08e5ab4a79cbbde9afb5`.`events`.`amount` AS `amount` from `lab_08e5ab4a79cbbde9afb5`.`events` where (`lab_08e5ab4a79cbbde9afb5`.`events`.`kind` = 'purchase') order by `lab_08e5ab4a79cbbde9afb5`.`events`.`created_at` desc limit 20"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:48fb2d850792": {
+   "statements": [
+    {
+     "sql": "SELECT event_id, created_at FROM events\nWHERE kind = 'purchase'\nORDER BY created_at DESC, event_id DESC\nLIMIT 5 OFFSET 50000",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "created_at"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       49999,
+       "2024-03-10 10:38:00"
+      ],
+      [
+       49995,
+       "2024-03-10 10:30:00"
+      ],
+      [
+       49991,
+       "2024-03-10 10:22:00"
+      ],
+      [
+       49987,
+       "2024-03-10 10:14:00"
+      ],
+      [
+       49983,
+       "2024-03-10 10:06:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:770e11c2863c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT event_id, created_at, amount FROM events\nWHERE kind = 'purchase'\nORDER BY created_at DESC, event_id DESC\nLIMIT 20 OFFSET 50000",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit/Offset: 20/50000 row(s)  (cost=12303 rows=20)\n    -> Index lookup on events using idx_kind_time (kind='purchase') (reverse)  (cost=12303 rows=117504)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:a3705521523e": {
+   "statements": [
+    {
+     "sql": "SELECT created_at, event_id INTO @cursor_at, @cursor_id\nFROM events WHERE kind = 'purchase'\nORDER BY created_at DESC, event_id DESC\nLIMIT 1 OFFSET 49999",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @cursor_at AS cursor_created_at, @cursor_id AS cursor_event_id",
+     "status": "ok",
+     "columns": [
+      "cursor_created_at",
+      "cursor_event_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-03-10 10:46:00",
+       50003
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:10c223e67ddf": {
+   "statements": [
+    {
+     "sql": "SELECT event_id, created_at FROM events\nWHERE kind = 'purchase'\n  AND (created_at < @cursor_at OR (created_at = @cursor_at AND event_id < @cursor_id))\nORDER BY created_at DESC, event_id DESC\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "created_at"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       49999,
+       "2024-03-10 10:38:00"
+      ],
+      [
+       49995,
+       "2024-03-10 10:30:00"
+      ],
+      [
+       49991,
+       "2024-03-10 10:22:00"
+      ],
+      [
+       49987,
+       "2024-03-10 10:14:00"
+      ],
+      [
+       49983,
+       "2024-03-10 10:06:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:2a84a88d8345": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT event_id, created_at, amount FROM events\nWHERE kind = 'purchase'\n  AND (created_at < @cursor_at OR (created_at = @cursor_at AND event_id < @cursor_id))\nORDER BY created_at DESC, event_id DESC\nLIMIT 20",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 20 row(s)  (cost=10173 rows=20)\n    -> Index range scan on events using idx_kind_time over (kind = 'purchase' AND created_at < '2024-03-10 10:46:00') OR (kind = 'purchase' AND created_at = '2024-03-10 10:46:00' AND event_id < 50003) (reverse), with index condition: ((`events`.kind = 'purchase') and ((`events`.created_at < <cache>((@cursor_at))) or ((`events`.created_at = <cache>((@cursor_at))) and (`events`.event_id < <cache>((@cursor_id))))))  (cost=10173 rows=22605)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:f711d7230acc": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT event_id, created_at, amount FROM events\nWHERE kind = 'purchase'\nORDER BY created_at DESC, event_id DESC\nLIMIT 20 OFFSET 50000",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit/Offset: 20/50000 row(s)  (cost=12303 rows=20) (actual time=76.5..76.5 rows=20 loops=1)\n    -> Index lookup on events using idx_kind_time (kind='purchase') (reverse)  (cost=12303 rows=117504) (actual time=2.41..74.9 rows=50020 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 77.54
+    }
+   ],
+   "measured": true
+  },
+  "s14:e89fc1eefd39": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT event_id, created_at, amount FROM events\nWHERE kind = 'purchase'\n  AND (created_at < @cursor_at OR (created_at = @cursor_at AND event_id < @cursor_id))\nORDER BY created_at DESC, event_id DESC\nLIMIT 20",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 20 row(s)  (cost=10173 rows=20) (actual time=4.34..4.35 rows=20 loops=1)\n    -> Index range scan on events using idx_kind_time over (kind = 'purchase' AND created_at < '2024-03-10 10:46:00') OR (kind = 'purchase' AND created_at = '2024-03-10 10:46:00' AND event_id < 50003) (reverse), with index condition: ((`events`.kind = 'purchase') and ((`events`.created_at < <cache>((@cursor_at))) or ((`events`.created_at = <cache>((@cursor_at))) and (`events`.event_id < <cache>((@cursor_id))))))  (cost=10173 rows=22605) (actual time=4.34..4.34 rows=20 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 5.66
+    }
+   ],
+   "measured": true
+  },
+  "s15:e6cec49032d9": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT event_id, created_at, amount FROM events\nWHERE kind = 'purchase' AND (created_at, event_id) < (@cursor_at, @cursor_id)\nORDER BY created_at DESC, event_id DESC\nLIMIT 20",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 20 row(s)  (cost=12303 rows=20) (actual time=65.6..65.6 rows=20 loops=1)\n    -> Filter: ((`events`.created_at,`events`.event_id) < ((@cursor_at),(@cursor_id)))  (cost=12303 rows=117504) (actual time=65.6..65.6 rows=20 loops=1)\n        -> Index lookup on events using idx_kind_time (kind='purchase') (reverse)  (cost=12303 rows=117504) (actual time=3.57..57 rows=50020 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 67.29
+    }
+   ],
+   "measured": true
+  },
+  "s16:a6e45dc61523": {
+   "statements": [
+    {
+     "sql": "SELECT amount, COUNT(*) AS events_with_this_amount\nFROM events GROUP BY amount ORDER BY amount DESC LIMIT 3",
+     "status": "ok",
+     "columns": [
+      "amount",
+      "events_with_this_amount"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "399.99",
+       6
+      ],
+      [
+       "399.98",
+       6
+      ],
+      [
+       "399.97",
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

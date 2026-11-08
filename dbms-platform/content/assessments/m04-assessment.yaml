@@ -1,0 +1,391 @@
+id: m04-assessment
+module: m04
+title: "Module 4 Assessment — Joins & Advanced SQL Querying"
+passMark: 70
+description: >-
+  Covers all of Module 4: inner, outer, cross and self joins, multi-table joins and fan-out, scalar/row/derived
+  and LATERAL subqueries, correlated subqueries, EXISTS/IN and their NULL traps, set operations (UNION, INTERSECT,
+  EXCEPT), CTEs and recursive CTEs, window functions (frames, ranking, value functions), advanced analytical
+  patterns, and the logical query processing order versus the physical plan. Questions emphasise predicting
+  MySQL's actual results and plans; the SQL challenges are graded against the shop, hr and university datasets;
+  the interview questions ask you to explain engineering trade-offs.
+questions:
+  - id: q1
+    question: "customers has 25 rows, 5 of which have no orders; orders has 80 rows, each with a valid customer. How many rows does `customers c LEFT JOIN orders o ON o.customer_id = c.customer_id` produce?"
+    options: ["80", "85", "25", "2000"]
+    answer: 1
+    explanation: "Every order matches exactly one customer (80 rows) and each of the 5 customers without orders contributes one NULL-extended row: 85. 80 is the inner join; 2000 is the Cartesian product."
+    concepts: [left-join, null-extended-rows, join-cardinality]
+  - id: q2
+    question: "`SELECT c.customer_id FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id WHERE o.status = 'delivered'` — what happened to the outer join?"
+    options:
+      - "Nothing; customers without delivered orders appear with NULLs"
+      - "It behaves like an inner join, because the WHERE condition is UNKNOWN on NULL-extended rows; the optimizer even rewrites it as an inner join"
+      - "It becomes a RIGHT JOIN"
+      - "It raises an error because WHERE cannot reference the right table"
+    answer: 1
+    explanation: "WHERE runs after the join and discards NULL-extended rows. To keep all customers, move the status condition into ON. EXPLAIN + SHOW WARNINGS shows the outer-join simplification."
+    concepts: [on-vs-where, outer-join]
+  - id: q3
+    question: "A report joins orders → order_items → payments and computes SUM(payments.amount) per customer. An order with 3 items and 1 payment contributes how much to the sum?"
+    options:
+      - "The payment amount once"
+      - "The payment amount three times — the join fans out to one row per (item, payment) pair"
+      - "Nothing — payments and items cannot be joined"
+      - "One third of the payment"
+    answer: 1
+    explanation: "Joining two independent child tables multiplies rows (fan-out). Pre-aggregate each child per order (derived tables/CTEs) before joining, or aggregate payments separately."
+    concepts: [fan-out, pre-aggregation]
+  - id: q4
+    question: "How many distinct unordered pairs of different employees does `employees a JOIN employees b ON a.employee_id < b.employee_id` produce for 30 employees?"
+    options: ["900", "870", "435", "30"]
+    answer: 2
+    explanation: "The < condition removes self-pairs and mirror duplicates: 30 × 29 / 2 = 435. Using <> would give 870 ordered pairs; a cross join gives 900."
+    concepts: [self-join, unique-pairs]
+  - id: q5
+    question: "Since MySQL 8.0.18, which join algorithm does MySQL typically use for an equi-join when no usable index exists on the inner table?"
+    options: ["Block nested loop", "Hash join", "Sort-merge join", "Index nested loop"]
+    answer: 1
+    explanation: "From 8.0.18 the hash join replaced block nested loop for equi-joins without indexes. MySQL has no sort-merge join; index nested loop requires an index."
+    concepts: [hash-join, nested-loop-join]
+  - id: q6
+    question: "Which subquery forms does MySQL support? (Select all that apply.)"
+    type: multi
+    options:
+      - "A scalar subquery in the SELECT list"
+      - "A row subquery: WHERE (a, b) = (SELECT x, y …)"
+      - "A LATERAL derived table that references earlier FROM tables (8.0.14+)"
+      - "A derived table without an alias"
+      - "A subquery in the FROM clause referencing a CTE"
+    answer: [0, 1, 2, 4]
+    explanation: "All are supported except that every derived table must have an alias (error 1248). LATERAL derived tables arrived in 8.0.14."
+    concepts: [scalar-subquery, row-subquery, lateral-derived-table, derived-table]
+  - id: q7
+    question: "`SELECT category_id FROM categories WHERE category_id NOT IN (SELECT category_id FROM products)` returns no rows, although category 1 has no products. Why, and what is a correct alternative?"
+    options:
+      - "Category 1 has products; the query is right"
+      - "products.category_id contains a NULL, so every NOT IN predicate is UNKNOWN; use NOT EXISTS or EXCEPT"
+      - "NOT IN is not supported with subqueries; use NOT EXISTS"
+      - "The subquery returns too many rows"
+    answer: 1
+    explanation: "x NOT IN (…, NULL) expands to … AND x <> NULL, which is never TRUE. NOT EXISTS asks whether a matching row exists, and EXCEPT compares with 'is not distinct from' semantics; both return category 1."
+    concepts: [not-in-null, anti-join, except]
+  - id: q8
+    question: "Which are semi-join execution strategies MySQL can choose for `WHERE x IN (SELECT …)`? (Select all that apply.)"
+    type: multi
+    options: ["FirstMatch", "LooseScan", "Materialization", "DuplicateWeedout", "Merge sort union"]
+    answer: [0, 1, 2, 3]
+    explanation: "MySQL's semi-join strategies are table pullout, FirstMatch, LooseScan, Materialization and DuplicateWeedout. 'Merge sort union' is not one (index_merge sort-union is an unrelated access method)."
+    concepts: [semi-join, semijoin-strategies]
+  - id: q9
+    question: "Why is `UNION` usually more expensive than `UNION ALL`?"
+    options:
+      - "UNION executes each operand twice"
+      - "UNION must remove duplicates using an internal temporary table with a unique key over all columns; UNION ALL streams rows through an Append iterator"
+      - "UNION ALL can use indexes, UNION cannot"
+      - "UNION sorts the result by the first column"
+    answer: 1
+    explanation: "EXPLAIN FORMAT=TREE shows 'Union materialize with deduplication' for UNION and 'Append' for UNION ALL. Neither guarantees an order without ORDER BY."
+    concepts: [union-all, duplicate-elimination]
+  - id: q10
+    question: "What does `SELECT 1 AS v UNION SELECT 2 INTERSECT SELECT 2` return in MySQL 8.4?"
+    options: ["2", "1 and 2", "1", "An error"]
+    answer: 1
+    explanation: "INTERSECT has higher precedence: 1 ∪ (2 ∩ 2) = {1, 2}. Parenthesizing the UNION first would give {2}."
+    concepts: [intersect, set-operations]
+  - id: q11
+    question: "A non-aggregating CTE is referenced once; EXPLAIN FORMAT=TREE shows the base table accessed through an index and no 'Materialize CTE' line. What happened?"
+    options:
+      - "The CTE result was cached from a previous statement"
+      - "The CTE was merged into the outer query (derived_merge), so the plan is that of the flat query"
+      - "EXPLAIN omits CTEs"
+      - "The CTE was ignored as unused"
+    answer: 1
+    explanation: "MySQL treats CTE references like derived tables: mergeable ones are merged; those with GROUP BY, DISTINCT, LIMIT, UNION or window functions are materialized (once, even if referenced several times). Nothing is cached across statements."
+    concepts: [cte, derived-merge]
+  - id: q12
+    question: "A recursive CTE's anchor selects `CAST(employee_id AS CHAR) AS path`, and the recursive member appends '/id'. Under the default sql_mode, what happens?"
+    options:
+      - "Paths widen automatically"
+      - "Error 1406 'Data too long for column path' — the column type is fixed by the anchor"
+      - "Error 3636 recursion depth exceeded"
+      - "Paths are silently truncated"
+    answer: 1
+    explanation: "Recursive CTE column types come from the anchor. Strict mode (in the default sql_mode) rejects overflow; only non-strict sessions truncate silently. Size the anchor: CAST(… AS CHAR(200))."
+    concepts: [recursive-cte, path-enumeration]
+  - id: q13
+    question: "Which statement about cycles in recursive CTEs is correct?"
+    options:
+      - "MySQL detects cycles automatically with the standard CYCLE clause"
+      - "With UNION ALL a cycle repeats until cte_max_recursion_depth (default 1000) aborts the query with error 3636; guard with a path column or use UNION DISTINCT over node ids only"
+      - "Cycles are impossible because the recursive member reads only new rows"
+      - "UNION DISTINCT always stops cycles, even with a depth column"
+    answer: 1
+    explanation: "MySQL does not implement SEARCH/CYCLE. UNION DISTINCT stops a cycle only when revisited rows are identical — a depth or path column makes every revisit a new row."
+    concepts: [cycle-detection, cte-max-recursion-depth]
+  - id: q14
+    question: "Salaries ascending: 125500, 146500, 150000, 150000. What does `SUM(salary) OVER (ORDER BY salary)` return for the first 150000 row?"
+    options: ["422000", "572000", "150000", "Depends on the storage engine"]
+    answer: 1
+    explanation: "With ORDER BY and no frame, the default is RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW, which includes all peers: 125500 + 146500 + 150000 + 150000. A ROWS frame with a tie-breaker would give 422000 for the first peer."
+    concepts: [window-frames, rows-vs-range]
+  - id: q15
+    question: "'Top 3 salaries per department; if people tie, include all of them.' Which filter on a ranking computed in a CTE matches the rule?"
+    options: ["ROW_NUMBER() <= 3", "RANK() <= 3", "NTILE(3) = 1", "CUME_DIST() <= 0.3"]
+    answer: 1
+    explanation: "RANK keeps all peers within the top 3 positions. ROW_NUMBER drops tied rows arbitrarily; NTILE splits by row count; CUME_DIST is relative, not a count."
+    concepts: [rank, top-n-per-group, ties]
+  - id: q16
+    question: "`LAST_VALUE(name) OVER (PARTITION BY category_id ORDER BY price, product_id)` returns what on each row?"
+    options:
+      - "The most expensive product of the category"
+      - "The current row's name, because the default frame ends at the current row"
+      - "NULL"
+      - "The cheapest product of the category"
+    answer: 1
+    explanation: "Extend the frame with ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING, or use FIRST_VALUE with ORDER BY price DESC."
+    concepts: [last-value, window-frames]
+  - id: q17
+    question: "Distinct active months of a customer: 2, 3, 4, 7, 8, 11. What island keys does `m - ROW_NUMBER() OVER (ORDER BY m)` give?"
+    options: ["1, 1, 1, 3, 3, 5", "1, 2, 3, 4, 5, 6", "0, 0, 0, 1, 1, 2", "2, 3, 4, 7, 8, 11"]
+    answer: 0
+    explanation: "Equal keys mark runs of consecutive values: Feb–Apr, Jul–Aug, Nov. The values must be distinct first, and because ROW_NUMBER is BIGINT UNSIGNED, a negative difference raises error 1690 unless cast to SIGNED."
+    concepts: [gaps-and-islands]
+  - id: q18
+    question: "For partitions of k rows, which running-total strategy scales as O(k log k) rather than O(k²)?"
+    options:
+      - "Correlated subquery summing all earlier rows"
+      - "Self join to all earlier rows + GROUP BY"
+      - "SUM(x) OVER (PARTITION BY … ORDER BY … ROWS UNBOUNDED PRECEDING)"
+      - "All three are O(k log k)"
+    answer: 2
+    explanation: "The window sorts once and scans once. The correlated subquery re-reads earlier rows per row; the self join materializes one row per (row, earlier row) pair before grouping."
+    concepts: [running-totals, solution-strategies]
+  - id: q19
+    question: "Which statements follow from SQL's logical processing order? (Select all that apply.)"
+    type: multi
+    options:
+      - "A select-list alias can be used in ORDER BY but not in WHERE"
+      - "Aggregates cannot appear in WHERE"
+      - "Window function results cannot be filtered in HAVING"
+      - "MySQL always executes FROM, then WHERE, then GROUP BY physically in that order"
+      - "LIMIT without ORDER BY returns an unspecified subset"
+    answer: [0, 1, 2, 4]
+    explanation: "Name visibility and clause restrictions follow the logical order (FROM → WHERE → GROUP BY → HAVING → window → SELECT → DISTINCT → ORDER BY → LIMIT). The physical plan is free to differ: filters are pushed into joins, joins reordered, sorts skipped via indexes."
+    concepts: [logical-query-order, physical-plan]
+  - id: q20
+    question: "`SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id HAVING customer_id < 5` and the equivalent WHERE version return the same rows. What did MySQL's plan show for the HAVING version?"
+    options:
+      - "An identical plan"
+      - "All orders were grouped and the groups filtered afterwards, while the WHERE version used an index range scan before grouping"
+      - "An error, because HAVING requires an aggregate"
+      - "A hash join"
+    answer: 1
+    explanation: "On the captured 8.0 plan, the HAVING filter sits above the Group aggregate. Put row-level conditions in WHERE; keep HAVING for aggregate conditions."
+    concepts: [logical-query-order, physical-plan]
+challenges:
+  - id: c1
+    title: Customers with orders but no reviews
+    dataset: shop
+    difficulty: medium
+    prompt: |
+      Marketing wants to ask customers who have bought but never reviewed for feedback. Return `customer_id`,
+      `first_name`, `last_name` and `orders` (their number of orders, any status) for every customer who has at
+      least one order and **no** review.
+    hints:
+      - "Start from customers joined to orders (inner join keeps only buyers), grouped per customer."
+      - "Exclude reviewers with NOT EXISTS (SELECT 1 FROM reviews r WHERE r.customer_id = c.customer_id)."
+      - "Avoid NOT IN on a column that might contain NULLs, and avoid joining reviews directly (fan-out)."
+    solution: |
+      SELECT c.customer_id, c.first_name, c.last_name, COUNT(*) AS orders
+      FROM customers c
+      JOIN orders o ON o.customer_id = c.customer_id
+      WHERE NOT EXISTS (SELECT 1 FROM reviews r WHERE r.customer_id = c.customer_id)
+      GROUP BY c.customer_id, c.first_name, c.last_name;
+    explanation: |
+      The inner join restricts to buyers; NOT EXISTS is an anti-join that the optimizer can execute with index
+      lookups on idx_reviews_customer. A LEFT JOIN to reviews with `r.review_id IS NULL` also works but must not
+      be combined with COUNT(*) over a fanned-out join. EXCEPT on customer ids followed by a join is another
+      correct formulation.
+  - id: c2
+    title: Second-highest salary per department
+    dataset: hr
+    difficulty: hard
+    prompt: |
+      For every department that has at least two **distinct** salary values, return `department_id` and
+      `second_salary`: the second-highest distinct salary in that department. Ignore employees without a department.
+    hints:
+      - "Distinct salary values → DENSE_RANK() OVER (PARTITION BY department_id ORDER BY salary DESC)."
+      - "Compute it in a CTE; filter rank = 2 in the outer query and return each department once (DISTINCT or GROUP BY)."
+    solution: |
+      WITH ranked AS (
+        SELECT department_id, salary,
+               DENSE_RANK() OVER (PARTITION BY department_id ORDER BY salary DESC) AS drnk
+        FROM employees
+        WHERE department_id IS NOT NULL
+      )
+      SELECT DISTINCT department_id, salary AS second_salary
+      FROM ranked
+      WHERE drnk = 2;
+    explanation: |
+      DENSE_RANK numbers distinct values without gaps, so rank 2 is the second-highest distinct salary even when the
+      top salary is shared. ROW_NUMBER would return the second *row* (possibly equal to the first salary); RANK would
+      skip 2 after a tie at the top. DISTINCT collapses several employees sharing the second salary. Departments with
+      one employee (Executive) have no rank 2 and do not appear.
+  - id: c3
+    title: Full prerequisite chain with depth
+    dataset: university
+    difficulty: hard
+    prompt: |
+      List every course that is a direct or indirect prerequisite of `CS-157B`, with its title and the **maximum**
+      number of prerequisite steps between it and CS-157B (the longest chain — useful for planning how many terms
+      ahead it must be taken). Columns: `course_id`, `title`, `max_depth`.
+    hints:
+      - "Recursive CTE: anchor = prerequisites of CS-157B with depth 1; recursive member joins course_prereqs on p.course_id = cte.course_id."
+      - "Aggregation is not allowed in the recursive member — compute MAX(depth) in the outer query and join courses for the title."
+    solution: |
+      WITH RECURSIVE req AS (
+        SELECT prereq_id AS course_id, 1 AS depth
+        FROM course_prereqs
+        WHERE course_id = 'CS-157B'
+        UNION ALL
+        SELECT p.prereq_id, r.depth + 1
+        FROM course_prereqs p
+        JOIN req r ON p.course_id = r.course_id
+      )
+      SELECT r.course_id, c.title, MAX(r.depth) AS max_depth
+      FROM req r
+      JOIN courses c ON c.course_id = r.course_id
+      GROUP BY r.course_id, c.title;
+    explanation: |
+      The recursion computes the transitive closure of the prerequisite relation from CS-157B. In a DAG a course
+      may be reached along several paths, so the outer GROUP BY collapses duplicates and keeps the longest distance.
+      The graph is acyclic, so UNION ALL terminates without a cycle guard.
+  - id: c4
+    title: Monthly revenue with running total and change
+    dataset: shop
+    difficulty: hard
+    prompt: |
+      Revenue is Σ quantity × unit_price over line items of orders that are not `cancelled` or `refunded`. For each
+      month of 2024 return `month_no`, `revenue`, `ytd_revenue` (running total from January) and `mom_change`
+      (revenue minus the previous month's revenue; NULL for January). Every month has revenue.
+    hints:
+      - "Aggregate to one row per month in a CTE first."
+      - "Running total: SUM(revenue) OVER (ORDER BY month_no ROWS UNBOUNDED PRECEDING)."
+      - "Previous month: LAG(revenue) OVER (ORDER BY month_no)."
+    solution: |
+      WITH monthly AS (
+        SELECT MONTH(o.order_date) AS month_no, SUM(oi.quantity * oi.unit_price) AS revenue
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.order_id
+        WHERE o.status NOT IN ('cancelled', 'refunded')
+        GROUP BY MONTH(o.order_date)
+      )
+      SELECT month_no, revenue,
+             SUM(revenue) OVER (ORDER BY month_no ROWS UNBOUNDED PRECEDING) AS ytd_revenue,
+             revenue - LAG(revenue) OVER (ORDER BY month_no) AS mom_change
+      FROM monthly;
+    explanation: |
+      Aggregating before windowing keeps the window small and makes the grain explicit (one row per month). LAG
+      compares with the previous *row*, which equals the previous month only because every month has revenue; with
+      gaps, join to a generated month series first.
+  - id: c5
+    title: Products in both halves of the year
+    dataset: shop
+    difficulty: medium
+    prompt: |
+      Return the `product_id` of every product that was ordered (any status) both in January–June **and** in
+      July–December 2024. Use a set operator.
+    hints:
+      - "Product ids of H1 order lines: join order_items to orders and filter order_date < '2024-07-01'."
+      - "INTERSECT the H1 set with the H2 set."
+    solution: |
+      SELECT oi.product_id
+      FROM order_items oi JOIN orders o ON o.order_id = oi.order_id
+      WHERE o.order_date < '2024-07-01'
+      INTERSECT
+      SELECT oi.product_id
+      FROM order_items oi JOIN orders o ON o.order_id = oi.order_id
+      WHERE o.order_date >= '2024-07-01';
+    explanation: |
+      INTERSECT (8.0.31+) returns each product once even though it appears in many order lines. An EXISTS-based
+      formulation works on older versions: products where EXISTS an H1 line AND EXISTS an H2 line.
+interview:
+  - id: i1
+    question: "Explain the difference between ON and WHERE in a LEFT JOIN, with an example of a bug it causes."
+    answer: |
+      The ON condition is part of the join itself: it decides which right-table rows **match** each left row, and a
+      left row without any match is still returned once, NULL-extended. WHERE is evaluated afterwards on the joined
+      rows. A condition on the right table placed in WHERE (e.g. `WHERE o.status = 'delivered'`) is UNKNOWN for
+      NULL-extended rows, so they are discarded and the LEFT JOIN degenerates into an inner join — the classic bug
+      is a "customers and their delivered orders" report that silently drops customers with no delivered orders.
+      MySQL's optimizer recognizes this (outer-join simplification) and rewrites it as an inner join, visible via
+      `EXPLAIN` + `SHOW WARNINGS`. Fix: move matching conditions into ON; keep filters on the preserved (left) table
+      in WHERE.
+    concepts: [on-vs-where, outer-join]
+  - id: i2
+    question: "When would you choose EXISTS, IN, a JOIN, or EXCEPT to express 'rows of A related (or not) to B'?"
+    answer: |
+      - **EXISTS / NOT EXISTS** when you need columns of A only and want semi-/anti-join semantics: duplicates in B do
+        not multiply A's rows, NULLs in B do not break NOT EXISTS, and MySQL can use semi-join/antijoin strategies
+        with index lookups.
+      - **IN** for semi-joins with a clear key list; MySQL converts it to a semi-join. Avoid **NOT IN (subquery)**
+        unless the column is NOT NULL — a single NULL makes it return nothing.
+      - **JOIN** when you need columns from B too; beware fan-out (add DISTINCT or pre-aggregate).
+      - **EXCEPT / INTERSECT** (8.0.31+) to compare whole rows across result sets with set semantics (reconciliation,
+        regression tests), treating NULLs as equal.
+      Verify the chosen plan with EXPLAIN on realistic data; the optimizer often transforms all of them into similar
+      semi-join plans.
+    concepts: [exists, in-subquery, semi-join, anti-join, except]
+  - id: i3
+    question: "A dashboard query uses ROW_NUMBER() over a 200-million-row table to get the latest 3 orders per customer and is slow. How would you analyse and improve it?"
+    answer: |
+      First read `EXPLAIN ANALYZE`: the window approach sorts and ranks **every** row, materializes the CTE, and only
+      then filters `rn <= 3` — the cost is dominated by the full sort. Options:
+      1. **LATERAL top-N with an index**: `FROM customers c JOIN LATERAL (SELECT … FROM orders o WHERE
+         o.customer_id = c.customer_id ORDER BY order_date DESC LIMIT 3) t ON TRUE` with an index on
+         `(customer_id, order_date)` reads about 3 index entries per customer instead of sorting 200 M rows.
+      2. **Restrict the input** before windowing (e.g. only orders from the last N days, if the business rule allows).
+      3. **Precompute** a "latest orders" summary table maintained on write or by a job, if the dashboard is hot.
+      Keep a deterministic tie-breaker (`order_date DESC, order_id DESC`) in every variant, and measure each with
+      EXPLAIN ANALYZE before choosing.
+    concepts: [top-n-per-group, row-number, lateral-derived-table]
+  - id: i4
+    question: "Explain ROWS vs RANGE window frames and the default-frame trap."
+    answer: |
+      A frame defines which rows of the ordered partition an aggregate sees for the current row. **ROWS** counts
+      physical rows (`2 PRECEDING` = the two previous rows). **RANGE** works on values of the single ORDER BY key:
+      `RANGE INTERVAL 6 DAY PRECEDING` includes rows whose date is within six days, and `CURRENT ROW` includes **all
+      peers** (rows with an equal key). When a window has ORDER BY but no frame, the default is `RANGE BETWEEN
+      UNBOUNDED PRECEDING AND CURRENT ROW`. With duplicate keys, a "running total" written as `SUM(x) OVER (ORDER BY
+      k)` gives all tied rows the same total (through the last peer), and `LAST_VALUE` returns the current row's value.
+      Write frames explicitly: ROWS with a unique tie-breaker for running totals, RANGE with intervals for calendar
+      windows, and `UNBOUNDED FOLLOWING` for LAST_VALUE.
+    concepts: [window-frames, rows-vs-range]
+  - id: i5
+    question: "Describe how you would traverse a hierarchy of unknown depth in MySQL and what can go wrong."
+    answer: |
+      Use a recursive CTE over the adjacency list: an anchor selecting the start node(s) and a recursive member
+      joining the table to the CTE on the parent key (`e.manager_id = cte.employee_id`), carrying depth and a path.
+      MySQL materializes it iteratively; each iteration reads only the previous iteration's new rows, and recursion
+      stops when no new rows appear. Pitfalls: (1) the anchor fixes column types — cast path strings wide enough or
+      strict mode raises error 1406 (non-strict truncates silently); (2) cycles or missing termination conditions run
+      until `cte_max_recursion_depth` (default 1000) aborts with error 3636 — guard with a path check
+      (`FIND_IN_SET`) or UNION DISTINCT over node ids; (3) no aggregates, window functions, ORDER BY or DISTINCT in the
+      recursive member — aggregate outside; (4) performance requires an index on the parent column, otherwise each
+      iteration scans the table. For read-heavy trees, consider a closure table or materialized path maintained from
+      the adjacency list.
+    concepts: [recursive-cte, hierarchies, cycle-detection]
+  - id: i6
+    question: "Why can't you use a SELECT alias in WHERE, and how does the physical plan relate to the logical order?"
+    answer: |
+      SQL defines a logical processing order — FROM, WHERE, GROUP BY, HAVING, window functions, SELECT, DISTINCT,
+      ORDER BY, LIMIT. Aliases are created by the SELECT list, so they do not exist when WHERE is evaluated (error
+      1054), but do exist for ORDER BY; MySQL additionally resolves them in GROUP BY and HAVING as a non-portable
+      extension. Aggregates are likewise unavailable in WHERE (error 1111) and window results in WHERE/HAVING (3593,
+      3594). The logical order is a specification of the result, not an execution recipe: the optimizer pushes
+      filters into table accesses, reorders joins, merges derived tables and CTEs, converts outer joins to inner
+      joins and subqueries to semi-joins, and can skip sorts by reading an index in order. `EXPLAIN FORMAT=TREE`
+      shows the physical iterator tree; `EXPLAIN` + `SHOW WARNINGS` shows the rewritten query. Reason about
+      correctness with the logical order and about performance with the plan.
+    concepts: [logical-query-order, physical-plan, optimizer-rewrites]

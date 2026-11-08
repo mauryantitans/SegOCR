@@ -1,0 +1,956 @@
+{
+ "doc": "m04-logical-query-order",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s2:9d109dfd70a2": {
+   "statements": [
+    {
+     "sql": "SELECT name, price * stock_qty AS inv\nFROM products\nWHERE inv > 100000",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1054,
+      "message": "Unknown column 'inv' in 'where clause'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s3:0f95b0b38e10": {
+   "statements": [
+    {
+     "sql": "SELECT name, price * stock_qty AS inv\nFROM products\nWHERE price * stock_qty > 100000\nORDER BY inv DESC",
+     "status": "ok",
+     "columns": [
+      "name",
+      "inv"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Gaming Laptop 16",
+       "352604.00"
+      ],
+      [
+       "Ultrabook 14 Pro",
+       "318255.00"
+      ],
+      [
+       "Ultrabook 13 Air",
+       "225774.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:cb31689adadc": {
+   "statements": [
+    {
+     "sql": "WITH inventory AS (\n  SELECT name, price * stock_qty AS inv FROM products\n)\nSELECT name, inv FROM inventory\nWHERE inv > 100000\nORDER BY inv DESC",
+     "status": "ok",
+     "columns": [
+      "name",
+      "inv"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Gaming Laptop 16",
+       "352604.00"
+      ],
+      [
+       "Ultrabook 14 Pro",
+       "318255.00"
+      ],
+      [
+       "Ultrabook 13 Air",
+       "225774.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:0b3d2d2350b6": {
+   "statements": [
+    {
+     "sql": "SELECT category_id AS cat, COUNT(*) AS n\nFROM products\nGROUP BY cat\nHAVING n >= 4\nORDER BY n DESC, cat",
+     "status": "ok",
+     "columns": [
+      "cat",
+      "n"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       4,
+       5
+      ],
+      [
+       3,
+       4
+      ],
+      [
+       5,
+       4
+      ],
+      [
+       7,
+       4
+      ],
+      [
+       9,
+       4
+      ],
+      [
+       10,
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:28fd5682e01e": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, COUNT(*) AS orders\nFROM orders\nWHERE customer_id < 5\nGROUP BY customer_id\nORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "orders"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       2
+      ],
+      [
+       3,
+       3
+      ],
+      [
+       4,
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:2e6ab1a7b9eb": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, COUNT(*) AS orders\nFROM orders\nGROUP BY customer_id\nHAVING customer_id < 5\nORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "orders"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       2
+      ],
+      [
+       3,
+       3
+      ],
+      [
+       4,
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:bd5f580ec3e7": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT customer_id, COUNT(*) AS orders FROM orders WHERE customer_id < 5 GROUP BY customer_id",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Group aggregate: count(0)  (cost=2.96 rows=3)\n    -> Filter: (orders.customer_id < 5)  (cost=2.06 rows=9)\n        -> Covering index range scan on orders using idx_orders_customer over (customer_id < 5)  (cost=2.06 rows=9)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:6584a27a7e58": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT customer_id, COUNT(*) AS orders FROM orders GROUP BY customer_id HAVING customer_id < 5",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (orders.customer_id < 5)  (cost=16.2 rows=20)\n    -> Group aggregate: count(0)  (cost=16.2 rows=20)\n        -> Index scan on orders using idx_orders_customer  (cost=8.25 rows=80)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:a97b8cd0a040": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id\nFROM orders\nWHERE COUNT(*) > 5\nGROUP BY customer_id",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1111,
+      "message": "Invalid use of group function"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:852a0e860ecb": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, COUNT(*) AS orders\nFROM orders\nGROUP BY customer_id\nHAVING COUNT(*) > 5\nORDER BY orders DESC, customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "orders"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       18,
+       8
+      ],
+      [
+       19,
+       8
+      ],
+      [
+       14,
+       6
+      ],
+      [
+       22,
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:d88bbb870119": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, COUNT(*) AS orders,\n       RANK() OVER (ORDER BY COUNT(*) DESC) AS rnk\nFROM orders\nGROUP BY customer_id\nORDER BY rnk, customer_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "orders",
+      "rnk"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       18,
+       8,
+       1
+      ],
+      [
+       19,
+       8,
+       1
+      ],
+      [
+       14,
+       6,
+       3
+      ],
+      [
+       22,
+       6,
+       3
+      ],
+      [
+       10,
+       5,
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:ec5a0897a203": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, COUNT(*) AS orders,\n       RANK() OVER (ORDER BY COUNT(*) DESC) AS rnk\nFROM orders\nGROUP BY customer_id\nHAVING rnk = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3594,
+      "message": "You cannot use the alias 'rnk' of an expression containing a window function in this context.'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:76f6451cab32": {
+   "statements": [
+    {
+     "sql": "SELECT DISTINCT category_id\nFROM products\nORDER BY price",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3065,
+      "message": "Expression #1 of ORDER BY clause is not in SELECT list, references column 'products.price' which is not in SELECT list; this is incompatible with DISTINCT"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s15:91920a69fb61": {
+   "statements": [
+    {
+     "sql": "SELECT category_id, MIN(price) AS cheapest\nFROM products\nWHERE category_id IS NOT NULL\nGROUP BY category_id\nORDER BY cheapest\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "category_id",
+      "cheapest"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       8,
+       "18.99"
+      ],
+      [
+       10,
+       "24.99"
+      ],
+      [
+       4,
+       "29.99"
+      ],
+      [
+       7,
+       "34.50"
+      ],
+      [
+       9,
+       "39.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:35451ddbf7bc": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, order_date FROM orders ORDER BY order_date DESC, order_id DESC LIMIT 3",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_date"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       61,
+       "2024-12-24 13:09:00"
+      ],
+      [
+       17,
+       "2024-12-22 14:33:00"
+      ],
+      [
+       53,
+       "2024-12-21 13:06:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:283f4ed5dd5b": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, COUNT(o.order_id) AS delivered_orders\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id AND o.status = 'delivered'\nWHERE c.customer_id IN (2, 9, 13, 14)\nGROUP BY c.customer_id\nORDER BY c.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "delivered_orders"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       2,
+       0
+      ],
+      [
+       9,
+       0
+      ],
+      [
+       13,
+       0
+      ],
+      [
+       14,
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:3aa34d2542ce": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, COUNT(o.order_id) AS delivered_orders\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id\nWHERE c.customer_id IN (2, 9, 13, 14) AND o.status = 'delivered'\nGROUP BY c.customer_id\nORDER BY c.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "delivered_orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       14,
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:aef6fb00c2ae": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS joined_rows\nFROM customers c\nJOIN orders o       ON o.customer_id = c.customer_id\nJOIN order_items oi ON oi.order_id = o.order_id",
+     "status": "ok",
+     "columns": [
+      "joined_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       182
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:36d76ab9a7c2": {
+   "statements": [
+    {
+     "sql": "SELECT c.city, o.order_id, oi.product_id, oi.quantity * oi.unit_price AS line_value\nFROM customers c\nJOIN orders o       ON o.customer_id = c.customer_id\nJOIN order_items oi ON oi.order_id = o.order_id\nWHERE c.state = 'CA' AND o.status = 'delivered'\nORDER BY c.city, o.order_id, oi.product_id\nLIMIT 12",
+     "status": "ok",
+     "columns": [
+      "city",
+      "order_id",
+      "product_id",
+      "line_value"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       "Los Angeles",
+       10,
+       14,
+       "499.00"
+      ],
+      [
+       "San Francisco",
+       3,
+       13,
+       "149.00"
+      ],
+      [
+       "San Francisco",
+       7,
+       30,
+       "69.99"
+      ],
+      [
+       "San Francisco",
+       20,
+       24,
+       "17.09"
+      ],
+      [
+       "San Francisco",
+       21,
+       1,
+       "1299.00"
+      ],
+      [
+       "San Francisco",
+       21,
+       24,
+       "56.97"
+      ],
+      [
+       "San Francisco",
+       21,
+       29,
+       "50.00"
+      ],
+      [
+       "San Francisco",
+       24,
+       1,
+       "3507.30"
+      ],
+      [
+       "San Francisco",
+       24,
+       25,
+       "35.00"
+      ],
+      [
+       "San Francisco",
+       26,
+       5,
+       "29.99"
+      ],
+      [
+       "San Francisco",
+       26,
+       24,
+       "18.99"
+      ],
+      [
+       "San Francisco",
+       26,
+       25,
+       "35.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:481c9be8e9f6": {
+   "statements": [
+    {
+     "sql": "SELECT c.city, COUNT(DISTINCT o.order_id) AS delivered_orders,\n       SUM(oi.quantity * oi.unit_price) AS revenue\nFROM customers c\nJOIN orders o       ON o.customer_id = c.customer_id\nJOIN order_items oi ON oi.order_id = o.order_id\nWHERE c.state = 'CA' AND o.status = 'delivered'\nGROUP BY c.city\nORDER BY c.city",
+     "status": "ok",
+     "columns": [
+      "city",
+      "delivered_orders",
+      "revenue"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Los Angeles",
+       1,
+       "499.00"
+      ],
+      [
+       "San Francisco",
+       15,
+       "12091.78"
+      ],
+      [
+       "San Jose",
+       8,
+       "13856.83"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:1b751bc62cd5": {
+   "statements": [
+    {
+     "sql": "SELECT c.city, COUNT(DISTINCT o.order_id) AS delivered_orders,\n       SUM(oi.quantity * oi.unit_price) AS revenue\nFROM customers c\nJOIN orders o       ON o.customer_id = c.customer_id\nJOIN order_items oi ON oi.order_id = o.order_id\nWHERE c.state = 'CA' AND o.status = 'delivered'\nGROUP BY c.city\nHAVING delivered_orders >= 2\nORDER BY c.city",
+     "status": "ok",
+     "columns": [
+      "city",
+      "delivered_orders",
+      "revenue"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "San Francisco",
+       15,
+       "12091.78"
+      ],
+      [
+       "San Jose",
+       8,
+       "13856.83"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:59d0aff440e8": {
+   "statements": [
+    {
+     "sql": "SELECT c.city, COUNT(DISTINCT o.order_id) AS delivered_orders,\n       SUM(oi.quantity * oi.unit_price) AS revenue,\n       RANK() OVER (ORDER BY SUM(oi.quantity * oi.unit_price) DESC) AS revenue_rank\nFROM customers c\nJOIN orders o       ON o.customer_id = c.customer_id\nJOIN order_items oi ON oi.order_id = o.order_id\nWHERE c.state = 'CA' AND o.status = 'delivered'\nGROUP BY c.city\nHAVING delivered_orders >= 2\nORDER BY c.city",
+     "status": "ok",
+     "columns": [
+      "city",
+      "delivered_orders",
+      "revenue",
+      "revenue_rank"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "San Francisco",
+       15,
+       "12091.78",
+       2
+      ],
+      [
+       "San Jose",
+       8,
+       "13856.83",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:926ef245593f": {
+   "statements": [
+    {
+     "sql": "SELECT c.city, COUNT(DISTINCT o.order_id) AS delivered_orders,\n       SUM(oi.quantity * oi.unit_price) AS revenue\nFROM customers c\nJOIN orders o       ON o.customer_id = c.customer_id\nJOIN order_items oi ON oi.order_id = o.order_id\nWHERE c.state = 'CA' AND o.status = 'delivered'\nGROUP BY c.city\nHAVING delivered_orders >= 2\nORDER BY revenue DESC\nLIMIT 3",
+     "status": "ok",
+     "columns": [
+      "city",
+      "delivered_orders",
+      "revenue"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "San Jose",
+       8,
+       "13856.83"
+      ],
+      [
+       "San Francisco",
+       15,
+       "12091.78"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.6:f5540c0546c9": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT c.city, COUNT(DISTINCT o.order_id) AS delivered_orders,\n       SUM(oi.quantity * oi.unit_price) AS revenue\nFROM customers c\nJOIN orders o       ON o.customer_id = c.customer_id\nJOIN order_items oi ON oi.order_id = o.order_id\nWHERE c.state = 'CA' AND o.status = 'delivered'\nGROUP BY c.city\nHAVING delivered_orders >= 2\nORDER BY revenue DESC\nLIMIT 3",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 3 row(s)\n    -> Sort: revenue DESC\n        -> Filter: (delivered_orders >= 2)\n            -> Stream results  (cost=23 rows=5)\n                -> Group aggregate: count(distinct o.order_id), sum((oi.quantity * oi.unit_price))  (cost=23 rows=5)\n                    -> Nested loop inner join  (cost=19.3 rows=37.9)\n                        -> Nested loop inner join  (cost=14.6 rows=16.7)\n                            -> Sort: c.city  (cost=2.75 rows=25)\n                                -> Filter: (c.state = 'CA')  (cost=2.75 rows=25)\n                                    -> Table scan on c  (cost=2.75 rows=25)\n                            -> Filter: (o.`status` = 'delivered')  (cost=0.777 rows=0.667)\n                                -> Index lookup on o using idx_orders_customer (customer_id=c.customer_id)  (cost=0.777 rows=4)\n                        -> Index lookup on oi using PRIMARY (order_id=o.order_id)  (cost=0.636 rows=2.28)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:35cd8c8adeab": {
+   "statements": [
+    {
+     "sql": "-- A: repeat the expression in WHERE\nSELECT name, price * stock_qty AS inv FROM products\nWHERE price * stock_qty > 100000\nORDER BY inv DESC",
+     "status": "ok",
+     "columns": [
+      "name",
+      "inv"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Gaming Laptop 16",
+       "352604.00"
+      ],
+      [
+       "Ultrabook 14 Pro",
+       "318255.00"
+      ],
+      [
+       "Ultrabook 13 Air",
+       "225774.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:427172955a65": {
+   "statements": [
+    {
+     "sql": "-- B: derived table — the alias becomes a column of the outer query\nSELECT name, inv\nFROM (SELECT name, price * stock_qty AS inv FROM products) AS t\nWHERE inv > 100000\nORDER BY inv DESC",
+     "status": "ok",
+     "columns": [
+      "name",
+      "inv"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Gaming Laptop 16",
+       "352604.00"
+      ],
+      [
+       "Ultrabook 14 Pro",
+       "318255.00"
+      ],
+      [
+       "Ultrabook 13 Air",
+       "225774.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:3b1d703ece0c": {
+   "statements": [
+    {
+     "sql": "-- C: CTE — same as B, more readable for multi-step logic\nWITH t AS (SELECT name, price * stock_qty AS inv FROM products)\nSELECT name, inv FROM t WHERE inv > 100000 ORDER BY inv DESC",
+     "status": "ok",
+     "columns": [
+      "name",
+      "inv"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Gaming Laptop 16",
+       "352604.00"
+      ],
+      [
+       "Ultrabook 14 Pro",
+       "318255.00"
+      ],
+      [
+       "Ultrabook 13 Air",
+       "225774.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:118e8bd2dfda": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT name, inv\nFROM (SELECT name, price * stock_qty AS inv FROM products) AS t\nWHERE inv > 100000\nORDER BY inv DESC",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Sort: inv DESC  (cost=3.25 rows=30)\n    -> Filter: ((products.price * products.stock_qty) > 100000)  (cost=3.25 rows=30)\n        -> Table scan on products  (cost=3.25 rows=30)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:4bd7410d278b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT c.first_name, o.order_id\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id\nWHERE o.status = 'delivered'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "o",
+       null,
+       "ALL",
+       "idx_orders_customer",
+       null,
+       null,
+       null,
+       80,
+       16.67,
+       "Using where"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "eq_ref",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "o.customer_id",
+       1,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_6ad551448f1dd5f3ce3a`.`c`.`first_name` AS `first_name`,`lab_6ad551448f1dd5f3ce3a`.`o`.`order_id` AS `order_id` from `lab_6ad551448f1dd5f3ce3a`.`customers` `c` join `lab_6ad551448f1dd5f3ce3a`.`orders` `o` where ((`lab_6ad551448f1dd5f3ce3a`.`c`.`customer_id` = `lab_6ad551448f1dd5f3ce3a`.`o`.`customer_id`) and (`lab_6ad551448f1dd5f3ce3a`.`o`.`status` = 'delivered'))"
+      }
+     ]
+    },
+    {
+     "sql": "SHOW WARNINGS",
+     "status": "ok",
+     "columns": [
+      "Level",
+      "Code",
+      "Message"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Note",
+       1003,
+       "/* select#1 */ select `lab_6ad551448f1dd5f3ce3a`.`c`.`first_name` AS `first_name`,`lab_6ad551448f1dd5f3ce3a`.`o`.`order_id` AS `order_id` from `lab_6ad551448f1dd5f3ce3a`.`customers` `c` join `lab_6ad551448f1dd5f3ce3a`.`orders` `o` where ((`lab_6ad551448f1dd5f3ce3a`.`c`.`customer_id` = `lab_6ad551448f1dd5f3ce3a`.`o`.`customer_id`) and (`lab_6ad551448f1dd5f3ce3a`.`o`.`status` = 'delivered'))"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s24:b2e95d25488a": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT name FROM products WHERE 1 = 1 AND price > 10 * 10 AND category_id = 3",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (products.price > <cache>((10 * 10)))  (cost=0.883 rows=1.33)\n    -> Index lookup on products using idx_products_category (category_id=3)  (cost=0.883 rows=4)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s25:564fc26e8cd0": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT name FROM products WHERE 1 = 0",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Zero rows (Impossible WHERE)  (cost=0..0 rows=0)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s26:d2216d4d57ec": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT c.first_name, o.order_id\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nWHERE c.state = 'WA' AND o.status = 'delivered'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=5.63 rows=1.67)\n    -> Filter: (c.state = 'WA')  (cost=2.75 rows=2.5)\n        -> Table scan on c  (cost=2.75 rows=25)\n    -> Filter: (o.`status` = 'delivered')  (cost=0.777 rows=0.667)\n        -> Index lookup on o using idx_orders_customer (customer_id=c.customer_id)  (cost=0.777 rows=4)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s27:8890bb5dac04": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id, order_date FROM orders ORDER BY order_date DESC LIMIT 3",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 3 row(s)  (cost=0.0206 rows=3)\n    -> Index scan on orders using idx_orders_date (reverse)  (cost=0.0206 rows=3)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s28:6d84b0bdb1a2": {
+   "statements": [
+    {
+     "sql": "SELECT name, price - cost AS margin, margin / price AS margin_pct\nFROM products",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1054,
+      "message": "Unknown column 'margin' in 'field list'"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

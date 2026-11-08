@@ -1,0 +1,1134 @@
+{
+ "doc": "m07-optimizing-subqueries",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:50703590bd87": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 200000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE customers (\n  customer_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  region      VARCHAR(10)  NOT NULL,\n  segment     VARCHAR(10)  NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO customers\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 20000)\nSELECT n,\n       ELT(1 + n % 8, 'north', 'south', 'east', 'west', 'central', 'coast', 'mountain', 'islands'),\n       ELT(1 + (n DIV 8) % 3, 'consumer', 'smb', 'enterprise')\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 20000,
+     "info": "Records: 20000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE orders (\n  order_id    INT UNSIGNED  NOT NULL PRIMARY KEY,\n  customer_id INT UNSIGNED  NOT NULL,\n  order_date  DATE          NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  INDEX idx_customer (customer_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 200000)\nSELECT n, 1 + (n * 7919) % 20000, DATE '2024-01-01' + INTERVAL (n * 37) % 366 DAY, ((n * 31) % 50000) / 100\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE customers, orders",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "lab_2186d57274201951c369.customers",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_2186d57274201951c369.orders",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:b33eae0ba228": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS customers_with_late_orders\nFROM customers AS c\nWHERE c.segment = 'enterprise'\n  AND c.customer_id IN (SELECT o.customer_id FROM orders AS o WHERE o.order_date >= '2024-12-25')",
+     "status": "ok",
+     "columns": [
+      "customers_with_late_orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1002
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:249bbea88c3e": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT COUNT(*) FROM customers AS c\nWHERE c.segment = 'enterprise'\n  AND c.customer_id IN (SELECT o.customer_id FROM orders AS o WHERE o.order_date >= '2024-12-25')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "ALL",
+       "PRIMARY",
+       null,
+       null,
+       null,
+       19722,
+       10.0,
+       "Using where"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "o",
+       null,
+       "ref",
+       "idx_customer",
+       "idx_customer",
+       "4",
+       "c.customer_id",
+       10,
+       33.33,
+       "Using where; FirstMatch(c)"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_2186d57274201951c369`.`customers` `c` semi join (`lab_2186d57274201951c369`.`orders` `o`) where ((`lab_2186d57274201951c369`.`o`.`customer_id` = `lab_2186d57274201951c369`.`c`.`customer_id`) and (`lab_2186d57274201951c369`.`c`.`segment` = 'enterprise') and (`lab_2186d57274201951c369`.`o`.`order_date` >= DATE'2024-12-25'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:8b2d454ef159": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT /*+ SEMIJOIN(@late DUPSWEEDOUT) */ COUNT(*) FROM customers AS c\nWHERE c.segment = 'enterprise'\n  AND c.customer_id IN (SELECT /*+ QB_NAME(late) */ o.customer_id FROM orders AS o\n                        WHERE o.order_date >= '2024-12-25')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "ALL",
+       "PRIMARY",
+       null,
+       null,
+       null,
+       19722,
+       10.0,
+       "Using where"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "o",
+       null,
+       "ref",
+       "idx_customer",
+       "idx_customer",
+       "4",
+       "c.customer_id",
+       10,
+       33.33,
+       "Using where; Start temporary; End temporary"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select /*+ SEMIJOIN(@`late` DUPSWEEDOUT) */ count(0) AS `COUNT(*)` from `lab_2186d57274201951c369`.`customers` `c` semi join (`lab_2186d57274201951c369`.`orders` `o`) where ((`lab_2186d57274201951c369`.`o`.`customer_id` = `lab_2186d57274201951c369`.`c`.`customer_id`) and (`lab_2186d57274201951c369`.`c`.`segment` = 'enterprise') and (`lab_2186d57274201951c369`.`o`.`order_date` >= DATE'2024-12-25'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:69fe08bb3924": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT /*+ NO_SEMIJOIN(@late) */ COUNT(*) FROM customers AS c\nWHERE c.segment = 'enterprise'\n  AND c.customer_id IN (SELECT /*+ QB_NAME(late) */ o.customer_id FROM orders AS o\n                        WHERE o.order_date >= '2024-12-25')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "PRIMARY",
+       "c",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       19722,
+       10.0,
+       "Using where"
+      ],
+      [
+       2,
+       "SUBQUERY",
+       "o",
+       null,
+       "ALL",
+       "idx_customer",
+       null,
+       null,
+       null,
+       200200,
+       33.33,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select /*+ NO_SEMIJOIN(@`late`) */ count(0) AS `COUNT(*)` from `lab_2186d57274201951c369`.`customers` `c` where ((`lab_2186d57274201951c369`.`c`.`segment` = 'enterprise') and <in_optimizer>(`lab_2186d57274201951c369`.`c`.`customer_id`,`lab_2186d57274201951c369`.`c`.`customer_id` in ( <materialize> (/* select#2 */ select /*+ QB_NAME(`late`) */ `lab_2186d57274201951c369`.`o`.`customer_id` from `lab_2186d57274201951c369`.`orders` `o` where (`lab_2186d57274201951c369`.`o`.`order_date` >= DATE'2024-12-25') ), <primary_index_lookup>(`lab_2186d57274201951c369`.`c`.`customer_id` in <temporary table> on <auto_distinct_key> where ((`lab_2186d57274201951c369`.`c`.`customer_id` = `<materialized_subquery>`.`customer_id`))))))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:9cf62344e5d2": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_date_customer ON orders (order_date, customer_id)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_2186d57274201951c369.orders",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN\nSELECT COUNT(*) FROM customers AS c\nWHERE c.segment = 'enterprise'\n  AND c.customer_id IN (SELECT o.customer_id FROM orders AS o WHERE o.order_date >= '2024-12-25')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "o",
+       null,
+       "range",
+       "idx_customer,idx_date_customer",
+       "idx_date_customer",
+       "3",
+       null,
+       3824,
+       100.0,
+       "Using where; Using index; Start temporary"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "eq_ref",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "o.customer_id",
+       1,
+       10.0,
+       "Using where; End temporary"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_2186d57274201951c369`.`customers` `c` semi join (`lab_2186d57274201951c369`.`orders` `o`) where ((`lab_2186d57274201951c369`.`c`.`customer_id` = `lab_2186d57274201951c369`.`o`.`customer_id`) and (`lab_2186d57274201951c369`.`c`.`segment` = 'enterprise') and (`lab_2186d57274201951c369`.`o`.`order_date` >= DATE'2024-12-25'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:f5a547a28230": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT /*+ SEMIJOIN(@late MATERIALIZATION) */ COUNT(*) FROM customers AS c\nWHERE c.segment = 'enterprise'\n  AND c.customer_id IN (SELECT /*+ QB_NAME(late) */ o.customer_id FROM orders AS o\n                        WHERE o.order_date >= '2024-12-25')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "<subquery2>",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       null,
+       100.0,
+       null
+      ],
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "eq_ref",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "<subquery2>.customer_id",
+       1,
+       10.0,
+       "Using where"
+      ],
+      [
+       2,
+       "MATERIALIZED",
+       "o",
+       null,
+       "range",
+       "idx_customer,idx_date_customer",
+       "idx_date_customer",
+       "3",
+       null,
+       3824,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select /*+ SEMIJOIN(@`late` MATERIALIZATION) */ count(0) AS `COUNT(*)` from `lab_2186d57274201951c369`.`customers` `c` semi join (`lab_2186d57274201951c369`.`orders` `o`) where ((`lab_2186d57274201951c369`.`c`.`customer_id` = `<subquery2>`.`customer_id`) and (`lab_2186d57274201951c369`.`c`.`segment` = 'enterprise') and (`lab_2186d57274201951c369`.`o`.`order_date` >= DATE'2024-12-25'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:1f432c2ee90e": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT /*+ SEMIJOIN(@xmas LOOSESCAN) */ COUNT(*) FROM customers AS c\nWHERE c.customer_id IN (SELECT /*+ QB_NAME(xmas) */ o.customer_id FROM orders AS o\n                        WHERE o.order_date = '2024-12-25')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "o",
+       null,
+       "ref",
+       "idx_customer,idx_date_customer",
+       "idx_date_customer",
+       "3",
+       "const",
+       546,
+       100.0,
+       "Using index; LooseScan"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "eq_ref",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "o.customer_id",
+       1,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select /*+ SEMIJOIN(@`xmas` LOOSESCAN) */ count(0) AS `COUNT(*)` from `lab_2186d57274201951c369`.`customers` `c` semi join (`lab_2186d57274201951c369`.`orders` `o`) where ((`lab_2186d57274201951c369`.`c`.`customer_id` = `lab_2186d57274201951c369`.`o`.`customer_id`) and (`lab_2186d57274201951c369`.`o`.`order_date` = DATE'2024-12-25'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:f2e90eaf0add": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT COUNT(*) FROM orders AS o\nWHERE o.customer_id IN (SELECT c.customer_id FROM customers AS c WHERE c.region = 'islands')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "ALL",
+       "PRIMARY",
+       null,
+       null,
+       null,
+       19722,
+       10.0,
+       "Using where"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "o",
+       null,
+       "ref",
+       "idx_customer",
+       "idx_customer",
+       "4",
+       "c.customer_id",
+       10,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_2186d57274201951c369`.`customers` `c` join `lab_2186d57274201951c369`.`orders` `o` where ((`lab_2186d57274201951c369`.`o`.`customer_id` = `lab_2186d57274201951c369`.`c`.`customer_id`) and (`lab_2186d57274201951c369`.`c`.`region` = 'islands'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:f2751061f19d": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT COUNT(*) FROM customers AS c\nWHERE NOT EXISTS (SELECT 1 FROM orders AS o\n                  WHERE o.customer_id = c.customer_id AND o.order_date >= '2024-12-01')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "index",
+       null,
+       "PRIMARY",
+       "4",
+       null,
+       19722,
+       100.0,
+       "Using index"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "<subquery2>",
+       null,
+       "eq_ref",
+       "<auto_distinct_key>",
+       "<auto_distinct_key>",
+       "5",
+       "c.customer_id",
+       1,
+       100.0,
+       "Using where; Not exists"
+      ],
+      [
+       2,
+       "MATERIALIZED",
+       "o",
+       null,
+       "ALL",
+       "idx_customer,idx_date_customer",
+       null,
+       null,
+       null,
+       200200,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'lab_2186d57274201951c369.c.customer_id' of SELECT #2 was resolved in SELECT #1"
+      },
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_2186d57274201951c369`.`customers` `c` anti join (`lab_2186d57274201951c369`.`orders` `o`) on(((`<subquery2>`.`customer_id` = `lab_2186d57274201951c369`.`c`.`customer_id`) and (`lab_2186d57274201951c369`.`o`.`order_date` >= '2024-12-01'))) where true"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS customers_without_december_orders FROM customers AS c\nWHERE NOT EXISTS (SELECT 1 FROM orders AS o\n                  WHERE o.customer_id = c.customer_id AND o.order_date >= '2024-12-01')",
+     "status": "ok",
+     "columns": [
+      "customers_without_december_orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       7814
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:c4d55c7bb43e": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT d.order_id\nFROM (SELECT order_id, customer_id, amount FROM orders WHERE amount > 400) AS d\nJOIN customers AS c ON c.customer_id = d.customer_id\nWHERE c.region = 'islands'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "ALL",
+       "PRIMARY",
+       null,
+       null,
+       null,
+       19722,
+       10.0,
+       "Using where"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "ref",
+       "idx_customer",
+       "idx_customer",
+       "4",
+       "c.customer_id",
+       10,
+       33.33,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_2186d57274201951c369`.`orders`.`order_id` AS `order_id` from `lab_2186d57274201951c369`.`orders` join `lab_2186d57274201951c369`.`customers` `c` where ((`lab_2186d57274201951c369`.`orders`.`customer_id` = `lab_2186d57274201951c369`.`c`.`customer_id`) and (`lab_2186d57274201951c369`.`c`.`region` = 'islands') and (`lab_2186d57274201951c369`.`orders`.`amount` > 400.00))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:de0e1f1c5e81": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT /*+ NO_MERGE(d) */ d.order_id\nFROM (SELECT order_id, customer_id, amount FROM orders WHERE amount > 400) AS d\nJOIN customers AS c ON c.customer_id = d.customer_id\nWHERE c.region = 'islands'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "PRIMARY",
+       "c",
+       null,
+       "ALL",
+       "PRIMARY",
+       null,
+       null,
+       null,
+       19722,
+       10.0,
+       "Using where"
+      ],
+      [
+       1,
+       "PRIMARY",
+       "<derived2>",
+       null,
+       "ref",
+       "<auto_key0>",
+       "<auto_key0>",
+       "4",
+       "c.customer_id",
+       10,
+       100.0,
+       null
+      ],
+      [
+       2,
+       "DERIVED",
+       "orders",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       200200,
+       33.33,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select /*+ NO_MERGE(`d`@`select#1`) */ `d`.`order_id` AS `order_id` from (/* select#2 */ select `lab_2186d57274201951c369`.`orders`.`order_id` AS `order_id`,`lab_2186d57274201951c369`.`orders`.`customer_id` AS `customer_id`,`lab_2186d57274201951c369`.`orders`.`amount` AS `amount` from `lab_2186d57274201951c369`.`orders` where (`lab_2186d57274201951c369`.`orders`.`amount` > 400.00)) `d` join `lab_2186d57274201951c369`.`customers` `c` where ((`d`.`customer_id` = `lab_2186d57274201951c369`.`c`.`customer_id`) and (`lab_2186d57274201951c369`.`c`.`region` = 'islands'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:f0c5870fbfa3": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM (SELECT customer_id, COUNT(*) AS n, SUM(amount) AS revenue\n               FROM orders GROUP BY customer_id) AS d\nWHERE d.customer_id BETWEEN 100 AND 120\nORDER BY customer_id LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "n",
+      "revenue"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       100,
+       10,
+       "2685.10"
+      ],
+      [
+       101,
+       10,
+       "2490.00"
+      ],
+      [
+       102,
+       10,
+       "2294.90"
+      ],
+      [
+       103,
+       10,
+       "2099.80"
+      ],
+      [
+       104,
+       10,
+       "2904.70"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:9394d7f3d0bc": {
+   "statements": [
+    {
+     "sql": "SET SESSION optimizer_switch = 'derived_condition_pushdown=off'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT * FROM (SELECT customer_id, COUNT(*) AS n, SUM(amount) AS revenue\n               FROM orders GROUP BY customer_id) AS d\nWHERE d.customer_id BETWEEN 100 AND 120",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (d.customer_id between 100 and 120)  (cost=42148..22525 rows=22242)\n    -> Table scan on d  (cost=42149..42400 rows=19891)\n        -> Materialize  (cost=42149..42149 rows=19891)\n            -> Group aggregate: count(0), sum(orders.amount)  (cost=40160 rows=19891)\n                -> Index scan on orders using idx_customer  (cost=20140 rows=200200)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:d1ce364fb77a": {
+   "statements": [
+    {
+     "sql": "SET SESSION optimizer_switch = 'default'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT * FROM (SELECT customer_id, COUNT(*) AS n, SUM(amount) AS revenue\n               FROM orders GROUP BY customer_id) AS d\nWHERE d.customer_id BETWEEN 100 AND 120",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on d  (cost=137..142 rows=210)\n    -> Materialize  (cost=137..137 rows=210)\n        -> Group aggregate: count(0), sum(orders.amount)  (cost=116 rows=210)\n            -> Index range scan on orders using idx_customer over (100 <= customer_id <= 120), with index condition: (orders.customer_id between 100 and 120)  (cost=94.8 rows=210)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:c79826151644": {
+   "statements": [
+    {
+     "sql": "SET SESSION optimizer_switch = 'derived_condition_pushdown=off'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 0.45
+    },
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT * FROM (SELECT customer_id, COUNT(*) AS n, SUM(amount) AS revenue\n               FROM orders GROUP BY customer_id) AS d\nWHERE d.customer_id BETWEEN 100 AND 120",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (d.customer_id between 100 and 120)  (cost=42148..22525 rows=22242) (actual time=231..233 rows=21 loops=1)\n    -> Table scan on d  (cost=42149..42400 rows=19891) (actual time=231..233 rows=20000 loops=1)\n        -> Materialize  (cost=42149..42149 rows=19891) (actual time=231..231 rows=20000 loops=1)\n            -> Group aggregate: count(0), sum(orders.amount)  (cost=40160 rows=19891) (actual time=10.2..229 rows=20000 loops=1)\n                -> Index scan on orders using idx_customer  (cost=20140 rows=200200) (actual time=10.2..214 rows=200000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 234.29
+    },
+    {
+     "sql": "SET SESSION optimizer_switch = 'default'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 0.55
+    }
+   ],
+   "measured": true
+  },
+  "s14:5cc523659a99": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT * FROM (SELECT customer_id, COUNT(*) AS n, SUM(amount) AS revenue\n               FROM orders GROUP BY customer_id) AS d\nWHERE d.customer_id BETWEEN 100 AND 120",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on d  (cost=137..142 rows=210) (actual time=0.418..0.42 rows=21 loops=1)\n    -> Materialize  (cost=137..137 rows=210) (actual time=0.416..0.416 rows=21 loops=1)\n        -> Group aggregate: count(0), sum(orders.amount)  (cost=116 rows=210) (actual time=0.373..0.401 rows=21 loops=1)\n            -> Index range scan on orders using idx_customer over (100 <= customer_id <= 120), with index condition: (orders.customer_id between 100 and 120)  (cost=94.8 rows=210) (actual time=0.366..0.38 rows=210 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.42
+    }
+   ],
+   "measured": true
+  },
+  "s15:5949672e9151": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT COUNT(*) FROM orders AS o\nWHERE o.amount > (SELECT AVG(o2.amount) FROM orders AS o2 WHERE o2.customer_id = o.customer_id)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=40160 rows=1) (actual time=2370..2370 rows=1 loops=1)\n    -> Filter: (o.amount > (select #2))  (cost=20140 rows=200200) (actual time=14.1..2366 rows=80000 loops=1)\n        -> Table scan on o  (cost=20140 rows=200200) (actual time=0.469..33.5 rows=200000 loops=1)\n        -> Select #2 (subquery in condition; dependent)\n            -> Aggregate: avg(o2.amount)  (cost=4.53 rows=1) (actual time=0.0112..0.0113 rows=1 loops=200000)\n                -> Index lookup on o2 using idx_customer (customer_id=o.customer_id)  (cost=3.52 rows=10.1) (actual time=0.00969..0.0104 rows=10 loops=200000)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'lab_2186d57274201951c369.o.customer_id' of SELECT #2 was resolved in SELECT #1"
+      }
+     ],
+     "elapsed_ms": 2372.01
+    }
+   ],
+   "measured": true
+  },
+  "s16:b4a845222c7c": {
+   "statements": [
+    {
+     "sql": "-- A: aggregate once per customer in a derived table, then join\nEXPLAIN ANALYZE\nSELECT COUNT(*) FROM orders AS o\nJOIN (SELECT customer_id, AVG(amount) AS avg_amount FROM orders GROUP BY customer_id) AS av\n  ON av.customer_id = o.customer_id\nWHERE o.amount > av.avg_amount",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=572839 rows=1) (actual time=481..481 rows=1 loops=1)\n    -> Nested loop inner join  (cost=566166 rows=66727) (actual time=220..478 rows=80000 loops=1)\n        -> Table scan on av  (cost=42149..42400 rows=19891) (actual time=220..221 rows=20000 loops=1)\n            -> Materialize  (cost=42149..42149 rows=19891) (actual time=220..220 rows=20000 loops=1)\n                -> Group aggregate: avg(orders.amount)  (cost=40160 rows=19891) (actual time=9.44..217 rows=20000 loops=1)\n                    -> Index scan on orders using idx_customer  (cost=20140 rows=200200) (actual time=9.42..202 rows=200000 loops=1)\n        -> Filter: (o.amount > av.avg_amount)  (cost=2.52 rows=3.35) (actual time=0.0112..0.0125 rows=4 loops=20000)\n            -> Index lookup on o using idx_customer (customer_id=av.customer_id)  (cost=2.52 rows=10.1) (actual time=0.0109..0.0116 rows=10 loops=20000)\n"
+      ]
+     ],
+     "elapsed_ms": 482.71
+    }
+   ],
+   "measured": true
+  },
+  "s17:125574698887": {
+   "statements": [
+    {
+     "sql": "-- B: a window function computes the per-customer average in one pass\nEXPLAIN ANALYZE\nSELECT COUNT(*) FROM (\n  SELECT amount, AVG(amount) OVER (PARTITION BY customer_id) AS avg_amount FROM orders\n) AS w\nWHERE w.amount > w.avg_amount",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=29198..29198 rows=1) (actual time=235..235 rows=1 loops=1)\n    -> Filter: (w.amount > w.avg_amount)  (cost=0.338..22525 rows=66727) (actual time=200..232 rows=80000 loops=1)\n        -> Table scan on w  (cost=2.5..2.5 rows=0) (actual time=200..215 rows=200000 loops=1)\n            -> Materialize  (cost=0..0 rows=0) (actual time=200..200 rows=200000 loops=1)\n                -> Window aggregate with buffering: avg(orders.amount) OVER (PARTITION BY orders.customer_id )   (actual time=58.6..186 rows=200000 loops=1)\n                    -> Sort: orders.customer_id  (cost=20140 rows=200200) (actual time=58.5..65.7 rows=200000 loops=1)\n                        -> Table scan on orders  (cost=20140 rows=200200) (actual time=0.557..23.6 rows=200000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 236.81
+    }
+   ],
+   "measured": true
+  },
+  "s18:d40b1b777a00": {
+   "statements": [
+    {
+     "sql": "SET SESSION optimizer_switch = 'subquery_to_derived=on'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT COUNT(*) FROM orders AS o\nWHERE o.amount > (SELECT AVG(o2.amount) FROM orders AS o2 WHERE o2.customer_id = o.customer_id)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=794929 rows=1)\n    -> Nested loop inner join  (cost=727769 rows=671594)\n        -> Filter: (derived_1_2.customer_id is not null)  (cost=42149..22525 rows=200200)\n            -> Table scan on derived_1_2  (cost=42149..42400 rows=19891)\n                -> Materialize  (cost=42149..42149 rows=19891)\n                    -> Group aggregate: avg(o2.amount)  (cost=40160 rows=19891)\n                        -> Index scan on o2 using idx_customer  (cost=20140 rows=200200)\n        -> Filter: (o.amount > derived_1_2.`AVG(o2.amount)`)  (cost=2.52 rows=3.35)\n            -> Index lookup on o using idx_customer (customer_id=derived_1_2.customer_id)  (cost=2.52 rows=10.1)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'lab_2186d57274201951c369.o.customer_id' of SELECT #2 was resolved in SELECT #1"
+      }
+     ]
+    },
+    {
+     "sql": "SET SESSION optimizer_switch = 'default'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s19:e3e066378562": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT c.customer_id,\n       (SELECT MAX(o.order_date) FROM orders AS o WHERE o.customer_id = c.customer_id) AS last_order\nFROM customers AS c\nWHERE c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=1996 rows=197) (actual time=0.165..4.39 rows=833 loops=1)\n    -> Table scan on c  (cost=1996 rows=19722) (actual time=0.158..2.87 rows=20000 loops=1)\n-> Select #2 (subquery in projection; dependent)\n    -> Aggregate: max(o.order_date)  (cost=4.53 rows=1) (actual time=0.0176..0.0177 rows=1 loops=833)\n        -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=3.52 rows=10.1) (actual time=0.0161..0.0168 rows=10 loops=833)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'lab_2186d57274201951c369.c.customer_id' of SELECT #2 was resolved in SELECT #1"
+      }
+     ],
+     "elapsed_ms": 20.74
+    }
+   ],
+   "measured": true
+  },
+  "s20:e3a36938c378": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE referrals (customer_id INT UNSIGNED NOT NULL, referred_by INT UNSIGNED NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO referrals VALUES (1, 2), (2, NULL), (3, 2), (4, 1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT customer_id FROM customers\nWHERE customer_id <= 4 AND customer_id NOT IN (SELECT referred_by FROM referrals)\nORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id"
+     ],
+     "row_count": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s21:8a803442b789": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id FROM customers AS c\nWHERE c.customer_id <= 4\n  AND NOT EXISTS (SELECT 1 FROM referrals AS r WHERE r.referred_by = c.customer_id)\nORDER BY c.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       3
+      ],
+      [
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:4dd339bb2c61": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS join_rows\nFROM customers AS c JOIN orders AS o ON o.customer_id = c.customer_id\nWHERE c.segment = 'enterprise' AND o.order_date >= '2024-12-25'",
+     "status": "ok",
+     "columns": [
+      "join_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1273
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

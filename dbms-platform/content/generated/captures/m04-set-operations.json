@@ -201,10 +201,10 @@
    ],
    "measured": null
   },
-  "s7:5e60ac9b7432": {
+  "s7:36225da8c149": {
    "statements": [
     {
-     "sql": "SELECT order_date AS event_time, 'order placed' AS event,\n       order_id AS ref, CAST(status AS CHAR) AS detail\nFROM orders WHERE customer_id = 9\nUNION ALL\nSELECT p.paid_at, 'payment', p.order_id, CONCAT(p.method, ' ', p.status, ' ', p.amount)\nFROM payments p JOIN orders o ON o.order_id = p.order_id\nWHERE o.customer_id = 9\nUNION ALL\nSELECT r.created_at, 'review', r.product_id, CONCAT(r.rating, ' stars')\nFROM reviews r WHERE r.customer_id = 9\nORDER BY event_time, event",
+     "sql": "SELECT order_date AS event_time, 'order placed' AS event,\n       order_id AS ref, CAST(status AS CHAR) AS detail\nFROM orders WHERE customer_id = 1\nUNION ALL\nSELECT p.paid_at, 'payment', p.order_id, CONCAT(p.method, ' ', p.status, ' ', p.amount)\nFROM payments p JOIN orders o ON o.order_id = p.order_id\nWHERE o.customer_id = 1\nUNION ALL\nSELECT r.created_at, 'review', r.product_id, CONCAT(r.rating, ' stars')\nFROM reviews r WHERE r.customer_id = 1\nORDER BY event_time, event",
      "status": "ok",
      "columns": [
       "event_time",
@@ -212,19 +212,43 @@
       "ref",
       "detail"
      ],
-     "row_count": 2,
+     "row_count": 6,
      "rows": [
       [
-       "2024-06-28 18:56:00",
+       "2024-05-21 10:28:00",
        "order placed",
-       11,
-       "paid"
+       65,
+       "delivered"
       ],
       [
-       "2024-06-28 19:17:00",
+       "2024-05-21 10:44:00",
        "payment",
-       11,
-       "gift_card succeeded 4157.98"
+       65,
+       "card succeeded 35.99"
+      ],
+      [
+       "2024-05-27 10:28:00",
+       "review",
+       23,
+       "4 stars"
+      ],
+      [
+       "2024-09-21 11:15:00",
+       "order placed",
+       31,
+       "delivered"
+      ],
+      [
+       "2024-09-21 11:21:00",
+       "payment",
+       31,
+       "card succeeded 642.99"
+      ],
+      [
+       "2024-09-28 11:15:00",
+       "review",
+       26,
+       "4 stars"
       ]
      ]
     }
@@ -973,10 +997,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Append  (cost=12158 rows=120776) (actual time=0.188..30.1 rows=120000 loops=1)\n    -> Stream results  (cost=6079 rows=60388) (actual time=0.187..12.1 rows=60000 loops=1)\n        -> Table scan on events_2023  (cost=6079 rows=60388) (actual time=0.183..6.92 rows=60000 loops=1)\n    -> Stream results  (cost=6079 rows=60388) (actual time=0.192..12.1 rows=60000 loops=1)\n        -> Table scan on events_2024  (cost=6079 rows=60388) (actual time=0.189..6.85 rows=60000 loops=1)\n"
+       "-> Append  (cost=12007 rows=119263) (actual time=0.168..29.7 rows=120000 loops=1)\n    -> Stream results  (cost=5928 rows=58875) (actual time=0.168..12 rows=60000 loops=1)\n        -> Table scan on events_2023  (cost=5928 rows=58875) (actual time=0.165..6.8 rows=60000 loops=1)\n    -> Stream results  (cost=6079 rows=60388) (actual time=0.17..11.8 rows=60000 loops=1)\n        -> Table scan on events_2024  (cost=6079 rows=60388) (actual time=0.167..6.72 rows=60000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 37.52
+     "elapsed_ms": 36.83
     }
    ],
    "measured": true
@@ -992,10 +1016,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <union temporary>  (cost=24236..25748 rows=120776) (actual time=40.1..41.6 rows=16000 loops=1)\n    -> Union materialize with deduplication  (cost=24236..24236 rows=120776) (actual time=40.1..40.1 rows=16000 loops=1)\n        -> Table scan on events_2023  (cost=6079 rows=60388) (actual time=0.175..7 rows=60000 loops=1)\n        -> Table scan on events_2024  (cost=6079 rows=60388) (actual time=0.168..6.91 rows=60000 loops=1)\n"
+       "-> Table scan on <union temporary>  (cost=23933..25426 rows=119263) (actual time=38.3..39.8 rows=16000 loops=1)\n    -> Union materialize with deduplication  (cost=23933..23933 rows=119263) (actual time=38.3..38.3 rows=16000 loops=1)\n        -> Table scan on events_2023  (cost=5928 rows=58875) (actual time=0.171..6.76 rows=60000 loops=1)\n        -> Table scan on events_2024  (cost=6079 rows=60388) (actual time=0.157..6.78 rows=60000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 44.53
+     "elapsed_ms": 42.45
     }
    ],
    "measured": true
