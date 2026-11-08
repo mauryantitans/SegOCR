@@ -6,5 +6,5 @@ GRANT ALL PRIVILEGES ON `lab\_%`.* TO 'sandbox_admin'@'localhost' WITH GRANT OPT
 GRANT ALL PRIVILEGES ON `sandbox_meta`.* TO 'sandbox_admin'@'localhost';
 GRANT SELECT ON performance_schema.* TO 'sandbox_admin'@'localhost';
 -- With binary logging enabled (the default), creating stored functions/triggers needs this:
-SET GLOBAL log_bin_trust_function_creators = 1;
-SET GLOBAL event_scheduler = OFF;
+SET PERSIST log_bin_trust_function_creators = 1;
+SET PERSIST event_scheduler = OFF;  -- PERSIST survives server restarts
