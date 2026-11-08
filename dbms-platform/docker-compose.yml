@@ -1,0 +1,68 @@
+# DB Academy — production-style local deployment.
+#   cp .env.example .env   (set real secrets)
+#   docker compose up --build
+# Then open http://localhost:8080
+services:
+  app-db:            # application data: users, progress, attempts. Never reachable by learner SQL.
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${APP_DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: dbms_app
+      MYSQL_USER: dbms_app
+      MYSQL_PASSWORD: ${APP_DB_PASSWORD}
+    volumes: [app-db:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${APP_DB_ROOT_PASSWORD}"]
+      interval: 5s
+      retries: 30
+    restart: unless-stopped
+
+  sandbox-db:        # learner SQL runs here, isolated per lab (schema + account), with no binlog/file access.
+    image: mysql:8.4
+    command:
+      - --disable-log-bin
+      - --event-scheduler=OFF
+      - --local-infile=0
+      - --secure-file-priv=NULL
+      - --max-connections=600
+      - --innodb-buffer-pool-size=512M
+      - --information-schema-stats-expiry=0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${SANDBOX_ROOT_PASSWORD}
+      SANDBOX_ADMIN_PASSWORD: ${SANDBOX_ADMIN_PASSWORD}
+    volumes:
+      - ./docker/sandbox-init.sh:/docker-entrypoint-initdb.d/10-sandbox-init.sh:ro
+      - sandbox-db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${SANDBOX_ROOT_PASSWORD}"]
+      interval: 5s
+      retries: 30
+    deploy:
+      resources:
+        limits: { cpus: "2.0", memory: 2g }
+    restart: unless-stopped
+
+  backend:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    environment:
+      DBMS_ENVIRONMENT: production
+      DBMS_SECRET_KEY: ${SECRET_KEY}
+      DBMS_APP_DATABASE_URL: mysql+pymysql://dbms_app:${APP_DB_PASSWORD}@app-db:3306/dbms_app
+      DBMS_SANDBOX_HOST: sandbox-db
+      DBMS_SANDBOX_ADMIN_PASSWORD: ${SANDBOX_ADMIN_PASSWORD}
+      DBMS_SANDBOX_ACCOUNT_HOST: "%"
+      DBMS_CORS_ORIGINS: '["http://localhost:8080"]'
+    depends_on:
+      app-db: { condition: service_healthy }
+      sandbox-db: { condition: service_healthy }
+    restart: unless-stopped
+
+  frontend:
+    build: { context: ./frontend }
+    ports: ["8080:80"]
+    depends_on: [backend]
+    restart: unless-stopped
+
+volumes:
+  app-db:
+  sandbox-db:
