@@ -306,7 +306,7 @@ class LabManager:
                 c.execute("SET SESSION information_schema_stats_expiry = 0")
         else:
             try:
-                self._admin.ping(reconnect=True)
+                self._admin.ping(reconnect=False)
             except pymysql.err.MySQLError:
                 self._admin = None
                 return self._admin_conn()

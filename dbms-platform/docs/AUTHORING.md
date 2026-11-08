@@ -94,6 +94,9 @@ irrelevant content, never drop the heading.
 - **Diagrams**: fenced ```` ```mermaid ```` blocks (`flowchart`, `sequenceDiagram`, `erDiagram`,
   `stateDiagram-v2`, `classDiagram`). Keep labels short; quote labels containing punctuation:
   `A["SELECT … FROM t"]`. Use `<br/>` for line breaks inside labels.
+- Cross-references: link to another lesson with `[GROUP BY and HAVING](/lessons/m03-group-by-having)`, to a
+  project with `/projects/<id>`, and to the playground with `/playground`. Refer to lessons in other modules by
+  title and link even if they are not written yet — every curriculum id resolves.
 - No LaTeX. Use Unicode: σ π ⋈ ⟕ ⟖ ⟗ × ∪ ∩ − ÷ γ → ⊆ ∀ ∃ ¬ ∧ ∨ ≤ ≥ ≠.
 - **Structured blocks (below) must be at the top level — never inside a `:::` callout.** Plain display-only
   ```` ```sql ```` inside a callout is fine.

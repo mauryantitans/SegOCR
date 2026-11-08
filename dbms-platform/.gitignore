@@ -7,3 +7,5 @@ __pycache__/
 .env
 .venv/
 frontend/test-results/
+backend/test_app.db
+backend/dev_app.db
