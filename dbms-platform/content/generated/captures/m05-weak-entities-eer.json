@@ -1,0 +1,881 @@
+{
+ "doc": "m05-weak-entities-eer",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:d53f90967747": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE products (\n  product_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  name       VARCHAR(80)  NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE invoices (\n  invoice_id  INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  customer    VARCHAR(80)  NOT NULL,\n  issued_on   DATE         NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE invoice_lines (                         -- weak entity\n  invoice_id  INT UNSIGNED      NOT NULL,           -- owner key (identifying relationship)\n  line_no     SMALLINT UNSIGNED NOT NULL,           -- partial key\n  product_id  INT UNSIGNED      NOT NULL,\n  quantity    INT UNSIGNED      NOT NULL,\n  unit_price  DECIMAL(10,2)     NOT NULL,\n  PRIMARY KEY (invoice_id, line_no),\n  KEY idx_invoice_lines_product (product_id),\n  CONSTRAINT chk_invoice_lines_qty CHECK (quantity > 0),\n  CONSTRAINT fk_invoice_lines_invoice FOREIGN KEY (invoice_id)\n    REFERENCES invoices (invoice_id) ON DELETE CASCADE,\n  CONSTRAINT fk_invoice_lines_product FOREIGN KEY (product_id)\n    REFERENCES products (product_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO products VALUES (1, 'USB-C cable'), (2, 'Laptop stand'), (3, 'Webcam')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO invoices (customer, issued_on) VALUES ('Acme Ltd', '2024-11-02'), ('Globex', '2024-11-03')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO invoice_lines VALUES\n  (1, 1, 1, 3, 9.99),\n  (1, 2, 2, 1, 39.00),\n  (2, 1, 3, 2, 54.50),     -- line 1 again, but of invoice 2: allowed\n  (2, 2, 1, 1, 9.99)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT invoice_id, line_no, product_id, quantity, unit_price\nFROM invoice_lines\nORDER BY invoice_id, line_no",
+     "status": "ok",
+     "columns": [
+      "invoice_id",
+      "line_no",
+      "product_id",
+      "quantity",
+      "unit_price"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       1,
+       1,
+       3,
+       "9.99"
+      ],
+      [
+       1,
+       2,
+       2,
+       1,
+       "39.00"
+      ],
+      [
+       2,
+       1,
+       3,
+       2,
+       "54.50"
+      ],
+      [
+       2,
+       2,
+       1,
+       1,
+       "9.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:875c0f61bd66": {
+   "statements": [
+    {
+     "sql": "INSERT INTO invoice_lines VALUES (1, 2, 3, 1, 54.50)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '1-2' for key 'invoice_lines.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s3:ffcbb0ecffea": {
+   "statements": [
+    {
+     "sql": "INSERT INTO invoice_lines VALUES (99, 1, 1, 1, 9.99)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`invoice_lines`, CONSTRAINT `fk_invoice_lines_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`invoice_id`) ON DELETE CASCADE)"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s4:9d669ba93208": {
+   "statements": [
+    {
+     "sql": "DELETE FROM invoices WHERE invoice_id = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT invoice_id, COUNT(*) AS line_count FROM invoice_lines GROUP BY invoice_id ORDER BY invoice_id",
+     "status": "ok",
+     "columns": [
+      "invoice_id",
+      "line_count"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:55471d16c9ae": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE payments_st (\n  payment_id      INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  amount          DECIMAL(10,2) NOT NULL,\n  paid_at         DATETIME      NOT NULL,\n  method          ENUM('card','bank','gift_card') NOT NULL,   -- discriminator: total + disjoint\n  card_brand      VARCHAR(20)  NULL,\n  last4           CHAR(4)      NULL,\n  iban            VARCHAR(34)  NULL,\n  bank_ref        VARCHAR(30)  NULL,\n  gift_card_code  VARCHAR(16)  NULL,\n  CONSTRAINT chk_pst_card CHECK (\n    (method = 'card') = (card_brand IS NOT NULL AND last4 IS NOT NULL)),\n  CONSTRAINT chk_pst_bank CHECK (\n    (method = 'bank') = (iban IS NOT NULL AND bank_ref IS NOT NULL)),\n  CONSTRAINT chk_pst_gift CHECK (\n    (method = 'gift_card') = (gift_card_code IS NOT NULL)),\n  CONSTRAINT chk_pst_no_mix CHECK (\n    (card_brand IS NULL OR iban IS NULL) AND (card_brand IS NULL OR gift_card_code IS NULL)\n    AND (iban IS NULL OR gift_card_code IS NULL))\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO payments_st (amount, paid_at, method, card_brand, last4, iban, bank_ref, gift_card_code) VALUES\n  (120.00, '2024-11-01 10:00:00', 'card', 'VISA', '4242', NULL, NULL, NULL),\n  (980.50, '2024-11-01 11:30:00', 'bank', NULL, NULL, 'DE89370400440532013000', 'INV-2024-118', NULL),\n  ( 25.00, '2024-11-02 09:15:00', 'gift_card', NULL, NULL, NULL, NULL, 'GIFT-7Q2K')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT payment_id, method, amount, card_brand, last4, iban, gift_card_code\nFROM payments_st ORDER BY payment_id",
+     "status": "ok",
+     "columns": [
+      "payment_id",
+      "method",
+      "amount",
+      "card_brand",
+      "last4",
+      "iban",
+      "gift_card_code"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "card",
+       "120.00",
+       "VISA",
+       "4242",
+       null,
+       null
+      ],
+      [
+       2,
+       "bank",
+       "980.50",
+       null,
+       null,
+       "DE89370400440532013000",
+       null
+      ],
+      [
+       3,
+       "gift_card",
+       "25.00",
+       null,
+       null,
+       null,
+       "GIFT-7Q2K"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:9d93e9d1f8a8": {
+   "statements": [
+    {
+     "sql": "INSERT INTO payments_st (amount, paid_at, method, iban, bank_ref)\nVALUES (10.00, '2024-11-03 08:00:00', 'card', 'DE00', 'X1')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_pst_bank' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:4933afca2c61": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE payments_ct (\n  payment_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  amount     DECIMAL(10,2) NOT NULL,\n  paid_at    DATETIME      NOT NULL,\n  method     ENUM('card','bank','gift_card') NOT NULL,\n  UNIQUE KEY uq_payments_ct_id_method (payment_id, method)   -- target for the subtype FKs\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE card_payments_ct (\n  payment_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  method     ENUM('card','bank','gift_card') AS ('card') STORED,\n  card_brand VARCHAR(20) NOT NULL,\n  last4      CHAR(4)     NOT NULL,\n  CONSTRAINT fk_card_ct FOREIGN KEY (payment_id, method)\n    REFERENCES payments_ct (payment_id, method) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE bank_payments_ct (\n  payment_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  method     ENUM('card','bank','gift_card') AS ('bank') STORED,\n  iban       VARCHAR(34) NOT NULL,\n  bank_ref   VARCHAR(30) NOT NULL,\n  CONSTRAINT fk_bank_ct FOREIGN KEY (payment_id, method)\n    REFERENCES payments_ct (payment_id, method) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE gift_payments_ct (\n  payment_id     INT UNSIGNED NOT NULL PRIMARY KEY,\n  method         ENUM('card','bank','gift_card') AS ('gift_card') STORED,\n  gift_card_code VARCHAR(16) NOT NULL,\n  CONSTRAINT fk_gift_ct FOREIGN KEY (payment_id, method)\n    REFERENCES payments_ct (payment_id, method) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO payments_ct (amount, paid_at, method) VALUES\n  (120.00, '2024-11-01 10:00:00', 'card'),\n  (980.50, '2024-11-01 11:30:00', 'bank'),\n  ( 25.00, '2024-11-02 09:15:00', 'gift_card')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO card_payments_ct (payment_id, card_brand, last4) VALUES (1, 'VISA', '4242')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO bank_payments_ct (payment_id, iban, bank_ref)   VALUES (2, 'DE89370400440532013000', 'INV-2024-118')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO gift_payments_ct (payment_id, gift_card_code)   VALUES (3, 'GIFT-7Q2K')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT p.payment_id, p.method, p.amount, c.card_brand, c.last4, b.iban, g.gift_card_code\nFROM payments_ct AS p\nLEFT JOIN card_payments_ct AS c ON c.payment_id = p.payment_id\nLEFT JOIN bank_payments_ct AS b ON b.payment_id = p.payment_id\nLEFT JOIN gift_payments_ct AS g ON g.payment_id = p.payment_id\nORDER BY p.payment_id",
+     "status": "ok",
+     "columns": [
+      "payment_id",
+      "method",
+      "amount",
+      "card_brand",
+      "last4",
+      "iban",
+      "gift_card_code"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "card",
+       "120.00",
+       "VISA",
+       "4242",
+       null,
+       null
+      ],
+      [
+       2,
+       "bank",
+       "980.50",
+       null,
+       null,
+       "DE89370400440532013000",
+       null
+      ],
+      [
+       3,
+       "gift_card",
+       "25.00",
+       null,
+       null,
+       null,
+       "GIFT-7Q2K"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:d18e6c6a1076": {
+   "statements": [
+    {
+     "sql": "INSERT INTO card_payments_ct (payment_id, card_brand, last4) VALUES (2, 'AMEX', '0005')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`card_payments_ct`, CONSTRAINT `fk_card_ct` FOREIGN KEY (`payment_id`, `method`) REFERENCES `payments_ct` (`payment_id`, `method`) ON DELETE CASCADE)"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:e06db8d7b009": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE card_payments_cc (\n  payment_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  amount     DECIMAL(10,2) NOT NULL,\n  paid_at    DATETIME      NOT NULL,\n  card_brand VARCHAR(20)   NOT NULL,\n  last4      CHAR(4)       NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE bank_payments_cc (\n  payment_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  amount     DECIMAL(10,2) NOT NULL,\n  paid_at    DATETIME      NOT NULL,\n  iban       VARCHAR(34)   NOT NULL,\n  bank_ref   VARCHAR(30)   NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO card_payments_cc VALUES (1, 120.00, '2024-11-01 10:00:00', 'VISA', '4242')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO bank_payments_cc VALUES (2, 980.50, '2024-11-01 11:30:00', 'DE89370400440532013000', 'INV-2024-118')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CREATE VIEW all_payments_cc AS\nSELECT payment_id, 'card' AS method, amount, paid_at FROM card_payments_cc\nUNION ALL\nSELECT payment_id, 'bank', amount, paid_at FROM bank_payments_cc",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM all_payments_cc ORDER BY payment_id",
+     "status": "ok",
+     "columns": [
+      "payment_id",
+      "method",
+      "amount",
+      "paid_at"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "card",
+       "120.00",
+       "2024-11-01 10:00:00"
+      ],
+      [
+       2,
+       "bank",
+       "980.50",
+       "2024-11-01 11:30:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:40bd5f4b43e3": {
+   "statements": [
+    {
+     "sql": "INSERT INTO bank_payments_cc VALUES (1, 5.00, '2024-11-04 12:00:00', 'FR7630006000011234567890189', 'DUP')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT payment_id, method, amount FROM all_payments_cc WHERE payment_id = 1 ORDER BY method",
+     "status": "ok",
+     "columns": [
+      "payment_id",
+      "method",
+      "amount"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "bank",
+       "5.00"
+      ],
+      [
+       1,
+       "card",
+       "120.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:9fa1adaea237": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW payments_ct_v AS\nSELECT p.payment_id, p.method, p.amount, p.paid_at,\n       c.card_brand, c.last4, b.iban, b.bank_ref, g.gift_card_code\nFROM payments_ct AS p\nLEFT JOIN card_payments_ct AS c ON c.payment_id = p.payment_id\nLEFT JOIN bank_payments_ct AS b ON b.payment_id = p.payment_id\nLEFT JOIN gift_payments_ct AS g ON g.payment_id = p.payment_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT method, COUNT(*) AS payments, SUM(amount) AS total\nFROM payments_ct_v\nGROUP BY method\nORDER BY method",
+     "status": "ok",
+     "columns": [
+      "method",
+      "payments",
+      "total"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "card",
+       1,
+       "120.00"
+      ],
+      [
+       "bank",
+       1,
+       "980.50"
+      ],
+      [
+       "gift_card",
+       1,
+       "25.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:93c585d81617": {
+   "statements": [
+    {
+     "sql": "INSERT INTO payments_ct (amount, paid_at, method) VALUES (15.00, '2024-11-05 16:00:00', 'card')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT p.payment_id, p.method\nFROM payments_ct AS p\nWHERE NOT EXISTS (SELECT 1 FROM card_payments_ct AS c WHERE c.payment_id = p.payment_id)\n  AND NOT EXISTS (SELECT 1 FROM bank_payments_ct AS b WHERE b.payment_id = p.payment_id)\n  AND NOT EXISTS (SELECT 1 FROM gift_payments_ct AS g WHERE g.payment_id = p.payment_id)",
+     "status": "ok",
+     "columns": [
+      "payment_id",
+      "method"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4,
+       "card"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:f31b11c620c9": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE persons (\n  person_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  name      VARCHAR(80)  NOT NULL,\n  email     VARCHAR(255) NOT NULL UNIQUE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE students (\n  person_id  INT UNSIGNED NOT NULL PRIMARY KEY,\n  student_no CHAR(9)      NOT NULL UNIQUE,\n  major      VARCHAR(40)  NOT NULL,\n  FOREIGN KEY (person_id) REFERENCES persons (person_id) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE employees (\n  person_id   INT UNSIGNED NOT NULL PRIMARY KEY,\n  employee_no CHAR(6)      NOT NULL UNIQUE,\n  salary      DECIMAL(10,2) NOT NULL,\n  FOREIGN KEY (person_id) REFERENCES persons (person_id) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO persons (name, email) VALUES\n  ('Ana Ruiz', 'ana@uni.edu'), ('Ben Cho', 'ben@uni.edu'), ('Cara Diaz', 'cara@uni.edu'), ('Dev Rao', 'dev@uni.edu')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO students  VALUES (1, '015000001', 'Data Science'), (3, '015000003', 'Mathematics')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO employees VALUES (2, 'E10002', 72000.00), (3, 'E10003', 18000.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT p.person_id, p.name,\n       s.person_id IS NOT NULL AS is_student,\n       e.person_id IS NOT NULL AS is_employee\nFROM persons AS p\nLEFT JOIN students  AS s ON s.person_id = p.person_id\nLEFT JOIN employees AS e ON e.person_id = p.person_id\nORDER BY p.person_id",
+     "status": "ok",
+     "columns": [
+      "person_id",
+      "name",
+      "is_student",
+      "is_employee"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "Ana Ruiz",
+       1,
+       0
+      ],
+      [
+       2,
+       "Ben Cho",
+       0,
+       1
+      ],
+      [
+       3,
+       "Cara Diaz",
+       1,
+       1
+      ],
+      [
+       4,
+       "Dev Rao",
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:9ab66f3eec97": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE buildings (building_code CHAR(4) NOT NULL PRIMARY KEY, name VARCHAR(60) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE rooms (\n  building_code CHAR(4) NOT NULL,\n  room_no       VARCHAR(6) NOT NULL,\n  capacity      SMALLINT UNSIGNED NOT NULL,\n  PRIMARY KEY (building_code, room_no),\n  FOREIGN KEY (building_code) REFERENCES buildings (building_code) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE seats (\n  building_code CHAR(4) NOT NULL,\n  room_no       VARCHAR(6) NOT NULL,\n  seat_no       SMALLINT UNSIGNED NOT NULL,\n  is_accessible BOOLEAN NOT NULL DEFAULT FALSE,\n  PRIMARY KEY (building_code, room_no, seat_no),\n  FOREIGN KEY (building_code, room_no) REFERENCES rooms (building_code, room_no) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO buildings VALUES ('MH', 'MacQuarrie Hall'), ('DH', 'Duncan Hall')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO rooms VALUES ('MH', '225', 40), ('DH', '225', 30)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO seats VALUES ('MH', '225', 1, TRUE), ('MH', '225', 2, FALSE), ('DH', '225', 1, FALSE)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT building_code, room_no, seat_no, is_accessible FROM seats ORDER BY building_code, room_no, seat_no",
+     "status": "ok",
+     "columns": [
+      "building_code",
+      "room_no",
+      "seat_no",
+      "is_accessible"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "DH",
+       "225",
+       1,
+       0
+      ],
+      [
+       "MH",
+       "225",
+       1,
+       1
+      ],
+      [
+       "MH",
+       "225",
+       2,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:b2d35aa3ff92": {
+   "statements": [
+    {
+     "sql": "SELECT 'rooms' AS tbl, COUNT(*) AS n FROM rooms\nUNION ALL SELECT 'seats', COUNT(*) FROM seats",
+     "status": "ok",
+     "columns": [
+      "tbl",
+      "n"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "rooms",
+       2
+      ],
+      [
+       "seats",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:c6f596f360fe": {
+   "statements": [
+    {
+     "sql": "DELETE FROM buildings WHERE building_code = 'MH'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:a930c6b8d8c4": {
+   "statements": [
+    {
+     "sql": "SELECT building_code, room_no, seat_no FROM seats ORDER BY building_code, room_no, seat_no",
+     "status": "ok",
+     "columns": [
+      "building_code",
+      "room_no",
+      "seat_no"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "DH",
+       "225",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:79b83f3af12e": {
+   "statements": [
+    {
+     "sql": "INSERT INTO seats VALUES ('MH', '225', 3, FALSE)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`seats`, CONSTRAINT `seats_ibfk_1` FOREIGN KEY (`building_code`, `room_no`) REFERENCES `rooms` (`building_code`, `room_no`) ON DELETE CASCADE)"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s16:21eee992e1cf": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE payments_st, payments_ct, card_payments_ct",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "payments_st",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "payments_ct",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "card_payments_ct",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT p.payment_id, p.amount, c.card_brand, c.last4\nFROM payments_ct AS p\nJOIN card_payments_ct AS c ON c.payment_id = p.payment_id",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=0.7 rows=1)\n    -> Table scan on c  (cost=0.35 rows=1)\n    -> Single-row index lookup on p using PRIMARY (payment_id=c.payment_id)  (cost=0.35 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:a0abdaa6ef2b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT payment_id, amount, card_brand, last4 FROM payments_st WHERE method = 'card'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (payments_st.method = 'card')  (cost=0.55 rows=1)\n    -> Table scan on payments_st  (cost=0.55 rows=3)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:b9e42658d089": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT line_no, product_id, quantity FROM invoice_lines WHERE invoice_id = 1",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Index lookup on invoice_lines using PRIMARY (invoice_id=1)  (cost=0.7 rows=2)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:07c9672bb0c8": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE invoice_lines_bad (\n  invoice_id INT UNSIGNED NOT NULL,\n  line_no    SMALLINT UNSIGNED NOT NULL UNIQUE,\n  PRIMARY KEY (invoice_id, line_no)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO invoice_lines_bad VALUES (1, 1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s20:df49eca1d012": {
+   "statements": [
+    {
+     "sql": "INSERT INTO invoice_lines_bad VALUES (3, 1)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '1' for key 'invoice_lines_bad.line_no'"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

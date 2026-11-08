@@ -1,0 +1,610 @@
+{
+ "doc": "m06-anomalies",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:71eabe7d7570": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE order_report (\n  order_id       INT UNSIGNED  NOT NULL,\n  order_date     DATETIME      NOT NULL,\n  order_status   VARCHAR(12)   NOT NULL,\n  customer_id    INT UNSIGNED  NOT NULL,\n  customer_name  VARCHAR(101)  NOT NULL,\n  customer_email VARCHAR(255)  NOT NULL,\n  customer_city  VARCHAR(60)   NOT NULL,\n  product_id     INT UNSIGNED  NOT NULL,\n  sku            VARCHAR(20)   NOT NULL,\n  product_name   VARCHAR(120)  NOT NULL,\n  category_name  VARCHAR(60)   NULL,\n  list_price     DECIMAL(10,2) NOT NULL,\n  quantity       INT UNSIGNED  NOT NULL,\n  unit_price     DECIMAL(10,2) NOT NULL,\n  PRIMARY KEY (order_id, product_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO order_report\nSELECT o.order_id, o.order_date, o.status,\n       c.customer_id, CONCAT(c.first_name, ' ', c.last_name), c.email, c.city,\n       p.product_id, p.sku, p.name, cat.name, p.price,\n       oi.quantity, oi.unit_price\nFROM order_items AS oi\nJOIN orders      AS o   ON o.order_id = oi.order_id\nJOIN customers   AS c   ON c.customer_id = o.customer_id\nJOIN products    AS p   ON p.product_id = oi.product_id\nLEFT JOIN categories AS cat ON cat.category_id = p.category_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 182,
+     "info": "Records: 182  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS line_items FROM order_report",
+     "status": "ok",
+     "columns": [
+      "line_items"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       182
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:2e23ad5292c4": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, product_id, customer_id, customer_name, customer_email, customer_city, product_name\nFROM order_report\nWHERE customer_id = 19\nORDER BY order_id, product_id\nLIMIT 8",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "product_id",
+      "customer_id",
+      "customer_name",
+      "customer_email",
+      "customer_city",
+      "product_name"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       2,
+       9,
+       19,
+       "Lucia Moradi",
+       "lucia.moradi19@example.com",
+       "San Jose",
+       "Laptop Stand"
+      ],
+      [
+       2,
+       10,
+       19,
+       "Lucia Moradi",
+       "lucia.moradi19@example.com",
+       "San Jose",
+       "Noise-Cancelling Headphones"
+      ],
+      [
+       2,
+       12,
+       19,
+       "Lucia Moradi",
+       "lucia.moradi19@example.com",
+       "San Jose",
+       "Wireless Earbuds"
+      ],
+      [
+       2,
+       14,
+       19,
+       "Lucia Moradi",
+       "lucia.moradi19@example.com",
+       "San Jose",
+       "Espresso Machine"
+      ],
+      [
+       48,
+       12,
+       19,
+       "Lucia Moradi",
+       "lucia.moradi19@example.com",
+       "San Jose",
+       "Wireless Earbuds"
+      ],
+      [
+       48,
+       19,
+       19,
+       "Lucia Moradi",
+       "lucia.moradi19@example.com",
+       "San Jose",
+       "Cast Iron Skillet"
+      ],
+      [
+       49,
+       24,
+       19,
+       "Lucia Moradi",
+       "lucia.moradi19@example.com",
+       "San Jose",
+       "Fiction Bestseller"
+      ],
+      [
+       49,
+       27,
+       19,
+       "Lucia Moradi",
+       "lucia.moradi19@example.com",
+       "San Jose",
+       "Resistance Bands Set"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:e3084ab73820": {
+   "statements": [
+    {
+     "sql": "SELECT 'customer facts' AS fact_kind,\n       COUNT(DISTINCT customer_id) AS distinct_facts,\n       COUNT(*)                    AS stored_copies,\n       MAX(n)                      AS max_copies_of_one_fact\nFROM (SELECT customer_id, COUNT(*) OVER (PARTITION BY customer_id) AS n FROM order_report) AS t\nUNION ALL\nSELECT 'product facts',\n       COUNT(DISTINCT product_id), COUNT(*), MAX(n)\nFROM (SELECT product_id, COUNT(*) OVER (PARTITION BY product_id) AS n FROM order_report) AS t",
+     "status": "ok",
+     "columns": [
+      "fact_kind",
+      "distinct_facts",
+      "stored_copies",
+      "max_copies_of_one_fact"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "customer facts",
+       20,
+       182,
+       18
+      ],
+      [
+       "product facts",
+       28,
+       182,
+       15
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:75b5f98a28ec": {
+   "statements": [
+    {
+     "sql": "UPDATE order_report\nSET    customer_email = 'lucia.m@newmail.example'\nWHERE  order_id = 48",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Rows matched: 2  Changed: 2  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s5:07260e7a2206": {
+   "statements": [
+    {
+     "sql": "SELECT customer_email, COUNT(*) AS rows_with_this_value\nFROM order_report\nWHERE customer_id = 19\nGROUP BY customer_email\nORDER BY customer_email",
+     "status": "ok",
+     "columns": [
+      "customer_email",
+      "rows_with_this_value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "lucia.m@newmail.example",
+       2
+      ],
+      [
+       "lucia.moradi19@example.com",
+       16
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:b9cbbd4fcdff": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, COUNT(DISTINCT customer_email) AS distinct_emails\nFROM order_report\nGROUP BY customer_id\nHAVING COUNT(DISTINCT customer_email) > 1",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "distinct_emails"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       19,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:6c173b5c2553": {
+   "statements": [
+    {
+     "sql": "UPDATE order_report\nSET    category_name = 'Coffee & Tea'\nWHERE  category_name = 'Coffee'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 23,
+     "info": "Rows matched: 23  Changed: 23  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s8:c3e2d0a34c15": {
+   "statements": [
+    {
+     "sql": "INSERT INTO order_report (order_id, order_date, order_status, customer_id, customer_name,\n                          customer_email, customer_city, product_id, sku, product_name,\n                          category_name, list_price, quantity, unit_price)\nVALUES (NULL, NOW(), 'none', 0, '', '', '', 31, 'SKU-1031', 'Smart Watch', 'Fitness', 199.00, 0, 0)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1048,
+      "message": "Column 'order_id' cannot be null"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:444b8fb315ee": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM products)                AS products_in_catalogue,\n       (SELECT COUNT(DISTINCT product_id) FROM order_report)  AS products_in_report,\n       (SELECT COUNT(*) FROM customers)               AS customers_registered,\n       (SELECT COUNT(DISTINCT customer_id) FROM order_report) AS customers_in_report",
+     "status": "ok",
+     "columns": [
+      "products_in_catalogue",
+      "products_in_report",
+      "customers_registered",
+      "customers_in_report"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       30,
+       28,
+       25,
+       20
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:7ad3000e0b15": {
+   "statements": [
+    {
+     "sql": "INSERT INTO order_report VALUES\n  (0, '2024-12-31 00:00:00', 'placeholder', 0, '(none)', '(none)', '(none)',\n   31, 'SKU-1031', 'Smart Watch', 'Fitness', 199.00, 0, 0.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(DISTINCT order_id)    AS orders_counted,\n       COUNT(DISTINCT customer_id) AS customers_counted,\n       MIN(order_date)             AS first_order,\n       MAX(order_date)             AS last_order\nFROM order_report",
+     "status": "ok",
+     "columns": [
+      "orders_counted",
+      "customers_counted",
+      "first_order",
+      "last_order"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       81,
+       21,
+       "2024-01-05 15:56:00",
+       "2024-12-31 00:00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:b26a0a9c7d88": {
+   "statements": [
+    {
+     "sql": "DELETE FROM order_report WHERE order_id = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s12:f9e8a30d59e6": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, product_id, product_name, sku, list_price\nFROM order_report\nWHERE order_id = 29\nORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "product_id",
+      "product_name",
+      "sku",
+      "list_price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       29,
+       15,
+       "Burr Coffee Grinder",
+       "SKU-1015",
+       "129.00"
+      ],
+      [
+       29,
+       16,
+       "Pour-Over Kettle",
+       "SKU-1016",
+       "59.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:408711fc3877": {
+   "statements": [
+    {
+     "sql": "DELETE FROM order_report WHERE order_id = 29",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_about_pour_over_kettle\nFROM order_report\nWHERE product_id = 16",
+     "status": "ok",
+     "columns": [
+      "rows_about_pour_over_kettle"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:063a231498d7": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW order_report_v AS\nSELECT o.order_id, o.order_date, CAST(o.status AS CHAR(12)) AS order_status,\n       c.customer_id, CONCAT(c.first_name, ' ', c.last_name) AS customer_name, c.email AS customer_email, c.city AS customer_city,\n       p.product_id, p.sku, p.name AS product_name, cat.name AS category_name, p.price AS list_price,\n       oi.quantity, oi.unit_price\nFROM order_items AS oi\nJOIN orders      AS o   ON o.order_id = oi.order_id\nJOIN customers   AS c   ON c.customer_id = o.customer_id\nJOIN products    AS p   ON p.product_id = oi.product_id\nLEFT JOIN categories AS cat ON cat.category_id = p.category_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_in_view FROM order_report_v",
+     "status": "ok",
+     "columns": [
+      "rows_in_view"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       182
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:d6cddf83ed85": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM customers WHERE customer_id = 19) AS rows_holding_customer_19_email,\n       (SELECT COUNT(*) FROM categories WHERE name = 'Coffee')  AS rows_holding_coffee_name,\n       (SELECT COUNT(*) FROM products WHERE product_id = 4)     AS never_ordered_product_still_stored,\n       (SELECT COUNT(*) FROM products WHERE product_id = 16)    AS kettle_survives_order_deletion",
+     "status": "ok",
+     "columns": [
+      "rows_holding_customer_19_email",
+      "rows_holding_coffee_name",
+      "never_ordered_product_still_stored",
+      "kettle_survives_order_deletion"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1,
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:8da52ed0dabd": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE order_report_clean AS SELECT * FROM order_report_v",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 182,
+     "info": "Records: 182  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS clean_rows FROM order_report_clean",
+     "status": "ok",
+     "columns": [
+      "clean_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       182
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:6b66c67f722d": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(DISTINCT customer_id) FROM order_report_clean) AS customers_used,\n       (SELECT COUNT(DISTINCT product_id)  FROM order_report_clean) AS products_used,\n       (SELECT COUNT(DISTINCT order_id)    FROM order_report_clean) AS orders_used,\n       (SELECT COUNT(*) FROM order_items)                         AS line_items",
+     "status": "ok",
+     "columns": [
+      "customers_used",
+      "products_used",
+      "orders_used",
+      "line_items"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20,
+       28,
+       80,
+       182
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:11330a1b5b90": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS missing_from_join\nFROM (SELECT * FROM order_report_clean EXCEPT SELECT * FROM order_report_v) AS d",
+     "status": "ok",
+     "columns": [
+      "missing_from_join"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:8b4b2c50a9e2": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS spurious_in_join\nFROM (SELECT * FROM order_report_v EXCEPT SELECT * FROM order_report_clean) AS d",
+     "status": "ok",
+     "columns": [
+      "spurious_in_join"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:46181e12896d": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM (SELECT * FROM order_report_clean EXCEPT SELECT * FROM order_report) AS a) AS clean_rows_not_in_damaged,\n       (SELECT COUNT(*) FROM (SELECT * FROM order_report EXCEPT SELECT * FROM order_report_clean) AS b) AS damaged_rows_not_in_clean",
+     "status": "ok",
+     "columns": [
+      "clean_rows_not_in_damaged",
+      "damaged_rows_not_in_clean"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25,
+       23
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:8dd59dcb273b": {
+   "statements": [
+    {
+     "sql": "SELECT 'order_report (flat, damaged)' AS source,\n       COUNT(*)                     AS line_items,\n       COUNT(DISTINCT customer_email) AS distinct_emails,\n       COUNT(DISTINCT product_id)   AS products_known,\n       SUM(category_name = 'Coffee') AS lines_in_coffee\nFROM order_report\nUNION ALL\nSELECT 'order_report_v (normalized)',\n       COUNT(*), COUNT(DISTINCT customer_email), COUNT(DISTINCT product_id),\n       SUM(category_name = 'Coffee')\nFROM order_report_v",
+     "status": "ok",
+     "columns": [
+      "source",
+      "line_items",
+      "distinct_emails",
+      "products_known",
+      "lines_in_coffee"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "order_report (flat, damaged)",
+       180,
+       21,
+       27,
+       "0"
+      ],
+      [
+       "order_report_v (normalized)",
+       182,
+       20,
+       28,
+       "23"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:4f78e647dbd0": {
+   "statements": [
+    {
+     "sql": "-- Wrong scope: updates the city only on the rows of one order\nUPDATE order_report SET customer_city = 'Oakland' WHERE order_id = 75",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT customer_city, COUNT(*) AS n\nFROM order_report WHERE customer_id = 19\nGROUP BY customer_city ORDER BY customer_city",
+     "status": "ok",
+     "columns": [
+      "customer_city",
+      "n"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Oakland",
+       1
+      ],
+      [
+       "San Jose",
+       17
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:5f5070d474df": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE order_report_checked (\n  order_id       INT UNSIGNED NOT NULL,\n  customer_id    INT UNSIGNED NOT NULL,\n  customer_email VARCHAR(255) NOT NULL,\n  CONSTRAINT chk_one_email_per_customer\n    CHECK (customer_email = (SELECT MIN(r2.customer_email) FROM order_report AS r2\n                             WHERE r2.customer_id = customer_id))\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3815,
+      "message": "An expression of a check constraint 'chk_one_email_per_customer' contains disallowed function."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

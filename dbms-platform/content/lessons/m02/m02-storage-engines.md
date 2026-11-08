@@ -463,10 +463,16 @@ The table describes structural behaviour. Single-threaded micro-benchmarks somet
 
 **Mistake 2 — believing a foreign key exists on a MyISAM table.** Practical Example 5: the clause is accepted and silently ignored. `information_schema.REFERENTIAL_CONSTRAINTS` is the source of truth.
 
-**Mistake 3 — putting `TEXT`/`BLOB` columns in a MEMORY table, or converting such a table to MEMORY.** Error 1163:
+**Mistake 3 — converting a table to MEMORY "for speed".** Two obstacles appear immediately. A table that takes part in foreign keys cannot leave InnoDB at all (error 3776), because no other engine can enforce them:
 
 ```sql run error
-ALTER TABLE products ENGINE = MEMORY, ADD COLUMN description TEXT;
+ALTER TABLE products ENGINE = MEMORY;
+```
+
+And a table with `TEXT`/`BLOB` columns cannot become a MEMORY table (error 1163):
+
+```sql run error
+ALTER TABLE engine_demo_innodb ADD COLUMN body TEXT, ENGINE = MEMORY;
 ```
 
 **Mistake 4 — updating or deleting ARCHIVE rows.** Error 1031 (Practical Example 3). If corrections are ever possible — and with personal data, deletion requests make them likely — ARCHIVE is the wrong choice.

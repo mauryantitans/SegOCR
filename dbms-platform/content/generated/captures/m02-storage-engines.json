@@ -1129,7 +1129,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "257135",
+        "trxId": "270142",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -1310,16 +1310,31 @@
    ],
    "measured": null
   },
-  "s26:e5ddbd6cbc5a": {
+  "s26:7cde8598c64f": {
    "statements": [
     {
-     "sql": "ALTER TABLE products ENGINE = MEMORY, ADD COLUMN description TEXT",
+     "sql": "ALTER TABLE products ENGINE = MEMORY",
      "status": "error",
      "columns": [],
      "rows": [],
      "error": {
       "code": 3776,
       "message": "Cannot change table's storage engine because the table participates in a foreign key constraint."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s27:d555350c8cff": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE engine_demo_innodb ADD COLUMN body TEXT, ENGINE = MEMORY",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1163,
+      "message": "The used table type doesn't support BLOB/TEXT columns"
      }
     }
    ],

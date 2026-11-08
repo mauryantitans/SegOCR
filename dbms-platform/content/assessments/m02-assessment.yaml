@@ -1,0 +1,470 @@
+id: m02-assessment
+module: m02
+title: "Module 2 Assessment — MySQL Fundamentals & Environment"
+passMark: 70
+description: >-
+  Covers all of Module 2: what MySQL is (editions, LTS and Innovation releases, the layered server and the
+  storage engine API), installing, configuring and connecting (option files, system variables, clients,
+  authentication plugins), SQL statement categories and implicit commits, databases and information_schema,
+  table DDL and online DDL algorithms, numeric, string, date/time, JSON and binary data types, NULL and
+  three-valued logic, DEFAULT values and AUTO_INCREMENT, constraints and strict mode, character sets and
+  collations, and storage engines. Questions focus on predicting MySQL's real behaviour; the SQL challenges are
+  graded on the shop dataset; the interview questions ask you to explain engineering trade-offs.
+questions:
+  - id: q1
+    question: "Which statement best describes MySQL's release model since 8.4?"
+    options:
+      - "Every release is an LTS release supported for eight years"
+      - "LTS releases (such as 8.4) receive fixes without new features for years; Innovation releases (9.x) add features and are superseded by the next Innovation release"
+      - "Innovation releases are betas that must not be used in production"
+      - "Only the Enterprise Edition receives LTS releases"
+    answer: 1
+    explanation: "MySQL now ships two tracks. LTS releases focus on stability (bug and security fixes, no behaviour changes) for a long support period; Innovation releases deliver new features quickly but each is supported only until the next one. Innovation releases are production-grade, and the Community Edition gets both tracks."
+    concepts: [mysql-versions]
+  - id: q2
+    question: "In MySQL's architecture, which component is shared by all storage engines?"
+    options: ["The redo log", "The buffer pool", "The query optimizer", "Row-level locking"]
+    answer: 2
+    explanation: "Parser, optimizer, executor and binary log belong to the server layer and are shared. The redo log, buffer pool and row locks are InnoDB components — a MyISAM table has none of them."
+    concepts: [pluggable-architecture, server-layers]
+  - id: q3
+    question: "A client connects to a MySQL 8.4 server using an account created with the server defaults. Which authentication plugin is used, and what happened to `mysql_native_password`?"
+    options:
+      - "mysql_native_password is the default; caching_sha2_password is optional"
+      - "caching_sha2_password is the default; mysql_native_password is deprecated and disabled by default in 8.4"
+      - "Both are removed; 8.4 uses only LDAP"
+      - "sha256_password is the default"
+    answer: 1
+    explanation: "caching_sha2_password has been the default since 8.0. In 8.4 the mysql_native_password plugin is no longer loaded by default (it can be enabled explicitly for legacy clients) and it is removed in the 9.x line. Old drivers that only speak mysql_native_password must be upgraded."
+    concepts: [authentication-plugins, mysql-versions]
+  - id: q4
+    question: "A setting appears in /etc/my.cnf, again in ~/.my.cnf, and is also passed on the mysqld command line. Which value wins?"
+    options: ["The /etc/my.cnf value", "The ~/.my.cnf value", "The command-line value", "MySQL refuses to start because of the conflict"]
+    answer: 2
+    explanation: "Option files are read in a fixed order and later occurrences override earlier ones; command-line options are processed after option files, so they win. (Values written with SET PERSIST to mysqld-auto.cnf are applied after the option files at startup.)"
+    concepts: [option-files, system-variables]
+  - id: q5
+    question: "Inside an open transaction you run `INSERT …` and then `CREATE TABLE audit_tmp (…)`, then `ROLLBACK`. What happens to the INSERT?"
+    options:
+      - "It is rolled back with the transaction"
+      - "It is committed, because CREATE TABLE causes an implicit commit before it executes"
+      - "The CREATE TABLE fails because DDL is not allowed in transactions"
+      - "Both the INSERT and the CREATE TABLE are rolled back"
+    answer: 1
+    explanation: "Most DDL statements implicitly commit the current transaction before running (and commit after). The ROLLBACK therefore has nothing to undo. Since 8.0, DDL itself is atomic (it either completes or leaves no trace), but it is still not transactional."
+    concepts: [implicit-commit, sql-categories]
+  - id: q6
+    question: "Which statements about TRUNCATE TABLE in MySQL 8.4 are true? (Select all that apply.)"
+    type: multi
+    options:
+      - "It is DDL and causes an implicit commit"
+      - "It resets the AUTO_INCREMENT counter"
+      - "It fires DELETE triggers for every row"
+      - "It fails if another table has a foreign key referencing the table"
+      - "It can be rolled back with ROLLBACK"
+    answer: [0, 1, 3]
+    explanation: "TRUNCATE drops and recreates the table: it is DDL (implicit commit, no rollback), resets AUTO_INCREMENT and does not fire DELETE triggers. InnoDB refuses it when the table is referenced by a foreign key (error 1701). DELETE is the DML alternative that fires triggers and can be rolled back."
+    concepts: [truncate, tables-ddl]
+  - id: q7
+    question: "You need to add a nullable column to a 500 GB InnoDB table on MySQL 8.4 with minimal disruption. Which clause states the cheapest algorithm explicitly and fails instead of silently falling back to a table copy?"
+    options: ["ALGORITHM=COPY", "ALGORITHM=INPLACE, LOCK=SHARED", "ALGORITHM=INSTANT", "LOCK=EXCLUSIVE"]
+    answer: 2
+    explanation: "ADD COLUMN supports ALGORITHM=INSTANT (metadata-only, since 8.0.12; any position since 8.0.29). Naming the algorithm makes MySQL raise an error if the operation cannot be done that way, instead of quietly choosing a slower one. COPY rebuilds the whole table; INPLACE may still rebuild it."
+    concepts: [online-ddl, tables-ddl]
+  - id: q8
+    question: "Which column type should store invoice amounts that are summed for financial reports?"
+    options: ["FLOAT", "DOUBLE", "DECIMAL(12,2)", "BIGINT with display width (12,2)"]
+    answer: 2
+    explanation: "DECIMAL stores exact fixed-point values, so sums are exact to the cent. FLOAT and DOUBLE are binary floating point and cannot represent most decimal fractions exactly. Integer display width is deprecated and never affected storage or scale."
+    concepts: [numeric-types, decimal]
+  - id: q9
+    question: "Under the default strict SQL mode, what does `INSERT INTO t (qty) VALUES (300)` do when `qty` is `TINYINT UNSIGNED`?"
+    options:
+      - "Stores 255 with a warning"
+      - "Stores 44 (300 mod 256)"
+      - "Fails with error 1264 (out of range)"
+      - "Automatically widens the column to SMALLINT"
+    answer: 2
+    explanation: "TINYINT UNSIGNED holds 0–255. Strict mode turns the out-of-range conversion into an error. Only with strict mode disabled is the value clamped to 255 with warning 1264; MySQL never wraps around or alters the column."
+    concepts: [numeric-types, strict-mode]
+  - id: q10
+    question: "A `VARCHAR(255)` column uses `utf8mb4`. What is the maximum number of bytes a value can occupy, including the length prefix?"
+    options: ["256", "257", "1021", "1022"]
+    answer: 3
+    explanation: "VARCHAR(n) counts characters; utf8mb4 needs up to 4 bytes each, so up to 1020 data bytes. Because the maximum exceeds 255 bytes, the length prefix takes 2 bytes: 1022 — the key_len EXPLAIN reports for an index on such a column."
+    concepts: [string-types, utf8mb4]
+  - id: q11
+    question: "A `TIMESTAMP` value is inserted by a session with `time_zone = '+00:00'` as '2024-06-01 12:00:00'. A session with `time_zone = '+02:00'` selects it. What does it see, and what would it see for the same value in a `DATETIME` column?"
+    options:
+      - "TIMESTAMP 12:00, DATETIME 14:00"
+      - "TIMESTAMP 14:00, DATETIME 12:00"
+      - "Both 12:00"
+      - "Both 14:00"
+    answer: 1
+    explanation: "TIMESTAMP is stored in UTC and converted from/to the session time zone, so it reads 14:00 in a +02:00 session. DATETIME stores the literal wall-clock value with no time zone and returns 12:00 to everyone."
+    concepts: [datetime-types, time-zones]
+  - id: q12
+    question: "Why is storing UUIDs as `BINARY(16)` with `UUID_TO_BIN(uuid, 1)` recommended over `CHAR(36)` for an InnoDB primary key?"
+    options:
+      - "It encrypts the UUID"
+      - "It halves (or better) the key size in every index, and the swap flag reorders the time fields so new keys arrive roughly in ascending order, reducing page splits"
+      - "CHAR(36) cannot hold a UUID"
+      - "BINARY(16) makes UUIDs globally unique"
+    answer: 1
+    explanation: "16 bytes versus 36 characters (up to 144 bytes reserved in utf8mb4 indexes) shrinks the clustered index and every secondary index, which stores the primary key. With swap flag 1, version-1 UUIDs become time-ordered, so inserts append near the right edge of the B+ tree instead of landing randomly."
+    concepts: [json-binary-types, uuid-storage]
+  - id: q13
+    question: "What does `SELECT NULL = NULL, NULL <=> NULL, NULL IS UNKNOWN, NULL OR TRUE;` return in MySQL?"
+    options: ["1, 1, 1, 1", "NULL, 1, 1, 1", "NULL, NULL, NULL, NULL", "0, 1, 0, NULL"]
+    answer: 1
+    explanation: "Equality with NULL is UNKNOWN (NULL). <=> is MySQL's null-safe equality and returns 1 for two NULLs. IS UNKNOWN tests for the unknown truth value and returns 1. In Kleene logic TRUE dominates OR, so NULL OR TRUE is 1."
+    concepts: [three-valued-logic, null-safe-equality]
+  - id: q14
+    question: "Column `region` is NULL for 10 of 100 rows and 'EU' for 30. How many rows does `SELECT COUNT(*) FROM t WHERE region <> 'EU'` count?"
+    options: ["70", "60", "90", "100"]
+    answer: 1
+    explanation: "For the 10 NULL rows region <> 'EU' is UNKNOWN, and WHERE keeps only TRUE rows. 100 − 30 − 10 = 60. To include them use NOT (region <=> 'EU') or add OR region IS NULL."
+    concepts: [three-valued-logic]
+  - id: q15
+    question: "An order table's AUTO_INCREMENT key shows the sequence 101, 102, 104. Which explanations are plausible in MySQL 8.4? (Select all that apply.)"
+    type: multi
+    options:
+      - "A transaction that inserted 103 was rolled back"
+      - "An INSERT that obtained 103 failed on a duplicate key in another unique column"
+      - "MySQL reused 103 for a row in another table"
+      - "Row 103 was deleted"
+      - "103 was skipped because the server restarted and re-read MAX(id)"
+    answer: [0, 1, 3]
+    explanation: "AUTO_INCREMENT values are allocated outside transactions, so rollbacks and failed inserts leave gaps; deletes do too. Counters are per table. Since 8.0 the counter is persisted, so a restart neither reuses nor skips values because of MAX(id) — that re-initialization was 5.7 behaviour and caused reuse, not gaps."
+    concepts: [auto-increment, autoinc-gaps]
+  - id: q16
+    question: "`INSERT INTO tags (name) VALUES ('a'), ('b'), ('c');` assigns ids 7, 8, 9. What does `LAST_INSERT_ID()` return in that session immediately afterwards?"
+    options: ["9", "7", "3", "0"]
+    answer: 1
+    explanation: "For a multi-row INSERT, LAST_INSERT_ID() returns the first generated value. ROW_COUNT() would return 3. The value is per connection and unaffected by other sessions' inserts."
+    concepts: [last-insert-id]
+  - id: q17
+    question: "A row violates both `CHECK (quantity > 0)` and a FOREIGN KEY. Which error is reported, and why?"
+    options:
+      - "1452, because foreign keys are checked first"
+      - "3819, because the server evaluates CHECK constraints before InnoDB writes the row and checks foreign keys"
+      - "Both errors are reported together"
+      - "Neither — MySQL ignores CHECK constraints"
+    answer: 1
+    explanation: "MySQL evaluates CHECK constraints in the server layer while preparing the row; uniqueness and foreign keys are enforced by InnoDB during the write. Only the first failure is reported. CHECK constraints have been enforced since 8.0.16."
+    concepts: [check-constraint, error-codes]
+  - id: q18
+    question: "Which of these violations remain errors even when strict SQL mode is disabled? (Select all that apply.)"
+    type: multi
+    options:
+      - "Duplicate key (1062)"
+      - "String too long (1406)"
+      - "CHECK constraint violated (3819)"
+      - "Child row without parent (1452)"
+      - "Invalid date such as '2024-02-30' (1292)"
+    answer: [0, 2, 3]
+    explanation: "Strict mode governs value conversion: without it, long strings are truncated, out-of-range numbers clamped and invalid dates stored as zero dates, all with warnings. Key, CHECK and foreign key violations are constraint failures in every SQL mode."
+    concepts: [strict-mode, constraints]
+  - id: q19
+    question: "In MySQL 8.4, what does `CHARACTER SET utf8` in a column definition mean?"
+    options:
+      - "Full UTF-8 (utf8mb4)"
+      - "The deprecated 3-byte utf8mb3, which cannot store emoji"
+      - "ASCII"
+      - "UTF-16"
+    answer: 1
+    explanation: "utf8 is still an alias for utf8mb3 in 8.0 and 8.4, with a deprecation warning. utf8mb3 stores at most 3 bytes per character, so 4-byte characters such as emoji fail with error 1366. Always write utf8mb4."
+    concepts: [utf8mb4, character-sets]
+  - id: q20
+    question: "Joining `a.code` (utf8mb4_0900_ai_ci) to `b.code` (utf8mb4_general_ci) fails with error 1267. What is the durable fix?"
+    options:
+      - "Add COLLATE to every query that joins the columns"
+      - "Convert both columns to the same character set and collation"
+      - "Disable strict mode"
+      - "Cast both columns to BINARY"
+    answer: 1
+    explanation: "Two implicit collations with equal coercibility and no _bin tie-breaker cannot be reconciled automatically. COLLATE in queries is a stopgap that must be repeated (and applied to the column side it disables index lookups); casting to BINARY changes semantics. Aligning the schema fixes it permanently."
+    concepts: [collations, collation-coercibility]
+  - id: q21
+    question: "Under the default collation `utf8mb4_0900_ai_ci`, a UNIQUE key on `username` contains 'José'. Which insert is rejected with a duplicate-key error?"
+    options: ["'jose'", "'José2'", "'José ' (trailing space)", "'Joseph'"]
+    answer: 0
+    explanation: "The default collation is accent- and case-insensitive, so 'jose' equals 'José'. It is also NO PAD, so a trailing space makes a different value; 'José2' and 'Joseph' differ at the primary level."
+    concepts: [collations, accent-sensitivity]
+  - id: q22
+    question: "A transaction inserts into an InnoDB table and a MEMORY table, then rolls back. What is the result?"
+    options:
+      - "Both inserts are undone"
+      - "The InnoDB insert is undone; the MEMORY row remains, with warning 1196"
+      - "The ROLLBACK fails"
+      - "Both rows remain"
+    answer: 1
+    explanation: "Only InnoDB is transactional. Non-transactional engines (MEMORY, MyISAM) cannot undo changes, so MySQL warns that some changes could not be rolled back — and the business operation is left half-applied."
+    concepts: [storage-engines, innodb]
+  - id: q23
+    question: "Why does a long UPDATE on a MyISAM table block plain SELECTs of other rows, while on InnoDB it does not?"
+    options:
+      - "MyISAM has no indexes"
+      - "MyISAM uses table-level read/write locks; InnoDB locks only the modified rows and serves plain SELECTs from MVCC snapshots"
+      - "InnoDB executes UPDATEs asynchronously"
+      - "MyISAM stores data in memory only"
+    answer: 1
+    explanation: "A MyISAM writer holds a write lock on the whole table, excluding readers. InnoDB takes record locks for writes, and consistent non-locking reads do not wait for them."
+    concepts: [table-locking, myisam, innodb]
+  - id: q24
+    question: "Where does MySQL record that a table uses the InnoDB engine and what its columns are, and how can you query it?"
+    options:
+      - "In .frm files, queried with SHOW FILES"
+      - "In the transactional data dictionary (InnoDB tables in the mysql schema), exposed through information_schema views such as TABLES and COLUMNS"
+      - "Only in the binary log"
+      - "In the my.cnf option file"
+    answer: 1
+    explanation: "Since 8.0 MySQL has a transactional data dictionary stored in InnoDB; .frm files no longer exist. information_schema views (TABLES.ENGINE, COLUMNS, TABLE_CONSTRAINTS…) and SHOW CREATE TABLE read from it."
+    concepts: [information-schema, data-dictionary]
+challenges:
+  - id: c1
+    title: Shipping SLA breaches
+    dataset: shop
+    difficulty: medium
+    concepts: [three-valued-logic, null]
+    prompt: |
+      The shop promises to ship every order within **3 days** (72 hours) of `order_date`. Considering all
+      orders except those with status `cancelled`, return **one row** with three columns in this order:
+
+      1. `late_shipped` — orders that shipped, but later than `order_date + INTERVAL 3 DAY`;
+      2. `not_shipped` — orders that have not shipped at all (`shipped_at` is NULL);
+      3. `total_breaches` — the sum of the two.
+    hints:
+      - "An unshipped order has shipped_at NULL. What does `shipped_at > order_date + INTERVAL 3 DAY` evaluate to for it?"
+      - "Count the two groups separately with SUM(condition), making sure the second condition is two-valued (IS NULL)."
+      - "A filter such as `NOT (shipped_at <= order_date + INTERVAL 3 DAY)` silently drops the unshipped orders — check your total."
+    solution: |
+      SELECT SUM(shipped_at > order_date + INTERVAL 3 DAY)                          AS late_shipped,
+             SUM(shipped_at IS NULL)                                                AS not_shipped,
+             SUM(shipped_at IS NULL OR shipped_at > order_date + INTERVAL 3 DAY)    AS total_breaches
+      FROM orders
+      WHERE status <> 'cancelled';
+    explanation: |
+      `SUM(shipped_at > …)` adds 1 for late orders, 0 for on-time orders and ignores the NULL results of the
+      unshipped ones, so it counts only late shipments. The unshipped orders must be counted with the two-valued
+      `IS NULL`. In the total, `shipped_at IS NULL OR …` is TRUE for unshipped orders (TRUE dominates OR), so
+      they are included. The common wrong answer filters with `NOT (shipped_at <= order_date + INTERVAL 3 DAY)`,
+      which is UNKNOWN for unshipped orders and reports only the late shipments — exactly the SLA breaches that
+      are least urgent.
+  - id: c2
+    title: Newsletter signups without a customer account
+    dataset: shop
+    difficulty: hard
+    concepts: [collations, collation-coercibility]
+    setup: |
+      CREATE TABLE newsletter_signups (
+        signup_id INT PRIMARY KEY,
+        email     VARCHAR(255) COLLATE utf8mb4_0900_bin NOT NULL
+      );
+      INSERT INTO newsletter_signups VALUES
+        (1, 'AMARA.SHARMA1@example.com'),
+        (2, 'kwame.garcia2@example.com'),
+        (3, 'new.person@example.com'),
+        (4, 'Diego.Haddad3@Example.com'),
+        (5, 'someone@example.org');
+    prompt: |
+      The `newsletter_signups` table (created for you) was imported with a **binary** collation. Marketing
+      wants the signups whose email does **not** belong to any customer, where email addresses are compared
+      **case-insensitively** (as `customers.email` does). Return `signup_id` and `email`, ordered by `signup_id`.
+    hints:
+      - "A plain `c.email = s.email` does not raise error 1267 here. Which collation does MySQL pick when one side is a _bin collation?"
+      - "Force the comparison into the case-insensitive collation with COLLATE utf8mb4_0900_ai_ci on one side."
+      - "Use NOT EXISTS (SELECT 1 FROM customers c WHERE …) or a LEFT JOIN … IS NULL anti-join."
+    solution: |
+      SELECT s.signup_id, s.email
+      FROM newsletter_signups AS s
+      WHERE NOT EXISTS (
+        SELECT 1 FROM customers AS c
+        WHERE c.email = s.email COLLATE utf8mb4_0900_ai_ci
+      )
+      ORDER BY s.signup_id;
+    orderMatters: true
+    explanation: |
+      Both operands are columns (coercibility 2), but one collation is binary, so MySQL resolves the tie in favour
+      of `utf8mb4_0900_bin` instead of raising error 1267 — and the comparison silently becomes case-sensitive.
+      The naive query therefore also returns signups 1 and 4, whose addresses exist in `customers` with different
+      capitalisation. An explicit `COLLATE` (coercibility 0) makes the rule intentional. In production, give the
+      staging column the same collation as the target column.
+  - id: c3
+    title: Validate a product import against the shop's constraints
+    dataset: shop
+    difficulty: hard
+    concepts: [constraints, check-constraint, foreign-key, unique, not-null]
+    setup: |
+      CREATE TABLE product_imports (
+        import_id   INT PRIMARY KEY,
+        sku         VARCHAR(20)   NOT NULL,
+        name        VARCHAR(120)  NULL,
+        price       DECIMAL(10,2) NOT NULL,
+        category_id INT UNSIGNED  NULL
+      );
+      INSERT INTO product_imports VALUES
+        (1, 'SKU-2001', 'Desk Lamp',          39.99,  6),
+        (2, 'sku-1005', 'Wireless Mouse v2',  29.99,  4),
+        (3, 'SKU-2003', NULL,                 15.00,  6),
+        (4, 'SKU-2004', 'Travel Mug',         -3.00,  7),
+        (5, 'SKU-2005', 'Smart Plug',         24.99, 42),
+        (6, 'SKU-2006', 'Gift Card $25',      25.00, NULL),
+        (7, 'SKU-2007', NULL,                 -1.00, 99);
+    prompt: |
+      Before loading `product_imports` into `products`, report every row that would be rejected. Check the rules
+      **in this order** and report only the **first** rule each row fails:
+
+      1. `not_null` — `name` is NULL (products.name is NOT NULL);
+      2. `check_price` — the price violates `chk_products_price CHECK (price >= 0)`;
+      3. `duplicate_sku` — the SKU already exists in `products` under the column's collation (`uq_products_sku`);
+      4. `fk_category` — `category_id` is not NULL and does not exist in `categories` (`fk_products_category`).
+
+      Return `import_id` and `problem`, only for rows with a problem, ordered by `import_id`.
+    hints:
+      - "A CASE expression returns the result of the first WHEN that is true — exactly 'first failing rule'."
+      - "Use EXISTS (SELECT 1 FROM products p WHERE p.sku = i.sku) for the duplicate check; both columns use the default case-insensitive collation."
+      - "A NULL category_id passes a foreign key. Compute the CASE in a derived table, then filter WHERE problem IS NOT NULL."
+    solution: |
+      SELECT import_id, problem
+      FROM (
+        SELECT i.import_id,
+               CASE
+                 WHEN i.name IS NULL THEN 'not_null'
+                 WHEN NOT (i.price >= 0) THEN 'check_price'
+                 WHEN EXISTS (SELECT 1 FROM products AS p WHERE p.sku = i.sku) THEN 'duplicate_sku'
+                 WHEN i.category_id IS NOT NULL
+                  AND NOT EXISTS (SELECT 1 FROM categories AS c WHERE c.category_id = i.category_id) THEN 'fk_category'
+               END AS problem
+        FROM product_imports AS i
+      ) AS checked
+      WHERE problem IS NOT NULL
+      ORDER BY import_id;
+    orderMatters: true
+    explanation: |
+      Row 2 is a duplicate because `'sku-1005'` equals `'SKU-1005'` under `utf8mb4_0900_ai_ci`; row 6 passes
+      because a NULL foreign key value is allowed; row 7 fails several rules but reports only `not_null`, mirroring
+      how MySQL reports the first failing check (NOT NULL and CHECK in the server layer before unique and foreign
+      key checks in InnoDB). A case-sensitive comparison would miss row 2, and treating NULL category as a
+      violation would wrongly flag row 6.
+  - id: c4
+    title: Flash sale start times across time zones
+    dataset: shop
+    difficulty: medium
+    concepts: [datetime-types, time-zones]
+    setup: |
+      SET time_zone = '+00:00';
+      CREATE TABLE flash_sales (
+        sale_id   INT PRIMARY KEY,
+        starts_ts TIMESTAMP NOT NULL,
+        starts_dt DATETIME  NOT NULL
+      );
+      INSERT INTO flash_sales VALUES
+        (1, '2024-11-29 08:00:00', '2024-11-29 08:00:00'),
+        (2, '2024-12-02 17:00:00', '2024-12-02 17:00:00');
+    prompt: |
+      A UTC session stored each flash sale's start time twice: once in a `TIMESTAMP` column and once in a
+      `DATETIME` column. A dashboard for the US West Coast runs with session time zone `'-08:00'`. Set **your
+      session** time zone to `'-08:00'` and return `sale_id`, `starts_ts` and `starts_dt` as that session sees
+      them, ordered by `sale_id`.
+    hints:
+      - "SET time_zone = '-08:00'; changes only your session."
+      - "TIMESTAMP values are converted from UTC to the session time zone on retrieval; DATETIME values are returned unchanged."
+    solution: |
+      SET time_zone = '-08:00';
+      SELECT sale_id, starts_ts, starts_dt FROM flash_sales ORDER BY sale_id;
+    orderMatters: true
+    explanation: |
+      The TIMESTAMP column now shows 00:00 and 09:00 (eight hours earlier than UTC), while the DATETIME column
+      still shows 08:00 and 17:00, because DATETIME stores a wall-clock value with no time zone. If the sale
+      starts at a fixed instant worldwide, TIMESTAMP (or DATETIME in UTC with explicit conversion in the
+      application) is correct; storing local times in DATETIME without recording the zone makes the instant
+      ambiguous. Remember TIMESTAMP's upper limit of 2038-01-19 03:14:07 UTC for long-lived data.
+interview:
+  - id: i1
+    question: "Why is InnoDB MySQL's default storage engine, and when, if ever, would you choose another engine?"
+    answer: |
+      InnoDB is the only engine in Oracle MySQL that provides ACID transactions, crash recovery through the redo
+      and undo logs, row-level locking combined with MVCC (readers never wait for writers), and foreign keys. Since
+      8.0 the data dictionary itself is InnoDB. MyISAM uses table-level locks, has no transactions, and may need
+      `REPAIR TABLE` after a crash; MEMORY loses its data on restart, uses table locks and has a size cap; ARCHIVE
+      cannot update or delete; CSV cannot index or store NULL.
+
+      Another engine is justified only for disposable or derived data with a narrow access pattern — for example a
+      BLACKHOLE relay in a replication topology — or, on distributions that ship it, MyRocks for very write-heavy,
+      storage-bound workloads. In practice I would standardise on InnoDB, set `disabled_storage_engines`, and keep
+      `NO_ENGINE_SUBSTITUTION` on so DDL cannot silently create something else.
+    concepts: [storage-engines, innodb]
+  - id: i2
+    question: "Explain three-valued logic in SQL and give two production bugs it causes, with fixes."
+    answer: |
+      NULL marks a missing value, so a comparison involving NULL is neither true nor false but UNKNOWN. AND, OR
+      and NOT follow Kleene logic (FALSE dominates AND, TRUE dominates OR, NOT UNKNOWN is UNKNOWN). Crucially,
+      WHERE/ON/HAVING keep only TRUE rows, while CHECK constraints reject only FALSE rows.
+
+      Bug 1: `WHERE status <> 'cancelled'` silently drops rows whose status is NULL; reports come out short. Fix:
+      decide where NULLs belong and write `status <> 'cancelled' OR status IS NULL`, or `NOT (status <=> 'cancelled')`
+      in MySQL. Bug 2: `NOT IN (subquery)` returns no rows when the subquery yields a NULL, because `x <> NULL` is
+      UNKNOWN. Fix: use `NOT EXISTS`. Related: change detection with `old <> new` misses NULL transitions — use
+      `NOT (old <=> new)`. Preventively, declare columns NOT NULL whenever the value is always known.
+    concepts: [three-valued-logic, null]
+  - id: i3
+    question: "Our order numbers have gaps and the finance team thinks data is missing. How do you explain it, and what would you change?"
+    answer: |
+      The order number is an AUTO_INCREMENT surrogate key. InnoDB allocates values outside transaction control so
+      concurrent inserts never wait for each other's commits; once allocated, a value is never returned. Rolled-back
+      transactions, inserts that fail on another unique key, `INSERT IGNORE`, upserts that end up updating, and bulk
+      inserts that over-reserve values (`innodb_autoinc_lock_mode = 2`, the 8.0+ default) all leave gaps. Since 8.0
+      the counter is persisted, so values are not reused after restarts either. No committed row is missing —
+      `COUNT(*)` versus the order list proves it.
+
+      If finance needs a gap-free legal invoice sequence, generate it separately at finalisation time inside the
+      same transaction (a counter row locked with `SELECT … FOR UPDATE`), accepting that invoice creation is
+      serialised. Keep AUTO_INCREMENT as the internal key, and consider not exposing it publicly, since sequential
+      IDs also leak business volume.
+    concepts: [auto-increment, autoinc-gaps]
+  - id: i4
+    question: "Walk me through what happens, layer by layer, when an INSERT violates a constraint in MySQL, and how an application should react."
+    answer: |
+      The server converts each value to its column type; under strict mode an impossible conversion (too long,
+      out of range, invalid date) is an error (1406, 1264, 1292), as is NULL in a NOT NULL column (1048) or an
+      omitted column without a default (1364). Next the server evaluates enforced CHECK constraints (3819). Then
+      InnoDB writes the row into the clustered and secondary indexes: a duplicate key fails (1062), and a missing
+      parent row fails the foreign key check (1452); deleting a referenced parent fails with 1451 unless an action
+      such as CASCADE or SET NULL is declared. InnoDB rolls back the whole statement, even rows it already wrote.
+
+      The application should branch on the numeric error code, not the message: 1062 → conflict (HTTP 409, and the
+      key name tells which rule), 1452/1451 → invalid reference or "still in use", 3819 → validation failure. Inside
+      a business transaction, roll back the whole unit of work. Constraints should be named (`uq_users_email`,
+      `chk_orders_total`) so that logs are self-explanatory.
+    concepts: [constraints, error-codes, strict-mode]
+  - id: i5
+    question: "A query that used to take milliseconds became slow after a legacy table was joined into it. EXPLAIN shows warning 1739. What is happening and how do you fix it?"
+    answer: |
+      Warning 1739 ("Cannot use ref access … due to type or collation conversion") means the join columns differ in
+      type, character set or collation — typically a legacy `utf8mb3`/`utf8mb4_general_ci` column joined to a
+      `utf8mb4_0900_ai_ci` one. MySQL must convert one side before comparing; an index on the converted column is
+      ordered by the wrong weights, so it cannot be used for lookups and the plan degrades to an index or table scan
+      per probe. If the collations differ without a binary tie-breaker, the query fails with 1267 instead.
+
+      The fix is to make the columns identical: `ALTER TABLE legacy CONVERT TO CHARACTER SET utf8mb4 COLLATE
+      utf8mb4_0900_ai_ci` (a table rebuild — plan it as heavy DDL, check index key lengths and possible new
+      duplicate keys under the new collation). As a temporary workaround, apply `COLLATE` to the side whose index
+      you do *not* need. Prevent recurrence with consistent server defaults and a CI check on
+      `information_schema.COLUMNS.COLLATION_NAME`.
+    concepts: [collations, collation-index-impact]
+  - id: i6
+    question: "You must add a NOT NULL `status` column and a CHECK constraint to a large, busy production table. How do you plan it?"
+    answer: |
+      First, adding the column: `ALTER TABLE t ADD COLUMN status VARCHAR(12) NOT NULL DEFAULT 'active', ALGORITHM=INSTANT`.
+      A literal default lets InnoDB record the column in the data dictionary without rewriting rows; naming the
+      algorithm makes the statement fail rather than fall back to a table copy. An expression default would not
+      qualify for INSTANT.
+
+      Second, the CHECK constraint validates every existing row, so audit first with `SELECT … WHERE NOT (condition)`
+      and fix the data. Optionally add it `NOT ENFORCED` to document the rule, then `ALTER TABLE … ALTER CHECK …
+      ENFORCED` once clean — that step scans the table, so schedule it, or use an online schema change tool if
+      lock duration is a concern. Remember DDL commits implicitly and is not transactional, so run it outside
+      application transactions, test on a production-sized copy, and have a rollback plan (dropping the
+      constraint/column).
+    concepts: [online-ddl, check-constraint, default-values]
