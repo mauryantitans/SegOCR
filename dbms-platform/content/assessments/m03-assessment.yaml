@@ -1,0 +1,421 @@
+id: m03-assessment
+module: m03
+title: "Module 3 Assessment — SQL Fundamentals & Data Manipulation"
+passMark: 70
+description: >-
+  Covers all of Module 3: SELECT and DISTINCT, WHERE and three-valued logic, LIKE and regular expressions,
+  ORDER BY and pagination, INSERT and upserts, UPDATE/DELETE and TRUNCATE, aggregate functions, GROUP BY and
+  HAVING (ONLY_FULL_GROUP_BY, WITH ROLLUP), conditional expressions, string, numeric and date functions, type
+  conversion, and NULL handling. Questions emphasise predicting MySQL's actual behaviour, the SQL challenges are
+  graded against the shop dataset, and the interview questions ask you to explain the engineering trade-offs.
+questions:
+  - id: q1
+    question: "Why does `SELECT price * 1.1 AS new_price FROM products WHERE new_price > 100` fail?"
+    options:
+      - "Column aliases cannot contain underscores"
+      - "WHERE is logically evaluated before the SELECT list, so the alias does not exist yet"
+      - "Arithmetic is not allowed in the SELECT list"
+      - "WHERE can only reference indexed columns"
+    answer: 1
+    explanation: "Logical order is FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY; aliases are assigned in SELECT and are visible in ORDER BY (and, as a MySQL extension, GROUP BY/HAVING) but not in WHERE (error 1054). Repeat the expression or use a derived table. The other options are not real restrictions."
+    concepts: [column-aliases, logical-query-order]
+  - id: q2
+    question: "`SELECT DISTINCT city, state FROM customers` removes duplicates of what?"
+    options:
+      - "Each column independently, so both columns list unique values"
+      - "Whole result rows — the combination (city, state)"
+      - "Only the first column"
+      - "Only rows with NULLs"
+    answer: 1
+    explanation: "DISTINCT applies to the entire SELECT list row. Two rows are duplicates only if all selected columns are not distinct, NULLs counting as equal for this purpose."
+    concepts: [distinct]
+  - id: q3
+    question: "What does `WHERE status = 'paid' OR status = 'shipped' AND total > 100` mean?"
+    options:
+      - "(status = 'paid' OR status = 'shipped') AND total > 100"
+      - "status = 'paid' OR (status = 'shipped' AND total > 100)"
+      - "It is a syntax error without parentheses"
+      - "MySQL evaluates it left to right with equal precedence"
+    answer: 1
+    explanation: "AND binds more tightly than OR, so paid orders of any total qualify. Add parentheses to express the other meaning — and add them anyway for readability."
+    concepts: [operator-precedence, where-clause]
+  - id: q4
+    question: "A column `x` contains the values 1, 2 and NULL. How many rows does `WHERE x NOT IN (1, NULL)` return?"
+    options: ["1 (the row with 2)", "2", "0", "3"]
+    answer: 2
+    explanation: "x NOT IN (1, NULL) means x <> 1 AND x <> NULL. The second term is UNKNOWN for every row, so the condition is never TRUE; the row with x = NULL is UNKNOWN anyway. Use NOT EXISTS or exclude NULLs."
+    concepts: [not-in-null, three-valued-logic]
+  - id: q5
+    question: "On a DATETIME column, which filter returns every order placed in March 2024 and can use an index on the column?"
+    options:
+      - "WHERE MONTH(order_date) = 3 AND YEAR(order_date) = 2024"
+      - "WHERE order_date BETWEEN '2024-03-01' AND '2024-03-31'"
+      - "WHERE order_date >= '2024-03-01' AND order_date < '2024-04-01'"
+      - "WHERE DATE_FORMAT(order_date, '%Y-%m') = '2024-03'"
+    answer: 2
+    explanation: "The half-open range on the bare column is complete and sargable. BETWEEN stops at 2024-03-31 00:00:00 and loses the rest of that day; the function-based forms are correct but force a full scan."
+    concepts: [sargability, date-filtering]
+  - id: q6
+    question: "Which LIKE patterns can use a B+ tree index on `name` as a range scan? (Select all that apply.)"
+    type: multi
+    options: ["LIKE 'Wire%'", "LIKE '%less'", "LIKE '%ire%'", "LIKE 'W_reless%'"]
+    answer: [0, 3]
+    explanation: "A pattern with a constant prefix before the first wildcard maps to a key range ('Wire…', or 'W' followed by any one character for 'W_reless%'). A leading % or _ means any prefix, so the whole index or table must be scanned."
+    concepts: [like-operator, pattern-index-usage]
+  - id: q7
+    question: "Under the default collation utf8mb4_0900_ai_ci, what does `SELECT 'José' LIKE 'jose'` return?"
+    options: ["0, because LIKE is always case-sensitive", "1, because the collation is case- and accent-insensitive", "NULL", "An error, because of the accent"]
+    answer: 1
+    explanation: "LIKE compares according to the collation; _ai_ci ignores accents and case, so 'José' matches 'jose'. Use a binary or _as_cs collation (e.g. COLLATE utf8mb4_0900_as_cs) for exact matching."
+    concepts: [collation, like-operator]
+  - id: q8
+    question: "`SELECT … ORDER BY created_at LIMIT 10 OFFSET 10` sometimes shows the same row on pages 1 and 2. What is the root cause?"
+    options:
+      - "OFFSET is applied before ORDER BY"
+      - "created_at is not unique, so the order of tied rows is not deterministic between executions"
+      - "LIMIT ignores ORDER BY on DATETIME columns"
+      - "The query cache returns stale pages"
+    answer: 1
+    explanation: "SQL only guarantees the order you specify; ties may come back in any order, and that order can differ between queries. Add a unique tie-breaker (ORDER BY created_at, id). The query cache was removed in MySQL 8.0."
+    concepts: [deterministic-ordering, limit-offset]
+  - id: q9
+    question: "Why does keyset pagination (`WHERE (created_at, id) > (?, ?) ORDER BY created_at, id LIMIT 20`) stay fast on deep pages while `LIMIT 20 OFFSET 100000` does not?"
+    options:
+      - "Keyset pagination caches previous pages"
+      - "OFFSET must read and discard 100,000 rows; keyset seeks directly to the position in an index on (created_at, id)"
+      - "OFFSET does not use indexes at all"
+      - "Keyset pagination returns fewer columns"
+    answer: 1
+    explanation: "OFFSET's cost grows with the page number because skipped rows are still produced. A keyset predicate becomes an index range starting at the last-seen key, so each page costs about the same."
+    concepts: [keyset-pagination, limit-offset]
+  - id: q10
+    question: "`INSERT INTO inv (sku, qty) VALUES ('A', 5) AS new ON DUPLICATE KEY UPDATE qty = new.qty` runs for an existing sku 'A' whose qty is 3. What does MySQL report as rows affected?"
+    options: ["0", "1", "2", "3"]
+    answer: 2
+    explanation: "For ON DUPLICATE KEY UPDATE, an inserted row counts 1, an updated row counts 2, and an existing row left unchanged counts 0 (with the default client flags). The row alias syntax (AS new) exists since 8.0.19; VALUES(qty) in the update clause is deprecated since 8.0.20."
+    concepts: [on-duplicate-key-update, row-alias]
+  - id: q11
+    question: "What does `REPLACE INTO t (id, a) VALUES (1, 'x')` do when a row with id = 1 exists?"
+    options:
+      - "Updates column a only, keeping other columns"
+      - "Deletes the existing row and inserts a new one, so columns not listed get their defaults and delete triggers/foreign-key actions fire"
+      - "Fails with a duplicate-key error"
+      - "Does nothing"
+    answer: 1
+    explanation: "REPLACE is delete-plus-insert. Unlisted columns are reset to defaults, ON DELETE CASCADE children may be removed, and AUTO_INCREMENT can advance. Use ON DUPLICATE KEY UPDATE to change only selected columns."
+    concepts: [replace, on-duplicate-key-update]
+  - id: q12
+    question: "In MySQL, `UPDATE t SET a = a + 1, b = a WHERE id = 1` with a = 10 beforehand leaves b equal to:"
+    options: ["10", "11", "NULL", "It is an error"]
+    answer: 1
+    explanation: "MySQL evaluates single-table UPDATE assignments left to right, so b sees the new a (11). The SQL standard (and e.g. PostgreSQL) would use the old value (10) — a real portability difference."
+    concepts: [update]
+  - id: q13
+    question: "Which statements about TRUNCATE TABLE versus DELETE FROM t (no WHERE) on InnoDB are true? (Select all that apply.)"
+    type: multi
+    options:
+      - "TRUNCATE causes an implicit commit and cannot be rolled back"
+      - "TRUNCATE resets the AUTO_INCREMENT counter"
+      - "TRUNCATE fires DELETE triggers for each row"
+      - "TRUNCATE fails on a table referenced by a foreign key from another table"
+    answer: [0, 1, 3]
+    explanation: "TRUNCATE is DDL: it commits implicitly, recreates the table (resetting AUTO_INCREMENT), does not fire DELETE triggers, and is refused for a parent table referenced by foreign keys from other tables. DELETE is transactional, fires triggers and checks foreign keys row by row."
+    concepts: [truncate, delete]
+  - id: q14
+    question: "`SELECT COUNT(*), COUNT(phone), COUNT(DISTINCT phone)` on 10 rows where phone is NULL in 3 rows and two of the remaining phones are equal returns:"
+    options: ["10, 10, 7", "10, 7, 6", "7, 7, 6", "10, 7, 7"]
+    answer: 1
+    explanation: "COUNT(*) counts rows (10), COUNT(phone) non-NULL values (7), COUNT(DISTINCT phone) distinct non-NULL values (7 minus one duplicate = 6)."
+    concepts: [count, null-handling]
+  - id: q15
+    question: "`SELECT status, COUNT(*) FROM orders WHERE 1 = 0 GROUP BY status` returns:"
+    options: ["One row with NULL status and 0", "Zero rows", "One row per ENUM value with 0", "An error"]
+    answer: 1
+    explanation: "A grouped query returns one row per non-empty group; with no input rows there are no groups. Contrast an ungrouped aggregate, which always returns exactly one row (COUNT = 0)."
+    concepts: [group-by, aggregate-functions]
+  - id: q16
+    question: "Which query is accepted under ONLY_FULL_GROUP_BY? (customer_id is the primary key of customers.)"
+    options:
+      - "SELECT city, state, COUNT(*) FROM customers GROUP BY city"
+      - "SELECT c.customer_id, c.first_name, COUNT(o.order_id) FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id GROUP BY c.customer_id"
+      - "SELECT customer_id, order_date, COUNT(*) FROM orders GROUP BY customer_id"
+      - "SELECT first_name, COUNT(*) FROM customers"
+    answer: 1
+    explanation: "first_name is functionally dependent on the primary key, which MySQL detects. In the other queries a non-aggregated column (state, order_date, first_name) can take several values per group, so they fail with errors 1055 or 1140."
+    concepts: [only-full-group-by, functional-dependence]
+  - id: q17
+    question: "In a `GROUP BY discount_code WITH ROLLUP` result, both the 'no code' group and the grand total show NULL in discount_code. How do you label them correctly?"
+    options:
+      - "COALESCE(discount_code, 'TOTAL')"
+      - "IF(GROUPING(discount_code) = 1, 'TOTAL', COALESCE(discount_code, '(no code)'))"
+      - "ORDER BY discount_code DESC"
+      - "IFNULL(discount_code, '(no code)')"
+    answer: 1
+    explanation: "GROUPING() returns 1 only for super-aggregate rows, distinguishing them from genuine NULL groups. COALESCE/IFNULL cannot tell the two NULLs apart; sorting does not label anything."
+    concepts: [with-rollup, grouping-function]
+  - id: q18
+    question: "What is wrong with `SELECT price, CASE WHEN stock_qty = 0 THEN 'sold out' ELSE price END AS shown FROM products ORDER BY shown`?"
+    options:
+      - "CASE cannot reference two different columns"
+      - "The CASE result type is a string (one branch is text), so ORDER BY shown sorts prices alphabetically ('1299.00' before '18.99')"
+      - "ELSE is not allowed with a numeric value"
+      - "Nothing — MySQL sorts each branch with its own type"
+    answer: 1
+    explanation: "A CASE expression has a single result type resolved from all branches; any string branch makes it a string. Sort by the underlying numeric column and format only for display."
+    concepts: [case-expression, type-resolution]
+  - id: q19
+    question: "Which expressions avoid a division by zero when units = 0? (Select all that apply.)"
+    type: multi
+    options:
+      - "revenue / NULLIF(units, 0)"
+      - "revenue / COALESCE(units, 1)"
+      - "CASE WHEN units = 0 THEN NULL ELSE revenue / units END"
+      - "revenue / IFNULL(units, 0)"
+    answer: [0, 2]
+    explanation: "NULLIF turns 0 into NULL; CASE never evaluates the division for 0. COALESCE and IFNULL only replace NULL — a real 0 stays 0. In strict-mode INSERT/UPDATE an unguarded division by zero is error 1365; in SELECT it is NULL with a warning."
+    concepts: [nullif, division-by-zero]
+  - id: q20
+    question: "A utf8mb4 VARCHAR(10) column stores '東京'. What do CHAR_LENGTH and LENGTH return?"
+    options: ["2 and 2", "2 and 6", "6 and 2", "2 and 4"]
+    answer: 1
+    explanation: "Two characters, each three bytes in UTF-8. CHAR_LENGTH counts characters (what VARCHAR(n) limits), LENGTH counts bytes."
+    concepts: [char-length, character-sets]
+  - id: q21
+    question: "What do `ROUND(2.5)`, `ROUND(2.5e0)` and `-7 MOD 3` return on a typical MySQL server?"
+    options: ["3, 3, 2", "3, 2, -1", "2, 2, -1", "3, 2, 2"]
+    answer: 1
+    explanation: "Exact DECIMAL values round half away from zero (3); DOUBLE values use the C library, usually half to even (2). MOD takes the sign of the dividend (−1)."
+    concepts: [round, modulo, floating-point]
+  - id: q22
+    question: "What does `DATE '2024-01-31' + INTERVAL 1 MONTH` return, and what does `TIMESTAMPDIFF(MONTH, '2024-01-31', '2024-02-29')` return?"
+    options: ["2024-03-02 and 1", "2024-02-29 and 0", "2024-02-29 and 1", "NULL and 0"]
+    answer: 1
+    explanation: "Month arithmetic clamps to the last valid day (Feb 29 in 2024). TIMESTAMPDIFF counts complete months by comparing the day of month, and Jan 31 → Feb 29 is not a complete month, so it returns 0 — the two operations are not inverses at month ends."
+    concepts: [interval-arithmetic, timestampdiff]
+  - id: q23
+    question: "`code` is an indexed VARCHAR column. What happens with `WHERE code = 123`?"
+    options:
+      - "MySQL converts 123 to '123' once and uses the index"
+      - "Both sides are compared as DOUBLE, every code is converted, the index cannot be used for a lookup, and strings like '0123' or '123abc' also match"
+      - "An error is raised because of the type mismatch"
+      - "Only the exact string '123' matches, via the index"
+    answer: 1
+    explanation: "String vs number comparisons use floating point. Converting the column side prevents ref/range access (EXPLAIN warning 1739), and the conversion is many-to-one. Quote the literal to compare string to string."
+    concepts: [implicit-conversion, index-usage]
+  - id: q24
+    question: "Which statements about NULL in MySQL are true? (Select all that apply.)"
+    type: multi
+    options:
+      - "A UNIQUE index allows multiple NULLs"
+      - "CHECK (price >= 0) rejects rows with NULL price"
+      - "NULLs sort first in ascending ORDER BY"
+      - "NULL <=> NULL returns 1"
+    answer: [0, 2, 3]
+    explanation: "UNIQUE ignores NULLs, MySQL sorts NULL before values in ASC, and <=> is null-safe equality. CHECK rejects only FALSE; NULL >= 0 is UNKNOWN, so the row is accepted — use NOT NULL for mandatory values."
+    concepts: [null-handling, null-safe-equality]
+  - id: q25
+    question: "A report LEFT JOINs customers to orders and adds `WHERE o.status = 'delivered'`. Customers without delivered orders disappear. Why?"
+    options:
+      - "LEFT JOIN never returns unmatched rows"
+      - "Their NULL-extended (or non-delivered) rows fail the WHERE comparison, so the outer join behaves like an inner join; the condition belongs in ON"
+      - "WHERE is evaluated before the join"
+      - "ONLY_FULL_GROUP_BY removes them"
+    answer: 1
+    explanation: "NULL = 'delivered' is UNKNOWN and WHERE keeps only TRUE. Putting the status condition in the ON clause restricts which orders match while keeping every customer."
+    concepts: [outer-join-nulls, three-valued-logic]
+challenges:
+  - id: c1
+    title: Top spenders by state
+    dataset: shop
+    difficulty: hard
+    concepts: [group-by, having, functional-dependence, aggregate-functions]
+    prompt: |
+      Finance wants the customers who spent the most. Using **succeeded** payments only, return for every
+      customer whose total succeeded payments are **at least 3000**:
+
+      1. `customer_id`
+      2. `customer` — first and last name separated by one space
+      3. `state`
+      4. `paid_orders` — number of distinct orders with a succeeded payment
+      5. `total_paid` — sum of succeeded payment amounts
+
+      Order by `total_paid` descending, then `customer_id`.
+    hints:
+      - "Join customers → orders → payments and filter payments.status = 'succeeded' in WHERE."
+      - "GROUP BY the customer's primary key; name and state are functionally dependent on it."
+      - "The threshold is on an aggregate, so it goes in HAVING."
+    solution: |
+      SELECT c.customer_id,
+             CONCAT(c.first_name, ' ', c.last_name) AS customer,
+             c.state,
+             COUNT(DISTINCT o.order_id)             AS paid_orders,
+             SUM(p.amount)                          AS total_paid
+      FROM customers c
+      JOIN orders o   ON o.customer_id = c.customer_id
+      JOIN payments p ON p.order_id = o.order_id
+      WHERE p.status = 'succeeded'
+      GROUP BY c.customer_id
+      HAVING SUM(p.amount) >= 3000
+      ORDER BY total_paid DESC, c.customer_id;
+    orderMatters: true
+    explanation: |
+      The row filter on payment status belongs in WHERE; the spending threshold in HAVING. Counting
+      `DISTINCT o.order_id` protects against orders with several succeeded payments. Grouping by
+      `c.customer_id` is enough under ONLY_FULL_GROUP_BY because name and state depend on the primary key.
+  - id: c2
+    title: Quarterly order health with safe ratios
+    dataset: shop
+    difficulty: hard
+    concepts: [conditional-aggregation, nullif, date-functions, group-by]
+    prompt: |
+      Produce one row per quarter of 2024 from `orders` with these columns, ordered by `qtr`:
+
+      1. `qtr` — 1 to 4
+      2. `orders` — all orders in the quarter
+      3. `shipped_or_delivered`
+      4. `cancel_refund_rate` — percentage of orders that were cancelled or refunded, rounded to 1 decimal
+      5. `avg_hours_to_ship` — average hours from `order_date` to `shipped_at` over orders that have a
+         `shipped_at`, computed from minutes and rounded to 1 decimal
+
+      Use a sargable filter for the year (an index on `order_date` must remain usable).
+    hints:
+      - "Filter with order_date >= '2024-01-01' AND order_date < '2025-01-01'; group by QUARTER(order_date)."
+      - "SUM(CASE WHEN status IN (…) THEN 1 ELSE 0 END) counts categories; divide by COUNT(*) for the rate."
+      - "AVG(TIMESTAMPDIFF(MINUTE, order_date, shipped_at)) ignores rows with NULL shipped_at; divide by 60 and round."
+    solution: |
+      SELECT QUARTER(order_date) AS qtr,
+             COUNT(*) AS orders,
+             SUM(CASE WHEN status IN ('shipped', 'delivered') THEN 1 ELSE 0 END) AS shipped_or_delivered,
+             ROUND(100 * SUM(CASE WHEN status IN ('cancelled', 'refunded') THEN 1 ELSE 0 END)
+                   / NULLIF(COUNT(*), 0), 1) AS cancel_refund_rate,
+             ROUND(AVG(TIMESTAMPDIFF(MINUTE, order_date, shipped_at)) / 60, 1) AS avg_hours_to_ship
+      FROM orders
+      WHERE order_date >= '2024-01-01' AND order_date < '2025-01-01'
+      GROUP BY qtr
+      ORDER BY qtr;
+    orderMatters: true
+    explanation: |
+      `TIMESTAMPDIFF` returns NULL when `shipped_at` is NULL, and AVG eliminates those NULLs — exactly the
+      "orders that have shipped" population the prompt asks for. Averaging minutes before dividing by 60 avoids
+      the truncation that averaging whole hours would introduce. `YEAR(order_date) = 2024` would return the same
+      rows but make the index on order_date unusable.
+  - id: c3
+    title: Never-ordered products, NULL-safe
+    dataset: shop
+    difficulty: medium
+    concepts: [not-in-null, null-handling, string-functions]
+    prompt: |
+      List the products that have **never been ordered**, with columns `product_id`, `name` and `category`
+      (the category name, or the text `'(uncategorized)'` if the product has no category). Your query must be
+      correct even if `order_items` or `products` contain NULLs. Order by `product_id`.
+    hints:
+      - "Use NOT EXISTS (SELECT 1 FROM order_items oi WHERE oi.product_id = p.product_id)."
+      - "LEFT JOIN categories so that products without a category are kept; COALESCE the name."
+    solution: |
+      SELECT p.product_id, p.name,
+             COALESCE(c.name, '(uncategorized)') AS category
+      FROM products p
+      LEFT JOIN categories c ON c.category_id = p.category_id
+      WHERE NOT EXISTS (SELECT 1 FROM order_items oi WHERE oi.product_id = p.product_id)
+      ORDER BY p.product_id;
+    orderMatters: true
+    explanation: |
+      NOT EXISTS is immune to NULLs in the subquery, unlike NOT IN. The LEFT JOIN keeps uncategorized products;
+      an inner join would silently drop them. COALESCE is applied only for display, in the final SELECT.
+  - id: c4
+    title: Reprice a category safely
+    dataset: shop
+    difficulty: hard
+    kind: dml
+    concepts: [update, multi-table-update, round, decimal-precision]
+    prompt: |
+      Increase the price of every **active** product in the category named `Coffee` by **7.5 %**, rounded to
+      2 decimals, but never above **530.00** (cap the new price at 530.00). Do not change any other product.
+      Write the `UPDATE` statement(s).
+    hints:
+      - "A multi-table UPDATE can join products to categories: UPDATE products p JOIN categories c ON … SET …"
+      - "LEAST(ROUND(p.price * 1.075, 2), 530.00) applies the cap."
+      - "Filter on c.name = 'Coffee' AND p.is_active = TRUE."
+    solution: |
+      UPDATE products p
+      JOIN categories c ON c.category_id = p.category_id
+      SET p.price = LEAST(ROUND(p.price * 1.075, 2), 530.00)
+      WHERE c.name = 'Coffee' AND p.is_active = TRUE;
+    check: |
+      SELECT product_id, price FROM products ORDER BY product_id;
+    explanation: |
+      `1.075` is an exact DECIMAL literal, so ROUND applies half-away-from-zero rounding to the cent; a DOUBLE
+      literal (`1.075e0`) could round differently. LEAST caps the value without a CASE: the Espresso Machine (499.00 × 1.075 = 536.43) is capped at 530.00, while the other three coffee products simply rise by 7.5 %. The check compares every
+      product, so an UPDATE without the category or active filter fails the challenge.
+interview:
+  - id: i1
+    question: "Explain the difference between WHERE and HAVING, and why a condition on a grouping column belongs in WHERE."
+    concepts: [having, where-clause, group-by]
+    answer: |
+      WHERE filters **rows** before grouping and aggregation; it cannot reference aggregates because they do not
+      exist yet (MySQL error 1111). HAVING filters **groups** after aggregation and is where conditions such as
+      `COUNT(*) >= 5` belong. A condition on a grouping column (`category_id = 3`) gives the same result in
+      either clause, but in WHERE it is applied while reading — MySQL can use an index to read only matching
+      rows — whereas in HAVING every group is computed first and then discarded. EXPLAIN FORMAT=TREE shows the
+      WHERE condition as an index lookup below the aggregate and the HAVING condition as a Filter above it.
+      MySQL does not move such HAVING conditions into WHERE automatically, so the author must place them.
+  - id: i2
+    question: "A colleague 'fixed' error 1055 by removing ONLY_FULL_GROUP_BY from sql_mode. What do you tell them?"
+    concepts: [only-full-group-by, functional-dependence, any-value]
+    answer: |
+      The error means the query selects a column that can take several values per group, so its result is
+      undefined. Disabling the mode does not make it defined: MySQL returns a value from an arbitrary row, which
+      can change with a new index, a different plan or an upgrade — a silently wrong report. The right fixes are
+      to say what you mean: add the column to GROUP BY; aggregate it (`MAX(order_date)` for "latest"); group by
+      the primary key so that the other columns are functionally dependent (MySQL detects dependence on PRIMARY
+      KEY / UNIQUE NOT NULL columns and through join equalities); or, when any value really is acceptable, wrap
+      it in `ANY_VALUE()` with a comment. For "the whole row with the latest date per customer", use a window
+      function or a join back to the grouped result.
+  - id: i3
+    question: "Why can `NOT IN (subquery)` return no rows, and what do you use instead?"
+    concepts: [not-in-null, three-valued-logic]
+    answer: |
+      `x NOT IN (a, b, c)` is shorthand for `x <> a AND x <> b AND x <> c`. If any subquery value is NULL, that
+      term is UNKNOWN, so the conjunction can never be TRUE — at best UNKNOWN — and WHERE keeps only TRUE rows.
+      The query silently returns nothing (e.g. "categories without products" returns empty as soon as one product
+      has a NULL category). Use `NOT EXISTS (SELECT 1 … WHERE inner.col = outer.col)`, which is evaluated per row
+      with an equality that a NULL simply never satisfies, or a `LEFT JOIN … WHERE inner.key IS NULL` anti-join,
+      or at least filter `WHERE col IS NOT NULL` inside the subquery. NOT EXISTS is also typically planned as an
+      anti-join, while NOT IN needs null-aware handling unless the column is declared NOT NULL.
+  - id: i4
+    question: "How should money be stored and computed in MySQL, and what goes wrong otherwise?"
+    concepts: [decimal-precision, round, floating-point]
+    answer: |
+      Use `DECIMAL(p, s)` (or integer minor units such as cents). DECIMAL arithmetic is exact base-10 arithmetic:
+      `0.1 + 0.2 = 0.3` is TRUE, sums are exact to the cent, and ROUND uses half-away-from-zero. FLOAT/DOUBLE
+      are binary approximations: 0.1 cannot be represented, sums accumulate representation error, `=`
+      comparisons fail, and ROUND on a double follows the C library (usually half-to-even) and may round
+      `1.005` down because its binary value is slightly below 1.005. Keep whole expressions exact — a single
+      DOUBLE operand, `e`-notation literal or string converted to a number switches the expression to DOUBLE —
+      round once at the end, guard divisions with NULLIF, and keep strict mode on so out-of-range or
+      divide-by-zero results in INSERT/UPDATE are errors rather than silently stored values.
+  - id: i5
+    question: "A lookup `SELECT * FROM shipments WHERE tracking_no = ?` became slow after an ORM upgrade. EXPLAIN shows type=index and warning 1739. Diagnose it."
+    concepts: [implicit-conversion, index-usage, sargability]
+    answer: |
+      `tracking_no` is a VARCHAR, and the new ORM binds the parameter as a number. MySQL compares string and
+      number as DOUBLE, so every `tracking_no` value must be converted; an index ordered by string collation
+      cannot be searched by numeric value, hence a full index scan and warning 1739 ("Cannot use ref access …
+      due to type or collation conversion on field 'tracking_no'"). Results can also be wrong: '0400123' and
+      '400123abc' equal 400123 numerically, and long numbers lose precision above 2^53. The fix is to bind the
+      parameter as a string (or CAST it to CHAR in SQL) so the comparison is string-to-string. More generally:
+      compare like with like, keep functions and conversions off indexed columns, and use functional indexes
+      or generated columns when an expression must be searched.
+  - id: i6
+    question: "How do you write date filters and month-based reports that stay fast and correct?"
+    concepts: [sargability, date-functions, interval-arithmetic]
+    answer: |
+      Filter with half-open ranges on the bare column: `order_date >= '2024-06-01' AND order_date < '2024-07-01'`.
+      This works for any time precision (BETWEEN with a date upper bound loses the last day after midnight) and
+      lets the optimizer use an index range; `YEAR(col) = 2024`, `DATE(col) = …` or `DATE_FORMAT(col, …) = …` read
+      every row. Put arithmetic on the constant side (`col >= NOW() - INTERVAL 30 DAY`; NOW() is constant per
+      statement, unlike SYSDATE()). Group by `DATE_FORMAT(col, '%Y-%m')` or `EXTRACT(YEAR_MONTH FROM col)`, and use
+      a calendar table when months without data must appear. For schedules, compute from the anchor date
+      (`start + INTERVAL n MONTH`) because month arithmetic clamps at month ends and chaining drifts (Jan 31 →
+      Feb 29 → Mar 29). Store instants in UTC (TIMESTAMP or UTC DATETIME) and load the time zone tables if named
+      zones are used with CONVERT_TZ.

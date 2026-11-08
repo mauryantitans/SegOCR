@@ -1,0 +1,716 @@
+{
+ "doc": "m03-type-conversion",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:a82e0f6c797a": {
+   "statements": [
+    {
+     "sql": "SELECT '1abc' = 1        AS prefix_match,\n       'abc' = 0         AS no_digits_is_zero,\n       '1e3' = 1000      AS scientific,\n       ' 12' = 12        AS leading_space,\n       '1.0' = 1         AS decimal_text,\n       '1.0' = '1'       AS both_strings,\n       '0x10' = 16       AS hex_text",
+     "status": "ok",
+     "columns": [
+      "prefix_match",
+      "no_digits_is_zero",
+      "scientific",
+      "leading_space",
+      "decimal_text",
+      "both_strings",
+      "hex_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1,
+       1,
+       1,
+       1,
+       0,
+       0
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: '1abc'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'abc'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: '0x10'"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:648503e5df9e": {
+   "statements": [
+    {
+     "sql": "SELECT '9007199254740993' = 9007199254740992   AS string_vs_number,\n       '9007199254740993' = '9007199254740992' AS string_vs_string,\n       9007199254740993 = 9007199254740992     AS number_vs_number",
+     "status": "ok",
+     "columns": [
+      "string_vs_number",
+      "string_vs_string",
+      "number_vs_number"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:04884e0fb0bb": {
+   "statements": [
+    {
+     "sql": "SELECT '10' + '5'         AS string_plus_string,\n       '3 apples' + 2     AS prefix_arithmetic,\n       CONCAT(1, 2) + 1   AS number_to_string_and_back,\n       'a' + 0            AS non_numeric",
+     "status": "ok",
+     "columns": [
+      "string_plus_string",
+      "prefix_arithmetic",
+      "number_to_string_and_back",
+      "non_numeric"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       15.0,
+       5.0,
+       13.0,
+       0.0
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: '3 apples'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'a'"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:40d54d927a70": {
+   "statements": [
+    {
+     "sql": "SELECT CAST(1.5 AS SIGNED)              AS decimal_to_int_rounds,\n       CAST(-1.5 AS SIGNED)             AS negative_rounds,\n       CAST('1.9' AS SIGNED)            AS string_to_int_truncates,\n       CAST('  42abc' AS SIGNED)        AS string_prefix,\n       CAST(-1 AS UNSIGNED)             AS negative_to_unsigned,\n       CAST('3.14159' AS DECIMAL(4,2))  AS to_decimal_rounds,\n       CAST(123.456 AS DECIMAL(4,2))    AS to_decimal_clipped,\n       CAST(20240630 AS DATE)           AS number_to_date,\n       CAST('2024-13-01' AS DATE)       AS invalid_date",
+     "status": "ok",
+     "columns": [
+      "decimal_to_int_rounds",
+      "negative_rounds",
+      "string_to_int_truncates",
+      "string_prefix",
+      "negative_to_unsigned",
+      "to_decimal_rounds",
+      "to_decimal_clipped",
+      "number_to_date",
+      "invalid_date"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2,
+       -2,
+       1,
+       42,
+       18446744073709551615,
+       "3.14",
+       "99.99",
+       "2024-06-30",
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect INTEGER value: '1.9'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect INTEGER value: '  42abc'"
+      },
+      {
+       "level": "Warning",
+       "code": 1264,
+       "message": "Out of range value for column 'to_decimal_clipped' at row 1"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Incorrect datetime value: '2024-13-01'"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:211471740322": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE staging_codes (id INT PRIMARY KEY, code VARCHAR(10) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO staging_codes VALUES (1, '9'), (2, '10'), (3, '100'), (4, '25'), (5, '3')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT GROUP_CONCAT(code ORDER BY code)                     AS string_order,\n       GROUP_CONCAT(code ORDER BY CAST(code AS UNSIGNED))   AS numeric_order\nFROM staging_codes",
+     "status": "ok",
+     "columns": [
+      "string_order",
+      "numeric_order"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "10,100,25,3,9",
+       "3,9,10,25,100"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:0162f8366ddd": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE price_import (id INT PRIMARY KEY, raw_price VARCHAR(20))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO price_import VALUES (1, '19.99'), (2, ' 5.00 '), (3, '12,50'), (4, 'N/A'), (5, '1e2'), (6, NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 6,
+     "info": "Records: 6  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT id, raw_price,\n       CAST(raw_price AS DECIMAL(10,2))                         AS naive_cast,\n       REGEXP_LIKE(TRIM(raw_price), '^[0-9]+(\\\\.[0-9]{1,2})?$') AS is_valid_money,\n       IF(REGEXP_LIKE(TRIM(raw_price), '^[0-9]+(\\\\.[0-9]{1,2})?$'),\n          CAST(TRIM(raw_price) AS DECIMAL(10,2)), NULL)          AS safe_value\nFROM price_import\nORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "raw_price",
+      "naive_cast",
+      "is_valid_money",
+      "safe_value"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "19.99",
+       "19.99",
+       1,
+       "19.99"
+      ],
+      [
+       2,
+       " 5.00 ",
+       "5.00",
+       1,
+       "5.00"
+      ],
+      [
+       3,
+       "12,50",
+       "12.00",
+       0,
+       null
+      ],
+      [
+       4,
+       "N/A",
+       "0.00",
+       0,
+       null
+      ],
+      [
+       5,
+       "1e2",
+       "100.00",
+       0,
+       null
+      ],
+      [
+       6,
+       null,
+       null,
+       null,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DECIMAL value: '12,50'"
+      },
+      {
+       "level": "Warning",
+       "code": 1366,
+       "message": "Incorrect DECIMAL value: '0' for column '' at row -1"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DECIMAL value: 'N/A'"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:82615724e009": {
+   "statements": [
+    {
+     "sql": "SELECT SUM(order_date >= '2024-12-20')            AS iso_string,\n       SUM(order_date >= '2024/12/20')            AS slash_string,\n       SUM(order_date >= 20241220)                AS yyyymmdd_number,\n       SUM(order_date >= '20241220')              AS yyyymmdd_string,\n       SUM(order_date >= DATE '2024-12-20')       AS date_literal\nFROM orders",
+     "status": "ok",
+     "columns": [
+      "iso_string",
+      "slash_string",
+      "yyyymmdd_number",
+      "yyyymmdd_string",
+      "date_literal"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "4",
+       "4",
+       "4",
+       "4",
+       "4"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 4095,
+       "message": "Delimiter '/' in position 4 in datetime value '2024/12/20' at row 1 is deprecated. Prefer the standard '-'."
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:139e4952fe7c": {
+   "statements": [
+    {
+     "sql": "SELECT status, status + 0 AS enum_index, COUNT(*) AS orders\nFROM orders\nGROUP BY status\nORDER BY enum_index",
+     "status": "ok",
+     "columns": [
+      "status",
+      "enum_index",
+      "orders"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "pending",
+       1.0,
+       2
+      ],
+      [
+       "paid",
+       2.0,
+       6
+      ],
+      [
+       "shipped",
+       3.0,
+       14
+      ],
+      [
+       "delivered",
+       4.0,
+       45
+      ],
+      [
+       "cancelled",
+       5.0,
+       8
+      ],
+      [
+       "refunded",
+       6.0,
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:cd0151b7e2d5": {
+   "statements": [
+    {
+     "sql": "SELECT CHARSET(name)                         AS col_charset,\n       COLLATION(name)                       AS col_collation,\n       CHARSET(CONVERT(name USING latin1))   AS converted_charset,\n       HEX(CONVERT('é' USING latin1))        AS latin1_bytes,\n       HEX(CONVERT('é' USING utf8mb4))       AS utf8mb4_bytes\nFROM products\nWHERE product_id = 1",
+     "status": "ok",
+     "columns": [
+      "col_charset",
+      "col_collation",
+      "converted_charset",
+      "latin1_bytes",
+      "utf8mb4_bytes"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "utf8mb4",
+       "utf8mb4_0900_ai_ci",
+       "latin1",
+       "E9",
+       "C3A9"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:eadc484e8fa7": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE vcodes (id INT PRIMARY KEY, code VARCHAR(10) NOT NULL, KEY idx_code (code))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO vcodes\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 1000)\nSELECT n, LPAD(n, 5, '0') FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1000,
+     "info": "Records: 1000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO vcodes VALUES (3001, '123'), (3002, ' 123'), (3003, '123abc'), (3004, '123.0'), (3005, '1.23e2')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE vcodes",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_0868b274f162bc9d6472.vcodes",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:685a6521b7e7": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT id, code FROM vcodes WHERE code = 123",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "vcodes",
+       null,
+       "index",
+       "idx_code",
+       "idx_code",
+       "42",
+       null,
+       1005,
+       10.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1739,
+       "message": "Cannot use ref access on index 'idx_code' due to type or collation conversion on field 'code'"
+      },
+      {
+       "level": "Warning",
+       "code": 1739,
+       "message": "Cannot use range access on index 'idx_code' due to type or collation conversion on field 'code'"
+      },
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_0868b274f162bc9d6472`.`vcodes`.`id` AS `id`,`lab_0868b274f162bc9d6472`.`vcodes`.`code` AS `code` from `lab_0868b274f162bc9d6472`.`vcodes` where (`lab_0868b274f162bc9d6472`.`vcodes`.`code` = 123)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:4b0c217bc326": {
+   "statements": [
+    {
+     "sql": "SELECT id, code FROM vcodes WHERE code = 123 ORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "code"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       123,
+       "00123"
+      ],
+      [
+       3001,
+       "123"
+      ],
+      [
+       3002,
+       " 123"
+      ],
+      [
+       3003,
+       "123abc"
+      ],
+      [
+       3004,
+       "123.0"
+      ],
+      [
+       3005,
+       "1.23e2"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: '123abc'"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:6f0ee7596dc0": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT id, code FROM vcodes WHERE code = '00123'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Covering index lookup on vcodes using idx_code (code='00123')  (cost=0.35 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:b84628d051cb": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT id FROM vcodes WHERE id = '42'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Rows fetched before execution  (cost=0..0 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:d37bd1e0fced": {
+   "statements": [
+    {
+     "sql": "SELECT CAST('12,50' AS DECIMAL(10,2)) AS comma_decimal, '7 days' + 0 AS prefix",
+     "status": "ok",
+     "columns": [
+      "comma_decimal",
+      "prefix"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "12.00",
+       7.0
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DECIMAL value: '12,50'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: '7 days'"
+      }
+     ]
+    },
+    {
+     "sql": "SHOW WARNINGS",
+     "status": "ok",
+     "columns": [
+      "Level",
+      "Code",
+      "Message"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Warning",
+       1292,
+       "Truncated incorrect DECIMAL value: '12,50'"
+      ],
+      [
+       "Warning",
+       1292,
+       "Truncated incorrect DOUBLE value: '7 days'"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:a46b9fd1e91c": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE typed_target (id INT PRIMARY KEY, qty INT NOT NULL, price DECIMAL(6,2) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s12:c5d5ac446fae": {
+   "statements": [
+    {
+     "sql": "INSERT INTO typed_target VALUES (1, '12abc', 9.99)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1265,
+      "message": "Data truncated for column 'qty' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s13:c83cae1d551a": {
+   "statements": [
+    {
+     "sql": "INSERT INTO typed_target VALUES (2, 5, 12345.678)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1264,
+      "message": "Out of range value for column 'price' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:ce13e8ba2f84": {
+   "statements": [
+    {
+     "sql": "SELECT CAST('1.9' AS SIGNED)                       AS direct,\n       CAST(CAST('1.9' AS DECIMAL(10,2)) AS SIGNED) AS via_decimal,\n       ROUND('1.9')                                AS round_text",
+     "status": "ok",
+     "columns": [
+      "direct",
+      "via_decimal",
+      "round_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       2,
+       2.0
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect INTEGER value: '1.9'"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

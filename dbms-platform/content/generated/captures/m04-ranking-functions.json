@@ -1,0 +1,1454 @@
+{
+ "doc": "m04-ranking-functions",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s3:cc9383c14197": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, first_name, salary,\n       ROW_NUMBER() OVER w AS row_num,\n       RANK()       OVER w AS rnk,\n       DENSE_RANK() OVER w AS dense_rnk\nFROM employees\nWHERE department_id = 20\nWINDOW w AS (ORDER BY salary DESC)\nORDER BY salary DESC, employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "salary",
+      "row_num",
+      "rnk",
+      "dense_rnk"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       101,
+       "Diego",
+       "242500.00",
+       1,
+       1,
+       1
+      ],
+      [
+       104,
+       "Mei",
+       "214500.00",
+       2,
+       2,
+       2
+      ],
+      [
+       123,
+       "Chen",
+       "170000.00",
+       3,
+       3,
+       3
+      ],
+      [
+       106,
+       "Kofi",
+       "165500.00",
+       4,
+       4,
+       4
+      ],
+      [
+       109,
+       "Leila",
+       "153500.00",
+       5,
+       5,
+       5
+      ],
+      [
+       107,
+       "Grace",
+       "150000.00",
+       6,
+       6,
+       6
+      ],
+      [
+       108,
+       "Lucas",
+       "150000.00",
+       7,
+       6,
+       6
+      ],
+      [
+       129,
+       "Ethan",
+       "146500.00",
+       8,
+       8,
+       7
+      ],
+      [
+       127,
+       "Priya",
+       "125500.00",
+       9,
+       9,
+       8
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:92958d7f51de": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, salary,\n       ROW_NUMBER() OVER (ORDER BY salary DESC, employee_id) AS row_num\nFROM employees\nWHERE department_id = 20\nORDER BY row_num",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "salary",
+      "row_num"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       101,
+       "242500.00",
+       1
+      ],
+      [
+       104,
+       "214500.00",
+       2
+      ],
+      [
+       123,
+       "170000.00",
+       3
+      ],
+      [
+       106,
+       "165500.00",
+       4
+      ],
+      [
+       109,
+       "153500.00",
+       5
+      ],
+      [
+       107,
+       "150000.00",
+       6
+      ],
+      [
+       108,
+       "150000.00",
+       7
+      ],
+      [
+       129,
+       "146500.00",
+       8
+      ],
+      [
+       127,
+       "125500.00",
+       9
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:00b2ac723651": {
+   "statements": [
+    {
+     "sql": "SELECT department_id, employee_id, salary,\n       RANK() OVER (PARTITION BY department_id ORDER BY salary DESC) AS rank_in_dept\nFROM employees\nWHERE department_id IN (40, 60)\nORDER BY department_id, rank_in_dept, employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "employee_id",
+      "salary",
+      "rank_in_dept"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       40,
+       102,
+       "238000.00",
+       1
+      ],
+      [
+       40,
+       114,
+       "149500.00",
+       2
+      ],
+      [
+       40,
+       116,
+       "102500.00",
+       3
+      ],
+      [
+       40,
+       117,
+       "100500.00",
+       4
+      ],
+      [
+       40,
+       126,
+       "99000.00",
+       5
+      ],
+      [
+       40,
+       118,
+       "86000.00",
+       6
+      ],
+      [
+       40,
+       115,
+       "61000.00",
+       7
+      ],
+      [
+       60,
+       103,
+       "229500.00",
+       1
+      ],
+      [
+       60,
+       122,
+       "119500.00",
+       2
+      ],
+      [
+       60,
+       121,
+       "110000.00",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:2cc85762b1a2": {
+   "statements": [
+    {
+     "sql": "WITH ranked AS (\n  SELECT department_id, employee_id, salary,\n         ROW_NUMBER() OVER w AS rn,\n         RANK()       OVER w AS rnk,\n         DENSE_RANK() OVER w AS drnk\n  FROM employees\n  WHERE department_id IS NOT NULL\n  WINDOW w AS (PARTITION BY department_id ORDER BY salary DESC, employee_id)\n)\nSELECT department_id, employee_id, salary, rn, rnk, drnk\nFROM ranked\nWHERE drnk <= 4 AND department_id = 20\nORDER BY rn",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "employee_id",
+      "salary",
+      "rn",
+      "rnk",
+      "drnk"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       20,
+       101,
+       "242500.00",
+       1,
+       1,
+       1
+      ],
+      [
+       20,
+       104,
+       "214500.00",
+       2,
+       2,
+       2
+      ],
+      [
+       20,
+       123,
+       "170000.00",
+       3,
+       3,
+       3
+      ],
+      [
+       20,
+       106,
+       "165500.00",
+       4,
+       4,
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:39b65105513e": {
+   "statements": [
+    {
+     "sql": "WITH ranked AS (\n  SELECT department_id, employee_id, salary,\n         RANK()       OVER w AS rnk,\n         DENSE_RANK() OVER w AS drnk\n  FROM employees\n  WHERE department_id = 20\n  WINDOW w AS (ORDER BY salary DESC)\n)\nSELECT\n  (SELECT COUNT(*) FROM ranked WHERE rnk  <= 6) AS top6_by_rank,\n  (SELECT COUNT(*) FROM ranked WHERE drnk <= 6) AS top6_by_dense_rank",
+     "status": "ok",
+     "columns": [
+      "top6_by_rank",
+      "top6_by_dense_rank"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       7,
+       7
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:463a6cffa7c3": {
+   "statements": [
+    {
+     "sql": "WITH ranked AS (\n  SELECT e.department_id, d.name AS department, e.employee_id,\n         e.first_name, e.last_name, e.salary,\n         RANK() OVER (PARTITION BY e.department_id ORDER BY e.salary DESC) AS rnk\n  FROM employees e\n  JOIN departments d ON d.department_id = e.department_id\n)\nSELECT department, employee_id, first_name, last_name, salary\nFROM ranked\nWHERE rnk = 1\nORDER BY salary DESC",
+     "status": "ok",
+     "columns": [
+      "department",
+      "employee_id",
+      "first_name",
+      "last_name",
+      "salary"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "Executive",
+       100,
+       "Kofi",
+       "Smith",
+       "309000.00"
+      ],
+      [
+       "Engineering",
+       101,
+       "Diego",
+       "Mensah",
+       "242500.00"
+      ],
+      [
+       "Sales",
+       102,
+       "Mei",
+       "Nguyen",
+       "238000.00"
+      ],
+      [
+       "Finance",
+       103,
+       "Anika",
+       "Wang",
+       "229500.00"
+      ],
+      [
+       "Data Platform",
+       111,
+       "Noah",
+       "Berg",
+       "179500.00"
+      ],
+      [
+       "Marketing",
+       128,
+       "Marcus",
+       "Haddad",
+       "91500.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:65c4919176f9": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE staging_contacts (\n  staging_id INT PRIMARY KEY,\n  email      VARCHAR(100) NOT NULL,\n  full_name  VARCHAR(100) NOT NULL,\n  loaded_at  DATETIME NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO staging_contacts VALUES\n  (1, 'grace.sato@example.com', 'Grace Sato',   '2024-01-10 09:00:00'),\n  (2, 'lucas.martin@example.com','Lucas Martin', '2024-01-10 09:00:00'),\n  (3, 'grace.sato@example.com', 'Grace M. Sato','2024-03-02 14:30:00'),\n  (4, 'mei.berg@example.com',   'Mei Berg',     '2024-02-01 08:15:00'),\n  (5, 'GRACE.SATO@example.com', 'Grace Sato',   '2024-05-20 11:00:00'),\n  (6, 'lucas.martin@example.com','Lucas Martin', '2024-01-10 09:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 6,
+     "info": "Records: 6  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT staging_id, email, loaded_at,\n       ROW_NUMBER() OVER (PARTITION BY email ORDER BY loaded_at DESC, staging_id DESC) AS rn\nFROM staging_contacts\nORDER BY email, rn",
+     "status": "ok",
+     "columns": [
+      "staging_id",
+      "email",
+      "loaded_at",
+      "rn"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       5,
+       "GRACE.SATO@example.com",
+       "2024-05-20 11:00:00",
+       1
+      ],
+      [
+       3,
+       "grace.sato@example.com",
+       "2024-03-02 14:30:00",
+       2
+      ],
+      [
+       1,
+       "grace.sato@example.com",
+       "2024-01-10 09:00:00",
+       3
+      ],
+      [
+       6,
+       "lucas.martin@example.com",
+       "2024-01-10 09:00:00",
+       1
+      ],
+      [
+       2,
+       "lucas.martin@example.com",
+       "2024-01-10 09:00:00",
+       2
+      ],
+      [
+       4,
+       "mei.berg@example.com",
+       "2024-02-01 08:15:00",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:da25693a5d78": {
+   "statements": [
+    {
+     "sql": "DELETE sc\nFROM staging_contacts sc\nJOIN (SELECT staging_id,\n             ROW_NUMBER() OVER (PARTITION BY email ORDER BY loaded_at DESC, staging_id DESC) AS rn\n      FROM staging_contacts) ranked\n  ON ranked.staging_id = sc.staging_id\nWHERE ranked.rn > 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "rows": []
+    },
+    {
+     "sql": "SELECT staging_id, email, full_name, loaded_at FROM staging_contacts ORDER BY staging_id",
+     "status": "ok",
+     "columns": [
+      "staging_id",
+      "email",
+      "full_name",
+      "loaded_at"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       4,
+       "mei.berg@example.com",
+       "Mei Berg",
+       "2024-02-01 08:15:00"
+      ],
+      [
+       5,
+       "GRACE.SATO@example.com",
+       "Grace Sato",
+       "2024-05-20 11:00:00"
+      ],
+      [
+       6,
+       "lucas.martin@example.com",
+       "Lucas Martin",
+       "2024-01-10 09:00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:192a5e964c4e": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, salary,\n       RANK()                           OVER w AS rnk,\n       ROUND(PERCENT_RANK() OVER w, 3)  AS pct_rank,\n       ROUND(CUME_DIST()    OVER w, 3)  AS cum_dist\nFROM employees\nWHERE department_id = 20\nWINDOW w AS (ORDER BY salary)\nORDER BY salary, employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "salary",
+      "rnk",
+      "pct_rank",
+      "cum_dist"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       127,
+       "125500.00",
+       1,
+       0.0,
+       0.111
+      ],
+      [
+       129,
+       "146500.00",
+       2,
+       0.125,
+       0.222
+      ],
+      [
+       107,
+       "150000.00",
+       3,
+       0.25,
+       0.444
+      ],
+      [
+       108,
+       "150000.00",
+       3,
+       0.25,
+       0.444
+      ],
+      [
+       109,
+       "153500.00",
+       5,
+       0.5,
+       0.556
+      ],
+      [
+       106,
+       "165500.00",
+       6,
+       0.625,
+       0.667
+      ],
+      [
+       123,
+       "170000.00",
+       7,
+       0.75,
+       0.778
+      ],
+      [
+       104,
+       "214500.00",
+       8,
+       0.875,
+       0.889
+      ],
+      [
+       101,
+       "242500.00",
+       9,
+       1.0,
+       1.0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:ec0b77a76d28": {
+   "statements": [
+    {
+     "sql": "WITH q AS (\n  SELECT employee_id, salary,\n         NTILE(4) OVER (ORDER BY salary DESC, employee_id) AS quartile\n  FROM employees\n)\nSELECT quartile, COUNT(*) AS employees, MIN(salary) AS lowest, MAX(salary) AS highest\nFROM q\nGROUP BY quartile\nORDER BY quartile",
+     "status": "ok",
+     "columns": [
+      "quartile",
+      "employees",
+      "lowest",
+      "highest"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       8,
+       "170000.00",
+       "309000.00"
+      ],
+      [
+       2,
+       8,
+       "143000.00",
+       "165500.00"
+      ],
+      [
+       3,
+       7,
+       "102500.00",
+       "125500.00"
+      ],
+      [
+       4,
+       7,
+       "61000.00",
+       "100500.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:97ed38e7ff79": {
+   "statements": [
+    {
+     "sql": "WITH d AS (\n  SELECT employee_id, department_id, job_id,\n         DENSE_RANK() OVER (PARTITION BY department_id ORDER BY job_id) AS job_seq\n  FROM employees\n  WHERE department_id IS NOT NULL\n)\nSELECT employee_id, department_id, job_id,\n       MAX(job_seq) OVER (PARTITION BY department_id) AS distinct_jobs_in_dept\nFROM d\nWHERE department_id IN (20, 40)\nORDER BY department_id, employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "department_id",
+      "job_id",
+      "distinct_jobs_in_dept"
+     ],
+     "row_count": 16,
+     "rows": [
+      [
+       101,
+       20,
+       "VP",
+       4
+      ],
+      [
+       104,
+       20,
+       "ENG_MGR",
+       4
+      ],
+      [
+       106,
+       20,
+       "SWE",
+       4
+      ],
+      [
+       107,
+       20,
+       "SWE",
+       4
+      ],
+      [
+       108,
+       20,
+       "SWE",
+       4
+      ],
+      [
+       109,
+       20,
+       "DBA",
+       4
+      ],
+      [
+       123,
+       20,
+       "SWE",
+       4
+      ],
+      [
+       127,
+       20,
+       "SWE",
+       4
+      ],
+      [
+       129,
+       20,
+       "DBA",
+       4
+      ],
+      [
+       102,
+       40,
+       "VP",
+       3
+      ],
+      [
+       114,
+       40,
+       "SALES_MGR",
+       3
+      ],
+      [
+       115,
+       40,
+       "SALES_REP",
+       3
+      ],
+      [
+       116,
+       40,
+       "SALES_REP",
+       3
+      ],
+      [
+       117,
+       40,
+       "SALES_REP",
+       3
+      ],
+      [
+       118,
+       40,
+       "SALES_REP",
+       3
+      ],
+      [
+       126,
+       40,
+       "SALES_REP",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:35debfd7121e": {
+   "statements": [
+    {
+     "sql": "SELECT department_id, employee_id, salary FROM employees WHERE department_id IN (20, 30) ORDER BY employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "employee_id",
+      "salary"
+     ],
+     "row_count": 15,
+     "rows": [
+      [
+       20,
+       101,
+       "242500.00"
+      ],
+      [
+       20,
+       104,
+       "214500.00"
+      ],
+      [
+       30,
+       105,
+       "162500.00"
+      ],
+      [
+       20,
+       106,
+       "165500.00"
+      ],
+      [
+       20,
+       107,
+       "150000.00"
+      ],
+      [
+       20,
+       108,
+       "150000.00"
+      ],
+      [
+       20,
+       109,
+       "153500.00"
+      ],
+      [
+       30,
+       110,
+       "121000.00"
+      ],
+      [
+       30,
+       111,
+       "179500.00"
+      ],
+      [
+       30,
+       112,
+       "143000.00"
+      ],
+      [
+       30,
+       113,
+       "114000.00"
+      ],
+      [
+       20,
+       123,
+       "170000.00"
+      ],
+      [
+       30,
+       125,
+       "177000.00"
+      ],
+      [
+       20,
+       127,
+       "125500.00"
+      ],
+      [
+       20,
+       129,
+       "146500.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:538133cf669a": {
+   "statements": [
+    {
+     "sql": "SELECT department_id, employee_id, salary\nFROM employees WHERE department_id IN (20, 30)\nORDER BY department_id, salary DESC, employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "employee_id",
+      "salary"
+     ],
+     "row_count": 15,
+     "rows": [
+      [
+       20,
+       101,
+       "242500.00"
+      ],
+      [
+       20,
+       104,
+       "214500.00"
+      ],
+      [
+       20,
+       123,
+       "170000.00"
+      ],
+      [
+       20,
+       106,
+       "165500.00"
+      ],
+      [
+       20,
+       109,
+       "153500.00"
+      ],
+      [
+       20,
+       107,
+       "150000.00"
+      ],
+      [
+       20,
+       108,
+       "150000.00"
+      ],
+      [
+       20,
+       129,
+       "146500.00"
+      ],
+      [
+       20,
+       127,
+       "125500.00"
+      ],
+      [
+       30,
+       111,
+       "179500.00"
+      ],
+      [
+       30,
+       125,
+       "177000.00"
+      ],
+      [
+       30,
+       105,
+       "162500.00"
+      ],
+      [
+       30,
+       112,
+       "143000.00"
+      ],
+      [
+       30,
+       110,
+       "121000.00"
+      ],
+      [
+       30,
+       113,
+       "114000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:825b3e68f3c8": {
+   "statements": [
+    {
+     "sql": "SELECT department_id, employee_id, salary,\n       RANK()       OVER (PARTITION BY department_id ORDER BY salary DESC) AS rnk,\n       DENSE_RANK() OVER (PARTITION BY department_id ORDER BY salary DESC) AS drnk\nFROM employees WHERE department_id IN (20, 30)\nORDER BY department_id, salary DESC, employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "employee_id",
+      "salary",
+      "rnk",
+      "drnk"
+     ],
+     "row_count": 15,
+     "rows": [
+      [
+       20,
+       101,
+       "242500.00",
+       1,
+       1
+      ],
+      [
+       20,
+       104,
+       "214500.00",
+       2,
+       2
+      ],
+      [
+       20,
+       123,
+       "170000.00",
+       3,
+       3
+      ],
+      [
+       20,
+       106,
+       "165500.00",
+       4,
+       4
+      ],
+      [
+       20,
+       109,
+       "153500.00",
+       5,
+       5
+      ],
+      [
+       20,
+       107,
+       "150000.00",
+       6,
+       6
+      ],
+      [
+       20,
+       108,
+       "150000.00",
+       6,
+       6
+      ],
+      [
+       20,
+       129,
+       "146500.00",
+       8,
+       7
+      ],
+      [
+       20,
+       127,
+       "125500.00",
+       9,
+       8
+      ],
+      [
+       30,
+       111,
+       "179500.00",
+       1,
+       1
+      ],
+      [
+       30,
+       125,
+       "177000.00",
+       2,
+       2
+      ],
+      [
+       30,
+       105,
+       "162500.00",
+       3,
+       3
+      ],
+      [
+       30,
+       112,
+       "143000.00",
+       4,
+       4
+      ],
+      [
+       30,
+       110,
+       "121000.00",
+       5,
+       5
+      ],
+      [
+       30,
+       113,
+       "114000.00",
+       6,
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:c43ccfea6290": {
+   "statements": [
+    {
+     "sql": "WITH ranked AS (\n  SELECT department_id, employee_id, salary,\n         RANK() OVER (PARTITION BY department_id ORDER BY salary DESC) AS rnk\n  FROM employees WHERE department_id IN (20, 30))\nSELECT department_id, employee_id, salary, rnk\nFROM ranked WHERE rnk <= 2\nORDER BY department_id, rnk, employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "employee_id",
+      "salary",
+      "rnk"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       20,
+       101,
+       "242500.00",
+       1
+      ],
+      [
+       20,
+       104,
+       "214500.00",
+       2
+      ],
+      [
+       30,
+       111,
+       "179500.00",
+       1
+      ],
+      [
+       30,
+       125,
+       "177000.00",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:7dfa3fcc9062": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nWITH ranked AS (\n  SELECT department_id, employee_id, salary,\n         RANK() OVER (PARTITION BY department_id ORDER BY salary DESC) AS rnk\n  FROM employees WHERE department_id IN (20, 30))\nSELECT department_id, employee_id, salary, rnk\nFROM ranked WHERE rnk <= 2",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (ranked.rnk <= 2)  (cost=0.838..4.19 rows=5)\n    -> Table scan on ranked  (cost=2.5..2.5 rows=0)\n        -> Materialize CTE ranked  (cost=0..0 rows=0)\n            -> Window aggregate: rank() OVER (PARTITION BY employees.department_id ORDER BY employees.salary desc ) \n                -> Sort: employees.department_id, employees.salary DESC  (cost=3.25 rows=30)\n                    -> Filter: (employees.department_id in (20,30))  (cost=3.25 rows=30)\n                        -> Table scan on employees  (cost=3.25 rows=30)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:7738d2c93e4a": {
+   "statements": [
+    {
+     "sql": "-- A: window function\nWITH ranked AS (\n  SELECT department_id, employee_id, salary,\n         ROW_NUMBER() OVER (PARTITION BY department_id ORDER BY salary DESC, employee_id) AS rn\n  FROM employees WHERE department_id IS NOT NULL)\nSELECT department_id, employee_id, salary FROM ranked WHERE rn <= 2\nORDER BY department_id, salary DESC, employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "employee_id",
+      "salary"
+     ],
+     "row_count": 11,
+     "rows": [
+      [
+       10,
+       100,
+       "309000.00"
+      ],
+      [
+       20,
+       101,
+       "242500.00"
+      ],
+      [
+       20,
+       104,
+       "214500.00"
+      ],
+      [
+       30,
+       111,
+       "179500.00"
+      ],
+      [
+       30,
+       125,
+       "177000.00"
+      ],
+      [
+       40,
+       102,
+       "238000.00"
+      ],
+      [
+       40,
+       114,
+       "149500.00"
+      ],
+      [
+       50,
+       128,
+       "91500.00"
+      ],
+      [
+       50,
+       120,
+       "84500.00"
+      ],
+      [
+       60,
+       103,
+       "229500.00"
+      ],
+      [
+       60,
+       122,
+       "119500.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:dcb3f34cc1ca": {
+   "statements": [
+    {
+     "sql": "-- B: correlated subquery — count how many colleagues beat me\nSELECT e.department_id, e.employee_id, e.salary\nFROM employees e\nWHERE e.department_id IS NOT NULL\n  AND (SELECT COUNT(*) FROM employees x\n       WHERE x.department_id = e.department_id\n         AND (x.salary > e.salary OR (x.salary = e.salary AND x.employee_id < e.employee_id))) < 2\nORDER BY e.department_id, e.salary DESC, e.employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "employee_id",
+      "salary"
+     ],
+     "row_count": 11,
+     "rows": [
+      [
+       10,
+       100,
+       "309000.00"
+      ],
+      [
+       20,
+       101,
+       "242500.00"
+      ],
+      [
+       20,
+       104,
+       "214500.00"
+      ],
+      [
+       30,
+       111,
+       "179500.00"
+      ],
+      [
+       30,
+       125,
+       "177000.00"
+      ],
+      [
+       40,
+       102,
+       "238000.00"
+      ],
+      [
+       40,
+       114,
+       "149500.00"
+      ],
+      [
+       50,
+       128,
+       "91500.00"
+      ],
+      [
+       50,
+       120,
+       "84500.00"
+      ],
+      [
+       60,
+       103,
+       "229500.00"
+      ],
+      [
+       60,
+       122,
+       "119500.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:9437ada54e50": {
+   "statements": [
+    {
+     "sql": "-- C: LATERAL derived table (8.0.14+) — for each department, take its top 2\nSELECT d.department_id, t.employee_id, t.salary\nFROM departments d\nJOIN LATERAL (\n  SELECT employee_id, salary FROM employees e\n  WHERE e.department_id = d.department_id\n  ORDER BY salary DESC, employee_id\n  LIMIT 2) AS t ON TRUE\nORDER BY d.department_id, t.salary DESC, t.employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "employee_id",
+      "salary"
+     ],
+     "row_count": 11,
+     "rows": [
+      [
+       10,
+       100,
+       "309000.00"
+      ],
+      [
+       20,
+       101,
+       "242500.00"
+      ],
+      [
+       20,
+       104,
+       "214500.00"
+      ],
+      [
+       30,
+       111,
+       "179500.00"
+      ],
+      [
+       30,
+       125,
+       "177000.00"
+      ],
+      [
+       40,
+       102,
+       "238000.00"
+      ],
+      [
+       40,
+       114,
+       "149500.00"
+      ],
+      [
+       50,
+       128,
+       "91500.00"
+      ],
+      [
+       50,
+       120,
+       "84500.00"
+      ],
+      [
+       60,
+       103,
+       "229500.00"
+      ],
+      [
+       60,
+       122,
+       "119500.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:99e3839f9c3f": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nWITH ranked AS (\n  SELECT department_id, employee_id, salary,\n         ROW_NUMBER() OVER (PARTITION BY department_id ORDER BY salary DESC, employee_id) AS rn\n  FROM employees WHERE department_id IS NOT NULL)\nSELECT department_id, employee_id, salary FROM ranked WHERE rn <= 2",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (ranked.rn <= 2)  (cost=0.605..5.65 rows=9.33)\n    -> Table scan on ranked  (cost=2.5..2.5 rows=0)\n        -> Materialize CTE ranked  (cost=0..0 rows=0)\n            -> Window aggregate: row_number() OVER (PARTITION BY employees.department_id ORDER BY employees.salary desc,employees.employee_id ) \n                -> Sort: employees.department_id, employees.salary DESC, employees.employee_id  (cost=3.25 rows=30)\n                    -> Filter: (employees.department_id is not null)  (cost=3.25 rows=30)\n                        -> Table scan on employees  (cost=3.25 rows=30)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:1ce7f5b6c49b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT e.department_id, e.employee_id, e.salary\nFROM employees e\nWHERE e.department_id IS NOT NULL\n  AND (SELECT COUNT(*) FROM employees x\n       WHERE x.department_id = e.department_id\n         AND (x.salary > e.salary OR (x.salary = e.salary AND x.employee_id < e.employee_id))) < 2",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: ((e.department_id is not null) and ((select #2) < 2))  (cost=3.25 rows=29)\n    -> Table scan on e  (cost=3.25 rows=30)\n    -> Select #2 (subquery in condition; dependent)\n        -> Aggregate: count(0)  (cost=1.05 rows=1)\n            -> Filter: ((x.salary > e.salary) or ((x.salary = e.salary) and (x.employee_id < e.employee_id)))  (cost=0.902 rows=1.52)\n                -> Index lookup on x using idx_employees_department (department_id=e.department_id)  (cost=0.902 rows=4.29)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'lab_bcbb7e1961b5c8951d94.e.department_id' of SELECT #2 was resolved in SELECT #1"
+      },
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'lab_bcbb7e1961b5c8951d94.e.salary' of SELECT #2 was resolved in SELECT #1"
+      },
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'lab_bcbb7e1961b5c8951d94.e.salary' of SELECT #2 was resolved in SELECT #1"
+      },
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'lab_bcbb7e1961b5c8951d94.e.employee_id' of SELECT #2 was resolved in SELECT #1"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:beff2647083f": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT d.department_id, t.employee_id, t.salary\nFROM departments d\nJOIN LATERAL (\n  SELECT employee_id, salary FROM employees e\n  WHERE e.department_id = d.department_id\n  ORDER BY salary DESC, employee_id\n  LIMIT 2) AS t ON TRUE",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=21.4 rows=14)\n    -> Invalidate materialized tables (row from d)  (cost=0.95 rows=7)\n        -> Index scan on d using fk_departments_location  (cost=0.95 rows=7)\n    -> Table scan on t  (cost=2.64..3.9 rows=2)\n        -> Materialize (invalidate on row from d)  (cost=1.38..1.38 rows=2)\n            -> Limit: 2 row(s)  (cost=1.18 rows=2)\n                -> Sort: e.salary DESC, e.employee_id, limit input to 2 row(s) per chunk  (cost=1.18 rows=4.29)\n                    -> Index lookup on e using idx_employees_department (department_id=d.department_id)  (cost=1.18 rows=4.29)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'lab_bcbb7e1961b5c8951d94.d.department_id' of SELECT #2 was resolved in SELECT #1"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:b8935886d3e8": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT employee_id,\n       ROW_NUMBER() OVER w AS rn,\n       NTILE(4)     OVER w AS quartile\nFROM employees\nWINDOW w AS (ORDER BY salary DESC, employee_id)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Window aggregate with buffering: row_number() OVER w, ntile(4) OVER w\n    -> Sort: employees.salary DESC, employees.employee_id  (cost=3.25 rows=30)\n        -> Table scan on employees  (cost=3.25 rows=30)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:048e149a184b": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, salary\nFROM employees\nWHERE ROW_NUMBER() OVER (ORDER BY salary DESC) <= 3",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3593,
+      "message": "You cannot use the window function 'row_number' in this context.'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s22:c65206165fa1": {
+   "statements": [
+    {
+     "sql": "SELECT department_id, COUNT(*) AS n,\n       RANK() OVER (ORDER BY COUNT(*) DESC) AS size_rank\nFROM employees\nGROUP BY department_id\nHAVING size_rank = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3594,
+      "message": "You cannot use the alias 'size_rank' of an expression containing a window function in this context.'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s23:88a157a6d08e": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, NTILE(department_id) OVER (ORDER BY salary) AS b\nFROM employees",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1327,
+      "message": "Undeclared variable: department_id"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

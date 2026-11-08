@@ -1,0 +1,925 @@
+{
+ "doc": "m03-date-functions",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:c1f17e7bddfb": {
+   "statements": [
+    {
+     "sql": "SET timestamp = UNIX_TIMESTAMP('2024-12-31 23:59:59')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT NOW()              AS now_,\n       CURRENT_TIMESTAMP  AS current_ts,\n       CURRENT_DATE       AS today,\n       CURDATE() + INTERVAL 1 DAY AS tomorrow,\n       CURRENT_TIME       AS time_now,\n       UTC_TIMESTAMP()    AS utc_now",
+     "status": "ok",
+     "columns": [
+      "now_",
+      "current_ts",
+      "today",
+      "tomorrow",
+      "time_now",
+      "utc_now"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-12-31 23:59:59",
+       "2024-12-31 23:59:59",
+       "2024-12-31",
+       "2025-01-01",
+       "23:59:59",
+       "2024-12-31 23:59:59"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:93a0d12f6190": {
+   "volatile": true,
+   "statements": [
+    {
+     "sql": "SET timestamp = DEFAULT",
+     "status": "ok"
+    },
+    {
+     "sql": "SELECT NOW(6) AS stmt_start, SLEEP(1) AS slept, SYSDATE(6) AS at_eval,\n       TIMESTAMPDIFF(SECOND, NOW(6), SYSDATE(6)) AS drift_seconds",
+     "status": "ok"
+    }
+   ]
+  },
+  "s3:92fe7280f474": {
+   "statements": [
+    {
+     "sql": "SELECT DATE '2024-07-04' + INTERVAL 10 DAY            AS plus_10_days,\n       DATE_SUB('2024-07-04', INTERVAL 2 WEEK)        AS minus_2_weeks,\n       '2024-07-04 22:30:00' + INTERVAL 90 MINUTE     AS plus_90_min,\n       DATE_ADD('2024-07-04 22:30:00', INTERVAL '1:45' HOUR_MINUTE) AS plus_1h45,\n       DATE '2024-07-04' - INTERVAL 1 QUARTER          AS minus_quarter",
+     "status": "ok",
+     "columns": [
+      "plus_10_days",
+      "minus_2_weeks",
+      "plus_90_min",
+      "plus_1h45",
+      "minus_quarter"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-07-14",
+       "2024-06-20",
+       "2024-07-05 00:00:00",
+       "2024-07-05 00:15:00",
+       "2024-04-04"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:ecf20f1390c1": {
+   "statements": [
+    {
+     "sql": "SELECT DATE '2024-01-31' + INTERVAL 1 MONTH                         AS jan31_plus_1m,\n       DATE '2024-01-31' + INTERVAL 1 MONTH + INTERVAL 1 MONTH      AS plus_1m_twice,\n       DATE '2024-01-31' + INTERVAL 2 MONTH                         AS plus_2m,\n       DATE '2024-03-31' - INTERVAL 1 MONTH                         AS mar31_minus_1m,\n       DATE '2024-02-29' + INTERVAL 1 YEAR                          AS leap_day_plus_1y,\n       LAST_DAY('2024-02-10')                                       AS last_day_feb",
+     "status": "ok",
+     "columns": [
+      "jan31_plus_1m",
+      "plus_1m_twice",
+      "plus_2m",
+      "mar31_minus_1m",
+      "leap_day_plus_1y",
+      "last_day_feb"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-02-29",
+       "2024-03-29",
+       "2024-03-31",
+       "2024-02-29",
+       "2025-02-28",
+       "2024-02-29"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:c7fbded285a7": {
+   "statements": [
+    {
+     "sql": "SELECT DATEDIFF('2024-03-01 00:00:01', '2024-02-29 23:59:59')                 AS datediff_days,\n       TIMESTAMPDIFF(DAY,    '2024-02-29 23:59:59', '2024-03-01 00:00:01')     AS tsdiff_days,\n       TIMESTAMPDIFF(SECOND, '2024-02-29 23:59:59', '2024-03-01 00:00:01')     AS tsdiff_seconds,\n       TIMESTAMPDIFF(MONTH,  '2024-01-15', '2024-02-14')                      AS months_short,\n       TIMESTAMPDIFF(MONTH,  '2024-01-15', '2024-02-15')                      AS months_full,\n       TIMESTAMPDIFF(MONTH,  '2024-01-31', '2024-02-29')                      AS months_month_end,\n       TIMESTAMPDIFF(YEAR,   '2000-02-29', '2024-02-28')                      AS age_years",
+     "status": "ok",
+     "columns": [
+      "datediff_days",
+      "tsdiff_days",
+      "tsdiff_seconds",
+      "months_short",
+      "months_full",
+      "months_month_end",
+      "age_years"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       0,
+       2,
+       0,
+       1,
+       0,
+       23
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:82d452d820aa": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, order_date, shipped_at,\n       TIMESTAMPDIFF(HOUR, order_date, shipped_at) AS hours_to_ship,\n       DATEDIFF(shipped_at, order_date)            AS calendar_days\nFROM orders\nWHERE shipped_at IS NOT NULL\nORDER BY order_id\nLIMIT 6",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_date",
+      "shipped_at",
+      "hours_to_ship",
+      "calendar_days"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       2,
+       "2024-10-16 16:55:00",
+       "2024-10-19 19:55:00",
+       75,
+       3
+      ],
+      [
+       3,
+       "2024-04-19 16:38:00",
+       "2024-04-21 21:38:00",
+       53,
+       2
+      ],
+      [
+       6,
+       "2024-08-14 17:24:00",
+       "2024-08-19 01:24:00",
+       104,
+       5
+      ],
+      [
+       7,
+       "2024-03-16 15:20:00",
+       "2024-03-17 19:20:00",
+       28,
+       1
+      ],
+      [
+       8,
+       "2024-06-30 17:33:00",
+       "2024-07-02 20:33:00",
+       51,
+       2
+      ],
+      [
+       9,
+       "2024-12-08 12:14:00",
+       "2024-12-11 00:14:00",
+       60,
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:03151893119e": {
+   "statements": [
+    {
+     "sql": "SELECT DATE_FORMAT(order_date, '%Y-%m')                      AS month,\n       COUNT(*)                                              AS shipped_orders,\n       ROUND(AVG(TIMESTAMPDIFF(MINUTE, order_date, shipped_at)) / 60, 1) AS avg_hours_to_ship,\n       MAX(TIMESTAMPDIFF(HOUR, order_date, shipped_at))      AS slowest_hours\nFROM orders\nWHERE shipped_at IS NOT NULL\nGROUP BY month\nORDER BY month\nLIMIT 6",
+     "status": "ok",
+     "columns": [
+      "month",
+      "shipped_orders",
+      "avg_hours_to_ship",
+      "slowest_hours"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "2024-01",
+       2,
+       "48.5",
+       49
+      ],
+      [
+       "2024-02",
+       7,
+       "55.3",
+       81
+      ],
+      [
+       "2024-03",
+       5,
+       "69.4",
+       106
+      ],
+      [
+       "2024-04",
+       8,
+       "60.1",
+       103
+      ],
+      [
+       "2024-05",
+       4,
+       "87.8",
+       105
+      ],
+      [
+       "2024-06",
+       5,
+       "64.2",
+       100
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:321eb24edca3": {
+   "statements": [
+    {
+     "sql": "SELECT DAYOFWEEK(order_date) AS dow, DAYNAME(order_date) AS day_name, COUNT(*) AS orders\nFROM orders\nGROUP BY dow, day_name\nORDER BY dow",
+     "status": "ok",
+     "columns": [
+      "dow",
+      "day_name",
+      "orders"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       1,
+       "Sunday",
+       15
+      ],
+      [
+       2,
+       "Monday",
+       11
+      ],
+      [
+       3,
+       "Tuesday",
+       8
+      ],
+      [
+       4,
+       "Wednesday",
+       18
+      ],
+      [
+       5,
+       "Thursday",
+       5
+      ],
+      [
+       6,
+       "Friday",
+       14
+      ],
+      [
+       7,
+       "Saturday",
+       9
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:ac82b6a0afb2": {
+   "statements": [
+    {
+     "sql": "SELECT DATE_FORMAT('2024-07-04 15:30:05', '%W, %M %e, %Y')   AS long_form,\n       DATE_FORMAT('2024-07-04 15:30:05', '%m/%d/%Y %h:%i %p') AS us_form,\n       DATE_FORMAT('2024-07-04 15:30:05', '%Y-%m-%dT%H:%i:%s') AS iso_8601,\n       DATE_FORMAT('2024-07-04', '%j')                         AS day_of_year,\n       STR_TO_DATE('07/04/2024', '%m/%d/%Y')                   AS parsed_us,\n       STR_TO_DATE('4 July 2024', '%e %M %Y')                  AS parsed_text",
+     "status": "ok",
+     "columns": [
+      "long_form",
+      "us_form",
+      "iso_8601",
+      "day_of_year",
+      "parsed_us",
+      "parsed_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Thursday, July 4, 2024",
+       "07/04/2024 03:30 PM",
+       "2024-07-04T15:30:05",
+       "186",
+       "2024-07-04",
+       "2024-07-04"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:8a4308e94ee3": {
+   "statements": [
+    {
+     "sql": "SET timestamp = UNIX_TIMESTAMP('2024-12-31 23:59:59')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT customer_id, signup_date,\n       TIMESTAMPDIFF(MONTH, signup_date, CURDATE()) AS tenure_months,\n       DATEDIFF(CURDATE(), signup_date)             AS tenure_days\nFROM customers\nWHERE signup_date >= CURDATE() - INTERVAL 365 DAY\nORDER BY signup_date\nLIMIT 8",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "signup_date",
+      "tenure_months",
+      "tenure_days"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       7,
+       "2024-01-06",
+       11,
+       360
+      ],
+      [
+       9,
+       "2024-01-09",
+       11,
+       357
+      ],
+      [
+       3,
+       "2024-03-05",
+       9,
+       301
+      ],
+      [
+       20,
+       "2024-04-09",
+       8,
+       266
+      ],
+      [
+       14,
+       "2024-04-14",
+       8,
+       261
+      ],
+      [
+       16,
+       "2024-06-05",
+       6,
+       209
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:b19250345e4c": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, DATE(order_date)                                   AS order_day,\n       DATE_FORMAT(order_date, '%Y-%m-01')                          AS month_start,\n       LAST_DAY(order_date)                                         AS month_end,\n       MAKEDATE(YEAR(order_date), 1) + INTERVAL QUARTER(order_date) - 1 QUARTER AS quarter_start,\n       EXTRACT(YEAR_MONTH FROM order_date)                          AS yyyymm\nFROM orders\nWHERE order_id IN (1, 20, 45, 80)\nORDER BY order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_day",
+      "month_start",
+      "month_end",
+      "quarter_start",
+      "yyyymm"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "2024-10-31",
+       "2024-10-01",
+       "2024-10-31",
+       "2024-10-01",
+       202410
+      ],
+      [
+       20,
+       "2024-02-11",
+       "2024-02-01",
+       "2024-02-29",
+       "2024-01-01",
+       202402
+      ],
+      [
+       45,
+       "2024-03-03",
+       "2024-03-01",
+       "2024-03-31",
+       "2024-01-01",
+       202403
+      ],
+      [
+       80,
+       "2024-08-07",
+       "2024-08-01",
+       "2024-08-31",
+       "2024-07-01",
+       202408
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:88a54baea40d": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE tz_demo (id INT PRIMARY KEY, as_timestamp TIMESTAMP NULL, as_datetime DATETIME NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET time_zone = '-07:00'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO tz_demo VALUES (1, '2024-07-04 12:00:00', '2024-07-04 12:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT 'read at -07:00' AS session_zone, as_timestamp, as_datetime FROM tz_demo",
+     "status": "ok",
+     "columns": [
+      "session_zone",
+      "as_timestamp",
+      "as_datetime"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "read at -07:00",
+       "2024-07-04 12:00:00",
+       "2024-07-04 12:00:00"
+      ]
+     ]
+    },
+    {
+     "sql": "SET time_zone = '+00:00'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT 'read at +00:00' AS session_zone, as_timestamp, as_datetime FROM tz_demo",
+     "status": "ok",
+     "columns": [
+      "session_zone",
+      "as_timestamp",
+      "as_datetime"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "read at +00:00",
+       "2024-07-04 19:00:00",
+       "2024-07-04 12:00:00"
+      ]
+     ]
+    },
+    {
+     "sql": "SET time_zone = 'SYSTEM'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s13:091f00dc2bb1": {
+   "statements": [
+    {
+     "sql": "SELECT CONVERT_TZ('2024-07-04 12:00:00', '+00:00', '-07:00')              AS with_offsets,\n       CONVERT_TZ('2024-07-04 12:00:00', 'UTC', 'America/Los_Angeles')    AS with_names",
+     "status": "ok",
+     "columns": [
+      "with_offsets",
+      "with_names"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-07-04 05:00:00",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:ed6604a822ae": {
+   "statements": [
+    {
+     "sql": "SET timestamp = UNIX_TIMESTAMP('2024-12-31 23:59:59')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT NOW() AS now_, NOW() - INTERVAL 30 DAY AS boundary",
+     "status": "ok",
+     "columns": [
+      "now_",
+      "boundary"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-12-31 23:59:59",
+       "2024-12-01 23:59:59"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:c79fae77b051": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, order_date FROM orders\nWHERE order_date >= NOW() - INTERVAL 30 DAY\nORDER BY order_date",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_date"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       48,
+       "2024-12-03 16:21:00"
+      ],
+      [
+       28,
+       "2024-12-04 14:19:00"
+      ],
+      [
+       9,
+       "2024-12-08 12:14:00"
+      ],
+      [
+       51,
+       "2024-12-20 14:47:00"
+      ],
+      [
+       53,
+       "2024-12-21 13:06:00"
+      ],
+      [
+       17,
+       "2024-12-22 14:33:00"
+      ],
+      [
+       61,
+       "2024-12-24 13:09:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:d2ef57e0f8bc": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, DATE(order_date) AS day, DAYNAME(order_date) AS weekday,\n       YEARWEEK(order_date, 3) AS iso_yearweek\nFROM orders\nWHERE order_date >= NOW() - INTERVAL 30 DAY\nORDER BY order_date",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "day",
+      "weekday",
+      "iso_yearweek"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       48,
+       "2024-12-03",
+       "Tuesday",
+       202449
+      ],
+      [
+       28,
+       "2024-12-04",
+       "Wednesday",
+       202449
+      ],
+      [
+       9,
+       "2024-12-08",
+       "Sunday",
+       202449
+      ],
+      [
+       51,
+       "2024-12-20",
+       "Friday",
+       202451
+      ],
+      [
+       53,
+       "2024-12-21",
+       "Saturday",
+       202451
+      ],
+      [
+       17,
+       "2024-12-22",
+       "Sunday",
+       202451
+      ],
+      [
+       61,
+       "2024-12-24",
+       "Tuesday",
+       202452
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:576cdd9b9025": {
+   "statements": [
+    {
+     "sql": "SELECT YEARWEEK(order_date, 3) AS iso_yearweek,\n       COUNT(*) AS orders,\n       DATE(MIN(order_date)) AS first_order_day,\n       DATE(MAX(order_date)) AS last_order_day\nFROM orders\nWHERE order_date >= NOW() - INTERVAL 30 DAY\nGROUP BY iso_yearweek\nORDER BY iso_yearweek",
+     "status": "ok",
+     "columns": [
+      "iso_yearweek",
+      "orders",
+      "first_order_day",
+      "last_order_day"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       202449,
+       3,
+       "2024-12-03",
+       "2024-12-08"
+      ],
+      [
+       202451,
+       3,
+       "2024-12-20",
+       "2024-12-22"
+      ],
+      [
+       202452,
+       1,
+       "2024-12-24",
+       "2024-12-24"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:81a60060edd7": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT YEARWEEK(order_date, 3) AS iso_yearweek, COUNT(*)\nFROM orders\nWHERE order_date >= NOW() - INTERVAL 30 DAY\nGROUP BY iso_yearweek",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Filter: (orders.order_date >= <cache>((now() - interval 30 day)))  (cost=1.66 rows=7)\n            -> Covering index range scan on orders using idx_orders_date over ('2024-12-01 23:59:59' <= order_date)  (cost=1.66 rows=7)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:1c24bec93d5e": {
+   "statements": [
+    {
+     "sql": "SELECT WEEK('2024-01-01')          AS week_mode0,\n       WEEK('2024-01-01', 3)       AS iso_week,\n       YEARWEEK('2024-12-30', 3)   AS iso_yearweek_dec30,\n       DAYOFWEEK('2024-07-04')     AS dayofweek_sun1,\n       WEEKDAY('2024-07-04')       AS weekday_mon0",
+     "status": "ok",
+     "columns": [
+      "week_mode0",
+      "iso_week",
+      "iso_yearweek_dec30",
+      "dayofweek_sun1",
+      "weekday_mon0"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       1,
+       202501,
+       5,
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:08cce9f5fbd2": {
+   "statements": [
+    {
+     "sql": "SELECT DATE_ADD('2024-02-30', INTERVAL 1 DAY) AS invalid_input,\n       STR_TO_DATE('31/02/2024', '%d/%m/%Y')   AS invalid_parse",
+     "status": "ok",
+     "columns": [
+      "invalid_input",
+      "invalid_parse"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       null,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Incorrect datetime value: '2024-02-30'"
+      },
+      {
+       "level": "Warning",
+       "code": 1411,
+       "message": "Incorrect datetime value: '31/02/2024' for function str_to_date"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:c000be15fef3": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id, order_date FROM orders\nWHERE YEAR(order_date) = 2024 AND MONTH(order_date) = 6",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: ((year(orders.order_date) = 2024) and (month(orders.order_date) = 6))  (cost=8.25 rows=80)\n    -> Index scan on orders using idx_orders_date  (cost=8.25 rows=80)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:f549a01c05c9": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id, order_date FROM orders\nWHERE order_date >= '2024-06-01' AND order_date < '2024-07-01'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: ((orders.order_date >= TIMESTAMP'2024-06-01 00:00:00') and (orders.order_date < TIMESTAMP'2024-07-01 00:00:00'))  (cost=1.46 rows=6)\n    -> Covering index range scan on orders using idx_orders_date over ('2024-06-01 00:00:00' <= order_date < '2024-07-01 00:00:00')  (cost=1.46 rows=6)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:6b94b807ebfb": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE orders_fx AS SELECT order_id, order_date FROM orders",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 80,
+     "info": "Records: 80  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE orders_fx SET order_date = order_date - INTERVAL (order_id % 8) YEAR",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 70,
+     "info": "Rows matched: 80  Changed: 70  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- spread over 2017–2024\nCREATE INDEX idx_order_year ON orders_fx ((YEAR(order_date)))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders_fx",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_fcd96bef2939880fdb34.orders_fx",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id FROM orders_fx WHERE YEAR(order_date) = 2024",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Index lookup on orders_fx using idx_order_year (year(order_date)=2024)  (cost=1.75 rows=10)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:5315ac9cdd1d": {
+   "statements": [
+    {
+     "sql": "SELECT SUM(order_date BETWEEN '2024-06-01' AND '2024-06-30')            AS between_count,\n       SUM(order_date >= '2024-06-01' AND order_date < '2024-07-01')   AS half_open_count\nFROM orders",
+     "status": "ok",
+     "columns": [
+      "between_count",
+      "half_open_count"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "5",
+       "6"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:d6726187db13": {
+   "statements": [
+    {
+     "sql": "SELECT DATEDIFF('2024-12-31', '2024-12-01')               AS datediff_end_minus_start,\n       TIMESTAMPDIFF(DAY, '2024-12-31', '2024-12-01')     AS tsdiff_wrong_order,\n       TIMESTAMPDIFF(DAY, '2024-12-01', '2024-12-31')     AS tsdiff_right_order",
+     "status": "ok",
+     "columns": [
+      "datediff_end_minus_start",
+      "tsdiff_wrong_order",
+      "tsdiff_right_order"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       30,
+       -30,
+       30
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

@@ -1,0 +1,1522 @@
+{
+ "doc": "m04-window-functions",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s3:8d635f4ec4b2": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, first_name, salary,\n       ROUND(AVG(salary) OVER (), 2)                AS company_avg,\n       ROUND(100 * salary / SUM(salary) OVER (), 2) AS pct_of_payroll\nFROM employees\nORDER BY salary DESC\nLIMIT 6",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "salary",
+      "company_avg",
+      "pct_of_payroll"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       100,
+       "Kofi",
+       "309000.00",
+       "146166.67",
+       "7.05"
+      ],
+      [
+       101,
+       "Diego",
+       "242500.00",
+       "146166.67",
+       "5.53"
+      ],
+      [
+       102,
+       "Mei",
+       "238000.00",
+       "146166.67",
+       "5.43"
+      ],
+      [
+       103,
+       "Anika",
+       "229500.00",
+       "146166.67",
+       "5.23"
+      ],
+      [
+       104,
+       "Mei",
+       "214500.00",
+       "146166.67",
+       "4.89"
+      ],
+      [
+       111,
+       "Noah",
+       "179500.00",
+       "146166.67",
+       "4.09"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:64305a5fc8c3": {
+   "statements": [
+    {
+     "sql": "SELECT department_id, employee_id, salary,\n       COUNT(*)    OVER (PARTITION BY department_id) AS dept_headcount,\n       ROUND(AVG(salary) OVER (PARTITION BY department_id), 2) AS dept_avg,\n       salary - MAX(salary) OVER (PARTITION BY department_id) AS below_dept_max\nFROM employees\nWHERE department_id IN (30, 50)\nORDER BY department_id, salary DESC, employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "employee_id",
+      "salary",
+      "dept_headcount",
+      "dept_avg",
+      "below_dept_max"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       30,
+       111,
+       "179500.00",
+       6,
+       "149500.00",
+       "0.00"
+      ],
+      [
+       30,
+       125,
+       "177000.00",
+       6,
+       "149500.00",
+       "-2500.00"
+      ],
+      [
+       30,
+       105,
+       "162500.00",
+       6,
+       "149500.00",
+       "-17000.00"
+      ],
+      [
+       30,
+       112,
+       "143000.00",
+       6,
+       "149500.00",
+       "-36500.00"
+      ],
+      [
+       30,
+       110,
+       "121000.00",
+       6,
+       "149500.00",
+       "-58500.00"
+      ],
+      [
+       30,
+       113,
+       "114000.00",
+       6,
+       "149500.00",
+       "-65500.00"
+      ],
+      [
+       50,
+       128,
+       "91500.00",
+       3,
+       "81666.67",
+       "0.00"
+      ],
+      [
+       50,
+       120,
+       "84500.00",
+       3,
+       "81666.67",
+       "-7000.00"
+      ],
+      [
+       50,
+       119,
+       "69000.00",
+       3,
+       "81666.67",
+       "-22500.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:bb30e7b5c011": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, hire_date, salary,\n       SUM(salary) OVER (ORDER BY hire_date, employee_id) AS cumulative_payroll,\n       COUNT(*)    OVER (ORDER BY hire_date, employee_id) AS headcount_so_far\nFROM employees\nORDER BY hire_date, employee_id\nLIMIT 8",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "hire_date",
+      "salary",
+      "cumulative_payroll",
+      "headcount_so_far"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       100,
+       "2014-03-03",
+       "309000.00",
+       "309000.00",
+       1
+      ],
+      [
+       113,
+       "2015-01-01",
+       "114000.00",
+       "423000.00",
+       2
+      ],
+      [
+       122,
+       "2015-04-23",
+       "119500.00",
+       "542500.00",
+       3
+      ],
+      [
+       127,
+       "2015-06-22",
+       "125500.00",
+       "668000.00",
+       4
+      ],
+      [
+       108,
+       "2015-08-30",
+       "150000.00",
+       "818000.00",
+       5
+      ],
+      [
+       101,
+       "2015-09-11",
+       "242500.00",
+       "1060500.00",
+       6
+      ],
+      [
+       107,
+       "2015-09-24",
+       "150000.00",
+       "1210500.00",
+       7
+      ],
+      [
+       104,
+       "2015-12-02",
+       "214500.00",
+       "1425000.00",
+       8
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:50986b6e8bf4": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, salary,\n       SUM(salary) OVER (ORDER BY salary)                                    AS default_frame,\n       SUM(salary) OVER (ORDER BY salary\n                         RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)  AS range_frame,\n       SUM(salary) OVER (ORDER BY salary, employee_id\n                         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)   AS rows_frame\nFROM employees\nWHERE department_id = 20\nORDER BY salary, employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "salary",
+      "default_frame",
+      "range_frame",
+      "rows_frame"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       127,
+       "125500.00",
+       "125500.00",
+       "125500.00",
+       "125500.00"
+      ],
+      [
+       129,
+       "146500.00",
+       "272000.00",
+       "272000.00",
+       "272000.00"
+      ],
+      [
+       107,
+       "150000.00",
+       "572000.00",
+       "572000.00",
+       "422000.00"
+      ],
+      [
+       108,
+       "150000.00",
+       "572000.00",
+       "572000.00",
+       "572000.00"
+      ],
+      [
+       109,
+       "153500.00",
+       "725500.00",
+       "725500.00",
+       "725500.00"
+      ],
+      [
+       106,
+       "165500.00",
+       "891000.00",
+       "891000.00",
+       "891000.00"
+      ],
+      [
+       123,
+       "170000.00",
+       "1061000.00",
+       "1061000.00",
+       "1061000.00"
+      ],
+      [
+       104,
+       "214500.00",
+       "1275500.00",
+       "1275500.00",
+       "1275500.00"
+      ],
+      [
+       101,
+       "242500.00",
+       "1518000.00",
+       "1518000.00",
+       "1518000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:9598b1cc0191": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE daily_sales (sale_date DATE PRIMARY KEY, amount DECIMAL(10,2) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO daily_sales VALUES\n  ('2024-03-01', 100), ('2024-03-02', 200), ('2024-03-05', 400),\n  ('2024-03-06', 300), ('2024-03-08', 500), ('2024-03-09', 100)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 6,
+     "info": "Records: 6  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT sale_date, amount,\n       SUM(amount) OVER (ORDER BY sale_date ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS last_3_rows,\n       SUM(amount) OVER (ORDER BY sale_date\n                         RANGE BETWEEN INTERVAL 2 DAY PRECEDING AND CURRENT ROW)   AS last_3_days\nFROM daily_sales\nORDER BY sale_date",
+     "status": "ok",
+     "columns": [
+      "sale_date",
+      "amount",
+      "last_3_rows",
+      "last_3_days"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "2024-03-01",
+       "100.00",
+       "100.00",
+       "100.00"
+      ],
+      [
+       "2024-03-02",
+       "200.00",
+       "300.00",
+       "300.00"
+      ],
+      [
+       "2024-03-05",
+       "400.00",
+       "700.00",
+       "400.00"
+      ],
+      [
+       "2024-03-06",
+       "300.00",
+       "900.00",
+       "700.00"
+      ],
+      [
+       "2024-03-08",
+       "500.00",
+       "1200.00",
+       "800.00"
+      ],
+      [
+       "2024-03-09",
+       "100.00",
+       "900.00",
+       "600.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:3871358f9e73": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, salary,\n       ROUND(AVG(salary) OVER (ORDER BY salary, employee_id\n                               ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING), 2) AS centered_avg_3,\n       COUNT(*) OVER (ORDER BY salary\n                      RANGE BETWEEN 10000 PRECEDING AND 10000 FOLLOWING)     AS within_10k\nFROM employees\nWHERE department_id = 20\nORDER BY salary, employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "salary",
+      "centered_avg_3",
+      "within_10k"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       127,
+       "125500.00",
+       "136000.00",
+       1
+      ],
+      [
+       129,
+       "146500.00",
+       "140666.67",
+       4
+      ],
+      [
+       107,
+       "150000.00",
+       "148833.33",
+       4
+      ],
+      [
+       108,
+       "150000.00",
+       "151166.67",
+       4
+      ],
+      [
+       109,
+       "153500.00",
+       "156333.33",
+       4
+      ],
+      [
+       106,
+       "165500.00",
+       "163000.00",
+       2
+      ],
+      [
+       123,
+       "170000.00",
+       "183333.33",
+       2
+      ],
+      [
+       104,
+       "214500.00",
+       "209000.00",
+       1
+      ],
+      [
+       101,
+       "242500.00",
+       "228500.00",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:74f9a2581de9": {
+   "statements": [
+    {
+     "sql": "SELECT department_id,\n       SUM(salary)                                       AS dept_payroll,\n       SUM(SUM(salary)) OVER ()                          AS company_payroll,\n       ROUND(100 * SUM(salary) / SUM(SUM(salary)) OVER (), 1) AS pct\nFROM employees\nGROUP BY department_id\nORDER BY dept_payroll DESC",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "dept_payroll",
+      "company_payroll",
+      "pct"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       20,
+       "1518000.00",
+       "4385000.00",
+       "34.6"
+      ],
+      [
+       30,
+       "897000.00",
+       "4385000.00",
+       "20.5"
+      ],
+      [
+       40,
+       "836500.00",
+       "4385000.00",
+       "19.1"
+      ],
+      [
+       60,
+       "459000.00",
+       "4385000.00",
+       "10.5"
+      ],
+      [
+       10,
+       "309000.00",
+       "4385000.00",
+       "7.0"
+      ],
+      [
+       50,
+       "245000.00",
+       "4385000.00",
+       "5.6"
+      ],
+      [
+       null,
+       "120500.00",
+       "4385000.00",
+       "2.7"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:441896d0244e": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, department_id, hire_date, salary,\n       ROUND(AVG(salary) OVER w_dept, 2)                 AS dept_avg,\n       MAX(salary)       OVER w_dept                     AS dept_max,\n       SUM(salary)       OVER (w_dept ORDER BY hire_date, employee_id\n                               ROWS UNBOUNDED PRECEDING) AS dept_payroll_by_seniority\nFROM employees\nWHERE department_id IN (50, 60)\nWINDOW w_dept AS (PARTITION BY department_id)\nORDER BY department_id, hire_date, employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "department_id",
+      "hire_date",
+      "salary",
+      "dept_avg",
+      "dept_max",
+      "dept_payroll_by_seniority"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       119,
+       50,
+       "2016-02-23",
+       "69000.00",
+       "81666.67",
+       "91500.00",
+       "69000.00"
+      ],
+      [
+       128,
+       50,
+       "2020-05-12",
+       "91500.00",
+       "81666.67",
+       "91500.00",
+       "160500.00"
+      ],
+      [
+       120,
+       50,
+       "2022-12-24",
+       "84500.00",
+       "81666.67",
+       "91500.00",
+       "245000.00"
+      ],
+      [
+       122,
+       60,
+       "2015-04-23",
+       "119500.00",
+       "153000.00",
+       "229500.00",
+       "119500.00"
+      ],
+      [
+       103,
+       60,
+       "2020-12-17",
+       "229500.00",
+       "153000.00",
+       "229500.00",
+       "349000.00"
+      ],
+      [
+       121,
+       60,
+       "2023-02-04",
+       "110000.00",
+       "153000.00",
+       "229500.00",
+       "459000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:065563546118": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, effective_date, salary,\n       MAX(salary) OVER (PARTITION BY employee_id ORDER BY effective_date\n                         ROWS UNBOUNDED PRECEDING) AS max_so_far,\n       COUNT(*)    OVER (PARTITION BY employee_id) AS history_rows\nFROM salary_history\nWHERE employee_id IN (107, 108)\nORDER BY employee_id, effective_date",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "effective_date",
+      "salary",
+      "max_so_far",
+      "history_rows"
+     ],
+     "row_count": 18,
+     "rows": [
+      [
+       107,
+       "2015-09-24",
+       "106400.00",
+       "106400.00",
+       9
+      ],
+      [
+       107,
+       "2016-09-24",
+       "114000.00",
+       "114000.00",
+       9
+      ],
+      [
+       107,
+       "2017-09-24",
+       "121900.00",
+       "121900.00",
+       9
+      ],
+      [
+       107,
+       "2018-09-24",
+       "132800.00",
+       "132800.00",
+       9
+      ],
+      [
+       107,
+       "2019-09-24",
+       "143300.00",
+       "143300.00",
+       9
+      ],
+      [
+       107,
+       "2020-09-24",
+       "150000.00",
+       "150000.00",
+       9
+      ],
+      [
+       107,
+       "2021-09-24",
+       "150000.00",
+       "150000.00",
+       9
+      ],
+      [
+       107,
+       "2022-09-24",
+       "150000.00",
+       "150000.00",
+       9
+      ],
+      [
+       107,
+       "2023-09-24",
+       "150000.00",
+       "150000.00",
+       9
+      ],
+      [
+       108,
+       "2015-08-30",
+       "109900.00",
+       "109900.00",
+       9
+      ],
+      [
+       108,
+       "2016-08-28",
+       "115100.00",
+       "115100.00",
+       9
+      ],
+      [
+       108,
+       "2017-08-28",
+       "123700.00",
+       "123700.00",
+       9
+      ],
+      [
+       108,
+       "2018-08-28",
+       "130300.00",
+       "130300.00",
+       9
+      ],
+      [
+       108,
+       "2019-08-28",
+       "141400.00",
+       "141400.00",
+       9
+      ],
+      [
+       108,
+       "2020-08-28",
+       "149800.00",
+       "149800.00",
+       9
+      ],
+      [
+       108,
+       "2021-08-28",
+       "150000.00",
+       "150000.00",
+       9
+      ],
+      [
+       108,
+       "2022-08-28",
+       "150000.00",
+       "150000.00",
+       9
+      ],
+      [
+       108,
+       "2023-08-28",
+       "150000.00",
+       "150000.00",
+       9
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:42ed2fd6e198": {
+   "statements": [
+    {
+     "sql": "SELECT department_id, employee_id, salary FROM employees WHERE department_id IN (40, 60) ORDER BY employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "employee_id",
+      "salary"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       40,
+       102,
+       "238000.00"
+      ],
+      [
+       60,
+       103,
+       "229500.00"
+      ],
+      [
+       40,
+       114,
+       "149500.00"
+      ],
+      [
+       40,
+       115,
+       "61000.00"
+      ],
+      [
+       40,
+       116,
+       "102500.00"
+      ],
+      [
+       40,
+       117,
+       "100500.00"
+      ],
+      [
+       40,
+       118,
+       "86000.00"
+      ],
+      [
+       60,
+       121,
+       "110000.00"
+      ],
+      [
+       60,
+       122,
+       "119500.00"
+      ],
+      [
+       40,
+       126,
+       "99000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:91aead1866d2": {
+   "statements": [
+    {
+     "sql": "SELECT department_id, employee_id, salary,\n       ROW_NUMBER() OVER (PARTITION BY department_id ORDER BY salary, employee_id) AS pos\nFROM employees WHERE department_id IN (40, 60)\nORDER BY department_id, salary, employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "employee_id",
+      "salary",
+      "pos"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       40,
+       115,
+       "61000.00",
+       1
+      ],
+      [
+       40,
+       118,
+       "86000.00",
+       2
+      ],
+      [
+       40,
+       126,
+       "99000.00",
+       3
+      ],
+      [
+       40,
+       117,
+       "100500.00",
+       4
+      ],
+      [
+       40,
+       116,
+       "102500.00",
+       5
+      ],
+      [
+       40,
+       114,
+       "149500.00",
+       6
+      ],
+      [
+       40,
+       102,
+       "238000.00",
+       7
+      ],
+      [
+       60,
+       121,
+       "110000.00",
+       1
+      ],
+      [
+       60,
+       122,
+       "119500.00",
+       2
+      ],
+      [
+       60,
+       103,
+       "229500.00",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:089928ef66f5": {
+   "statements": [
+    {
+     "sql": "SELECT department_id, employee_id, salary,\n       COUNT(*) OVER (PARTITION BY department_id ORDER BY salary) AS frame_rows\nFROM employees WHERE department_id IN (40, 60)\nORDER BY department_id, salary, employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "employee_id",
+      "salary",
+      "frame_rows"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       40,
+       115,
+       "61000.00",
+       1
+      ],
+      [
+       40,
+       118,
+       "86000.00",
+       2
+      ],
+      [
+       40,
+       126,
+       "99000.00",
+       3
+      ],
+      [
+       40,
+       117,
+       "100500.00",
+       4
+      ],
+      [
+       40,
+       116,
+       "102500.00",
+       5
+      ],
+      [
+       40,
+       114,
+       "149500.00",
+       6
+      ],
+      [
+       40,
+       102,
+       "238000.00",
+       7
+      ],
+      [
+       60,
+       121,
+       "110000.00",
+       1
+      ],
+      [
+       60,
+       122,
+       "119500.00",
+       2
+      ],
+      [
+       60,
+       103,
+       "229500.00",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:4050a7ac5f70": {
+   "statements": [
+    {
+     "sql": "SELECT department_id, employee_id, salary,\n       SUM(salary) OVER (PARTITION BY department_id ORDER BY salary) AS running_payroll\nFROM employees WHERE department_id IN (40, 60)\nORDER BY department_id, salary, employee_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "employee_id",
+      "salary",
+      "running_payroll"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       40,
+       115,
+       "61000.00",
+       "61000.00"
+      ],
+      [
+       40,
+       118,
+       "86000.00",
+       "147000.00"
+      ],
+      [
+       40,
+       126,
+       "99000.00",
+       "246000.00"
+      ],
+      [
+       40,
+       117,
+       "100500.00",
+       "346500.00"
+      ],
+      [
+       40,
+       116,
+       "102500.00",
+       "449000.00"
+      ],
+      [
+       40,
+       114,
+       "149500.00",
+       "598500.00"
+      ],
+      [
+       40,
+       102,
+       "238000.00",
+       "836500.00"
+      ],
+      [
+       60,
+       121,
+       "110000.00",
+       "110000.00"
+      ],
+      [
+       60,
+       122,
+       "119500.00",
+       "229500.00"
+      ],
+      [
+       60,
+       103,
+       "229500.00",
+       "459000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:323bdedd06de": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT department_id, employee_id, salary,\n       SUM(salary) OVER (PARTITION BY department_id ORDER BY salary) AS running_payroll\nFROM employees WHERE department_id IN (40, 60)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Window aggregate with buffering: sum(employees.salary) OVER (PARTITION BY employees.department_id ORDER BY employees.salary ) \n    -> Sort: employees.department_id, employees.salary  (cost=5.01 rows=10)\n        -> Index range scan on employees using idx_employees_department over (department_id = 40) OR (department_id = 60), with index condition: (employees.department_id in (40,60))  (cost=5.01 rows=10)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:97b898f0ef49": {
+   "statements": [
+    {
+     "sql": "SELECT department_id, SUM(salary) AS dept_payroll\nFROM employees\nWHERE department_id IN (40, 60)\nGROUP BY department_id\nORDER BY department_id",
+     "status": "ok",
+     "columns": [
+      "department_id",
+      "dept_payroll"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       40,
+       "836500.00"
+      ],
+      [
+       60,
+       "459000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:32caf1ce86a8": {
+   "statements": [
+    {
+     "sql": "-- A: window function\nSELECT employee_id, department_id, salary,\n       ROUND(salary - AVG(salary) OVER (PARTITION BY department_id), 2) AS diff_from_avg\nFROM employees\nWHERE department_id = 30\nORDER BY employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "department_id",
+      "salary",
+      "diff_from_avg"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       105,
+       30,
+       "162500.00",
+       "13000.00"
+      ],
+      [
+       110,
+       30,
+       "121000.00",
+       "-28500.00"
+      ],
+      [
+       111,
+       30,
+       "179500.00",
+       "30000.00"
+      ],
+      [
+       112,
+       30,
+       "143000.00",
+       "-6500.00"
+      ],
+      [
+       113,
+       30,
+       "114000.00",
+       "-35500.00"
+      ],
+      [
+       125,
+       30,
+       "177000.00",
+       "27500.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:21ab6f827af4": {
+   "statements": [
+    {
+     "sql": "-- B: join to a grouped derived table\nSELECT e.employee_id, e.department_id, e.salary,\n       ROUND(e.salary - d.avg_salary, 2) AS diff_from_avg\nFROM employees e\nJOIN (SELECT department_id, AVG(salary) AS avg_salary\n      FROM employees GROUP BY department_id) d\n  ON d.department_id = e.department_id\nWHERE e.department_id = 30\nORDER BY e.employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "department_id",
+      "salary",
+      "diff_from_avg"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       105,
+       30,
+       "162500.00",
+       "13000.00"
+      ],
+      [
+       110,
+       30,
+       "121000.00",
+       "-28500.00"
+      ],
+      [
+       111,
+       30,
+       "179500.00",
+       "30000.00"
+      ],
+      [
+       112,
+       30,
+       "143000.00",
+       "-6500.00"
+      ],
+      [
+       113,
+       30,
+       "114000.00",
+       "-35500.00"
+      ],
+      [
+       125,
+       30,
+       "177000.00",
+       "27500.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:0f849e27c9a8": {
+   "statements": [
+    {
+     "sql": "-- C: correlated scalar subquery\nSELECT e.employee_id, e.department_id, e.salary,\n       ROUND(e.salary - (SELECT AVG(x.salary) FROM employees x\n                         WHERE x.department_id = e.department_id), 2) AS diff_from_avg\nFROM employees e\nWHERE e.department_id = 30\nORDER BY e.employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "department_id",
+      "salary",
+      "diff_from_avg"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       105,
+       30,
+       "162500.00",
+       "13000.00"
+      ],
+      [
+       110,
+       30,
+       "121000.00",
+       "-28500.00"
+      ],
+      [
+       111,
+       30,
+       "179500.00",
+       "30000.00"
+      ],
+      [
+       112,
+       30,
+       "143000.00",
+       "-6500.00"
+      ],
+      [
+       113,
+       30,
+       "114000.00",
+       "-35500.00"
+      ],
+      [
+       125,
+       30,
+       "177000.00",
+       "27500.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:db6ee3b74884": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT employee_id,\n       SUM(salary) OVER (ORDER BY hire_date) AS by_hire,\n       AVG(salary) OVER (PARTITION BY department_id) AS dept_avg\nFROM employees",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Window aggregate with buffering: avg(employees.salary) OVER (PARTITION BY employees.department_id ) \n    -> Sort: employees.department_id\n        -> Table scan on <temporary>  (cost=2.5..2.5 rows=0)\n            -> Temporary table  (cost=0..0 rows=0)\n                -> Window aggregate with buffering: sum(employees.salary) OVER (ORDER BY employees.hire_date ) \n                    -> Sort: employees.hire_date  (cost=3.25 rows=30)\n                        -> Table scan on employees  (cost=3.25 rows=30)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:241ce0989f5b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=JSON\nSELECT employee_id,\n       SUM(salary) OVER (PARTITION BY department_id ORDER BY hire_date\n                         ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS moving_sum\nFROM employees",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"33.25\"\n    },\n    \"windowing\": {\n      \"windows\": [\n        {\n          \"name\": \"<unnamed window>\",\n          \"using_filesort\": true,\n          \"filesort_key\": [\n            \"`department_id`\",\n            \"`hire_date`\"\n          ],\n          \"frame_buffer\": {\n            \"using_temporary_table\": true,\n            \"optimized_frame_evaluation\": true\n          },\n          \"functions\": [\n            \"sum\"\n          ]\n        }\n      ],\n      \"cost_info\": {\n        \"sort_cost\": \"30.00\"\n      },\n      \"table\": {\n        \"table_name\": \"employees\",\n        \"access_type\": \"ALL\",\n        \"rows_examined_per_scan\": 30,\n        \"rows_produced_per_join\": 30,\n        \"filtered\": \"100.00\",\n        \"cost_info\": {\n          \"read_cost\": \"0.25\",\n          \"eval_cost\": \"3.00\",\n          \"prefix_cost\": \"3.25\",\n          \"data_read_per_join\": \"43K\"\n        },\n        \"used_columns\": [\n          \"employee_id\",\n          \"hire_date\",\n          \"department_id\",\n          \"salary\"\n        ]\n      }\n    }\n  }\n}"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lab_e2ac8b43aef5f379ca20`.`employees`.`employee_id` AS `employee_id`,sum(`lab_e2ac8b43aef5f379ca20`.`employees`.`salary`) OVER (PARTITION BY `lab_e2ac8b43aef5f379ca20`.`employees`.`department_id` ORDER BY `lab_e2ac8b43aef5f379ca20`.`employees`.`hire_date` ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)  AS `moving_sum` from `lab_e2ac8b43aef5f379ca20`.`employees`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:d84fff807f65": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 60000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE win_big (id INT PRIMARY KEY, grp INT NOT NULL, val INT NOT NULL, KEY idx_grp_val (grp, val))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO win_big\nWITH RECURSIVE seq (n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 50000)\nSELECT n, n % 100, (n * 7919) % 10007 FROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Records: 50000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE win_big",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_e2ac8b43aef5f379ca20.win_big",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s19:db3ede66a5fd": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT grp, val, SUM(val) OVER (PARTITION BY grp ORDER BY val ROWS UNBOUNDED PRECEDING) AS running\nFROM win_big",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Window aggregate: sum(win_big.val) OVER (PARTITION BY win_big.grp ORDER BY win_big.val ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) \n    -> Sort: win_big.grp, win_big.val  (cost=5070 rows=50298)\n        -> Index scan on win_big using idx_grp_val  (cost=5070 rows=50298)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:359de3d6cdf7": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT grp, val, SUM(val) OVER (PARTITION BY grp ORDER BY val ROWS UNBOUNDED PRECEDING) AS running\nFROM win_big",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Window aggregate: sum(win_big.val) OVER (PARTITION BY win_big.grp ORDER BY win_big.val ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)   (actual time=10.8..19.7 rows=50000 loops=1)\n    -> Sort: win_big.grp, win_big.val  (cost=5070 rows=50298) (actual time=10.8..12.4 rows=50000 loops=1)\n        -> Index scan on win_big using idx_grp_val  (cost=5070 rows=50298) (actual time=0.392..5.67 rows=50000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 24.3
+    }
+   ],
+   "measured": true
+  },
+  "s21:2edd22239d1c": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, salary\nFROM employees\nWHERE salary > AVG(salary) OVER (PARTITION BY department_id)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3593,
+      "message": "You cannot use the window function 'avg' in this context.'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s22:e1038fa54467": {
+   "statements": [
+    {
+     "sql": "WITH w AS (\n  SELECT employee_id, department_id, salary,\n         AVG(salary) OVER (PARTITION BY department_id) AS dept_avg\n  FROM employees\n)\nSELECT employee_id, department_id, salary, ROUND(dept_avg, 2) AS dept_avg\nFROM w\nWHERE salary > dept_avg\nORDER BY department_id, employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "department_id",
+      "salary",
+      "dept_avg"
+     ],
+     "row_count": 11,
+     "rows": [
+      [
+       101,
+       20,
+       "242500.00",
+       "168666.67"
+      ],
+      [
+       104,
+       20,
+       "214500.00",
+       "168666.67"
+      ],
+      [
+       123,
+       20,
+       "170000.00",
+       "168666.67"
+      ],
+      [
+       105,
+       30,
+       "162500.00",
+       "149500.00"
+      ],
+      [
+       111,
+       30,
+       "179500.00",
+       "149500.00"
+      ],
+      [
+       125,
+       30,
+       "177000.00",
+       "149500.00"
+      ],
+      [
+       102,
+       40,
+       "238000.00",
+       "119500.00"
+      ],
+      [
+       114,
+       40,
+       "149500.00",
+       "119500.00"
+      ],
+      [
+       120,
+       50,
+       "84500.00",
+       "81666.67"
+      ],
+      [
+       128,
+       50,
+       "91500.00",
+       "81666.67"
+      ],
+      [
+       103,
+       60,
+       "229500.00",
+       "153000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:6f2eeb7cd44d": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id,\n       COUNT(DISTINCT job_id) OVER (PARTITION BY department_id) AS distinct_jobs\nFROM employees",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1235,
+      "message": "This version of MySQL doesn't yet support '<window function>(DISTINCT ..)'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s24:9e6b62815dc6": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id,\n       SUM(salary) OVER (ORDER BY salary, employee_id\n                         RANGE BETWEEN 1000 PRECEDING AND CURRENT ROW) AS s\nFROM employees",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3587,
+      "message": "Window '<unnamed window>' with RANGE N PRECEDING/FOLLOWING frame requires exactly one ORDER BY expression, of numeric or temporal type"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s25:e60af0a25782": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, SUM(salary) OVER (w PARTITION BY job_id) AS s\nFROM employees\nWINDOW w AS (ORDER BY hire_date)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3581,
+      "message": "A window which depends on another cannot define partitioning."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

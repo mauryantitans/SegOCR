@@ -1,0 +1,1137 @@
+{
+ "doc": "m04-recursive-ctes",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s3:7d851218e1d1": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE seq (n) AS (\n  SELECT 1\n  UNION ALL\n  SELECT n + 1 FROM seq WHERE n < 10\n)\nSELECT n FROM seq",
+     "status": "ok",
+     "columns": [
+      "n"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       1
+      ],
+      [
+       2
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ],
+      [
+       5
+      ],
+      [
+       6
+      ],
+      [
+       7
+      ],
+      [
+       8
+      ],
+      [
+       9
+      ],
+      [
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:b57bd8834282": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE org AS (\n  SELECT employee_id, first_name, last_name, manager_id, 1 AS depth\n  FROM employees\n  WHERE manager_id = 101\n  UNION ALL\n  SELECT e.employee_id, e.first_name, e.last_name, e.manager_id, o.depth + 1\n  FROM employees e\n  JOIN org o ON e.manager_id = o.employee_id\n)\nSELECT employee_id, first_name, last_name, manager_id, depth\nFROM org\nORDER BY depth, employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "last_name",
+      "manager_id",
+      "depth"
+     ],
+     "row_count": 15,
+     "rows": [
+      [
+       104,
+       "Mei",
+       "Berg",
+       101,
+       1
+      ],
+      [
+       105,
+       "Chloe",
+       "Ahmed",
+       101,
+       1
+      ],
+      [
+       129,
+       "Ethan",
+       "Adeyemi",
+       101,
+       1
+      ],
+      [
+       106,
+       "Kofi",
+       "Silva",
+       104,
+       2
+      ],
+      [
+       107,
+       "Grace",
+       "Sato",
+       104,
+       2
+      ],
+      [
+       108,
+       "Lucas",
+       "Martin",
+       104,
+       2
+      ],
+      [
+       109,
+       "Leila",
+       "Moradi",
+       104,
+       2
+      ],
+      [
+       110,
+       "Diego",
+       "Smith",
+       105,
+       2
+      ],
+      [
+       111,
+       "Noah",
+       "Berg",
+       105,
+       2
+      ],
+      [
+       112,
+       "Lucia",
+       "Miller",
+       105,
+       2
+      ],
+      [
+       113,
+       "Elena",
+       "Martin",
+       105,
+       2
+      ],
+      [
+       123,
+       "Chen",
+       "Haddad",
+       104,
+       2
+      ],
+      [
+       124,
+       "Samuel",
+       "Adeyemi",
+       104,
+       2
+      ],
+      [
+       125,
+       "Ingrid",
+       "Ahmed",
+       105,
+       2
+      ],
+      [
+       127,
+       "Priya",
+       "Okafor",
+       104,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:ea384e41df43": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE chain AS (\n  SELECT employee_id, first_name, manager_id, 0 AS steps_up\n  FROM employees\n  WHERE employee_id = 120\n  UNION ALL\n  SELECT m.employee_id, m.first_name, m.manager_id, c.steps_up + 1\n  FROM employees m\n  JOIN chain c ON m.employee_id = c.manager_id\n)\nSELECT employee_id, first_name, manager_id, steps_up\nFROM chain\nORDER BY steps_up",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "manager_id",
+      "steps_up"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       120,
+       "Amara",
+       119,
+       0
+      ],
+      [
+       119,
+       "Jonas",
+       102,
+       1
+      ],
+      [
+       102,
+       "Mei",
+       100,
+       2
+      ],
+      [
+       100,
+       "Kofi",
+       null,
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:5cd887985eea": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE org_chart AS (\n  SELECT employee_id, manager_id, 0 AS lvl,\n         CAST(CONCAT(first_name, ' ', last_name) AS CHAR(500)) AS path\n  FROM employees\n  WHERE manager_id IS NULL\n  UNION ALL\n  SELECT e.employee_id, e.manager_id, oc.lvl + 1,\n         CONCAT(oc.path, ' > ', e.first_name, ' ', e.last_name)\n  FROM employees e\n  JOIN org_chart oc ON e.manager_id = oc.employee_id\n)\nSELECT employee_id, lvl, path\nFROM org_chart\nORDER BY path\nLIMIT 15",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "lvl",
+      "path"
+     ],
+     "row_count": 15,
+     "rows": [
+      [
+       100,
+       0,
+       "Kofi Smith"
+      ],
+      [
+       103,
+       1,
+       "Kofi Smith > Anika Wang"
+      ],
+      [
+       121,
+       2,
+       "Kofi Smith > Anika Wang > Elena Garcia"
+      ],
+      [
+       122,
+       2,
+       "Kofi Smith > Anika Wang > Lucas Rossi"
+      ],
+      [
+       101,
+       1,
+       "Kofi Smith > Diego Mensah"
+      ],
+      [
+       105,
+       2,
+       "Kofi Smith > Diego Mensah > Chloe Ahmed"
+      ],
+      [
+       110,
+       3,
+       "Kofi Smith > Diego Mensah > Chloe Ahmed > Diego Smith"
+      ],
+      [
+       113,
+       3,
+       "Kofi Smith > Diego Mensah > Chloe Ahmed > Elena Martin"
+      ],
+      [
+       125,
+       3,
+       "Kofi Smith > Diego Mensah > Chloe Ahmed > Ingrid Ahmed"
+      ],
+      [
+       112,
+       3,
+       "Kofi Smith > Diego Mensah > Chloe Ahmed > Lucia Miller"
+      ],
+      [
+       111,
+       3,
+       "Kofi Smith > Diego Mensah > Chloe Ahmed > Noah Berg"
+      ],
+      [
+       129,
+       2,
+       "Kofi Smith > Diego Mensah > Ethan Adeyemi"
+      ],
+      [
+       104,
+       2,
+       "Kofi Smith > Diego Mensah > Mei Berg"
+      ],
+      [
+       123,
+       3,
+       "Kofi Smith > Diego Mensah > Mei Berg > Chen Haddad"
+      ],
+      [
+       107,
+       3,
+       "Kofi Smith > Diego Mensah > Mei Berg > Grace Sato"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:a1ba14374c7b": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE under_vp AS (\n  SELECT employee_id AS vp_id, employee_id, salary\n  FROM employees\n  WHERE manager_id = 100\n  UNION ALL\n  SELECT u.vp_id, e.employee_id, e.salary\n  FROM employees e\n  JOIN under_vp u ON e.manager_id = u.employee_id\n)\nSELECT u.vp_id, v.first_name, v.last_name,\n       COUNT(*) - 1     AS reports_total,\n       SUM(u.salary)    AS payroll_incl_vp\nFROM under_vp u\nJOIN employees v ON v.employee_id = u.vp_id\nGROUP BY u.vp_id, v.first_name, v.last_name\nORDER BY reports_total DESC",
+     "status": "ok",
+     "columns": [
+      "vp_id",
+      "first_name",
+      "last_name",
+      "reports_total",
+      "payroll_incl_vp"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       101,
+       "Diego",
+       "Mensah",
+       15,
+       "2535500.00"
+      ],
+      [
+       102,
+       "Mei",
+       "Nguyen",
+       9,
+       "1081500.00"
+      ],
+      [
+       103,
+       "Anika",
+       "Wang",
+       2,
+       "459000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:fb43cf834c27": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE categories (\n  category_id INT PRIMARY KEY,\n  name        VARCHAR(60) NOT NULL,\n  parent_id   INT NULL,\n  KEY idx_parent (parent_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO categories VALUES\n  (1, 'Electronics', NULL), (2, 'Computers', 1), (3, 'Laptops', 2), (4, 'Accessories', 2),\n  (5, 'Audio', 1), (6, 'Home & Kitchen', NULL), (7, 'Coffee', 6), (8, 'Books', NULL),\n  (9, 'Databases', 8), (10, 'Fitness', NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 10,
+     "info": "Records: 10  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "WITH RECURSIVE tree AS (\n  SELECT category_id, name, parent_id, 0 AS depth,\n         CAST(name AS CHAR(300)) AS path\n  FROM categories\n  WHERE parent_id IS NULL\n  UNION ALL\n  SELECT c.category_id, c.name, c.parent_id, t.depth + 1,\n         CONCAT(t.path, ' > ', c.name)\n  FROM categories c\n  JOIN tree t ON c.parent_id = t.category_id\n)\nSELECT category_id, depth, CONCAT(REPEAT('    ', depth), name) AS indented, path\nFROM tree\nORDER BY path",
+     "status": "ok",
+     "columns": [
+      "category_id",
+      "depth",
+      "indented",
+      "path"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       8,
+       0,
+       "Books",
+       "Books"
+      ],
+      [
+       9,
+       1,
+       "    Databases",
+       "Books > Databases"
+      ],
+      [
+       1,
+       0,
+       "Electronics",
+       "Electronics"
+      ],
+      [
+       5,
+       1,
+       "    Audio",
+       "Electronics > Audio"
+      ],
+      [
+       2,
+       1,
+       "    Computers",
+       "Electronics > Computers"
+      ],
+      [
+       4,
+       2,
+       "        Accessories",
+       "Electronics > Computers > Accessories"
+      ],
+      [
+       3,
+       2,
+       "        Laptops",
+       "Electronics > Computers > Laptops"
+      ],
+      [
+       10,
+       0,
+       "Fitness",
+       "Fitness"
+      ],
+      [
+       6,
+       0,
+       "Home & Kitchen",
+       "Home & Kitchen"
+      ],
+      [
+       7,
+       1,
+       "    Coffee",
+       "Home & Kitchen > Coffee"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:e4d5c94c5252": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE course_prereqs (\n  course_id VARCHAR(10) NOT NULL,\n  prereq_id VARCHAR(10) NOT NULL,\n  PRIMARY KEY (course_id, prereq_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO course_prereqs VALUES\n  ('CS-146', 'CS-046'), ('CS-149', 'CS-146'), ('CS-157A', 'CS-146'), ('CS-160', 'CS-146'),\n  ('CS-157B', 'CS-157A'), ('DATA-225', 'DATA-200'), ('DATA-245', 'DATA-200'),\n  ('DATA-226', 'DATA-225'), ('CS-146', 'MATH-042'), ('DATA-245', 'MATH-161A')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 10,
+     "info": "Records: 10  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "WITH RECURSIVE required AS (\n  SELECT prereq_id, 1 AS distance\n  FROM course_prereqs\n  WHERE course_id = 'CS-157B'\n  UNION ALL\n  SELECT p.prereq_id, r.distance + 1\n  FROM course_prereqs p\n  JOIN required r ON p.course_id = r.prereq_id\n)\nSELECT prereq_id, MIN(distance) AS distance\nFROM required\nGROUP BY prereq_id\nORDER BY distance, prereq_id",
+     "status": "ok",
+     "columns": [
+      "prereq_id",
+      "distance"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "CS-157A",
+       1
+      ],
+      [
+       "CS-146",
+       2
+      ],
+      [
+       "CS-046",
+       3
+      ],
+      [
+       "MATH-042",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:5a1676af050f": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE years (y) AS (\n  SELECT 2014\n  UNION ALL\n  SELECT y + 1 FROM years WHERE y < 2024\n)\nSELECT y AS hire_year, COUNT(e.employee_id) AS hires\nFROM years\nLEFT JOIN employees e ON YEAR(e.hire_date) = y\nGROUP BY y\nORDER BY y",
+     "status": "ok",
+     "columns": [
+      "hire_year",
+      "hires"
+     ],
+     "row_count": 11,
+     "rows": [
+      [
+       2014,
+       1
+      ],
+      [
+       2015,
+       7
+      ],
+      [
+       2016,
+       4
+      ],
+      [
+       2017,
+       0
+      ],
+      [
+       2018,
+       1
+      ],
+      [
+       2019,
+       2
+      ],
+      [
+       2020,
+       6
+      ],
+      [
+       2021,
+       2
+      ],
+      [
+       2022,
+       4
+      ],
+      [
+       2023,
+       3
+      ],
+      [
+       2024,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:ae892ac78fc7": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE task_deps (task CHAR(1) NOT NULL, depends_on CHAR(1) NOT NULL, PRIMARY KEY (task, depends_on))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO task_deps VALUES ('A','B'), ('B','C'), ('C','D'), ('D','B'), ('C','E')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "WITH RECURSIVE walk AS (\n  SELECT task, depends_on,\n         CAST(CONCAT(task, ',', depends_on) AS CHAR(200)) AS path,\n         0 AS is_cycle\n  FROM task_deps\n  WHERE task = 'A'\n  UNION ALL\n  SELECT d.task, d.depends_on,\n         CONCAT(w.path, ',', d.depends_on),\n         FIND_IN_SET(d.depends_on, w.path) > 0\n  FROM task_deps d\n  JOIN walk w ON d.task = w.depends_on\n  WHERE w.is_cycle = 0\n)\nSELECT path, is_cycle FROM walk ORDER BY path",
+     "status": "ok",
+     "columns": [
+      "path",
+      "is_cycle"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "A,B",
+       0
+      ],
+      [
+       "A,B,C",
+       0
+      ],
+      [
+       "A,B,C,D",
+       0
+      ],
+      [
+       "A,B,C,D,B",
+       1
+      ],
+      [
+       "A,B,C,E",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:d8235e1a93ca": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE reachable (node) AS (\n  SELECT CAST('A' AS CHAR(1))\n  UNION DISTINCT\n  SELECT d.depends_on\n  FROM task_deps d\n  JOIN reachable r ON d.task = r.node\n)\nSELECT node FROM reachable ORDER BY node",
+     "status": "ok",
+     "columns": [
+      "node"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "A"
+      ],
+      [
+       "B"
+      ],
+      [
+       "C"
+      ],
+      [
+       "D"
+      ],
+      [
+       "E"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:72dff649e045": {
+   "statements": [
+    {
+     "sql": "SELECT employee_id, first_name, manager_id, 0 AS lvl FROM employees WHERE manager_id IS NULL",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "manager_id",
+      "lvl"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       100,
+       "Kofi",
+       null,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:d0d6dea7a033": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE org AS (\n  SELECT employee_id, first_name, manager_id, 0 AS lvl FROM employees WHERE manager_id IS NULL\n  UNION ALL\n  SELECT e.employee_id, e.first_name, e.manager_id, o.lvl + 1\n  FROM employees e JOIN org o ON e.manager_id = o.employee_id\n  WHERE o.lvl < 1)\nSELECT * FROM org WHERE lvl = 1 ORDER BY employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "manager_id",
+      "lvl"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       101,
+       "Diego",
+       100,
+       1
+      ],
+      [
+       102,
+       "Mei",
+       100,
+       1
+      ],
+      [
+       103,
+       "Anika",
+       100,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:8cdc7224221a": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE org AS (\n  SELECT employee_id, first_name, manager_id, 0 AS lvl FROM employees WHERE manager_id IS NULL\n  UNION ALL\n  SELECT e.employee_id, e.first_name, e.manager_id, o.lvl + 1\n  FROM employees e JOIN org o ON e.manager_id = o.employee_id\n  WHERE o.lvl < 2)\nSELECT * FROM org WHERE lvl = 2 ORDER BY employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "first_name",
+      "manager_id",
+      "lvl"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       104,
+       "Mei",
+       101,
+       2
+      ],
+      [
+       105,
+       "Chloe",
+       101,
+       2
+      ],
+      [
+       114,
+       "Amara",
+       102,
+       2
+      ],
+      [
+       119,
+       "Jonas",
+       102,
+       2
+      ],
+      [
+       121,
+       "Elena",
+       103,
+       2
+      ],
+      [
+       122,
+       "Lucas",
+       103,
+       2
+      ],
+      [
+       129,
+       "Ethan",
+       101,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:53bf61e38ff9": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE org AS (\n  SELECT employee_id, manager_id, 0 AS lvl FROM employees WHERE manager_id IS NULL\n  UNION ALL\n  SELECT e.employee_id, e.manager_id, o.lvl + 1\n  FROM employees e JOIN org o ON e.manager_id = o.employee_id)\nSELECT lvl, COUNT(*) AS rows_added FROM org GROUP BY lvl ORDER BY lvl",
+     "status": "ok",
+     "columns": [
+      "lvl",
+      "rows_added"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       0,
+       1
+      ],
+      [
+       1,
+       3
+      ],
+      [
+       2,
+       7
+      ],
+      [
+       3,
+       19
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:532b4b7647f6": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nWITH RECURSIVE org AS (\n  SELECT employee_id, manager_id, 0 AS lvl FROM employees WHERE manager_id IS NULL\n  UNION ALL\n  SELECT e.employee_id, e.manager_id, o.lvl + 1\n  FROM employees e JOIN org o ON e.manager_id = o.employee_id)\nSELECT * FROM org",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on org  (cost=5.35..7.6 rows=7.67)\n    -> Materialize recursive CTE org  (cost=5.01..5.01 rows=7.67)\n        -> Filter: (employees.manager_id is null)  (cost=0.35 rows=1)\n            -> Covering index lookup on employees using idx_employees_manager (manager_id=NULL)  (cost=0.35 rows=1)\n        -> Repeat until convergence\n            -> Nested loop inner join  (cost=3.89 rows=6.67)\n                -> Filter: (o.employee_id is not null)  (cost=2.73 rows=2)\n                    -> Scan new records on o  (cost=2.73 rows=2)\n                -> Covering index lookup on e using idx_employees_manager (manager_id=o.employee_id)  (cost=0.417 rows=3.33)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:acdf7d1ff6a6": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE org AS (\n  SELECT employee_id FROM employees WHERE manager_id IS NULL\n  UNION ALL\n  SELECT e.employee_id FROM employees e JOIN org o ON e.manager_id = o.employee_id\n)\nSELECT (SELECT COUNT(*) FROM org)       AS reachable_from_root,\n       (SELECT COUNT(*) FROM employees) AS employees",
+     "status": "ok",
+     "columns": [
+      "reachable_from_root",
+      "employees"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       30,
+       30
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:7b3a0e7d7c6f": {
+   "statements": [
+    {
+     "sql": "SELECT COALESCE(l3.employee_id, l2.employee_id, l1.employee_id) AS deepest_found,\n       l1.employee_id AS lvl1, l2.employee_id AS lvl2, l3.employee_id AS lvl3\nFROM employees l1\nLEFT JOIN employees l2 ON l2.manager_id = l1.employee_id\nLEFT JOIN employees l3 ON l3.manager_id = l2.employee_id\nWHERE l1.manager_id = 101\nORDER BY lvl1, lvl2, lvl3\nLIMIT 8",
+     "status": "ok",
+     "columns": [
+      "deepest_found",
+      "lvl1",
+      "lvl2",
+      "lvl3"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       106,
+       104,
+       106,
+       null
+      ],
+      [
+       107,
+       104,
+       107,
+       null
+      ],
+      [
+       108,
+       104,
+       108,
+       null
+      ],
+      [
+       109,
+       104,
+       109,
+       null
+      ],
+      [
+       123,
+       104,
+       123,
+       null
+      ],
+      [
+       124,
+       104,
+       124,
+       null
+      ],
+      [
+       127,
+       104,
+       127,
+       null
+      ],
+      [
+       110,
+       105,
+       110,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:b0663f3e83df": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 60000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE big_tree (id INT PRIMARY KEY, parent_id INT NULL, payload INT NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO big_tree\nWITH RECURSIVE seq (n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 50000)\nSELECT n, NULLIF(n DIV 2, 0), n % 97 FROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Records: 50000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE big_tree",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_0655e8e76d72f4a8da71.big_tree",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:18289b56ca49": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nWITH RECURSIVE sub AS (\n  SELECT id FROM big_tree WHERE id = 2\n  UNION ALL\n  SELECT t.id FROM big_tree t JOIN sub s ON t.parent_id = s.id\n)\nSELECT COUNT(*) FROM sub",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=11716..11716 rows=1) (actual time=153..153 rows=1 loops=1)\n    -> Table scan on sub  (cost=10631..10754 rows=9626) (actual time=149..152 rows=32767 loops=1)\n        -> Materialize recursive CTE sub  (cost=10631..10631 rows=9626) (actual time=149..149 rows=32767 loops=1)\n            -> Rows fetched before execution  (cost=0..0 rows=1) (actual time=191e-6..263e-6 rows=1 loops=1)\n            -> Repeat until convergence\n                -> Inner hash join (t.parent_id = s.id)  (cost=9668 rows=9625) (actual time=2.27..9.82 rows=2184 loops=15)\n                    -> Table scan on t  (cost=261 rows=48126) (actual time=0.301..5.93 rows=50000 loops=15)\n                    -> Hash\n                        -> Scan new records on s  (cost=2.73 rows=2) (actual time=0.00129..0.0708 rows=2184 loops=15)\n"
+      ]
+     ],
+     "elapsed_ms": 154.55
+    }
+   ],
+   "measured": true
+  },
+  "s17:7d95cf15e2dc": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_big_tree_parent ON big_tree (parent_id)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE big_tree",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_0655e8e76d72f4a8da71.big_tree",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s18:18289b56ca49": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nWITH RECURSIVE sub AS (\n  SELECT id FROM big_tree WHERE id = 2\n  UNION ALL\n  SELECT t.id FROM big_tree t JOIN sub s ON t.parent_id = s.id\n)\nSELECT COUNT(*) FROM sub",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=8.62..8.62 rows=1) (actual time=56.2..56.2 rows=1 loops=1)\n    -> Table scan on sub  (cost=6.12..8.14 rows=4.83) (actual time=52.5..55.1 rows=32767 loops=1)\n        -> Materialize recursive CTE sub  (cost=5.59..5.59 rows=4.83) (actual time=52.5..52.5 rows=32767 loops=1)\n            -> Rows fetched before execution  (cost=0..0 rows=1) (actual time=71e-6..121e-6 rows=1 loops=1)\n            -> Repeat until convergence\n                -> Nested loop inner join  (cost=5.11 rows=3.83) (actual time=0.0155..25 rows=16383 loops=2)\n                    -> Filter: (s.id is not null)  (cost=2.73 rows=2) (actual time=0.0017..1.67 rows=16384 loops=2)\n                        -> Scan new records on s  (cost=2.73 rows=2) (actual time=0.0011..0.575 rows=16384 loops=2)\n                    -> Covering index lookup on t using idx_big_tree_parent (parent_id=s.id)  (cost=1.1 rows=1.91) (actual time=0.00107..0.00125 rows=1 loops=32767)\n"
+      ]
+     ],
+     "elapsed_ms": 58.16
+    }
+   ],
+   "measured": true
+  },
+  "s19:c7b2c95594c1": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE chain AS (\n  SELECT employee_id, CAST(employee_id AS CHAR) AS path\n  FROM employees WHERE manager_id IS NULL\n  UNION ALL\n  SELECT e.employee_id, CONCAT(c.path, '/', e.employee_id)\n  FROM employees e JOIN chain c ON e.manager_id = c.employee_id\n)\nSELECT * FROM chain",
+     "status": "error",
+     "columns": [
+      "employee_id",
+      "path"
+     ],
+     "rows": [],
+     "error": {
+      "code": 1406,
+      "message": "Data too long for column 'path' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s20:6c16c1e7dcfa": {
+   "statements": [
+    {
+     "sql": "SET SESSION sql_mode = ''",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "WITH RECURSIVE chain AS (\n  SELECT employee_id, CAST(employee_id AS CHAR) AS path\n  FROM employees WHERE manager_id IS NULL\n  UNION ALL\n  SELECT e.employee_id, CONCAT(c.path, '/', e.employee_id)\n  FROM employees e JOIN chain c ON e.manager_id = c.employee_id\n)\nSELECT employee_id, path FROM chain WHERE employee_id IN (104, 106, 110) ORDER BY employee_id",
+     "status": "ok",
+     "columns": [
+      "employee_id",
+      "path"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       104,
+       "100/101/10"
+      ],
+      [
+       106,
+       "100/101/10"
+      ],
+      [
+       110,
+       "100/101/10"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:51319f0e9ffe": {
+   "statements": [
+    {
+     "sql": "SET SESSION sql_mode = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @@SESSION.sql_mode",
+     "status": "ok",
+     "columns": [
+      "@@SESSION.sql_mode"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:5c2c40adf4bf": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE seq (n) AS (\n  SELECT 1\n  UNION ALL\n  SELECT n + 1 FROM seq\n)\nSELECT COUNT(*) FROM seq",
+     "status": "error",
+     "columns": [
+      "COUNT(*)"
+     ],
+     "rows": [],
+     "error": {
+      "code": 3636,
+      "message": "Recursive query aborted after 1001 iterations. Try increasing @@cte_max_recursion_depth to a larger value."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s23:ae0ed5eb1c0b": {
+   "statements": [
+    {
+     "sql": "WITH seq (n) AS (\n  SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 5\n)\nSELECT * FROM seq",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1146,
+      "message": "Table 'seq' doesn't exist"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s24:4741d0a3dbea": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE s AS (\n  SELECT 1 AS n\n  UNION ALL\n  SELECT MAX(n) + 1 FROM s WHERE n < 5\n)\nSELECT * FROM s",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3575,
+      "message": "Recursive Common Table Expression 's' can contain neither aggregation nor window functions in recursive query block"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

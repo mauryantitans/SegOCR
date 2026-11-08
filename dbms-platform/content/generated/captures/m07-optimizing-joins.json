@@ -1,0 +1,808 @@
+{
+ "doc": "m07-optimizing-joins",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:37877dceabba": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 200000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE customers_j (\n  customer_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  region      VARCHAR(10)  NOT NULL,\n  segment     VARCHAR(10)  NOT NULL,\n  signup_date DATE         NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO customers_j\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 20000)\nSELECT n,\n       ELT(1 + n % 8, 'north', 'south', 'east', 'west', 'central', 'coast', 'mountain', 'islands'),\n       ELT(1 + (n DIV 8) % 3, 'consumer', 'smb', 'enterprise'),\n       DATE '2020-01-01' + INTERVAL n % 1500 DAY\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 20000,
+     "info": "Records: 20000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE orders_j (\n  order_id    INT UNSIGNED  NOT NULL PRIMARY KEY,\n  customer_id INT UNSIGNED  NOT NULL,\n  order_date  DATE          NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders_j\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 200000)\nSELECT n, 1 + (n * 7919) % 20000, DATE '2024-01-01' + INTERVAL (n * 37) % 366 DAY, ((n * 31) % 50000) / 100\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE tickets_j (\n  ticket_id    INT UNSIGNED NOT NULL PRIMARY KEY,\n  customer_ref VARCHAR(10)  NOT NULL,\n  opened_on    DATE         NOT NULL,\n  INDEX idx_customer_ref (customer_ref)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO tickets_j\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 100000)\nSELECT n, CAST(1 + (n * 104729) % 20000 AS CHAR), DATE '2024-01-01' + INTERVAL n % 366 DAY\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE customers_j, orders_j, tickets_j",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "lab_55b6bb4e69977ddb7374.customers_j",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_55b6bb4e69977ddb7374.orders_j",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lab_55b6bb4e69977ddb7374.tickets_j",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:cf2e64895a32": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS orders, SUM(o.amount) AS revenue\nFROM customers_j AS c\nJOIN orders_j    AS o ON o.customer_id = c.customer_id\nWHERE c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "orders",
+      "revenue"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       8330,
+       "2082890.20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:81b7d8c7334a": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT COUNT(*) AS orders, SUM(o.amount) AS revenue\nFROM customers_j AS c\nJOIN orders_j    AS o ON o.customer_id = c.customer_id\nWHERE c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), sum(o.amount)  (cost=91211 rows=1)\n    -> Nested loop inner join  (cost=90210 rows=10010)\n        -> Table scan on o  (cost=20140 rows=200200)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=0.25 rows=0.05)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.25 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:77d5ff9e50e2": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_customer ON orders_j (customer_id)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders_j",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lab_55b6bb4e69977ddb7374.orders_j",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN\nSELECT COUNT(*) AS orders, SUM(o.amount) AS revenue\nFROM customers_j AS c\nJOIN orders_j    AS o ON o.customer_id = c.customer_id\nWHERE c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "ALL",
+       "PRIMARY",
+       null,
+       null,
+       null,
+       20406,
+       1.0,
+       "Using where"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "o",
+       null,
+       "ref",
+       "idx_customer",
+       "idx_customer",
+       "4",
+       "c.customer_id",
+       10,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `orders`,sum(`lab_55b6bb4e69977ddb7374`.`o`.`amount`) AS `revenue` from `lab_55b6bb4e69977ddb7374`.`customers_j` `c` join `lab_55b6bb4e69977ddb7374`.`orders_j` `o` where ((`lab_55b6bb4e69977ddb7374`.`o`.`customer_id` = `lab_55b6bb4e69977ddb7374`.`c`.`customer_id`) and (`lab_55b6bb4e69977ddb7374`.`c`.`segment` = 'enterprise') and (`lab_55b6bb4e69977ddb7374`.`c`.`region` = 'islands'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:9a2d5f710545": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT STRAIGHT_JOIN COUNT(*) AS orders, SUM(o.amount) AS revenue\nFROM orders_j    AS o\nJOIN customers_j AS c ON o.customer_id = c.customer_id\nWHERE c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), sum(o.amount)  (cost=91211 rows=1)\n    -> Nested loop inner join  (cost=90210 rows=10010)\n        -> Table scan on o  (cost=20140 rows=200200)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=0.25 rows=0.05)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.25 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:9da2c0cd14ac": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ JOIN_ORDER(c, o) */ COUNT(*), SUM(o.amount)\nFROM orders_j AS o JOIN customers_j AS c ON o.customer_id = c.customer_id\nWHERE c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), sum(o.amount)  (cost=3017 rows=1)\n    -> Nested loop inner join  (cost=2805 rows=2115)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204)\n            -> Table scan on c  (cost=2065 rows=20406)\n        -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.6 rows=10.4)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:13a6232ba690": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT /*+ JOIN_ORDER(c, o) NO_INDEX(o idx_customer) */ COUNT(*), SUM(o.amount)\nFROM customers_j AS c JOIN orders_j AS o ON o.customer_id = c.customer_id\nWHERE c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "ALL",
+       "PRIMARY",
+       null,
+       null,
+       null,
+       20406,
+       1.0,
+       "Using where"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "o",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       200200,
+       0.01,
+       "Using where; Using join buffer (hash join)"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select /*+ JOIN_ORDER(@`select#1` `c`,`o`) NO_INDEX(`o`@`select#1` `idx_customer`) */ count(0) AS `COUNT(*)`,sum(`lab_55b6bb4e69977ddb7374`.`o`.`amount`) AS `SUM(o.amount)` from `lab_55b6bb4e69977ddb7374`.`customers_j` `c` join `lab_55b6bb4e69977ddb7374`.`orders_j` `o` where ((`lab_55b6bb4e69977ddb7374`.`o`.`customer_id` = `lab_55b6bb4e69977ddb7374`.`c`.`customer_id`) and (`lab_55b6bb4e69977ddb7374`.`c`.`segment` = 'enterprise') and (`lab_55b6bb4e69977ddb7374`.`c`.`region` = 'islands'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:8b1f164850de": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ JOIN_ORDER(c, o) NO_INDEX(o idx_customer) */ COUNT(*), SUM(o.amount)\nFROM customers_j AS c JOIN orders_j AS o ON o.customer_id = c.customer_id\nWHERE c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), sum(o.amount)  (cost=4.09e+6 rows=1)\n    -> Inner hash join (o.customer_id = c.customer_id)  (cost=4.09e+6 rows=2115)\n        -> Table scan on o  (cost=0.634 rows=200200)\n        -> Hash\n            -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204)\n                -> Table scan on c  (cost=2065 rows=20406)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:338af6bdeecd": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ JOIN_ORDER(c, o) NO_INDEX(o idx_customer) NO_BNL(o) */ COUNT(*), SUM(o.amount)\nFROM customers_j AS c JOIN orders_j AS o ON o.customer_id = c.customer_id\nWHERE c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), sum(o.amount)  (cost=4.11e+6 rows=1)\n    -> Nested loop inner join  (cost=4.11e+6 rows=2115)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204)\n            -> Table scan on c  (cost=2065 rows=20406)\n        -> Filter: (o.customer_id = c.customer_id)  (cost=120 rows=10.4)\n            -> Table scan on o  (cost=120 rows=200200)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:c3a3939eb67f": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT /*+ BKA(o) */ COUNT(*), SUM(o.amount)\nFROM customers_j AS c JOIN orders_j AS o ON o.customer_id = c.customer_id\nWHERE c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "ALL",
+       "PRIMARY",
+       null,
+       null,
+       null,
+       20406,
+       1.0,
+       "Using where"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "o",
+       null,
+       "ref",
+       "idx_customer",
+       "idx_customer",
+       "4",
+       "c.customer_id",
+       10,
+       100.0,
+       "Using join buffer (Batched Key Access)"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select /*+ BKA(`o`@`select#1`) */ count(0) AS `COUNT(*)`,sum(`lab_55b6bb4e69977ddb7374`.`o`.`amount`) AS `SUM(o.amount)` from `lab_55b6bb4e69977ddb7374`.`customers_j` `c` join `lab_55b6bb4e69977ddb7374`.`orders_j` `o` where ((`lab_55b6bb4e69977ddb7374`.`o`.`customer_id` = `lab_55b6bb4e69977ddb7374`.`c`.`customer_id`) and (`lab_55b6bb4e69977ddb7374`.`c`.`segment` = 'enterprise') and (`lab_55b6bb4e69977ddb7374`.`c`.`region` = 'islands'))"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT /*+ BKA(o) */ COUNT(*), SUM(o.amount)\nFROM customers_j AS c JOIN orders_j AS o ON o.customer_id = c.customer_id\nWHERE c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), sum(o.amount)  (cost=0 rows=1)\n    -> Batched key access inner join\n        -> Batch input rows\n            -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204)\n                -> Table scan on c  (cost=2065 rows=20406)\n        -> Multi-range index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.6 rows=10.4)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:11cb7b2720ea": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT COUNT(*) FROM customers_j AS c\nJOIN tickets_j AS t ON t.customer_ref = c.customer_id\nWHERE c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "t",
+       null,
+       "index",
+       "idx_customer_ref",
+       "idx_customer_ref",
+       "42",
+       null,
+       100153,
+       100.0,
+       "Using index"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "eq_ref",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "t.customer_ref",
+       1,
+       5.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1739,
+       "message": "Cannot use ref access on index 'idx_customer_ref' due to type or collation conversion on field 'customer_ref'"
+      },
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_55b6bb4e69977ddb7374`.`customers_j` `c` join `lab_55b6bb4e69977ddb7374`.`tickets_j` `t` where ((`lab_55b6bb4e69977ddb7374`.`c`.`segment` = 'enterprise') and (`lab_55b6bb4e69977ddb7374`.`c`.`region` = 'islands') and (cast(`lab_55b6bb4e69977ddb7374`.`t`.`customer_ref` as double) = cast(`lab_55b6bb4e69977ddb7374`.`c`.`customer_id` as double)))"
+      }
+     ]
+    },
+    {
+     "sql": "SHOW WARNINGS",
+     "status": "ok",
+     "columns": [
+      "Level",
+      "Code",
+      "Message"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Warning",
+       1739,
+       "Cannot use ref access on index 'idx_customer_ref' due to type or collation conversion on field 'customer_ref'"
+      ],
+      [
+       "Note",
+       1003,
+       "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_55b6bb4e69977ddb7374`.`customers_j` `c` join `lab_55b6bb4e69977ddb7374`.`tickets_j` `t` where ((`lab_55b6bb4e69977ddb7374`.`c`.`segment` = 'enterprise') and (`lab_55b6bb4e69977ddb7374`.`c`.`region` = 'islands') and (cast(`lab_55b6bb4e69977ddb7374`.`t`.`customer_ref` as double) = cast(`lab_55b6bb4e69977ddb7374`.`c`.`customer_id` as double)))"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:d8d392df5a1c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT COUNT(*) FROM customers_j AS c\nJOIN tickets_j AS t ON t.customer_ref = CAST(c.customer_id AS CHAR)\nWHERE c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       20406,
+       1.0,
+       "Using where"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "t",
+       null,
+       "ref",
+       "idx_customer_ref",
+       "idx_customer_ref",
+       "42",
+       "func",
+       5,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_55b6bb4e69977ddb7374`.`customers_j` `c` join `lab_55b6bb4e69977ddb7374`.`tickets_j` `t` where ((`lab_55b6bb4e69977ddb7374`.`c`.`segment` = 'enterprise') and (`lab_55b6bb4e69977ddb7374`.`c`.`region` = 'islands') and (`lab_55b6bb4e69977ddb7374`.`t`.`customer_ref` = cast(`lab_55b6bb4e69977ddb7374`.`c`.`customer_id` as char charset utf8mb4)))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:40d2159fa0da": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS outer_rows, MIN(customer_id) AS first_id, MAX(customer_id) AS last_id\nFROM customers_j WHERE region = 'islands' AND segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "outer_rows",
+      "first_id",
+      "last_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       833,
+       23,
+       19991
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:bce8673ab7b2": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, COUNT(o.order_id) AS orders_found\nFROM customers_j AS c JOIN orders_j AS o ON o.customer_id = c.customer_id\nWHERE c.region = 'islands' AND c.segment = 'enterprise'\nGROUP BY c.customer_id ORDER BY c.customer_id LIMIT 3",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "orders_found"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       23,
+       10
+      ],
+      [
+       47,
+       10
+      ],
+      [
+       71,
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:570f4bc38314": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS probe_rows_read,\n       SUM(c.customer_id IS NOT NULL) AS probe_rows_matched\nFROM orders_j AS o\nLEFT JOIN customers_j AS c\n  ON c.customer_id = o.customer_id AND c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "probe_rows_read",
+      "probe_rows_matched"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       200000,
+       "8330"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:a3898227fb66": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT COUNT(*), SUM(o.amount)\nFROM customers_j AS c JOIN orders_j AS o ON o.customer_id = c.customer_id\nWHERE c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), sum(o.amount)  (cost=3017 rows=1) (actual time=21.6..21.6 rows=1 loops=1)\n    -> Nested loop inner join  (cost=2805 rows=2115) (actual time=0.26..21 rows=8330 loops=1)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204) (actual time=0.207..5.42 rows=833 loops=1)\n            -> Table scan on c  (cost=2065 rows=20406) (actual time=0.199..3.73 rows=20000 loops=1)\n        -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.6 rows=10.4) (actual time=0.0174..0.0181 rows=10 loops=833)\n"
+      ]
+     ],
+     "elapsed_ms": 23.17
+    }
+   ],
+   "measured": true
+  },
+  "s14:16f3f54bf186": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT /*+ JOIN_ORDER(c, o) NO_INDEX(o idx_customer) */ COUNT(*), SUM(o.amount)\nFROM customers_j AS c JOIN orders_j AS o ON o.customer_id = c.customer_id\nWHERE c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), sum(o.amount)  (cost=4.09e+6 rows=1) (actual time=37.5..37.5 rows=1 loops=1)\n    -> Inner hash join (o.customer_id = c.customer_id)  (cost=4.09e+6 rows=2115) (actual time=4.93..36.8 rows=8330 loops=1)\n        -> Table scan on o  (cost=0.634 rows=200200) (actual time=0.438..21.4 rows=200000 loops=1)\n        -> Hash\n            -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204) (actual time=0.14..4.36 rows=833 loops=1)\n                -> Table scan on c  (cost=2065 rows=20406) (actual time=0.134..2.86 rows=20000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 39.21
+    }
+   ],
+   "measured": true
+  },
+  "s15:1c46e5367e7c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT STRAIGHT_JOIN COUNT(*), SUM(o.amount)\nFROM orders_j AS o JOIN customers_j AS c ON o.customer_id = c.customer_id\nWHERE c.region = 'islands' AND c.segment = 'enterprise'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), sum(o.amount)  (cost=91211 rows=1) (actual time=220..220 rows=1 loops=1)\n    -> Nested loop inner join  (cost=90210 rows=10010) (actual time=0.481..219 rows=8330 loops=1)\n        -> Table scan on o  (cost=20140 rows=200200) (actual time=0.461..33.5 rows=200000 loops=1)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=0.25 rows=0.05) (actual time=822e-6..825e-6 rows=0.0416 loops=200000)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.25 rows=1) (actual time=616e-6..638e-6 rows=1 loops=200000)\n"
+      ]
+     ],
+     "elapsed_ms": 221.07
+    }
+   ],
+   "measured": true
+  },
+  "s16:10a9211bb2d1": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id,\n       COUNT(o.order_id)  AS n_orders,\n       SUM(o.amount)      AS revenue,\n       COUNT(t.ticket_id) AS n_tickets\nFROM customers_j AS c\nJOIN orders_j    AS o ON o.customer_id = c.customer_id\nLEFT JOIN tickets_j AS t ON t.customer_ref = CAST(c.customer_id AS CHAR)\nWHERE c.region = 'islands' AND c.segment = 'enterprise'\nGROUP BY c.customer_id\nORDER BY c.customer_id\nLIMIT 3",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "n_orders",
+      "revenue",
+      "n_tickets"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       23,
+       50,
+       "13539.00",
+       50
+      ],
+      [
+       47,
+       50,
+       "10127.00",
+       50
+      ],
+      [
+       71,
+       50,
+       "11715.00",
+       50
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:ce44f4c35700": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, o.n_orders, o.revenue, COALESCE(t.n_tickets, 0) AS n_tickets\nFROM customers_j AS c\nJOIN LATERAL (\n  SELECT COUNT(*) AS n_orders, SUM(amount) AS revenue\n  FROM orders_j WHERE customer_id = c.customer_id\n) AS o\nLEFT JOIN (\n  SELECT customer_ref, COUNT(*) AS n_tickets FROM tickets_j GROUP BY customer_ref\n) AS t ON t.customer_ref = CAST(c.customer_id AS CHAR)\nWHERE c.region = 'islands' AND c.segment = 'enterprise'\nORDER BY c.customer_id\nLIMIT 3",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "n_orders",
+      "revenue",
+      "n_tickets"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       23,
+       10,
+       "2707.80",
+       5
+      ],
+      [
+       47,
+       10,
+       "2025.40",
+       5
+      ],
+      [
+       71,
+       10,
+       "2343.00",
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:5b815879fe3f": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id,\n       COUNT(DISTINCT o.order_id) AS n_orders,\n       SUM(DISTINCT o.amount)     AS revenue_wrong,\n       SUM(o.amount) / COUNT(DISTINCT t.ticket_id) AS revenue_fragile\nFROM customers_j AS c\nJOIN orders_j    AS o ON o.customer_id = c.customer_id\nJOIN tickets_j   AS t ON t.customer_ref = CAST(c.customer_id AS CHAR)\nWHERE c.customer_id IN (23, 47)\nGROUP BY c.customer_id\nORDER BY c.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "n_orders",
+      "revenue_wrong",
+      "revenue_fragile"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       23,
+       10,
+       "1353.90",
+       "2707.800000"
+      ],
+      [
+       47,
+       10,
+       "1012.70",
+       "2025.400000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}
