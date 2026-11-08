@@ -375,7 +375,7 @@ SELECT /*+ SEMIJOIN(@sq FIRSTMATCH) */ p.product_id, p.name FROM products p
 WHERE p.product_id IN (SELECT /*+ QB_NAME(sq) */ i.product_id FROM order_items i WHERE i.quantity >= 3);
 ```
 
-In this capture the FirstMatch semantics is executed by a `Hash semijoin` iterator: the filtered order items (quantity ≥ 3) are the build input, hashed on `product_id`, and each product probes the hash table and is emitted at most once. On another copy of the shop data on the build machine, the same hint produced the classic FirstMatch shape instead — `Nested loop semijoin` with an `Index lookup on i using idx_order_items_product` per product, and `FirstMatch(p)` in traditional EXPLAIN. Which iterator executes the strategy depends on the cost estimates.
+`Nested loop semijoin`: for each product, MySQL looks up its order items through `idx_order_items_product`, applies `quantity >= 3`, and moves on to the next product as soon as one item qualifies — traditional EXPLAIN marks this as `FirstMatch(p)`. (In an earlier capture made before the `ANALYZE TABLE` above was added, the same hint was executed by a `Hash semijoin` iterator instead — the hashed order items as build input, each product emitted at most once. Same strategy semantics, different physical iterator, chosen from different statistics.)
 
 **Materialization** — run the subquery once into a deduplicated temporary table, then look up each product in it:
 

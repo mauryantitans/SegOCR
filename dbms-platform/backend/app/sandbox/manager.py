@@ -238,6 +238,9 @@ class LabSession:
                     rows = cur.fetchmany(limit + 1)
                     res.truncated = len(rows) > limit
                     res.rows = [[to_jsonable(v) for v in r] for r in rows[:limit]]
+                    if res.verb == "EXPLAIN":  # plans qualify columns with the private lab schema name
+                        prefix = self.schema + "."
+                        res.rows = [[c.replace(prefix, "") if isinstance(c, str) else c for c in r] for r in res.rows]
                     count = len(rows[:limit])
                     if res.truncated:  # drain the rest to count it
                         for _ in cur:
@@ -402,6 +405,14 @@ class LabManager:
                 c.execute(script)
                 while c.nextset():
                     pass
+                # Fresh InnoDB statistics are sampled lazily and vary between loads; analyze now so that
+                # execution plans shown in lessons (and seen by learners) are stable and reproducible.
+                c.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE() "
+                          "AND table_type = 'BASE TABLE'")
+                tables = [r[0] for r in c.fetchall()]
+                if tables:
+                    c.execute("ANALYZE TABLE " + ", ".join(f"`{t}`" for t in tables))
+                    c.fetchall()
         finally:
             conn.close()
 

@@ -98,6 +98,11 @@ irrelevant content, never drop the heading.
   project with `/projects/<id>`, and to the playground with `/playground`. Refer to lessons in other modules by
   title and link even if they are not written yet — every curriculum id resolves.
 - No LaTeX. Use Unicode: σ π ⋈ ⟕ ⟖ ⟗ × ∪ ∩ − ÷ γ → ⊆ ∀ ∃ ¬ ∧ ∨ ≤ ≥ ≠.
+- **Nested fences:** a ```` ``` ```` line inside a YAML block (for example a code sample in an exercise
+  `solution` or `explanation`) closes the outer block early. Use `~~~sql … ~~~` inside, or open the outer block
+  with four backticks (```` ````exercise ````) — a fence is only closed by one at least as long.
+- **Plans need statistics:** datasets are `ANALYZE`d automatically when a lab loads, but tables you create or bulk
+  load in a lesson are not — run `ANALYZE TABLE …` (and explain why) before showing their EXPLAIN output.
 - **Structured blocks (below) must be at the top level — never inside a `:::` callout.** Plain display-only
   ```` ```sql ```` inside a callout is fine.
 

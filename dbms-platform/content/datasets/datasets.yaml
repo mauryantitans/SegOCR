@@ -3,7 +3,7 @@ shop:
   title: Shop (e-commerce)
   description: An online store - customers, a category hierarchy, products, orders with line items, payments and reviews (calendar year 2024).
   tables:
-    customers: 25 customers. phone is NULL for every 5th customer; loyalty_tier is NULL for some. Customers 23-25 have never ordered.
+    customers: 25 customers. phone is NULL for every 5th customer; loyalty_tier is NULL for some. Customers 2, 13, 23, 24 and 25 have never ordered.
     categories: 10 categories in a hierarchy via parent_id (Electronics > Computers > Laptops ...). Roots have parent_id NULL.
     products: 30 products. category_id is NULL for the gift card. Product 4 is inactive with zero stock; product 13 has zero stock.
     orders: 80 orders in 2024 with status pending/paid/shipped/delivered/cancelled/refunded. shipped_at is NULL until shipped; discount_code is NULL for about half of the orders.

@@ -281,7 +281,7 @@ FROM employees e
 WHERE e.salary > (SELECT AVG(e2.salary) FROM employees e2 WHERE e2.department_id = e.department_id);
 ```
 
-The subquery is labelled `dependent`, and its iterators show `loops=30`: it was executed once per outer employee — the tuple-iteration semantics, literally. Look at *how* each execution reads `e2` in this capture: `Table scan on e2` with `rows=30` per loop, followed by a `Filter` on `e2.department_id = e.department_id` that keeps about 6 rows. For a 30-row table the optimizer judged a scan per execution as cheap as index lookups, so it read 30 × 30 = 900 rows in total. That is harmless here and exactly the quadratic pattern that is catastrophic on a large table. The choice depends on the optimizer's cost estimates, which come from index statistics: on another copy of the hr data on the build machine, the same query used an `Index lookup on e2 using idx_employees_department` inside the dependent subquery (run `ANALYZE TABLE employees` in your lab and re-run the EXPLAIN to see what your server picks), and each execution then reads only the rows of one department — which is why the index on the correlation column matters so much.
+The subquery is labelled `dependent`, and its iterators show `loops=30`: it was executed once per outer employee — the tuple-iteration semantics, literally. Look at *how* each execution reads `e2`: an `Index lookup on e2 using idx_employees_department` that returns about 6 rows per loop (`rows=6.17`, the average department size), followed by the `AVG` aggregate. So the 30 executions read roughly 185 index entries in total instead of 30 × 30 = 900 rows. Without the index on the correlation column, every execution would have to scan the whole table and filter it — harmless at 30 rows, quadratic and catastrophic at 3 million. (Before the `ANALYZE TABLE` above was added, an earlier capture of this very query in a freshly loaded lab showed exactly that: `Table scan on e2` with `rows=30 loops=30` — a reminder that plans follow statistics.)
 
 ### Decorrelated by the optimizer
 
@@ -298,7 +298,7 @@ FROM employees e
 WHERE e.salary > (SELECT AVG(e2.salary) FROM employees e2 WHERE e2.department_id = e.department_id);
 ```
 
-The subquery is gone. In its place is a derived table (named `derived_1_2` by MySQL) produced by a `Group aggregate: avg(e2.salary)` over the whole table — one average per department, computed **once** — and joined to `e` on `department_id` (here with a hash join, the derived table being the build input), with the salary comparison applied as a filter. The result is the same:
+The subquery is gone. In its place is a derived table (named `derived_1_2` by MySQL) produced by a `Group aggregate: avg(e2.salary)` over the whole table — one average per department, computed **once** — and joined to `e` on `department_id` — the derived table drives, and each department's employees are fetched with an index lookup on `idx_employees_department` — with the salary comparison applied as a filter. The result is the same:
 
 ```sql run
 SELECT COUNT(*) AS above_department_average

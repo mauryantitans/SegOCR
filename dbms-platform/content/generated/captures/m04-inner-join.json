@@ -1039,10 +1039,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=0.088..0.0886 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=0.0869..0.0869 rows=5 loops=1)\n        -> Nested loop inner join  (cost=36.2 rows=80) (actual time=0.0262..0.0645 rows=80 loops=1)\n            -> Covering index scan on o using idx_orders_customer  (cost=8.25 rows=80) (actual time=0.0186..0.028 rows=80 loops=1)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.251 rows=1) (actual time=287e-6..309e-6 rows=1 loops=80)\n"
+       "-> Table scan on <temporary>  (actual time=0.0855..0.0861 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=0.0848..0.0848 rows=5 loops=1)\n        -> Nested loop inner join  (cost=36.2 rows=80) (actual time=0.0226..0.0625 rows=80 loops=1)\n            -> Covering index scan on o using idx_orders_customer  (cost=8.25 rows=80) (actual time=0.015..0.0239 rows=80 loops=1)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.251 rows=1) (actual time=317e-6..339e-6 rows=1 loops=80)\n"
       ]
      ],
-     "elapsed_ms": 0.98
+     "elapsed_ms": 1.02
     }
    ],
    "measured": true
