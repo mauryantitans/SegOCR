@@ -1,0 +1,552 @@
+{
+ "doc": "m01-database-architectures",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:735ee79d9568": {
+   "statements": [
+    {
+     "sql": "SELECT USER, COMMAND, STATE, INFO\nFROM information_schema.PROCESSLIST\nWHERE ID = CONNECTION_ID()",
+     "status": "ok",
+     "columns": [
+      "USER",
+      "COMMAND",
+      "STATE",
+      "INFO"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "your_lab",
+       "Query",
+       "executing",
+       "SELECT USER, COMMAND, STATE, INFO\nFROM information_schema.PROCESSLIST\nWHERE ID = CONNECTION_ID()"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'INFORMATION_SCHEMA.PROCESSLIST' is deprecated and will be removed in a future release. Please use performance_schema.processlist instead"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:e84013553aa0": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Ssl_version'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Ssl_version",
+       "TLSv1.3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:764ea347d686": {
+   "statements": [
+    {
+     "sql": "SELECT @@port               AS classic_port,\n       @@mysqlx_port        AS x_protocol_port,\n       @@max_connections    AS max_connections,\n       @@thread_handling    AS thread_handling,\n       @@wait_timeout       AS idle_timeout_seconds",
+     "status": "ok",
+     "columns": [
+      "classic_port",
+      "x_protocol_port",
+      "max_connections",
+      "thread_handling",
+      "idle_timeout_seconds"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3306,
+       33060,
+       151,
+       "one-thread-per-connection",
+       28800
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:232d6ae0e761": {
+   "statements": [
+    {
+     "sql": "SELECT @@server_id AS server_id,\n       @@log_bin   AS binary_log_enabled,\n       @@gtid_mode AS gtid_mode,\n       @@read_only AS read_only",
+     "status": "ok",
+     "columns": [
+      "server_id",
+      "binary_log_enabled",
+      "gtid_mode",
+      "read_only"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1,
+       "OFF",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:221884756c55": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE cancel_order(IN p_order_id INT UNSIGNED)\nBEGIN\n  UPDATE orders\n  SET status = 'cancelled'\n  WHERE order_id = p_order_id AND status IN ('pending', 'paid');\n  SELECT p_order_id AS order_id, ROW_COUNT() AS rows_cancelled;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL cancel_order(4)",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "rows_cancelled"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       4,
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "CALL cancel_order(2)",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "rows_cancelled"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       2,
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT order_id, status FROM orders WHERE order_id IN (2, 4) ORDER BY order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       2,
+       "delivered"
+      ],
+      [
+       4,
+       "cancelled"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:443b85d8e20e": {
+   "statements": [
+    {
+     "sql": "-- N+1 style: one round trip per customer (shown for two of the five)\nSELECT COUNT(*) AS orders FROM orders WHERE customer_id = 1",
+     "status": "ok",
+     "columns": [
+      "orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS orders FROM orders WHERE customer_id = 2",
+     "status": "ok",
+     "columns": [
+      "orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:0b439752321f": {
+   "statements": [
+    {
+     "sql": "-- Set-based: one round trip for all five customers\nSELECT c.customer_id, COUNT(o.order_id) AS orders\nFROM customers AS c\nLEFT JOIN orders AS o ON o.customer_id = c.customer_id\nWHERE c.customer_id BETWEEN 1 AND 5\nGROUP BY c.customer_id\nORDER BY c.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "orders"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       2
+      ],
+      [
+       2,
+       0
+      ],
+      [
+       3,
+       3
+      ],
+      [
+       4,
+       4
+      ],
+      [
+       5,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:f1b8225a8a30": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE orders_shard_0 LIKE orders",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE orders_shard_1 LIKE orders",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders_shard_0 SELECT * FROM orders WHERE customer_id % 2 = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 46,
+     "info": "Records: 46  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders_shard_1 SELECT * FROM orders WHERE customer_id % 2 = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 34,
+     "info": "Records: 34  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT 'shard_0' AS shard, COUNT(*) AS orders FROM orders_shard_0\nUNION ALL\nSELECT 'shard_1', COUNT(*) FROM orders_shard_1",
+     "status": "ok",
+     "columns": [
+      "shard",
+      "orders"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "shard_0",
+       46
+      ],
+      [
+       "shard_1",
+       34
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:9e71c7e7174e": {
+   "statements": [
+    {
+     "sql": "-- customer 7: 7 % 2 = 1 → shard 1 only\nSELECT order_id, order_date, status\nFROM orders_shard_1\nWHERE customer_id = 7\nORDER BY order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_date",
+      "status"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       17,
+       "2024-12-22 14:33:00",
+       "shipped"
+      ],
+      [
+       26,
+       "2024-08-26 19:56:00",
+       "delivered"
+      ],
+      [
+       27,
+       "2024-02-08 18:06:00",
+       "refunded"
+      ],
+      [
+       37,
+       "2024-11-16 11:36:00",
+       "delivered"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:2064da817867": {
+   "statements": [
+    {
+     "sql": "SELECT status, SUM(n) AS orders\nFROM (\n  SELECT status, COUNT(*) AS n FROM orders_shard_0 GROUP BY status\n  UNION ALL\n  SELECT status, COUNT(*) AS n FROM orders_shard_1 GROUP BY status\n) AS per_shard\nGROUP BY status\nORDER BY orders DESC, status",
+     "status": "ok",
+     "columns": [
+      "status",
+      "orders"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "delivered",
+       "45"
+      ],
+      [
+       "shipped",
+       "14"
+      ],
+      [
+       "cancelled",
+       "9"
+      ],
+      [
+       "paid",
+       "5"
+      ],
+      [
+       "refunded",
+       "5"
+      ],
+      [
+       "pending",
+       "2"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:a8c88783a484": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id, order_date, status FROM orders WHERE customer_id = 7 ORDER BY order_date",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Sort: orders.order_date  (cost=1.15 rows=4)\n    -> Index lookup on orders using idx_orders_customer (customer_id=7)  (cost=1.15 rows=4)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:c3be1b43fbf4": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, order_date, status FROM orders WHERE customer_id = 7 ORDER BY order_date",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_date",
+      "status"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       27,
+       "2024-02-08 18:06:00",
+       "refunded"
+      ],
+      [
+       26,
+       "2024-08-26 19:56:00",
+       "delivered"
+      ],
+      [
+       37,
+       "2024-11-16 11:36:00",
+       "delivered"
+      ],
+      [
+       17,
+       "2024-12-22 14:33:00",
+       "shipped"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:308837cdb31b": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE orders SET status = 'cancelled' WHERE order_id = 58 AND customer_id = 7 AND status IN ('pending', 'paid')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS rows_changed",
+     "status": "ok",
+     "columns": [
+      "rows_changed"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:7d5428a4ad9a": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, status FROM orders WHERE customer_id = 7 ORDER BY order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       17,
+       "shipped"
+      ],
+      [
+       26,
+       "delivered"
+      ],
+      [
+       27,
+       "refunded"
+      ],
+      [
+       37,
+       "delivered"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:85684c64999b": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, COUNT(*) AS orders\nFROM customers AS c\nJOIN orders AS o ON o.customer_id = c.customer_id\nWHERE c.customer_id BETWEEN 1 AND 5\nGROUP BY c.customer_id\nORDER BY c.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "orders"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       2
+      ],
+      [
+       3,
+       3
+      ],
+      [
+       4,
+       4
+      ],
+      [
+       5,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:c8ce7f9e2597": {
+   "statements": [
+    {
+     "sql": "SELECT\n  (SELECT AVG(quantity) FROM order_items WHERE order_id IN (SELECT order_id FROM orders_shard_0)) AS avg_shard_0,\n  (SELECT AVG(quantity) FROM order_items WHERE order_id IN (SELECT order_id FROM orders_shard_1)) AS avg_shard_1,\n  (SELECT AVG(quantity) FROM order_items) AS true_avg",
+     "status": "ok",
+     "columns": [
+      "avg_shard_0",
+      "avg_shard_1",
+      "true_avg"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "1.6337",
+       "1.6914",
+       "1.6593"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}
