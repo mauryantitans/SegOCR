@@ -808,7 +808,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Group aggregate: sum(stock_movements.qty)  (cost=20981 rows=2)\n    -> Filter: ((stock_movements.product_id = 42) and (stock_movements.moved_at < TIMESTAMP'2025-07-01 00:00:00'))  (cost=20310 rows=6708)\n        -> Index scan on stock_movements using fk_movements_stock  (cost=20310 rows=201256)\n"
+       "-> Group aggregate: sum(stock_movements.qty)  (cost=20959 rows=2)\n    -> Filter: ((stock_movements.product_id = 42) and (stock_movements.moved_at < TIMESTAMP'2025-07-01 00:00:00'))  (cost=20289 rows=6701)\n        -> Index scan on stock_movements using fk_movements_stock  (cost=20289 rows=201050)\n"
       ]
      ]
     }
@@ -826,10 +826,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Group aggregate: sum(stock_movements.qty)  (cost=20981 rows=2) (actual time=128..321 rows=3 loops=1)\n    -> Filter: ((stock_movements.product_id = 42) and (stock_movements.moved_at < TIMESTAMP'2025-07-01 00:00:00'))  (cost=20310 rows=6708) (actual time=11.5..321 rows=220 loops=1)\n        -> Index scan on stock_movements using fk_movements_stock  (cost=20310 rows=201256) (actual time=2.36..311 rows=201501 loops=1)\n"
+       "-> Group aggregate: sum(stock_movements.qty)  (cost=20959 rows=2) (actual time=115..264 rows=3 loops=1)\n    -> Filter: ((stock_movements.product_id = 42) and (stock_movements.moved_at < TIMESTAMP'2025-07-01 00:00:00'))  (cost=20289 rows=6701) (actual time=10.2..264 rows=220 loops=1)\n        -> Index scan on stock_movements using fk_movements_stock  (cost=20289 rows=201050) (actual time=2.28..255 rows=201501 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 321.81
+     "elapsed_ms": 264.98
     }
    ],
    "measured": true
@@ -877,10 +877,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=0.208..0.208 rows=3 loops=1)\n    -> Aggregate using temporary table  (actual time=0.206..0.206 rows=3 loops=1)\n        -> Filter: ((stock_movements.product_id = 42) and (stock_movements.moved_at < TIMESTAMP'2025-07-01 00:00:00'))  (cost=45.6 rows=220) (actual time=0.0285..0.121 rows=220 loops=1)\n            -> Covering index range scan on stock_movements using idx_movements_product_time over (product_id = 42 AND moved_at < '2025-07-01 00:00:00')  (cost=45.6 rows=220) (actual time=0.0254..0.0932 rows=220 loops=1)\n"
+       "-> Table scan on <temporary>  (actual time=0.148..0.149 rows=3 loops=1)\n    -> Aggregate using temporary table  (actual time=0.146..0.146 rows=3 loops=1)\n        -> Filter: ((stock_movements.product_id = 42) and (stock_movements.moved_at < TIMESTAMP'2025-07-01 00:00:00'))  (cost=45.6 rows=220) (actual time=0.0175..0.0842 rows=220 loops=1)\n            -> Covering index range scan on stock_movements using idx_movements_product_time over (product_id = 42 AND moved_at < '2025-07-01 00:00:00')  (cost=45.6 rows=220) (actual time=0.0157..0.0635 rows=220 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 1.82
+     "elapsed_ms": 1.42
     }
    ],
    "measured": true
@@ -1095,18 +1095,18 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "A",
-        "trxId": "602932",
-        "state": "RUNNING",
+        "session": "B",
+        "trxId": "662868",
+        "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
         "rowsModified": 0,
         "lockStructs": 2
        },
        {
-        "session": "B",
-        "trxId": "602939",
-        "state": "LOCK WAIT",
+        "session": "A",
+        "trxId": "662865",
+        "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
         "rowsModified": 0,
@@ -1339,21 +1339,21 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "A",
-        "trxId": "604006",
-        "state": "RUNNING",
-        "isolation": "REPEATABLE READ",
-        "rowsLocked": 1,
-        "rowsModified": 1,
-        "lockStructs": 2
-       },
-       {
         "session": "B",
-        "trxId": "604015",
+        "trxId": "662947",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
         "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "A",
+        "trxId": "662945",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
         "lockStructs": 2
        }
       ],
@@ -1522,17 +1522,8 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "B",
-        "trxId": "604071",
-        "state": "RUNNING",
-        "isolation": "REPEATABLE READ",
-        "rowsLocked": 2,
-        "rowsModified": 0,
-        "lockStructs": 3
-       },
-       {
         "session": "A",
-        "trxId": "604067",
+        "trxId": "662994",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 2,
@@ -1541,12 +1532,21 @@
        },
        {
         "session": "C",
-        "trxId": "604076",
+        "trxId": "662999",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 0,
         "rowsModified": 0,
         "lockStructs": 1
+       },
+       {
+        "session": "B",
+        "trxId": "662997",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 2,
+        "rowsModified": 0,
+        "lockStructs": 3
        }
       ],
       "locks": [
@@ -1753,10 +1753,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: sum((m.qty * p.unit_cost))  (cost=28721 rows=1) (actual time=106..106 rows=1 loops=1)\n    -> Nested loop inner join  (cost=22350 rows=63710) (actual time=0.216..97.7 rows=67167 loops=1)\n        -> Table scan on p  (cost=51.1 rows=501) (actual time=0.025..0.22 rows=501 loops=1)\n        -> Index lookup on m using fk_movements_stock (warehouse_id=1, product_id=p.product_id)  (cost=31.8 rows=127) (actual time=0.155..0.186 rows=134 loops=501)\n"
+       "-> Aggregate: sum((m.qty * p.unit_cost))  (cost=31619 rows=1) (actual time=49..49 rows=1 loops=1)\n    -> Nested loop inner join  (cost=21445 rows=101743) (actual time=0.0349..41.8 rows=67167 loops=1)\n        -> Table scan on p  (cost=51.1 rows=501) (actual time=0.0182..0.161 rows=501 loops=1)\n        -> Filter: (m.warehouse_id = 1)  (cost=2.13 rows=203) (actual time=0.0197..0.0762 rows=134 loops=501)\n            -> Covering index lookup on m using idx_movements_product_time (product_id=p.product_id)  (cost=2.13 rows=406) (actual time=0.0195..0.0572 rows=402 loops=501)\n"
       ]
      ],
-     "elapsed_ms": 108.29
+     "elapsed_ms": 50.31
     }
    ],
    "measured": true
@@ -1772,10 +1772,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: sum((s.on_hand * p.unit_cost))  (cost=275 rows=1) (actual time=0.567..0.567 rows=1 loops=1)\n    -> Nested loop inner join  (cost=225 rows=500) (actual time=0.0565..0.505 rows=500 loops=1)\n        -> Index lookup on s using PRIMARY (warehouse_id=1)  (cost=50.4 rows=500) (actual time=0.0491..0.113 rows=500 loops=1)\n        -> Single-row index lookup on p using PRIMARY (product_id=s.product_id)  (cost=0.25 rows=1) (actual time=608e-6..633e-6 rows=1 loops=500)\n"
+       "-> Aggregate: sum((s.on_hand * p.unit_cost))  (cost=275 rows=1) (actual time=0.515..0.515 rows=1 loops=1)\n    -> Nested loop inner join  (cost=225 rows=500) (actual time=0.0507..0.424 rows=500 loops=1)\n        -> Index lookup on s using PRIMARY (warehouse_id=1)  (cost=50.4 rows=500) (actual time=0.0436..0.0935 rows=500 loops=1)\n        -> Single-row index lookup on p using PRIMARY (product_id=s.product_id)  (cost=0.25 rows=1) (actual time=522e-6..542e-6 rows=1 loops=500)\n"
       ]
      ],
-     "elapsed_ms": 2.07
+     "elapsed_ms": 1.72
     }
    ],
    "measured": true
@@ -1994,11 +1994,11 @@
      "rows": [
       [
        "p2025_01",
-       17394
+       18326
       ],
       [
        "p2025_02",
-       15189
+       15582
       ],
       [
        "p2025_03",
@@ -2006,15 +2006,15 @@
       ],
       [
        "p2025_04",
-       16336
+       16758
       ],
       [
        "p2025_05",
-       17346
+       16328
       ],
       [
        "p2025_06",
-       16758
+       16336
       ],
       [
        "p2025_07",
@@ -2022,7 +2022,7 @@
       ],
       [
        "p2025_08",
-       17340
+       16905
       ],
       [
        "p2025_09",
@@ -2030,11 +2030,11 @@
       ],
       [
        "p2025_10",
-       17340
+       16755
       ],
       [
        "p2025_11",
-       16341
+       15860
       ],
       [
        "p2025_12",
@@ -2107,10 +2107,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=64.6..64.6 rows=6 loops=1)\n    -> Aggregate using temporary table  (actual time=64.6..64.6 rows=6 loops=1)\n        -> Filter: ((stock_movements.moved_at >= TIMESTAMP'2025-12-01 00:00:00') and (stock_movements.moved_at < TIMESTAMP'2026-01-01 00:00:00'))  (cost=20289 rows=22334) (actual time=51.7..56.8 rows=16332 loops=1)\n            -> Table scan on stock_movements  (cost=20289 rows=201050) (actual time=0.137..44.5 rows=201501 loops=1)\n"
+       "-> Table scan on <temporary>  (actual time=59.3..59.3 rows=6 loops=1)\n    -> Aggregate using temporary table  (actual time=59.3..59.3 rows=6 loops=1)\n        -> Filter: ((stock_movements.moved_at >= TIMESTAMP'2025-12-01 00:00:00') and (stock_movements.moved_at < TIMESTAMP'2026-01-01 00:00:00'))  (cost=20289 rows=22334) (actual time=47.4..52.2 rows=16332 loops=1)\n            -> Table scan on stock_movements  (cost=20289 rows=201050) (actual time=0.117..40.7 rows=201501 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 65.86
+     "elapsed_ms": 60.49
     }
    ],
    "measured": true
@@ -2126,10 +2126,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=13.7..13.7 rows=6 loops=1)\n    -> Aggregate using temporary table  (actual time=13.7..13.7 rows=6 loops=1)\n        -> Filter: ((stock_movements_by_month.moved_at >= TIMESTAMP'2025-12-01 00:00:00') and (stock_movements_by_month.moved_at < TIMESTAMP'2026-01-01 00:00:00'))  (cost=1630 rows=1784) (actual time=0.175..5.44 rows=16332 loops=1)\n            -> Table scan on stock_movements_by_month  (cost=1630 rows=16059) (actual time=0.173..3.78 rows=16332 loops=1)\n"
+       "-> Table scan on <temporary>  (actual time=13.5..13.5 rows=6 loops=1)\n    -> Aggregate using temporary table  (actual time=13.5..13.5 rows=6 loops=1)\n        -> Filter: ((stock_movements_by_month.moved_at >= TIMESTAMP'2025-12-01 00:00:00') and (stock_movements_by_month.moved_at < TIMESTAMP'2026-01-01 00:00:00'))  (cost=1630 rows=1784) (actual time=0.138..5.95 rows=16332 loops=1)\n            -> Table scan on stock_movements_by_month  (cost=1630 rows=16059) (actual time=0.137..4.32 rows=16332 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 14.88
+     "elapsed_ms": 14.79
     }
    ],
    "measured": true

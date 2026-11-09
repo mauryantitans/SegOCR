@@ -1,0 +1,1790 @@
+{
+ "doc": "p7-analytics-reporting",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:e2bc816a3193": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE oltp_customers (\n  customer_id   INT UNSIGNED NOT NULL,\n  email         VARCHAR(255) NOT NULL,\n  full_name     VARCHAR(80)  NOT NULL,\n  country       CHAR(2)      NOT NULL,\n  city          VARCHAR(40)  NOT NULL,\n  loyalty_tier  ENUM('BRONZE','SILVER','GOLD') NOT NULL DEFAULT 'BRONZE',\n  signup_at     DATETIME     NOT NULL,\n  updated_at    DATETIME(6)  NOT NULL,\n  PRIMARY KEY (customer_id),\n  UNIQUE KEY uq_customers_email (email),\n  KEY idx_customers_updated (updated_at)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE oltp_products (\n  product_id  INT UNSIGNED NOT NULL,\n  sku         VARCHAR(20)  NOT NULL,\n  name        VARCHAR(100) NOT NULL,\n  category    VARCHAR(30)  NOT NULL,\n  list_price  DECIMAL(10,2) NOT NULL,\n  updated_at  DATETIME(6)  NOT NULL,\n  PRIMARY KEY (product_id),\n  UNIQUE KEY uq_products_sku (sku),\n  KEY idx_products_updated (updated_at)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE oltp_orders (\n  order_id     INT UNSIGNED NOT NULL,\n  customer_id  INT UNSIGNED NOT NULL,\n  status       ENUM('PLACED','SHIPPED','CANCELLED','RETURNED') NOT NULL,\n  ordered_at   DATETIME     NOT NULL,\n  updated_at   DATETIME(6)  NOT NULL,\n  PRIMARY KEY (order_id),\n  KEY idx_orders_customer (customer_id),\n  KEY idx_orders_updated (updated_at),\n  CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id) REFERENCES oltp_customers (customer_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE oltp_order_items (\n  order_id    INT UNSIGNED NOT NULL,\n  line_no     TINYINT UNSIGNED NOT NULL,\n  product_id  INT UNSIGNED NOT NULL,\n  qty         SMALLINT UNSIGNED NOT NULL,\n  unit_price  DECIMAL(10,2) NOT NULL,\n  PRIMARY KEY (order_id, line_no),\n  CONSTRAINT fk_items_order   FOREIGN KEY (order_id)   REFERENCES oltp_orders (order_id),\n  CONSTRAINT fk_items_product FOREIGN KEY (product_id) REFERENCES oltp_products (product_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE oltp_events (\n  event_id     BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n  session_id   INT UNSIGNED NOT NULL,\n  customer_id  INT UNSIGNED NULL,\n  event_type   ENUM('visit','view_product','add_to_cart','begin_checkout','purchase') NOT NULL,\n  occurred_at  DATETIME NOT NULL,\n  PRIMARY KEY (event_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s2:984be6101189": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 60000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO oltp_customers\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 3000)\nSELECT n, CONCAT('customer', n, '@example.com'), CONCAT('Customer ', n),\n       ELT(1 + n % 4, 'US', 'CA', 'GB', 'DE'),\n       ELT(1 + n % 7, 'Portland', 'Denver', 'Toronto', 'Leeds', 'Munich', 'Austin', 'Vancouver'),\n       ELT(1 + (n * 7) % 10, 'BRONZE', 'BRONZE', 'BRONZE', 'BRONZE', 'BRONZE', 'BRONZE', 'SILVER', 'SILVER', 'SILVER', 'GOLD'),\n       '2024-01-01' + INTERVAL (n - 1) * 10512 SECOND,\n       '2024-01-01' + INTERVAL (n - 1) * 10512 SECOND\nFROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3000,
+     "info": "Records: 3000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO oltp_products\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 200)\nSELECT n, CONCAT('FW-', LPAD(n, 4, '0')),\n       CONCAT(ELT(1 + n % 5, 'Tent', 'Backpack', 'Hiking boot', 'Rain jacket', 'Camp stove'), ' ', n),\n       ELT(1 + n % 5, 'Tents', 'Packs', 'Footwear', 'Apparel', 'Cooking'),\n       10 + (n * 37) % 290, '2024-01-01'\nFROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200,
+     "info": "Records: 200  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO oltp_orders\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 30000)\nSELECT n, 1 + i, IF(n % 17 = 0, 'CANCELLED', IF(n % 23 = 0, 'RETURNED', 'SHIPPED')),\n       '2024-01-01' + INTERVAL i * 10512 SECOND + INTERVAL u * 3456 SECOND,\n       '2024-01-01' + INTERVAL i * 10512 SECOND + INTERVAL u * 3456 SECOND + INTERVAL 1 HOUR\nFROM (SELECT n, (n * 7919) % 3000 AS i,\n             ((n DIV 3000) * 37 + n * 11) % 100 * (((n DIV 3000) * 53 + n * 29) % 100) AS u\n      FROM s) x\nWHERE '2024-01-01' + INTERVAL i * 10512 SECOND + INTERVAL u * 3456 SECOND < '2025-07-01'\n  AND u * 0.04 < 30 * (1 + (i * 97) % 12)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 22819,
+     "info": "Records: 22819  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO oltp_order_items\nSELECT o.order_id, l.n, p.product_id, 1 + (o.order_id + l.n) % 3, p.list_price\nFROM oltp_orders o\nJOIN (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3) l ON l.n <= 1 + o.order_id % 3\nJOIN oltp_products p ON p.product_id = 1 + (o.order_id * 13 + l.n * 71) % 200",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 46326,
+     "info": "Records: 46326  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO oltp_events (session_id, customer_id, event_type, occurred_at)\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 50000)\nSELECT s.n, IF(s.n % 4 = 0, NULL, 1 + (s.n * 31) % 3000),\n       ELT(st.k, 'visit', 'view_product', 'add_to_cart', 'begin_checkout', 'purchase'),\n       '2025-01-01' + INTERVAL s.n * 311 SECOND + INTERVAL st.k * 40 SECOND\nFROM s\nJOIN (SELECT 1 AS k UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5) st\n  ON st.k = 1\n  OR (st.k = 2 AND s.n % 10 < 7)\n  OR (st.k = 3 AND s.n % 10 < 3)\n  OR (st.k = 4 AND s.n % 10 < 2 AND s.n % 3 <> 0)\n  OR (st.k = 5 AND s.n % 10 < 2 AND s.n % 3 <> 0 AND s.n % 4 <> 1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 111669,
+     "info": "Records: 111669  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s3:b68662f0cf12": {
+   "statements": [
+    {
+     "sql": "SELECT 'orders' AS entity, COUNT(*) AS row_count, MIN(ordered_at) AS first_seen, MAX(ordered_at) AS last_seen FROM oltp_orders\nUNION ALL SELECT 'order lines', COUNT(*), NULL, NULL FROM oltp_order_items\nUNION ALL SELECT 'customers', COUNT(*), MIN(signup_at), MAX(signup_at) FROM oltp_customers\nUNION ALL SELECT 'web events', COUNT(*), MIN(occurred_at), MAX(occurred_at) FROM oltp_events",
+     "status": "ok",
+     "columns": [
+      "entity",
+      "row_count",
+      "first_seen",
+      "last_seen"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "orders",
+       22819,
+       "2024-01-01 05:50:24",
+       "2025-06-30 16:40:48"
+      ],
+      [
+       "order lines",
+       46326,
+       null,
+       null
+      ],
+      [
+       "customers",
+       3000,
+       "2024-01-01 00:00:00",
+       "2024-12-30 21:04:48"
+      ],
+      [
+       "web events",
+       111669,
+       "2025-01-01 00:05:51",
+       "2025-06-29 23:30:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:1aa136bf9b8d": {
+   "statements": [
+    {
+     "sql": "SELECT o.status, COUNT(DISTINCT o.order_id) AS orders, SUM(i.qty * i.unit_price) AS line_value\nFROM oltp_orders o JOIN oltp_order_items i ON i.order_id = o.order_id\nGROUP BY o.status\nORDER BY orders DESC",
+     "status": "ok",
+     "columns": [
+      "status",
+      "orders",
+      "line_value"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "SHIPPED",
+       20532,
+       "12894205.00"
+      ],
+      [
+       "CANCELLED",
+       1341,
+       "833875.00"
+      ],
+      [
+       "RETURNED",
+       946,
+       "570329.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:b8b75ef152ad": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS order_lines, SUM(i.unit_price <> p.list_price) AS lines_priced_differently_from_today\nFROM oltp_order_items i JOIN oltp_products p ON p.product_id = i.product_id",
+     "status": "ok",
+     "columns": [
+      "order_lines",
+      "lines_priced_differently_from_today"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       46326,
+       "0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:44829e155c72": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE dw_dim_date (\n  date_key     INT UNSIGNED NOT NULL,\n  full_date    DATE NOT NULL,\n  year         SMALLINT UNSIGNED NOT NULL,\n  quarter      TINYINT UNSIGNED NOT NULL,\n  month        TINYINT UNSIGNED NOT NULL,\n  month_label  CHAR(7) NOT NULL,\n  month_name   VARCHAR(9) NOT NULL,\n  iso_week     TINYINT UNSIGNED NOT NULL,\n  day_of_week  TINYINT UNSIGNED NOT NULL,\n  day_name     VARCHAR(9) NOT NULL,\n  is_weekend   BOOLEAN NOT NULL,\n  PRIMARY KEY (date_key),\n  UNIQUE KEY uq_dim_date_full (full_date)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO dw_dim_date\nWITH RECURSIVE d(dt) AS (SELECT DATE '2024-01-01' UNION ALL SELECT dt + INTERVAL 1 DAY FROM d WHERE dt < '2025-12-31')\nSELECT CAST(DATE_FORMAT(dt, '%Y%m%d') AS UNSIGNED), dt, YEAR(dt), QUARTER(dt), MONTH(dt),\n       DATE_FORMAT(dt, '%Y-%m'), MONTHNAME(dt), WEEK(dt, 3), WEEKDAY(dt) + 1, DAYNAME(dt), WEEKDAY(dt) >= 5\nFROM d",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 731,
+     "info": "Records: 731  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM dw_dim_date WHERE full_date IN ('2024-12-30', '2025-01-01', '2025-07-05') ORDER BY date_key",
+     "status": "ok",
+     "columns": [
+      "date_key",
+      "full_date",
+      "year",
+      "quarter",
+      "month",
+      "month_label",
+      "month_name",
+      "iso_week",
+      "day_of_week",
+      "day_name",
+      "is_weekend"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       20241230,
+       "2024-12-30",
+       2024,
+       4,
+       12,
+       "2024-12",
+       "December",
+       1,
+       1,
+       "Monday",
+       0
+      ],
+      [
+       20250101,
+       "2025-01-01",
+       2025,
+       1,
+       1,
+       "2025-01",
+       "January",
+       1,
+       3,
+       "Wednesday",
+       0
+      ],
+      [
+       20250705,
+       "2025-07-05",
+       2025,
+       3,
+       7,
+       "2025-07",
+       "July",
+       27,
+       6,
+       "Saturday",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:eac9c2b20c82": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE dw_dim_customer (\n  customer_key  INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  customer_id   INT UNSIGNED NOT NULL,\n  country       CHAR(2)     NOT NULL,\n  city          VARCHAR(40) NOT NULL,\n  loyalty_tier  VARCHAR(10) NOT NULL,\n  valid_from    DATETIME(6) NOT NULL,\n  valid_to      DATETIME(6) NOT NULL DEFAULT '9999-12-31 00:00:00',\n  is_current    BOOLEAN NOT NULL DEFAULT TRUE,\n  PRIMARY KEY (customer_key),\n  UNIQUE KEY uq_dim_customer_version (customer_id, valid_from)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE dw_dim_product (\n  product_key  INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  product_id   INT UNSIGNED NOT NULL,\n  sku          VARCHAR(20)  NOT NULL,\n  name         VARCHAR(100) NOT NULL,\n  category     VARCHAR(30)  NOT NULL,\n  list_price   DECIMAL(10,2) NULL,\n  PRIMARY KEY (product_key),\n  UNIQUE KEY uq_dim_product_id (product_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE dw_fact_sales (\n  order_id      INT UNSIGNED NOT NULL,\n  line_no       TINYINT UNSIGNED NOT NULL,\n  date_key      INT UNSIGNED NOT NULL,\n  customer_key  INT UNSIGNED NOT NULL,\n  product_key   INT UNSIGNED NOT NULL,\n  order_status  VARCHAR(10) NOT NULL,\n  qty           SMALLINT UNSIGNED NOT NULL,\n  unit_price    DECIMAL(10,2) NOT NULL,\n  revenue       DECIMAL(12,2) NOT NULL,\n  etl_run_id    INT UNSIGNED NOT NULL,\n  PRIMARY KEY (order_id, line_no),\n  KEY idx_fact_sales_date (date_key),\n  KEY idx_fact_sales_customer (customer_key),\n  KEY idx_fact_sales_product (product_key)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE dw_fact_web_events (\n  event_id      BIGINT UNSIGNED NOT NULL,\n  session_id    INT UNSIGNED NOT NULL,\n  date_key      INT UNSIGNED NOT NULL,\n  customer_key  INT UNSIGNED NOT NULL,\n  event_type    VARCHAR(20) NOT NULL,\n  occurred_at   DATETIME NOT NULL,\n  PRIMARY KEY (event_id),\n  KEY idx_fact_events_session (session_id),\n  KEY idx_fact_events_date (date_key)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE etl_watermarks (\n  source_table    VARCHAR(64) NOT NULL,\n  high_watermark  DATETIME(6) NULL,\n  high_id         BIGINT UNSIGNED NULL,\n  PRIMARY KEY (source_table)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE etl_runs (\n  run_id          INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  job             VARCHAR(30) NOT NULL,\n  low_watermark   DATETIME(6) NULL,\n  high_watermark  DATETIME(6) NULL,\n  rows_read       INT UNSIGNED NULL,\n  rows_written    INT UNSIGNED NULL,\n  PRIMARY KEY (run_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE stg_order_lines (\n  order_id      INT UNSIGNED NOT NULL,\n  line_no       TINYINT UNSIGNED NOT NULL,\n  customer_id   INT UNSIGNED NOT NULL,\n  product_id    INT UNSIGNED NOT NULL,\n  order_status  VARCHAR(10) NOT NULL,\n  ordered_at    DATETIME NOT NULL,\n  qty           SMALLINT UNSIGNED NOT NULL,\n  unit_price    DECIMAL(10,2) NOT NULL,\n  PRIMARY KEY (order_id, line_no)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO dw_dim_customer (customer_key, customer_id, country, city, loyalty_tier, valid_from)\nVALUES (1, 0, '--', 'Unknown', 'UNKNOWN', '1900-01-01')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO dw_dim_product (product_key, product_id, sku, name, category, list_price)\nVALUES (1, 0, 'UNKNOWN', 'Unknown product', 'Unknown', NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO etl_watermarks VALUES ('oltp_customers', '1900-01-01', NULL), ('oltp_products', '1900-01-01', NULL),\n                                  ('oltp_orders', '1900-01-01', NULL), ('oltp_events', NULL, 0)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s8:1dde36c4e2f8": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE dw_dim_customer\n  ADD CONSTRAINT chk_dim_customer_interval CHECK (valid_from < valid_to),\n  ADD CONSTRAINT chk_dim_customer_current CHECK (is_current = (valid_to = '9999-12-31 00:00:00'))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE dw_fact_sales\n  ADD CONSTRAINT chk_fact_sales_revenue CHECK (revenue = qty * unit_price),\n  ADD CONSTRAINT chk_fact_sales_status CHECK (order_status IN ('PLACED', 'SHIPPED', 'CANCELLED', 'RETURNED'))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s9:8357265db07d": {
+   "statements": [
+    {
+     "sql": "INSERT INTO dw_dim_customer (customer_id, country, city, loyalty_tier, valid_from, valid_to, is_current)\nVALUES (42, 'US', 'Denver', 'GOLD', '2025-03-01', '2025-02-01', FALSE)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_dim_customer_interval' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s10:c46db5c5e88b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO dw_fact_sales VALUES (999999, 1, 20250101, 1, 1, 'SHIPPED', 2, 10.00, 25.00, 0)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_fact_sales_revenue' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:4c47ad074aa6": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE etl_load_customers(IN p_high DATETIME(6))\nBEGIN\n  DECLARE v_low DATETIME(6);\n  DECLARE v_expired INT;\n  DECLARE v_inserted INT;\n  START TRANSACTION;\n  SELECT high_watermark INTO v_low FROM etl_watermarks WHERE source_table = 'oltp_customers' FOR UPDATE;\n  -- 1. close the current version of every customer whose tracked attributes changed in the window\n  UPDATE dw_dim_customer d\n  JOIN oltp_customers c ON c.customer_id = d.customer_id\n  SET d.valid_to = c.updated_at, d.is_current = FALSE\n  WHERE d.is_current\n    AND c.updated_at > v_low AND c.updated_at <= p_high\n    AND (d.country <> c.country OR d.city <> c.city OR d.loyalty_tier <> c.loyalty_tier);\n  SET v_expired = ROW_COUNT();\n  -- 2. open a version for every changed or new customer without a current version\n  INSERT INTO dw_dim_customer (customer_id, country, city, loyalty_tier, valid_from)\n  SELECT c.customer_id, c.country, c.city, c.loyalty_tier,\n         IF(EXISTS (SELECT 1 FROM dw_dim_customer h WHERE h.customer_id = c.customer_id), c.updated_at, c.signup_at)\n  FROM oltp_customers c\n  WHERE c.updated_at > v_low AND c.updated_at <= p_high\n    AND NOT EXISTS (SELECT 1 FROM dw_dim_customer d WHERE d.customer_id = c.customer_id AND d.is_current);\n  SET v_inserted = ROW_COUNT();\n  UPDATE etl_watermarks SET high_watermark = p_high WHERE source_table = 'oltp_customers';\n  INSERT INTO etl_runs (job, low_watermark, high_watermark, rows_read, rows_written)\n  VALUES ('customers', v_low, p_high, v_expired, v_inserted);\n  COMMIT;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s12:2eda4377ae1d": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE etl_load_products(IN p_high DATETIME(6))\nBEGIN\n  DECLARE v_low DATETIME(6);\n  DECLARE v_rows INT;\n  START TRANSACTION;\n  SELECT high_watermark INTO v_low FROM etl_watermarks WHERE source_table = 'oltp_products' FOR UPDATE;\n  INSERT INTO dw_dim_product (product_id, sku, name, category, list_price)\n  SELECT * FROM (SELECT product_id, sku, name, category, list_price\n                 FROM oltp_products WHERE updated_at > v_low AND updated_at <= p_high) AS src\n  ON DUPLICATE KEY UPDATE sku = src.sku, name = src.name, category = src.category, list_price = src.list_price;\n  SET v_rows = ROW_COUNT();\n  UPDATE etl_watermarks SET high_watermark = p_high WHERE source_table = 'oltp_products';\n  INSERT INTO etl_runs (job, low_watermark, high_watermark, rows_written) VALUES ('products', v_low, p_high, v_rows);\n  COMMIT;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s13:46a06799ddf7": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE etl_load_sales(IN p_high DATETIME(6))\nBEGIN\n  DECLARE v_low DATETIME(6);\n  DECLARE v_run INT UNSIGNED;\n  DECLARE v_read INT;\n  START TRANSACTION;\n  SELECT high_watermark INTO v_low FROM etl_watermarks WHERE source_table = 'oltp_orders' FOR UPDATE;\n  INSERT INTO etl_runs (job, low_watermark, high_watermark) VALUES ('sales', v_low, p_high);\n  SET v_run = LAST_INSERT_ID();\n  DELETE FROM stg_order_lines;\n  INSERT INTO stg_order_lines (order_id, line_no, customer_id, product_id, order_status, ordered_at, qty, unit_price)\n  SELECT o.order_id, i.line_no, o.customer_id, i.product_id, o.status, o.ordered_at, i.qty, i.unit_price\n  FROM oltp_orders o JOIN oltp_order_items i ON i.order_id = o.order_id\n  WHERE o.updated_at > v_low AND o.updated_at <= p_high;\n  SET v_read = ROW_COUNT();\n  INSERT INTO dw_fact_sales (order_id, line_no, date_key, customer_key, product_key, order_status, qty, unit_price, revenue, etl_run_id)\n  SELECT * FROM (\n    SELECT s.order_id, s.line_no, CAST(DATE_FORMAT(s.ordered_at, '%Y%m%d') AS UNSIGNED) AS date_key,\n           COALESCE(c.customer_key, 1) AS customer_key, COALESCE(p.product_key, 1) AS product_key,\n           s.order_status, s.qty, s.unit_price, s.qty * s.unit_price AS revenue, v_run AS etl_run_id\n    FROM stg_order_lines s\n    LEFT JOIN dw_dim_customer c ON c.customer_id = s.customer_id\n                               AND s.ordered_at >= c.valid_from AND s.ordered_at < c.valid_to\n    LEFT JOIN dw_dim_product p  ON p.product_id = s.product_id\n  ) AS src\n  ON DUPLICATE KEY UPDATE date_key = src.date_key, customer_key = src.customer_key, product_key = src.product_key,\n                          order_status = src.order_status, qty = src.qty, unit_price = src.unit_price,\n                          revenue = src.revenue, etl_run_id = src.etl_run_id;\n  UPDATE etl_runs SET rows_read = v_read, rows_written = v_read WHERE run_id = v_run;\n  UPDATE etl_watermarks SET high_watermark = p_high WHERE source_table = 'oltp_orders';\n  COMMIT;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s14:90c6b891f308": {
+   "statements": [
+    {
+     "sql": "CALL etl_load_customers('2025-07-01 00:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL etl_load_products('2025-07-01 00:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL etl_load_sales('2025-07-01 00:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT run_id, job, low_watermark, high_watermark, rows_read, rows_written FROM etl_runs ORDER BY run_id",
+     "status": "ok",
+     "columns": [
+      "run_id",
+      "job",
+      "low_watermark",
+      "high_watermark",
+      "rows_read",
+      "rows_written"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "customers",
+       "1900-01-01 00:00:00.000000",
+       "2025-07-01 00:00:00.000000",
+       0,
+       3000
+      ],
+      [
+       2,
+       "products",
+       "1900-01-01 00:00:00.000000",
+       "2025-07-01 00:00:00.000000",
+       null,
+       200
+      ],
+      [
+       3,
+       "sales",
+       "1900-01-01 00:00:00.000000",
+       "2025-07-01 00:00:00.000000",
+       46326,
+       46326
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:91700595ab3c": {
+   "statements": [
+    {
+     "sql": "INSERT INTO dw_fact_web_events (event_id, session_id, date_key, customer_key, event_type, occurred_at)\nSELECT e.event_id, e.session_id, CAST(DATE_FORMAT(e.occurred_at, '%Y%m%d') AS UNSIGNED),\n       COALESCE(c.customer_key, 1), e.event_type, e.occurred_at\nFROM oltp_events e\nLEFT JOIN dw_dim_customer c ON c.customer_id = e.customer_id\n                           AND e.occurred_at >= c.valid_from AND e.occurred_at < c.valid_to",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 111669,
+     "info": "Records: 111669  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE etl_watermarks SET high_id = (SELECT MAX(event_id) FROM dw_fact_web_events) WHERE source_table = 'oltp_events'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM dw_fact_web_events) AS events_loaded,\n       (SELECT COUNT(*) FROM dw_fact_web_events WHERE customer_key = 1) AS anonymous_events",
+     "status": "ok",
+     "columns": [
+      "events_loaded",
+      "anonymous_events"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       111669,
+       30834
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:12ae45a0d588": {
+   "statements": [
+    {
+     "sql": "UPDATE oltp_customers\nSET loyalty_tier = IF(loyalty_tier = 'BRONZE', 'SILVER', 'GOLD'),\n    city = IF(customer_id IN (17, 2017), 'Seattle', city),\n    updated_at = '2025-07-01 09:00:00'\nWHERE customer_id % 75 = 17",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 40,
+     "info": "Rows matched: 40  Changed: 40  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE oltp_orders SET status = 'RETURNED', updated_at = '2025-07-01 12:00:00'\nWHERE status = 'SHIPPED' AND ordered_at >= '2025-05-01' AND order_id % 10 = 3\nORDER BY order_id LIMIT 25",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "info": "Rows matched: 25  Changed: 25  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO oltp_orders (order_id, customer_id, status, ordered_at, updated_at)\nSELECT 30000 + customer_id, customer_id, 'PLACED', '2025-07-01 15:00:00', '2025-07-01 15:00:00'\nFROM oltp_customers WHERE customer_id % 75 = 17 OR customer_id % 101 = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 69,
+     "info": "Records: 69  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO oltp_order_items (order_id, line_no, product_id, qty, unit_price)\nSELECT o.order_id, 1, p.product_id, 1, p.list_price\nFROM oltp_orders o JOIN oltp_products p ON p.product_id = 1 + o.order_id % 200\nWHERE o.order_id > 30000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 69,
+     "info": "Records: 69  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS new_order_lines",
+     "status": "ok",
+     "columns": [
+      "new_order_lines"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       69
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:adc2dfc529ac": {
+   "statements": [
+    {
+     "sql": "CALL etl_load_customers('2025-07-02 00:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL etl_load_products('2025-07-02 00:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL etl_load_sales('2025-07-02 00:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT run_id, job, low_watermark, high_watermark, rows_read, rows_written FROM etl_runs WHERE run_id > 3 ORDER BY run_id",
+     "status": "ok",
+     "columns": [
+      "run_id",
+      "job",
+      "low_watermark",
+      "high_watermark",
+      "rows_read",
+      "rows_written"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       4,
+       "customers",
+       "2025-07-01 00:00:00.000000",
+       "2025-07-02 00:00:00.000000",
+       21,
+       21
+      ],
+      [
+       5,
+       "products",
+       "2025-07-01 00:00:00.000000",
+       "2025-07-02 00:00:00.000000",
+       null,
+       0
+      ],
+      [
+       6,
+       "sales",
+       "2025-07-01 00:00:00.000000",
+       "2025-07-02 00:00:00.000000",
+       112,
+       112
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:c3b927370cb3": {
+   "statements": [
+    {
+     "sql": "SELECT customer_key, customer_id, city, loyalty_tier, valid_from, valid_to, is_current\nFROM dw_dim_customer WHERE customer_id = 2792 ORDER BY valid_from",
+     "status": "ok",
+     "columns": [
+      "customer_key",
+      "customer_id",
+      "city",
+      "loyalty_tier",
+      "valid_from",
+      "valid_to",
+      "is_current"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       2793,
+       2792,
+       "Vancouver",
+       "BRONZE",
+       "2024-12-05 13:43:12.000000",
+       "2025-07-01 09:00:00.000000",
+       0
+      ],
+      [
+       4116,
+       2792,
+       "Vancouver",
+       "SILVER",
+       "2025-07-01 09:00:00.000000",
+       "9999-12-31 00:00:00.000000",
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT f.order_id, f.line_no, f.date_key, f.customer_key, c.loyalty_tier\nFROM dw_fact_sales f JOIN dw_dim_customer c ON c.customer_key = f.customer_key\nWHERE c.customer_id = 2792 AND f.date_key >= 20250301\nORDER BY f.order_id, f.line_no",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "line_no",
+      "date_key",
+      "customer_key",
+      "loyalty_tier"
+     ],
+     "row_count": 13,
+     "rows": [
+      [
+       6089,
+       1,
+       20250608,
+       2793,
+       "BRONZE"
+      ],
+      [
+       6089,
+       2,
+       20250608,
+       2793,
+       "BRONZE"
+      ],
+      [
+       6089,
+       3,
+       20250608,
+       2793,
+       "BRONZE"
+      ],
+      [
+       9089,
+       1,
+       20250428,
+       2793,
+       "BRONZE"
+      ],
+      [
+       9089,
+       2,
+       20250428,
+       2793,
+       "BRONZE"
+      ],
+      [
+       9089,
+       3,
+       20250428,
+       2793,
+       "BRONZE"
+      ],
+      [
+       12089,
+       1,
+       20250316,
+       2793,
+       "BRONZE"
+      ],
+      [
+       12089,
+       2,
+       20250316,
+       2793,
+       "BRONZE"
+      ],
+      [
+       12089,
+       3,
+       20250316,
+       2793,
+       "BRONZE"
+      ],
+      [
+       15089,
+       1,
+       20250402,
+       2793,
+       "BRONZE"
+      ],
+      [
+       15089,
+       2,
+       20250402,
+       2793,
+       "BRONZE"
+      ],
+      [
+       15089,
+       3,
+       20250402,
+       2793,
+       "BRONZE"
+      ],
+      [
+       32792,
+       1,
+       20250701,
+       4116,
+       "SILVER"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:50772532b453": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS fact_rows, SUM(revenue) AS revenue, SUM(order_status = 'RETURNED') AS returned_lines FROM dw_fact_sales",
+     "status": "ok",
+     "columns": [
+      "fact_rows",
+      "revenue",
+      "returned_lines"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       46395,
+       "14308377.00",
+       "1896"
+      ]
+     ]
+    },
+    {
+     "sql": "UPDATE etl_watermarks SET high_watermark = '2025-07-01 00:00:00' WHERE source_table = 'oltp_orders'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CALL etl_load_sales('2025-07-02 00:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS fact_rows, SUM(revenue) AS revenue, SUM(order_status = 'RETURNED') AS returned_lines FROM dw_fact_sales",
+     "status": "ok",
+     "columns": [
+      "fact_rows",
+      "revenue",
+      "returned_lines"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       46395,
+       "14308377.00",
+       "1896"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:aa50732f5b1a": {
+   "statements": [
+    {
+     "sql": "SELECT d.month_label, p.category, SUM(f.revenue) AS gross_revenue, COUNT(DISTINCT f.order_id) AS orders\nFROM dw_fact_sales f\nJOIN dw_dim_date d    ON d.date_key = f.date_key\nJOIN dw_dim_product p ON p.product_key = f.product_key\nWHERE f.order_status <> 'CANCELLED' AND d.year = 2025 AND d.quarter = 2\nGROUP BY d.month_label, p.category\nORDER BY d.month_label, gross_revenue DESC",
+     "status": "ok",
+     "columns": [
+      "month_label",
+      "category",
+      "gross_revenue",
+      "orders"
+     ],
+     "row_count": 15,
+     "rows": [
+      [
+       "2025-04",
+       "Apparel",
+       "58055.00",
+       180
+      ],
+      [
+       "2025-04",
+       "Footwear",
+       "56393.00",
+       172
+      ],
+      [
+       "2025-04",
+       "Packs",
+       "56276.00",
+       177
+      ],
+      [
+       "2025-04",
+       "Tents",
+       "55365.00",
+       179
+      ],
+      [
+       "2025-04",
+       "Cooking",
+       "52785.00",
+       183
+      ],
+      [
+       "2025-05",
+       "Cooking",
+       "42638.00",
+       127
+      ],
+      [
+       "2025-05",
+       "Tents",
+       "41285.00",
+       133
+      ],
+      [
+       "2025-05",
+       "Apparel",
+       "37812.00",
+       120
+      ],
+      [
+       "2025-05",
+       "Footwear",
+       "36335.00",
+       122
+      ],
+      [
+       "2025-05",
+       "Packs",
+       "34533.00",
+       125
+      ],
+      [
+       "2025-06",
+       "Footwear",
+       "27170.00",
+       80
+      ],
+      [
+       "2025-06",
+       "Tents",
+       "24335.00",
+       81
+      ],
+      [
+       "2025-06",
+       "Apparel",
+       "22959.00",
+       77
+      ],
+      [
+       "2025-06",
+       "Packs",
+       "22934.00",
+       80
+      ],
+      [
+       "2025-06",
+       "Cooking",
+       "22847.00",
+       77
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:7bd0f0eafbcd": {
+   "statements": [
+    {
+     "sql": "SELECT c.loyalty_tier, SUM(f.revenue) AS gross_revenue, COUNT(DISTINCT c.customer_id) AS customers\nFROM dw_fact_sales f\nJOIN dw_dim_customer c ON c.customer_key = f.customer_key\nJOIN dw_dim_date d     ON d.date_key = f.date_key\nWHERE f.order_status <> 'CANCELLED' AND d.year = 2025\nGROUP BY c.loyalty_tier\nORDER BY gross_revenue DESC",
+     "status": "ok",
+     "columns": [
+      "loyalty_tier",
+      "gross_revenue",
+      "customers"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "BRONZE",
+       "1492838.00",
+       774
+      ],
+      [
+       "SILVER",
+       "751299.00",
+       422
+      ],
+      [
+       "GOLD",
+       "257414.00",
+       129
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:96f2df034701": {
+   "statements": [
+    {
+     "sql": "WITH first_orders AS (\n  SELECT c.customer_id, MIN(d.full_date) AS first_order_date\n  FROM dw_fact_sales f\n  JOIN dw_dim_customer c ON c.customer_key = f.customer_key\n  JOIN dw_dim_date d     ON d.date_key = f.date_key\n  WHERE f.order_status <> 'CANCELLED'\n  GROUP BY c.customer_id\n)\nSELECT DATE_FORMAT(first_order_date, '%Y-%m') AS cohort, COUNT(*) AS customers\nFROM first_orders\nGROUP BY cohort\nORDER BY cohort\nLIMIT 6",
+     "status": "ok",
+     "columns": [
+      "cohort",
+      "customers"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "2024-01",
+       208
+      ],
+      [
+       "2024-02",
+       232
+      ],
+      [
+       "2024-03",
+       257
+      ],
+      [
+       "2024-04",
+       246
+      ],
+      [
+       "2024-05",
+       258
+      ],
+      [
+       "2024-06",
+       241
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:f5b717a0ee73": {
+   "statements": [
+    {
+     "sql": "WITH sessions AS (\n  SELECT session_id,\n         MAX(event_type = 'visit') AS visited, MAX(event_type = 'view_product') AS viewed,\n         MAX(event_type = 'add_to_cart') AS carted, MAX(event_type = 'begin_checkout') AS checked_out,\n         MAX(event_type = 'purchase') AS purchased\n  FROM dw_fact_web_events\n  GROUP BY session_id\n)\nSELECT COUNT(*) AS sessions,\n       ROUND(100 * AVG(viewed), 1) AS pct_viewed, ROUND(100 * AVG(carted), 1) AS pct_carted,\n       ROUND(100 * AVG(checked_out), 1) AS pct_checkout, ROUND(100 * AVG(purchased), 1) AS pct_purchased\nFROM sessions",
+     "status": "ok",
+     "columns": [
+      "sessions",
+      "pct_viewed",
+      "pct_carted",
+      "pct_checkout",
+      "pct_purchased"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       50000,
+       "70.0",
+       "30.0",
+       "13.3",
+       "10.0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s24:07e26c852b79": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE dw_fact_sales, dw_dim_date, dw_dim_product, dw_dim_customer, dw_fact_web_events",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "dw_fact_sales",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "dw_dim_date",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "dw_dim_product",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "dw_dim_customer",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "dw_fact_web_events",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s25:1f5bcd325697": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT p.category, SUM(f.revenue) AS revenue\nFROM dw_fact_sales f\nJOIN dw_dim_date d    ON d.date_key = f.date_key\nJOIN dw_dim_product p ON p.product_key = f.product_key\nWHERE d.month_label = '2025-05' AND f.order_status <> 'CANCELLED'\nGROUP BY p.category",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Nested loop inner join  (cost=3722 rows=4937)\n            -> Nested loop inner join  (cost=1994 rows=4937)\n                -> Filter: (d.month_label = '2025-05')  (cost=74.3 rows=73.1)\n                    -> Table scan on d  (cost=74.3 rows=731)\n                -> Filter: (f.order_status <> 'CANCELLED')  (cost=18.9 rows=67.5)\n                    -> Index lookup on f using idx_fact_sales_date (date_key=d.date_key)  (cost=18.9 rows=75)\n            -> Single-row index lookup on p using PRIMARY (product_key=f.product_key)  (cost=0.25 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s26:6f3f2bc98530": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT p.category, SUM(f.revenue) AS revenue\nFROM dw_fact_sales f\nJOIN dw_dim_date d    ON d.date_key = f.date_key\nJOIN dw_dim_product p ON p.product_key = f.product_key\nWHERE d.month_label = '2025-05' AND f.order_status <> 'CANCELLED'\nGROUP BY p.category",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (actual time=2.15..2.15 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=2.15..2.15 rows=5 loops=1)\n        -> Nested loop inner join  (cost=3722 rows=4937) (actual time=0.251..1.82 rows=627 loops=1)\n            -> Nested loop inner join  (cost=1994 rows=4937) (actual time=0.246..1.32 rows=627 loops=1)\n                -> Filter: (d.month_label = '2025-05')  (cost=74.3 rows=73.1) (actual time=0.151..0.22 rows=31 loops=1)\n                    -> Table scan on d  (cost=74.3 rows=731) (actual time=0.0279..0.158 rows=731 loops=1)\n                -> Filter: (f.order_status <> 'CANCELLED')  (cost=18.9 rows=67.5) (actual time=0.0288..0.0338 rows=20.2 loops=31)\n                    -> Index lookup on f using idx_fact_sales_date (date_key=d.date_key)  (cost=18.9 rows=75) (actual time=0.0285..0.0316 rows=21.1 loops=31)\n            -> Single-row index lookup on p using PRIMARY (product_key=f.product_key)  (cost=0.25 rows=1) (actual time=610e-6..636e-6 rows=1 loops=627)\n"
+      ]
+     ],
+     "elapsed_ms": 3.72
+    }
+   ],
+   "measured": true
+  },
+  "s27:539469ee0093": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_fact_sales_date_cover ON dw_fact_sales (date_key, product_key, order_status, revenue)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE dw_fact_sales",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "dw_fact_sales",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s28:6f3f2bc98530": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT p.category, SUM(f.revenue) AS revenue\nFROM dw_fact_sales f\nJOIN dw_dim_date d    ON d.date_key = f.date_key\nJOIN dw_dim_product p ON p.product_key = f.product_key\nWHERE d.month_label = '2025-05' AND f.order_status <> 'CANCELLED'\nGROUP BY p.category",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (actual time=1.27..1.27 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=1.27..1.27 rows=5 loops=1)\n        -> Nested loop inner join  (cost=2763 rows=5577) (actual time=0.145..1.02 rows=627 loops=1)\n            -> Nested loop inner join  (cost=812 rows=5577) (actual time=0.139..0.498 rows=627 loops=1)\n                -> Filter: (d.month_label = '2025-05')  (cost=74.3 rows=73.1) (actual time=0.122..0.179 rows=31 loops=1)\n                    -> Table scan on d  (cost=74.3 rows=731) (actual time=0.0183..0.124 rows=731 loops=1)\n                -> Filter: (f.order_status <> 'CANCELLED')  (cost=1.71 rows=76.3) (actual time=0.00448..0.00915 rows=20.2 loops=31)\n                    -> Covering index lookup on f using idx_fact_sales_date_cover (date_key=d.date_key)  (cost=1.71 rows=84.8) (actual time=0.00432..0.00696 rows=21.1 loops=31)\n            -> Single-row index lookup on p using PRIMARY (product_key=f.product_key)  (cost=0.25 rows=1) (actual time=642e-6..663e-6 rows=1 loops=627)\n"
+      ]
+     ],
+     "elapsed_ms": 2.97
+    }
+   ],
+   "measured": true
+  },
+  "c1:0db36efeff7f": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE oltp_orders SET status = 'RETURNED', updated_at = '2025-07-01 10:00:00' WHERE order_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT order_id, status FROM oltp_orders WHERE updated_at > '2025-07-01 09:00:00' AND updated_at <= '2025-07-01 11:00:00'",
+       "status": "ok",
+       "columns": [
+        "order_id",
+        "status"
+       ],
+       "row_count": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE etl_watermarks SET high_watermark = '2025-07-01 11:00:00' WHERE source_table = 'oltp_orders'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT order_id, status FROM oltp_orders WHERE updated_at > '2025-07-01 11:00:00' AND updated_at <= '2025-07-01 12:00:00'",
+       "status": "ok",
+       "columns": [
+        "order_id",
+        "status"
+       ],
+       "row_count": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c2:46092c872698": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT high_watermark FROM etl_watermarks WHERE source_table = 'oltp_orders' FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "high_watermark"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "2025-07-01 00:00:00.000000"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT high_watermark FROM etl_watermarks WHERE source_table = 'oltp_orders' FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "high_watermark"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "2025-07-02 00:00:00.000000"
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 5,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT high_watermark FROM etl_watermarks WHERE source_table = 'oltp_customers' FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "high_watermark"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "2025-07-01 00:00:00.000000"
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "660037",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "B",
+        "trxId": "660041",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "etl_watermarks",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "etl_watermarks",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "'oltp_orders'"
+       },
+       {
+        "session": "B",
+        "table": "etl_watermarks",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "etl_watermarks",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "'oltp_orders'"
+       }
+      ]
+     }
+    },
+    {
+     "step": 5,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE etl_watermarks SET high_watermark = '2025-07-02 00:00:00' WHERE source_table = 'oltp_orders'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "s29:c7cf9b822f73": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE dw_agg_month_category (\n  month_label    CHAR(7)      NOT NULL,\n  category       VARCHAR(30)  NOT NULL,\n  orders         INT UNSIGNED NOT NULL,\n  units          INT UNSIGNED NOT NULL,\n  gross_revenue  DECIMAL(14,2) NOT NULL,\n  PRIMARY KEY (month_label, category)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO dw_agg_month_category\nSELECT d.month_label, p.category, COUNT(DISTINCT f.order_id), SUM(f.qty), SUM(f.revenue)\nFROM dw_fact_sales f\nJOIN dw_dim_date d    ON d.date_key = f.date_key\nJOIN dw_dim_product p ON p.product_key = f.product_key\nWHERE f.order_status <> 'CANCELLED'\nGROUP BY d.month_label, p.category",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 95,
+     "info": "Records: 95  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS summary_rows, (SELECT COUNT(*) FROM dw_fact_sales) AS fact_rows FROM dw_agg_month_category",
+     "status": "ok",
+     "columns": [
+      "summary_rows",
+      "fact_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       95,
+       46395
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s30:433dbe2dbdd1": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT p.category, SUM(f.revenue) AS gross_revenue\nFROM dw_fact_sales f\nJOIN dw_dim_date d    ON d.date_key = f.date_key\nJOIN dw_dim_product p ON p.product_key = f.product_key\nWHERE f.order_status <> 'CANCELLED' AND d.full_date BETWEEN '2025-01-01' AND '2025-06-30'\nGROUP BY p.category",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (actual time=12.6..12.6 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=12.6..12.6 rows=5 loops=1)\n        -> Nested loop inner join  (cost=6695 rows=13809) (actual time=0.0597..9.54 rows=8053 loops=1)\n            -> Nested loop inner join  (cost=1862 rows=13809) (actual time=0.0526..4.09 rows=8053 loops=1)\n                -> Filter: (d.full_date between '2025-01-01' and '2025-06-30')  (cost=36.5 rows=181) (actual time=0.0264..0.11 rows=181 loops=1)\n                    -> Covering index range scan on d using uq_dim_date_full over ('2025-01-01' <= full_date <= '2025-06-30')  (cost=36.5 rows=181) (actual time=0.0235..0.0505 rows=181 loops=1)\n                -> Filter: (f.order_status <> 'CANCELLED')  (cost=1.65 rows=76.3) (actual time=0.00704..0.0193 rows=44.5 loops=181)\n                    -> Covering index lookup on f using idx_fact_sales_date_cover (date_key=d.date_key)  (cost=1.65 rows=84.8) (actual time=0.00684..0.0148 rows=47.1 loops=181)\n            -> Single-row index lookup on p using PRIMARY (product_key=f.product_key)  (cost=0.25 rows=1) (actual time=471e-6..498e-6 rows=1 loops=8053)\n"
+      ]
+     ],
+     "elapsed_ms": 14.27
+    }
+   ],
+   "measured": true
+  },
+  "s31:3b7b54be6496": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT category, SUM(gross_revenue) AS gross_revenue\nFROM dw_agg_month_category\nWHERE month_label BETWEEN '2025-01' AND '2025-06'\nGROUP BY category",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (actual time=0.0647..0.0654 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=0.0639..0.0639 rows=5 loops=1)\n        -> Filter: (dw_agg_month_category.month_label between '2025-01' and '2025-06')  (cost=6.27 rows=30) (actual time=0.024..0.0365 rows=30 loops=1)\n            -> Index range scan on dw_agg_month_category using PRIMARY over ('2025-01' <= month_label <= '2025-06')  (cost=6.27 rows=30) (actual time=0.0219..0.0286 rows=30 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.16
+    }
+   ],
+   "measured": true
+  },
+  "s32:bfe293fe6e4e": {
+   "statements": [
+    {
+     "sql": "SELECT a.category, a.gross_revenue AS from_summary, b.gross_revenue AS from_fact, a.gross_revenue = b.gross_revenue AS equal\nFROM (SELECT category, SUM(gross_revenue) AS gross_revenue FROM dw_agg_month_category\n      WHERE month_label BETWEEN '2025-01' AND '2025-06' GROUP BY category) a\nJOIN (SELECT p.category, SUM(f.revenue) AS gross_revenue\n      FROM dw_fact_sales f JOIN dw_dim_date d ON d.date_key = f.date_key JOIN dw_dim_product p ON p.product_key = f.product_key\n      WHERE f.order_status <> 'CANCELLED' AND d.full_date BETWEEN '2025-01-01' AND '2025-06-30'\n      GROUP BY p.category) b ON b.category = a.category\nORDER BY a.category",
+     "status": "ok",
+     "columns": [
+      "category",
+      "from_summary",
+      "from_fact",
+      "equal"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Apparel",
+       "491728.00",
+       "491728.00",
+       1
+      ],
+      [
+       "Cooking",
+       "499754.00",
+       "499754.00",
+       1
+      ],
+      [
+       "Footwear",
+       "504683.00",
+       "504683.00",
+       1
+      ],
+      [
+       "Packs",
+       "485348.00",
+       "485348.00",
+       1
+      ],
+      [
+       "Tents",
+       "510070.00",
+       "510070.00",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s34:8440b56ebde1": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW v_tier_month_revenue AS\nSELECT d.month_label, c.loyalty_tier,\n       COUNT(DISTINCT c.customer_id) AS customers,\n       SUM(f.revenue) AS gross_revenue\nFROM dw_fact_sales f\nJOIN dw_dim_customer c ON c.customer_key = f.customer_key\nJOIN dw_dim_date d     ON d.date_key = f.date_key\nWHERE f.order_status <> 'CANCELLED'\nGROUP BY d.month_label, c.loyalty_tier\nHAVING COUNT(DISTINCT c.customer_id) >= 10",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM v_tier_month_revenue WHERE month_label = '2025-07' ORDER BY loyalty_tier",
+     "status": "ok",
+     "columns": [
+      "month_label",
+      "loyalty_tier",
+      "customers",
+      "gross_revenue"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "2025-07",
+       "BRONZE",
+       17,
+       "2644.00"
+      ],
+      [
+       "2025-07",
+       "GOLD",
+       23,
+       "2688.00"
+      ],
+      [
+       "2025-07",
+       "SILVER",
+       29,
+       "4636.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s35:7568a23a4f0b": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS tier_city_cells, SUM(customers < 10) AS cells_below_threshold\nFROM (SELECT c.loyalty_tier, c.city, COUNT(DISTINCT c.customer_id) AS customers\n      FROM dw_fact_sales f\n      JOIN dw_dim_customer c ON c.customer_key = f.customer_key\n      JOIN dw_dim_date d     ON d.date_key = f.date_key\n      WHERE f.order_status <> 'CANCELLED' AND d.month_label = '2025-07'\n      GROUP BY c.loyalty_tier, c.city) cells",
+     "status": "ok",
+     "columns": [
+      "tier_city_cells",
+      "cells_below_threshold"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       21,
+       "21"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s36:f24c0a261cdd": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE dq_results (\n  check_name  VARCHAR(60) NOT NULL,\n  severity    ENUM('CRITICAL','WARNING') NOT NULL,\n  failures    BIGINT NOT NULL,\n  PRIMARY KEY (check_name)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO dq_results\nSELECT 'revenue reconciles with OLTP (to the cent)', 'CRITICAL',\n       (SELECT COUNT(*) FROM (\n          SELECT o.order_id, SUM(i.qty * i.unit_price) AS v FROM oltp_orders o JOIN oltp_order_items i ON i.order_id = o.order_id\n          WHERE o.updated_at <= (SELECT high_watermark FROM etl_watermarks WHERE source_table = 'oltp_orders')\n          GROUP BY o.order_id) s\n        LEFT JOIN (SELECT order_id, SUM(revenue) AS v FROM dw_fact_sales GROUP BY order_id) w ON w.order_id = s.order_id\n        WHERE NOT (w.v <=> s.v))\nUNION ALL\nSELECT 'fact status matches OLTP status', 'CRITICAL',\n       (SELECT COUNT(*) FROM dw_fact_sales f JOIN oltp_orders o ON o.order_id = f.order_id WHERE f.order_status <> o.status)\nUNION ALL\nSELECT 'every fact date exists in dim_date', 'CRITICAL',\n       (SELECT COUNT(*) FROM dw_fact_sales f LEFT JOIN dw_dim_date d ON d.date_key = f.date_key WHERE d.date_key IS NULL)\nUNION ALL\nSELECT 'exactly one current version per customer', 'CRITICAL',\n       (SELECT COUNT(*) FROM (SELECT customer_id FROM dw_dim_customer WHERE customer_id <> 0\n                              GROUP BY customer_id HAVING SUM(is_current) <> 1) x)\nUNION ALL\nSELECT 'no gaps or overlaps between customer versions', 'CRITICAL',\n       (SELECT COUNT(*) FROM (SELECT valid_from, LAG(valid_to) OVER (PARTITION BY customer_id ORDER BY valid_from) AS prev_to\n                              FROM dw_dim_customer) x\n        WHERE prev_to IS NOT NULL AND prev_to <> valid_from)\nUNION ALL\nSELECT 'sales lines mapped to the unknown customer', 'WARNING',\n       (SELECT COUNT(*) FROM dw_fact_sales WHERE customer_key = 1)\nUNION ALL\nSELECT 'summary table matches fact (gross revenue)', 'CRITICAL',\n       (SELECT COUNT(*) FROM dw_agg_month_category a\n        LEFT JOIN (SELECT d.month_label, p.category, SUM(f.revenue) AS r\n                   FROM dw_fact_sales f JOIN dw_dim_date d ON d.date_key = f.date_key JOIN dw_dim_product p ON p.product_key = f.product_key\n                   WHERE f.order_status <> 'CANCELLED' GROUP BY d.month_label, p.category) b\n          ON b.month_label = a.month_label AND b.category = a.category\n        WHERE NOT (a.gross_revenue <=> b.r))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 7,
+     "info": "Records: 7  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT check_name, severity, failures, IF(failures = 0, 'PASS', 'FAIL') AS result FROM dq_results ORDER BY severity, check_name",
+     "status": "ok",
+     "columns": [
+      "check_name",
+      "severity",
+      "failures",
+      "result"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "every fact date exists in dim_date",
+       "CRITICAL",
+       0,
+       "PASS"
+      ],
+      [
+       "exactly one current version per customer",
+       "CRITICAL",
+       0,
+       "PASS"
+      ],
+      [
+       "fact status matches OLTP status",
+       "CRITICAL",
+       0,
+       "PASS"
+      ],
+      [
+       "no gaps or overlaps between customer versions",
+       "CRITICAL",
+       0,
+       "PASS"
+      ],
+      [
+       "revenue reconciles with OLTP (to the cent)",
+       "CRITICAL",
+       0,
+       "PASS"
+      ],
+      [
+       "summary table matches fact (gross revenue)",
+       "CRITICAL",
+       0,
+       "PASS"
+      ],
+      [
+       "sales lines mapped to the unknown customer",
+       "WARNING",
+       0,
+       "PASS"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s37:dcb64b395634": {
+   "statements": [
+    {
+     "sql": "INSERT INTO dw_fact_sales (order_id, line_no, date_key, customer_key, product_key, order_status, qty, unit_price, revenue, etl_run_id)\nSELECT order_id + 1000000, line_no, date_key, customer_key, product_key, order_status, qty, unit_price, revenue, 0\nFROM dw_fact_sales WHERE date_key = 20250701",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 69,
+     "info": "Records: 69  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS orders_in_dw_not_in_oltp\nFROM (SELECT DISTINCT order_id FROM dw_fact_sales) w\nLEFT JOIN oltp_orders o ON o.order_id = w.order_id\nWHERE o.order_id IS NULL",
+     "status": "ok",
+     "columns": [
+      "orders_in_dw_not_in_oltp"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       69
+      ]
+     ]
+    },
+    {
+     "sql": "DELETE FROM dw_fact_sales WHERE etl_run_id = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 69,
+     "rows": []
+    }
+   ],
+   "measured": null
+  }
+ }
+}

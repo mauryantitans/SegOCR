@@ -38,6 +38,11 @@ from app.content.parser import LESSON_SECTIONS, ContentError, parse_document  # 
 
 OWNER = "capture"
 PROJECT_IDS: set[str] = set()
+PROJECT_STAGES = [f"{i}. {t}" for i, t in enumerate([
+    "Requirements Gathering", "Entities and Relationships", "ER Diagram", "Schema Design", "Normalization",
+    "MySQL Table Creation", "Constraints and Relationships", "SQL Implementation", "Indexing Strategy",
+    "Transaction Management", "Query Optimization", "Security", "Testing and Validation",
+    "Production Considerations"], start=1)]
 MIN_EXERCISES = 4
 MIN_QUESTIONS = 6
 DISPLAY_ROWS = 50
@@ -88,6 +93,13 @@ def lint(doc, kind: str, datasets: set[str], all_lesson_ids: set[str]) -> list[s
             errs.append(f"only {n_q} quiz questions (minimum {MIN_QUESTIONS})")
         if n_run < 1 and not meta.get("noRunnableExamples"):
             errs.append("no ```sql run``` blocks (set noRunnableExamples: true with a reason if truly not applicable)")
+    if kind == "project":
+        titles = [s["title"] for s in doc.sections]
+        missing = [t for t in PROJECT_STAGES if t not in titles]
+        if missing:
+            errs.append(f"missing project stages: {missing}")
+        elif [titles.index(t) for t in PROJECT_STAGES] != sorted(titles.index(t) for t in PROJECT_STAGES):
+            errs.append("project stages are out of order")
     for seg in doc.segments:
         if seg["type"] == "exercise":
             ds = seg["exercise"].get("dataset")

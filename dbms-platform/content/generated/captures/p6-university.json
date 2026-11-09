@@ -1,0 +1,1780 @@
+{
+ "doc": "p6-university",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:eebe0a7b30d3": {
+   "statements": [
+    {
+     "sql": "SELECT table_name, table_rows\nFROM information_schema.tables\nWHERE table_schema = DATABASE()\nORDER BY table_name",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "TABLE_ROWS"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "advisors",
+       30
+      ],
+      [
+       "course_prereqs",
+       10
+      ],
+      [
+       "courses",
+       15
+      ],
+      [
+       "departments",
+       5
+      ],
+      [
+       "enrollments",
+       146
+      ],
+      [
+       "instructors",
+       12
+      ],
+      [
+       "sections",
+       24
+      ],
+      [
+       "students",
+       40
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:5b99013459d9": {
+   "statements": [
+    {
+     "sql": "SELECT SUM(dept_id IS NULL) AS undeclared_students,\n       SUM(student_id NOT IN (SELECT student_id FROM advisors)) AS students_without_advisor,\n       COUNT(*) AS students\nFROM students",
+     "status": "ok",
+     "columns": [
+      "undeclared_students",
+      "students_without_advisor",
+      "students"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2",
+       "10",
+       40
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:226414435a19": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE reg_ta_support (\n  student_id INT UNSIGNED NOT NULL,\n  course_id  VARCHAR(10)  NOT NULL,\n  ta_id      INT UNSIGNED NOT NULL,\n  PRIMARY KEY (student_id, course_id),\n  KEY idx_ta_support_ta (ta_id, course_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_ta_support VALUES (20230001, 'CS-157A', 20230020), (20230002, 'CS-157A', 20230020)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ta_id, COUNT(DISTINCT course_id) AS courses_per_ta FROM reg_ta_support GROUP BY ta_id",
+     "status": "ok",
+     "columns": [
+      "ta_id",
+      "courses_per_ta"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20230020,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:e787dbb53a84": {
+   "statements": [
+    {
+     "sql": "INSERT INTO reg_ta_support VALUES (20230001, 'CS-157A', 20230023)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '20230001-CS-157A' for key 'reg_ta_support.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s5:6569295733e6": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE reg_terms (\n  term_code  CHAR(6) NOT NULL,\n  season     ENUM('Spring','Summer','Fall') NOT NULL,\n  year       YEAR NOT NULL,\n  starts_on  DATE NOT NULL,\n  ends_on    DATE NOT NULL,\n  PRIMARY KEY (term_code),\n  UNIQUE KEY uq_terms_year_season (year, season),\n  CONSTRAINT chk_reg_terms_dates CHECK (ends_on > starts_on)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE reg_grade_scale (\n  grade_code     VARCHAR(2) NOT NULL,\n  points         DECIMAL(3,2) NULL,\n  counts_in_gpa  BOOLEAN NOT NULL,\n  is_passing     BOOLEAN NOT NULL,\n  PRIMARY KEY (grade_code),\n  CONSTRAINT chk_reg_grade_points CHECK (points BETWEEN 0 AND 4),\n  CONSTRAINT chk_reg_grade_gpa CHECK (counts_in_gpa = (points IS NOT NULL))\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE reg_people (\n  person_id      INT UNSIGNED NOT NULL,\n  full_name      VARCHAR(80)  NOT NULL,\n  email          VARCHAR(255) NOT NULL,\n  date_of_birth  DATE NULL,\n  PRIMARY KEY (person_id),\n  UNIQUE KEY uq_people_email (email)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE reg_students (\n  person_id   INT UNSIGNED NOT NULL,\n  student_no  CHAR(8) NOT NULL,\n  dept_id     SMALLINT UNSIGNED NULL,\n  admit_year  YEAR NOT NULL,\n  PRIMARY KEY (person_id),\n  UNIQUE KEY uq_students_no (student_no),\n  CONSTRAINT fk_reg_students_person FOREIGN KEY (person_id) REFERENCES reg_people (person_id) ON DELETE CASCADE,\n  CONSTRAINT fk_reg_students_dept   FOREIGN KEY (dept_id)   REFERENCES departments (dept_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE reg_instructors (\n  person_id      INT UNSIGNED NOT NULL,\n  dept_id        SMALLINT UNSIGNED NOT NULL,\n  academic_rank  ENUM('Lecturer','Assistant Professor','Associate Professor','Professor') NOT NULL,\n  salary         DECIMAL(10,2) NOT NULL,\n  hired_on       DATE NOT NULL,\n  PRIMARY KEY (person_id),\n  CONSTRAINT fk_reg_instructors_person FOREIGN KEY (person_id) REFERENCES reg_people (person_id) ON DELETE CASCADE,\n  CONSTRAINT fk_reg_instructors_dept   FOREIGN KEY (dept_id)   REFERENCES departments (dept_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE reg_sections (\n  section_id  INT UNSIGNED NOT NULL,\n  course_id   VARCHAR(10) NOT NULL,\n  term_code   CHAR(6) NOT NULL,\n  section_no  TINYINT UNSIGNED NOT NULL,\n  capacity    SMALLINT UNSIGNED NOT NULL,\n  PRIMARY KEY (section_id),\n  UNIQUE KEY uq_sections_offering (course_id, term_code, section_no),\n  UNIQUE KEY uq_sections_id_term (section_id, term_code),\n  CONSTRAINT fk_reg_sections_course FOREIGN KEY (course_id) REFERENCES courses (course_id),\n  CONSTRAINT fk_reg_sections_term   FOREIGN KEY (term_code) REFERENCES reg_terms (term_code),\n  CONSTRAINT chk_reg_sections_capacity CHECK (capacity > 0)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE reg_enrollments (\n  person_id   INT UNSIGNED NOT NULL,\n  section_id  INT UNSIGNED NOT NULL,\n  grade_code  VARCHAR(2) NULL,\n  PRIMARY KEY (person_id, section_id),\n  KEY idx_enrollments_section (section_id),\n  CONSTRAINT fk_reg_enrollments_student FOREIGN KEY (person_id)  REFERENCES reg_students (person_id),\n  CONSTRAINT fk_reg_enrollments_section FOREIGN KEY (section_id) REFERENCES reg_sections (section_id),\n  CONSTRAINT fk_reg_enrollments_grade   FOREIGN KEY (grade_code) REFERENCES reg_grade_scale (grade_code)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE reg_advising (\n  student_id  INT UNSIGNED NOT NULL,\n  advisor_id  INT UNSIGNED NOT NULL,\n  PRIMARY KEY (student_id),\n  KEY idx_advising_advisor (advisor_id),\n  CONSTRAINT fk_reg_advising_student FOREIGN KEY (student_id) REFERENCES reg_students (person_id),\n  CONSTRAINT fk_reg_advising_advisor FOREIGN KEY (advisor_id) REFERENCES reg_instructors (person_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s6:1fe5773ec75b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO reg_terms VALUES\n  ('2023SP', 'Spring', 2023, '2023-01-25', '2023-05-19'), ('2023FA', 'Fall', 2023, '2023-08-21', '2023-12-15'),\n  ('2024SP', 'Spring', 2024, '2024-01-24', '2024-05-17'), ('2024FA', 'Fall', 2024, '2024-08-21', '2024-12-13')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_grade_scale VALUES\n  ('A', 4.00, TRUE, TRUE), ('A-', 3.70, TRUE, TRUE), ('B+', 3.30, TRUE, TRUE), ('B', 3.00, TRUE, TRUE),\n  ('B-', 2.70, TRUE, TRUE), ('C+', 2.30, TRUE, TRUE), ('C', 2.00, TRUE, TRUE), ('C-', 1.70, TRUE, FALSE),\n  ('D+', 1.30, TRUE, FALSE), ('D', 1.00, TRUE, FALSE), ('F', 0.00, TRUE, FALSE), ('W', NULL, FALSE, FALSE)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 12,
+     "info": "Records: 12  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_people (person_id, full_name, email, date_of_birth)\nSELECT student_id, name, email, '2000-01-01' + INTERVAL (student_id % 1500) DAY FROM students\nUNION ALL\nSELECT instructor_id, name, CONCAT(LOWER(REPLACE(name, ' ', '.')), '@example.edu'), NULL FROM instructors",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 52,
+     "info": "Records: 52  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_students (person_id, student_no, dept_id, admit_year)\nSELECT student_id, CAST(student_id AS CHAR), dept_id, enrollment_year FROM students",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 40,
+     "info": "Records: 40  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_instructors (person_id, dept_id, academic_rank, salary, hired_on)\nSELECT instructor_id, dept_id,\n       CASE WHEN hired_on < '2015-01-01' THEN 'Professor'\n            WHEN hired_on < '2019-01-01' THEN 'Associate Professor'\n            ELSE 'Assistant Professor' END,\n       salary, hired_on\nFROM instructors",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 12,
+     "info": "Records: 12  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_sections (section_id, course_id, term_code, section_no, capacity)\nSELECT s.section_id, s.course_id, t.term_code,\n       ROW_NUMBER() OVER (PARTITION BY s.course_id, t.term_code ORDER BY s.section_id), s.capacity\nFROM sections s JOIN reg_terms t ON t.season = s.term AND t.year = s.year",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 24,
+     "info": "Records: 24  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_enrollments (person_id, section_id, grade_code)\nSELECT student_id, section_id, grade FROM enrollments",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 146,
+     "info": "Records: 146  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_advising (student_id, advisor_id) SELECT student_id, instructor_id FROM advisors",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 30,
+     "info": "Records: 30  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s7:9e0ed2a0eb28": {
+   "statements": [
+    {
+     "sql": "SELECT 'people'      AS entity, (SELECT COUNT(*) FROM students) + (SELECT COUNT(*) FROM instructors) AS legacy,\n                                (SELECT COUNT(*) FROM reg_people) AS migrated\nUNION ALL SELECT 'sections',    (SELECT COUNT(*) FROM sections),    (SELECT COUNT(*) FROM reg_sections)\nUNION ALL SELECT 'enrollments', (SELECT COUNT(*) FROM enrollments), (SELECT COUNT(*) FROM reg_enrollments)\nUNION ALL SELECT 'graded',      (SELECT COUNT(grade) FROM enrollments), (SELECT COUNT(grade_code) FROM reg_enrollments)\nUNION ALL SELECT 'advising',    (SELECT COUNT(*) FROM advisors),    (SELECT COUNT(*) FROM reg_advising)",
+     "status": "ok",
+     "columns": [
+      "entity",
+      "legacy",
+      "migrated"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "people",
+       52,
+       52
+      ],
+      [
+       "sections",
+       24,
+       24
+      ],
+      [
+       "enrollments",
+       146,
+       146
+      ],
+      [
+       "graded",
+       129,
+       129
+      ],
+      [
+       "advising",
+       30,
+       30
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:ec9363ce411f": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS grade_mismatches\nFROM enrollments e\nLEFT JOIN reg_enrollments r ON r.person_id = e.student_id AND r.section_id = e.section_id\nWHERE r.person_id IS NULL OR NOT (r.grade_code <=> e.grade)",
+     "status": "ok",
+     "columns": [
+      "grade_mismatches"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:27338b64895e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE reg_rooms (\n  room_id   SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,\n  building  VARCHAR(4) NOT NULL,\n  room_no   VARCHAR(5) NOT NULL,\n  capacity  SMALLINT UNSIGNED NOT NULL,\n  PRIMARY KEY (room_id),\n  UNIQUE KEY uq_rooms_code (building, room_no)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE reg_time_slots (\n  slot_id     TINYINT UNSIGNED NOT NULL,\n  weekday     TINYINT UNSIGNED NOT NULL,\n  start_time  TIME NOT NULL,\n  end_time    TIME NOT NULL,\n  PRIMARY KEY (slot_id),\n  UNIQUE KEY uq_slots_time (weekday, start_time, end_time),\n  CONSTRAINT chk_reg_slots_weekday CHECK (weekday BETWEEN 1 AND 5),\n  CONSTRAINT chk_reg_slots_order CHECK (end_time > start_time)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE reg_meetings (\n  section_id  INT UNSIGNED NOT NULL,\n  term_code   CHAR(6) NOT NULL,\n  slot_id     TINYINT UNSIGNED NOT NULL,\n  room_id     SMALLINT UNSIGNED NULL,\n  PRIMARY KEY (section_id, slot_id),\n  UNIQUE KEY uq_meetings_room_slot (term_code, room_id, slot_id),\n  CONSTRAINT fk_reg_meetings_section FOREIGN KEY (section_id, term_code) REFERENCES reg_sections (section_id, term_code),\n  CONSTRAINT fk_reg_meetings_slot    FOREIGN KEY (slot_id) REFERENCES reg_time_slots (slot_id),\n  CONSTRAINT fk_reg_meetings_room    FOREIGN KEY (room_id) REFERENCES reg_rooms (room_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s10:5e9fd7b05145": {
+   "statements": [
+    {
+     "sql": "INSERT INTO reg_rooms (building, room_no, capacity)\nSELECT SUBSTRING_INDEX(room, '-', 1), SUBSTRING_INDEX(room, '-', -1), MAX(capacity)\nFROM sections WHERE room IS NOT NULL GROUP BY room ORDER BY room",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 22,
+     "info": "Records: 22  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_time_slots VALUES\n  (1, 1, '09:00', '10:15'), (2, 3, '09:00', '10:15'), (3, 1, '10:30', '11:45'), (4, 3, '10:30', '11:45'),\n  (5, 1, '13:30', '14:45'), (6, 3, '13:30', '14:45'), (7, 2, '09:00', '10:15'), (8, 4, '09:00', '10:15'),\n  (9, 2, '10:30', '11:45'), (10, 4, '10:30', '11:45'), (11, 2, '13:30', '14:45'), (12, 4, '13:30', '14:45'),\n  (13, 1, '11:00', '12:15'), (14, 3, '11:00', '12:15'), (15, 1, '18:00', '20:45')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 15,
+     "info": "Records: 15  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_meetings (section_id, term_code, slot_id, room_id)\nSELECT p.section_id, rs.term_code, p.first_slot + d.k, r.room_id\nFROM (VALUES ROW(1,1), ROW(2,7), ROW(3,3), ROW(4,9), ROW(5,5), ROW(6,11), ROW(7,1), ROW(8,7), ROW(9,3),\n             ROW(10,9), ROW(11,5), ROW(12,11), ROW(13,3), ROW(14,7), ROW(15,9), ROW(16,13), ROW(17,11),\n             ROW(18,1), ROW(19,1), ROW(20,7), ROW(21,3), ROW(22,9), ROW(23,5), ROW(24,11)) AS p (section_id, first_slot)\nCROSS JOIN (VALUES ROW(0), ROW(1)) AS d (k)\nJOIN reg_sections rs ON rs.section_id = p.section_id\nJOIN sections s      ON s.section_id = p.section_id\nLEFT JOIN reg_rooms r ON CONCAT(r.building, '-', r.room_no) = s.room",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 48,
+     "info": "Records: 48  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS meetings, COUNT(room_id) AS with_room, COUNT(DISTINCT section_id) AS sections\nFROM reg_meetings",
+     "status": "ok",
+     "columns": [
+      "meetings",
+      "with_room",
+      "sections"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       48,
+       46,
+       24
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:87cfe34d09f9": {
+   "statements": [
+    {
+     "sql": "INSERT INTO reg_meetings (section_id, term_code, slot_id, room_id)\nSELECT 24, '2024FA', 3, room_id FROM reg_rooms WHERE building = 'MH' AND room_no = '431'",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '2024FA-16-3' for key 'reg_meetings.uq_meetings_room_slot'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:f16caf098b6d": {
+   "statements": [
+    {
+     "sql": "INSERT INTO reg_meetings (section_id, term_code, slot_id, room_id) VALUES (24, '2024SP', 15, NULL)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`reg_meetings`, CONSTRAINT `fk_reg_meetings_section` FOREIGN KEY (`section_id`, `term_code`) REFERENCES `reg_sections` (`section_id`, `term_code`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s13:1977de678e3e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE reg_staff (\n  person_id  INT UNSIGNED NOT NULL,\n  unit       VARCHAR(60) NOT NULL,\n  job_title  VARCHAR(60) NOT NULL,\n  fte        DECIMAL(3,2) NOT NULL DEFAULT 1.00,\n  PRIMARY KEY (person_id),\n  CONSTRAINT fk_reg_staff_person FOREIGN KEY (person_id) REFERENCES reg_people (person_id) ON DELETE CASCADE,\n  CONSTRAINT chk_reg_staff_fte CHECK (fte BETWEEN 0.10 AND 1.00)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_people (person_id, full_name, email) VALUES (9001, 'Grace Okoye', 'grace.okoye@example.edu')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_staff VALUES (20230020, 'Registrar', 'Student assistant', 0.25), (9001, 'Registrar', 'Associate registrar', 1.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE reg_teaching (\n  section_id   INT UNSIGNED NOT NULL,\n  person_id    INT UNSIGNED NOT NULL,\n  role         ENUM('LEAD','CO') NOT NULL DEFAULT 'LEAD',\n  lead_marker  TINYINT AS (IF(role = 'LEAD', 1, NULL)) VIRTUAL,\n  PRIMARY KEY (section_id, person_id),\n  UNIQUE KEY uq_teaching_one_lead (section_id, lead_marker),\n  KEY idx_teaching_person (person_id),\n  CONSTRAINT fk_reg_teaching_section    FOREIGN KEY (section_id) REFERENCES reg_sections (section_id),\n  CONSTRAINT fk_reg_teaching_instructor FOREIGN KEY (person_id)  REFERENCES reg_instructors (person_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_teaching (section_id, person_id)\nSELECT section_id, instructor_id FROM sections WHERE instructor_id IS NOT NULL",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 23,
+     "info": "Records: 23  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT p.person_id, p.full_name,\n       EXISTS (SELECT 1 FROM reg_students s    WHERE s.person_id = p.person_id) AS is_student,\n       EXISTS (SELECT 1 FROM reg_instructors i WHERE i.person_id = p.person_id) AS is_instructor,\n       EXISTS (SELECT 1 FROM reg_staff f       WHERE f.person_id = p.person_id) AS is_staff\nFROM reg_people p WHERE p.person_id IN (20230020, 9001, 1003)\nORDER BY p.person_id",
+     "status": "ok",
+     "columns": [
+      "person_id",
+      "full_name",
+      "is_student",
+      "is_instructor",
+      "is_staff"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1003,
+       "Omar Kim",
+       0,
+       1,
+       0
+      ],
+      [
+       9001,
+       "Grace Okoye",
+       0,
+       0,
+       1
+      ],
+      [
+       20230020,
+       "Tomas Moradi",
+       1,
+       0,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:9d765b1a88ff": {
+   "statements": [
+    {
+     "sql": "SELECT t.term_code,\n       SUM(c.credits) AS graded_credits,\n       ROUND(SUM(g.points * c.credits) / SUM(c.credits), 2) AS term_gpa,\n       ROUND(SUM(SUM(g.points * c.credits)) OVER w / SUM(SUM(c.credits)) OVER w, 2) AS cumulative_gpa\nFROM reg_enrollments e\nJOIN reg_sections s     ON s.section_id = e.section_id\nJOIN reg_terms t        ON t.term_code = s.term_code\nJOIN courses c          ON c.course_id = s.course_id\nJOIN reg_grade_scale g  ON g.grade_code = e.grade_code AND g.counts_in_gpa\nWHERE e.person_id = 20230010\nGROUP BY t.term_code, t.starts_on\nWINDOW w AS (ORDER BY t.starts_on ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\nORDER BY t.starts_on",
+     "status": "ok",
+     "columns": [
+      "term_code",
+      "graded_credits",
+      "term_gpa",
+      "cumulative_gpa"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "2023SP",
+       "3",
+       "3.70",
+       "3.70"
+      ],
+      [
+       "2023FA",
+       "3",
+       "3.00",
+       "3.35"
+      ],
+      [
+       "2024SP",
+       "7",
+       "2.74",
+       "3.02"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:1bbb03673405": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE chain AS (\n  SELECT course_id, prereq_id, 1 AS depth,\n         CAST(CONCAT(course_id, ' <- ', prereq_id) AS CHAR(200)) AS path\n  FROM course_prereqs\n  WHERE course_id = 'CS-157B'\n  UNION ALL\n  SELECT ch.course_id, cp.prereq_id, ch.depth + 1, CONCAT(ch.path, ' <- ', cp.prereq_id)\n  FROM chain ch\n  JOIN course_prereqs cp ON cp.course_id = ch.prereq_id\n)\nSELECT depth, prereq_id, path FROM chain ORDER BY depth, prereq_id",
+     "status": "ok",
+     "columns": [
+      "depth",
+      "prereq_id",
+      "path"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "CS-157A",
+       "CS-157B <- CS-157A"
+      ],
+      [
+       2,
+       "CS-146",
+       "CS-157B <- CS-157A <- CS-146"
+      ],
+      [
+       3,
+       "CS-046",
+       "CS-157B <- CS-157A <- CS-146 <- CS-046"
+      ],
+      [
+       3,
+       "MATH-042",
+       "CS-157B <- CS-157A <- CS-146 <- MATH-042"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:4a667411dc63": {
+   "statements": [
+    {
+     "sql": "SELECT t1.person_id AS instructor, m1.term_code, m1.section_id AS section_a, m2.section_id AS section_b,\n       ts1.weekday, ts1.start_time AS a_start, ts1.end_time AS a_end, ts2.start_time AS b_start, ts2.end_time AS b_end\nFROM reg_meetings m1\nJOIN reg_meetings m2    ON m2.term_code = m1.term_code AND m1.section_id < m2.section_id\nJOIN reg_time_slots ts1 ON ts1.slot_id = m1.slot_id\nJOIN reg_time_slots ts2 ON ts2.slot_id = m2.slot_id\n                       AND ts2.weekday = ts1.weekday\n                       AND ts1.start_time < ts2.end_time AND ts2.start_time < ts1.end_time\nJOIN reg_teaching t1    ON t1.section_id = m1.section_id\nJOIN reg_teaching t2    ON t2.section_id = m2.section_id AND t2.person_id = t1.person_id\nORDER BY m1.term_code, instructor, ts1.weekday",
+     "status": "ok",
+     "columns": [
+      "instructor",
+      "term_code",
+      "section_a",
+      "section_b",
+      "weekday",
+      "a_start",
+      "a_end",
+      "b_start",
+      "b_end"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1006,
+       "2024SP",
+       13,
+       16,
+       1,
+       "10:30:00",
+       "11:45:00",
+       "11:00:00",
+       "12:15:00"
+      ],
+      [
+       1006,
+       "2024SP",
+       13,
+       16,
+       3,
+       "10:30:00",
+       "11:45:00",
+       "11:00:00",
+       "12:15:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:160dae5c985e": {
+   "statements": [
+    {
+     "sql": "UPDATE reg_meetings m\nJOIN reg_rooms r ON r.building = 'MH' AND r.room_no = '431'\nSET m.slot_id = m.slot_id + 4, m.room_id = r.room_id\nWHERE m.section_id = 22",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Rows matched: 2  Changed: 2  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT m.section_id, m.slot_id, ts.weekday, ts.start_time, ts.end_time, CONCAT(r.building, '-', r.room_no) AS room\nFROM reg_meetings m JOIN reg_time_slots ts USING (slot_id) LEFT JOIN reg_rooms r USING (room_id)\nWHERE m.section_id IN (21, 22)\nORDER BY m.section_id, ts.weekday",
+     "status": "ok",
+     "columns": [
+      "section_id",
+      "slot_id",
+      "weekday",
+      "start_time",
+      "end_time",
+      "room"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       21,
+       3,
+       1,
+       "10:30:00",
+       "11:45:00",
+       "MH-431"
+      ],
+      [
+       21,
+       4,
+       3,
+       "10:30:00",
+       "11:45:00",
+       "MH-431"
+      ],
+      [
+       22,
+       13,
+       1,
+       "11:00:00",
+       "12:15:00",
+       "MH-431"
+      ],
+      [
+       22,
+       14,
+       3,
+       "11:00:00",
+       "12:15:00",
+       "MH-431"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:d2d5b2308445": {
+   "statements": [
+    {
+     "sql": "WITH term_gpa AS (\n  SELECT e.person_id, t.term_code, t.starts_on,\n         SUM(c.credits) AS credits,\n         SUM(g.points * c.credits) AS quality_points\n  FROM reg_enrollments e\n  JOIN reg_sections s    ON s.section_id = e.section_id\n  JOIN reg_terms t       ON t.term_code = s.term_code\n  JOIN courses c         ON c.course_id = s.course_id\n  JOIN reg_grade_scale g ON g.grade_code = e.grade_code AND g.counts_in_gpa\n  GROUP BY e.person_id, t.term_code, t.starts_on\n),\nstanding AS (\n  SELECT person_id, term_code, starts_on, credits,\n         quality_points / credits AS term_gpa,\n         SUM(quality_points) OVER w / SUM(credits) OVER w AS cumulative_gpa\n  FROM term_gpa\n  WINDOW w AS (PARTITION BY person_id ORDER BY starts_on ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n)\nSELECT term_code,\n       SUM(term_gpa >= 3.5 AND credits >= 6) AS deans_list,\n       SUM(cumulative_gpa < 2.0)             AS on_probation,\n       COUNT(*)                              AS students_graded\nFROM standing\nGROUP BY term_code, starts_on\nORDER BY starts_on",
+     "status": "ok",
+     "columns": [
+      "term_code",
+      "deans_list",
+      "on_probation",
+      "students_graded"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "2023SP",
+       "3",
+       "1",
+       26
+      ],
+      [
+       "2023FA",
+       "1",
+       "3",
+       29
+      ],
+      [
+       "2024SP",
+       "3",
+       "6",
+       27
+      ],
+      [
+       "2024FA",
+       "0",
+       "1",
+       11
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:8b081037b897": {
+   "statements": [
+    {
+     "sql": "SELECT s.course_id, e.grade_code, COUNT(*) AS students,\n       ROUND(100 * COUNT(*) / SUM(COUNT(*)) OVER (PARTITION BY s.course_id), 1) AS pct_of_course\nFROM reg_enrollments e\nJOIN reg_sections s    ON s.section_id = e.section_id\nJOIN reg_grade_scale g ON g.grade_code = e.grade_code\nWHERE s.course_id IN ('CS-157A', 'DATA-225')\nGROUP BY s.course_id, e.grade_code, g.points\nORDER BY s.course_id, g.points DESC",
+     "status": "ok",
+     "columns": [
+      "course_id",
+      "grade_code",
+      "students",
+      "pct_of_course"
+     ],
+     "row_count": 13,
+     "rows": [
+      [
+       "CS-157A",
+       "A",
+       1,
+       "8.3"
+      ],
+      [
+       "CS-157A",
+       "A-",
+       1,
+       "8.3"
+      ],
+      [
+       "CS-157A",
+       "B+",
+       1,
+       "8.3"
+      ],
+      [
+       "CS-157A",
+       "B",
+       6,
+       "50.0"
+      ],
+      [
+       "CS-157A",
+       "C+",
+       1,
+       "8.3"
+      ],
+      [
+       "CS-157A",
+       "D",
+       1,
+       "8.3"
+      ],
+      [
+       "CS-157A",
+       "F",
+       1,
+       "8.3"
+      ],
+      [
+       "DATA-225",
+       "A",
+       2,
+       "12.5"
+      ],
+      [
+       "DATA-225",
+       "A-",
+       2,
+       "12.5"
+      ],
+      [
+       "DATA-225",
+       "B",
+       5,
+       "31.3"
+      ],
+      [
+       "DATA-225",
+       "B-",
+       1,
+       "6.3"
+      ],
+      [
+       "DATA-225",
+       "C+",
+       3,
+       "18.8"
+      ],
+      [
+       "DATA-225",
+       "D",
+       3,
+       "18.8"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:64f4b43bcebd": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 50000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_terms (term_code, season, year, starts_on, ends_on)\nWITH RECURSIVE k(n) AS (SELECT 0 UNION ALL SELECT n + 1 FROM k WHERE n < 7)\nSELECT CONCAT(2019 + n DIV 2, IF(n % 2 = 0, 'SP', 'FA')), IF(n % 2 = 0, 'Spring', 'Fall'), 2019 + n DIV 2,\n       MAKEDATE(2019 + n DIV 2, IF(n % 2 = 0, 25, 233)), MAKEDATE(2019 + n DIV 2, IF(n % 2 = 0, 139, 349))\nFROM k",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 8,
+     "info": "Records: 8  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_people (person_id, full_name, email)\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 6000)\nSELECT 30000000 + n, CONCAT('Archive Student ', n), CONCAT('as', n, '@alumni.example.edu') FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 6000,
+     "info": "Records: 6000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_students (person_id, student_no, dept_id, admit_year)\nSELECT person_id, CONCAT('A', LPAD(person_id - 30000000, 7, '0')), 1 + person_id % 5, 2019 + person_id % 4\nFROM reg_people WHERE person_id > 30000000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 6000,
+     "info": "Records: 6000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_sections (section_id, course_id, term_code, section_no, capacity)\nSELECT 1000 + t.n * 60 + c.n * 4 + j.n, c.course_id, t.term_code, 1 + j.n, 120\nFROM (SELECT term_code, ROW_NUMBER() OVER (ORDER BY starts_on) - 1 AS n FROM reg_terms WHERE year < 2023) t\nCROSS JOIN (SELECT course_id, ROW_NUMBER() OVER (ORDER BY course_id) - 1 AS n FROM courses) c\nCROSS JOIN (VALUES ROW(0), ROW(1), ROW(2), ROW(3)) AS j (n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 480,
+     "info": "Records: 480  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_enrollments (person_id, section_id, grade_code)\nWITH RECURSIVE s(n) AS (SELECT 0 UNION ALL SELECT n + 1 FROM s WHERE n < 47999)\nSELECT 30000001 + n % 6000, 1000 + (n DIV 6000) * 60 + ((n % 6000) * 7 + n DIV 6000) % 60,\n       ELT(1 + ((n % 6000) * 31 + (n DIV 6000) * 17) % 11, 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D', 'F', 'W')\nFROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 48000,
+     "info": "Records: 48000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE reg_terms, reg_people, reg_students, reg_sections, reg_enrollments",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "reg_terms",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "reg_people",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "reg_students",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "reg_sections",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "reg_enrollments",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM reg_enrollments) AS enrollments, (SELECT COUNT(*) FROM reg_sections) AS sections,\n       (SELECT COUNT(*) FROM reg_students) AS students",
+     "status": "ok",
+     "columns": [
+      "enrollments",
+      "sections",
+      "students"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       48146,
+       504,
+       6040
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:ef7502732e18": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT e.person_id, SUM(g.points * c.credits) / SUM(c.credits) AS term_gpa\nFROM reg_sections s\nJOIN reg_enrollments e ON e.section_id = s.section_id\nJOIN courses c         ON c.course_id = s.course_id\nJOIN reg_grade_scale g ON g.grade_code = e.grade_code AND g.counts_in_gpa\nWHERE s.term_code = '2021FA'\nGROUP BY e.person_id\nHAVING SUM(c.credits) >= 3 AND term_gpa >= 3.5",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: ((`sum(c.credits)` >= 3) and (term_gpa >= 3.5))  (actual time=20.9..22.5 rows=1091 loops=1)\n    -> Table scan on <temporary>  (actual time=20.9..21.4 rows=5455 loops=1)\n        -> Aggregate using temporary table  (actual time=20.9..20.9 rows=5455 loops=1)\n            -> Nested loop inner join  (cost=3979 rows=5101) (actual time=0.309..18.3 rows=5455 loops=1)\n                -> Nested loop inner join  (cost=1995 rows=5668) (actual time=0.303..12.7 rows=6000 loops=1)\n                    -> Nested loop inner join  (cost=10.8 rows=52.5) (actual time=0.0265..0.175 rows=60 loops=1)\n                        -> Table scan on c  (cost=1.75 rows=15) (actual time=0.0135..0.0474 rows=15 loops=1)\n                        -> Filter: (s.term_code = '2021FA')  (cost=0.279 rows=3.5) (actual time=0.00529..0.0079 rows=4 loops=15)\n                            -> Covering index lookup on s using uq_sections_offering (course_id=c.course_id, term_code='2021FA')  (cost=0.279 rows=3.5) (actual time=0.00457..0.00612 rows=4 loops=15)\n                    -> Filter: (e.grade_code is not null)  (cost=27.2 rows=108) (actual time=0.185..0.204 rows=100 loops=60)\n                        -> Index lookup on e using idx_enrollments_section (section_id=s.section_id)  (cost=27.2 rows=108) (actual time=0.185..0.196 rows=100 loops=60)\n                -> Filter: (0 <> g.counts_in_gpa)  (cost=0.25 rows=0.9) (actual time=703e-6..779e-6 rows=0.909 loops=6000)\n                    -> Single-row index lookup on g using PRIMARY (grade_code=e.grade_code)  (cost=0.25 rows=1) (actual time=578e-6..604e-6 rows=1 loops=6000)\n"
+      ]
+     ],
+     "elapsed_ms": 24.78
+    }
+   ],
+   "measured": true
+  },
+  "s22:cb7483bcd446": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE reg_enrollments DROP INDEX idx_enrollments_section,\n                            ADD INDEX idx_enrollments_section_grade (section_id, grade_code)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE reg_enrollments",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "reg_enrollments",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:ef7502732e18": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT e.person_id, SUM(g.points * c.credits) / SUM(c.credits) AS term_gpa\nFROM reg_sections s\nJOIN reg_enrollments e ON e.section_id = s.section_id\nJOIN courses c         ON c.course_id = s.course_id\nJOIN reg_grade_scale g ON g.grade_code = e.grade_code AND g.counts_in_gpa\nWHERE s.term_code = '2021FA'\nGROUP BY e.person_id\nHAVING SUM(c.credits) >= 3 AND term_gpa >= 3.5",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: ((`sum(c.credits)` >= 3) and (term_gpa >= 3.5))  (actual time=5.33..6.81 rows=1091 loops=1)\n    -> Table scan on <temporary>  (actual time=5.33..5.84 rows=5455 loops=1)\n        -> Aggregate using temporary table  (actual time=5.32..5.32 rows=5455 loops=1)\n            -> Nested loop inner join  (cost=1095 rows=4555) (actual time=0.178..3.2 rows=5455 loops=1)\n                -> Inner hash join (no condition)  (cost=67.9 rows=510) (actual time=0.166..0.222 rows=660 loops=1)\n                    -> Filter: (0 <> g.counts_in_gpa)  (cost=0.0278 rows=10.8) (actual time=0.00692..0.0134 rows=11 loops=1)\n                        -> Table scan on g  (cost=0.0278 rows=12) (actual time=0.0064..0.0101 rows=12 loops=1)\n                    -> Hash\n                        -> Nested loop inner join  (cost=10.8 rows=52.5) (actual time=0.0263..0.143 rows=60 loops=1)\n                            -> Table scan on c  (cost=1.75 rows=15) (actual time=0.0128..0.017 rows=15 loops=1)\n                            -> Filter: (s.term_code = '2021FA')  (cost=0.279 rows=3.5) (actual time=0.00644..0.00799 rows=4 loops=15)\n                                -> Covering index lookup on s using uq_sections_offering (course_id=c.course_id, term_code='2021FA')  (cost=0.279 rows=3.5) (actual time=0.00614..0.00725 rows=4 loops=15)\n                -> Covering index lookup on e using idx_enrollments_section_grade (section_id=s.section_id, grade_code=g.grade_code)  (cost=1.01 rows=8.93) (actual time=0.00306..0.00388 rows=8.27 loops=660)\n"
+      ]
+     ],
+     "elapsed_ms": 9.34
+    }
+   ],
+   "measured": true
+  },
+  "c1:28103e0dab8b": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT COUNT(*) AS enrolled FROM reg_enroll WHERE section_id = 22",
+       "status": "ok",
+       "columns": [
+        "enrolled"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         2
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT COUNT(*) AS enrolled FROM reg_enroll WHERE section_id = 22",
+       "status": "ok",
+       "columns": [
+        "enrolled"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         2
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "INSERT INTO reg_enroll VALUES (20230030, 22)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "INSERT INTO reg_enroll VALUES (20230031, 22)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS enrolled, (SELECT capacity FROM reg_sections_cap WHERE section_id = 22) AS capacity FROM reg_enroll WHERE section_id = 22",
+       "status": "ok",
+       "columns": [
+        "enrolled",
+        "capacity"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         4,
+         3
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:d55398f85bc3": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT capacity FROM reg_sections_cap WHERE section_id = 22 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "capacity"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3
+        ]
+       ]
+      },
+      {
+       "sql": "SELECT COUNT(*) AS enrolled FROM reg_enroll WHERE section_id = 22",
+       "status": "ok",
+       "columns": [
+        "enrolled"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         2
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT capacity FROM reg_sections_cap WHERE section_id = 22 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "capacity"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "657949",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "B",
+        "trxId": "657954",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "reg_sections_cap",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "reg_sections_cap",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "22"
+       },
+       {
+        "session": "B",
+        "table": "reg_sections_cap",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "reg_sections_cap",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "22"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "INSERT INTO reg_enroll VALUES (20230030, 22)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS enrolled FROM reg_enroll WHERE section_id = 22",
+       "status": "ok",
+       "columns": [
+        "enrolled"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c3:ad4547d964ff": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT COUNT(*) AS enrolled FROM reg_enroll WHERE section_id = 22",
+       "status": "ok",
+       "columns": [
+        "enrolled"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         2
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT COUNT(*) AS enrolled FROM reg_enroll WHERE section_id = 22",
+       "status": "ok",
+       "columns": [
+        "enrolled"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         2
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "INSERT INTO reg_enroll VALUES (20230030, 22)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "error",
+     "statements": [
+      {
+       "sql": "INSERT INTO reg_enroll VALUES (20230031, 22)",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1213,
+        "message": "Deadlock found when trying to get lock; try restarting transaction"
+       }
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS enrolled_seen_by_a FROM reg_enroll WHERE section_id = 22",
+       "status": "ok",
+       "columns": [
+        "enrolled_seen_by_a"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "s24:51a5ede3de42": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nWITH gpa AS (\n  SELECT e.person_id, SUM(g.points * c.credits) / SUM(c.credits) AS gpa\n  FROM reg_enrollments e\n  JOIN reg_sections s    ON s.section_id = e.section_id\n  JOIN courses c         ON c.course_id = s.course_id\n  JOIN reg_grade_scale g ON g.grade_code = e.grade_code AND g.counts_in_gpa\n  GROUP BY e.person_id\n)\nSELECT st.person_id, gpa.gpa,\n       (SELECT COUNT(*) + 1 FROM gpa g2 JOIN reg_students s2 ON s2.person_id = g2.person_id\n        WHERE s2.dept_id = st.dept_id AND g2.gpa > gpa.gpa) AS dept_rank\nFROM reg_students st JOIN gpa ON gpa.person_id = st.person_id\nWHERE st.dept_id = 2\nORDER BY dept_rank, st.person_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 5 row(s)  (actual time=1867..1867 rows=5 loops=1)\n    -> Sort: dept_rank, st.person_id, limit input to 5 row(s) per chunk  (actual time=1867..1867 rows=5 loops=1)\n        -> Stream results  (cost=3168 rows=0) (actual time=44.6..1866 rows=1218 loops=1)\n            -> Nested loop inner join  (cost=3168 rows=0) (actual time=43..45.5 rows=1218 loops=1)\n                -> Covering index lookup on st using fk_reg_students_dept (dept_id=2)  (cost=122 rows=1218) (actual time=0.0226..0.487 rows=1218 loops=1)\n                -> Index lookup on gpa using <auto_key0> (person_id=st.person_id)  (cost=0.25..2.5 rows=10) (actual time=0.0363..0.0366 rows=1 loops=1218)\n                    -> Materialize CTE gpa if needed  (cost=0..0 rows=0) (actual time=42.9..42.9 rows=6039 loops=1)\n                        -> Table scan on <temporary>  (actual time=39.2..39.8 rows=6039 loops=1)\n                            -> Aggregate using temporary table  (actual time=39.2..39.2 rows=6039 loops=1)\n                                -> Nested loop inner join  (cost=10737 rows=46446) (actual time=0.325..23.6 rows=43766 loops=1)\n                                    -> Inner hash join (no condition)  (cost=602 rows=4899) (actual time=0.315..0.69 rows=5544 loops=1)\n                                        -> Filter: (0 <> g.counts_in_gpa)  (cost=0.003 rows=10.8) (actual time=0.00789..0.032 rows=11 loops=1)\n                                            -> Table scan on g  (cost=0.003 rows=12) (actual time=0.00668..0.0181 rows=12 loops=1)\n                                        -> Hash\n                                            -> Nested loop inner join  (cost=57 rows=504) (actual time=0.0331..0.258 rows=504 loops=1)\n                                                -> Table scan on c  (cost=1.75 rows=15) (actual time=0.0132..0.0179 rows=15 loops=1)\n                                                -> Covering index lookup on s using uq_sections_offering (course_id=c.course_id)  (cost=0.544 rows=33.6) (actual time=0.0089..0.0138 rows=33.6 loops=15)\n                                    -> Covering index lookup on e using idx_enrollments_section_grade (section_id=s.section_id, grade_code=g.grade_code)  (cost=1.01 rows=9.48) (actual time=0.00276..0.00354 rows=7.89 loops=5544)\n-> Select #2 (subquery in projection; dependent)\n    -> Aggregate: count(0)  (cost=7048 rows=1) (actual time=1.49..1.49 rows=1 loops=1218)\n        -> Nested loop inner join  (cost=6444 rows=6040) (actual time=0.0142..1.46 rows=584 loops=1218)\n            -> Covering index lookup on s2 using fk_reg_students_dept (dept_id=st.dept_id)  (cost=101 rows=1007) (actual time=0.0116..0.234 rows=1218 loops=1218)\n            -> Filter: (g2.gpa > gpa.gpa)  (cost=0.75..4.5 rows=6) (actual time=753e-6..849e-6 rows=0.479 loops=1.48e+6)\n                -> Index lookup on g2 using <auto_key0> (person_id=s2.person_id)  (cost=0.25..4.5 rows=18) (actual time=494e-6..631e-6 rows=1 loops=1.48e+6)\n                    -> Materialize CTE gpa if needed (query plan printed elsewhere)  (cost=0..0 rows=0) (never executed)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'st.dept_id' of SELECT #2 was resolved in SELECT #1"
+      },
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'gpa.gpa' of SELECT #2 was resolved in SELECT #1"
+      }
+     ],
+     "elapsed_ms": 1871.77
+    }
+   ],
+   "measured": true
+  },
+  "s25:a2d563f39712": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nWITH gpa AS (\n  SELECT e.person_id, SUM(g.points * c.credits) / SUM(c.credits) AS gpa\n  FROM reg_enrollments e\n  JOIN reg_sections s    ON s.section_id = e.section_id\n  JOIN courses c         ON c.course_id = s.course_id\n  JOIN reg_grade_scale g ON g.grade_code = e.grade_code AND g.counts_in_gpa\n  GROUP BY e.person_id\n)\nSELECT person_id, gpa, dept_rank\nFROM (SELECT st.person_id, gpa.gpa,\n             RANK() OVER (ORDER BY gpa.gpa DESC) AS dept_rank\n      FROM reg_students st JOIN gpa ON gpa.person_id = st.person_id\n      WHERE st.dept_id = 2) ranked\nORDER BY dept_rank, person_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 5 row(s)  (cost=2.6..2.6 rows=0) (actual time=47.9..47.9 rows=5 loops=1)\n    -> Sort: ranked.dept_rank, ranked.person_id, limit input to 5 row(s) per chunk  (cost=2.6..2.6 rows=0) (actual time=47.9..47.9 rows=5 loops=1)\n        -> Table scan on ranked  (cost=2.5..2.5 rows=0) (actual time=47.7..47.8 rows=1218 loops=1)\n            -> Materialize  (cost=0..0 rows=0) (actual time=47.7..47.7 rows=1218 loops=1)\n                -> Window aggregate: rank() OVER (ORDER BY gpa.gpa desc )   (actual time=47.3..47.5 rows=1218 loops=1)\n                    -> Sort: gpa.gpa DESC  (actual time=47.3..47.4 rows=1218 loops=1)\n                        -> Stream results  (cost=3168 rows=0) (actual time=45.7..47 rows=1218 loops=1)\n                            -> Nested loop inner join  (cost=3168 rows=0) (actual time=45.7..46.9 rows=1218 loops=1)\n                                -> Covering index lookup on st using fk_reg_students_dept (dept_id=2)  (cost=122 rows=1218) (actual time=0.0264..0.247 rows=1218 loops=1)\n                                -> Index lookup on gpa using <auto_key0> (person_id=st.person_id)  (cost=0.25..2.5 rows=10) (actual time=0.038..0.0381 rows=1 loops=1218)\n                                    -> Materialize CTE gpa  (cost=0..0 rows=0) (actual time=45.6..45.6 rows=6039 loops=1)\n                                        -> Table scan on <temporary>  (actual time=42.1..42.7 rows=6039 loops=1)\n                                            -> Aggregate using temporary table  (actual time=42.1..42.1 rows=6039 loops=1)\n                                                -> Nested loop inner join  (cost=10737 rows=46446) (actual time=0.26..25.2 rows=43766 loops=1)\n                                                    -> Inner hash join (no condition)  (cost=602 rows=4899) (actual time=0.251..0.721 rows=5544 loops=1)\n                                                        -> Filter: (0 <> g.counts_in_gpa)  (cost=0.003 rows=10.8) (actual time=0.00678..0.0315 rows=11 loops=1)\n                                                            -> Table scan on g  (cost=0.003 rows=12) (actual time=0.00542..0.0169 rows=12 loops=1)\n                                                        -> Hash\n                                                            -> Nested loop inner join  (cost=57 rows=504) (actual time=0.0274..0.206 rows=504 loops=1)\n                                                                -> Table scan on c  (cost=1.75 rows=15) (actual time=0.00906..0.0127 rows=15 loops=1)\n                                                                -> Covering index lookup on s using uq_sections_offering (course_id=c.course_id)  (cost=0.544 rows=33.6) (actual time=0.00689..0.0108 rows=33.6 loops=15)\n                                                    -> Covering index lookup on e using idx_enrollments_section_grade (section_id=s.section_id, grade_code=g.grade_code)  (cost=1.01 rows=9.48) (actual time=0.00296..0.00378 rows=7.89 loops=5544)\n"
+      ]
+     ],
+     "elapsed_ms": 51.11
+    }
+   ],
+   "measured": true
+  },
+  "s26:b87ff5465a0a": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE reg_db_accounts (\n  account_name  VARCHAR(64) NOT NULL,\n  person_id     INT UNSIGNED NOT NULL,\n  PRIMARY KEY (account_name),\n  CONSTRAINT fk_reg_accounts_person FOREIGN KEY (person_id) REFERENCES reg_people (person_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE SQL SECURITY DEFINER VIEW v_my_rosters AS\nSELECT s.term_code, s.course_id, s.section_no, st.student_no, p.full_name, e.grade_code\nFROM reg_db_accounts a\nJOIN reg_teaching t    ON t.person_id = a.person_id\nJOIN reg_sections s    ON s.section_id = t.section_id\nJOIN reg_enrollments e ON e.section_id = s.section_id\nJOIN reg_students st   ON st.person_id = e.person_id\nJOIN reg_people p      ON p.person_id = e.person_id\nWHERE a.account_name = SUBSTRING_INDEX(USER(), '@', 1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reg_db_accounts VALUES (SUBSTRING_INDEX(USER(), '@', 1), 1003)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT term_code, course_id, COUNT(*) AS students\nFROM v_my_rosters GROUP BY term_code, course_id ORDER BY term_code, course_id",
+     "status": "ok",
+     "columns": [
+      "term_code",
+      "course_id",
+      "students"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "2023FA",
+       "CS-046",
+       2
+      ],
+      [
+       "2023SP",
+       "CS-157A",
+       10
+      ],
+      [
+       "2024FA",
+       "CS-157B",
+       6
+      ],
+      [
+       "2024SP",
+       "CS-157A",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s28:0aff74f3f496": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE reg_grade_changes (\n  change_id   BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  person_id   INT UNSIGNED NOT NULL,\n  section_id  INT UNSIGNED NOT NULL,\n  old_grade   VARCHAR(2) NULL,\n  new_grade   VARCHAR(2) NULL,\n  changed_by  VARCHAR(288) NOT NULL,\n  changed_at  DATETIME(6) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER trg_reg_grade_audit\nAFTER UPDATE ON reg_enrollments\nFOR EACH ROW\n  INSERT INTO reg_grade_changes (person_id, section_id, old_grade, new_grade, changed_by, changed_at)\n  SELECT NEW.person_id, NEW.section_id, OLD.grade_code, NEW.grade_code, CURRENT_USER(), NOW(6)\n  FROM DUAL WHERE NOT (OLD.grade_code <=> NEW.grade_code)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE reg_enrollments SET grade_code = 'B+' WHERE person_id = 20230010 AND section_id = 16",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE reg_enrollments SET grade_code = 'B+' WHERE person_id = 20230010 AND section_id = 16",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 1  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT person_id, section_id, old_grade, new_grade FROM reg_grade_changes ORDER BY change_id",
+     "status": "ok",
+     "columns": [
+      "person_id",
+      "section_id",
+      "old_grade",
+      "new_grade"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20230010,
+       16,
+       "C",
+       "B+"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s29:81d64b33797b": {
+   "statements": [
+    {
+     "sql": "SELECT p.person_id, p.full_name\nFROM reg_people p\nWHERE NOT EXISTS (SELECT 1 FROM reg_students s    WHERE s.person_id = p.person_id)\n  AND NOT EXISTS (SELECT 1 FROM reg_instructors i WHERE i.person_id = p.person_id)\n  AND NOT EXISTS (SELECT 1 FROM reg_staff f       WHERE f.person_id = p.person_id)",
+     "status": "ok",
+     "columns": [
+      "person_id",
+      "full_name"
+     ],
+     "row_count": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s30:49ef82aa6635": {
+   "statements": [
+    {
+     "sql": "SELECT m1.term_code, m1.room_id, m1.section_id AS section_a, m2.section_id AS section_b, ts1.weekday\nFROM reg_meetings m1\nJOIN reg_meetings m2    ON m2.term_code = m1.term_code AND m2.room_id = m1.room_id AND m1.section_id < m2.section_id\nJOIN reg_time_slots ts1 ON ts1.slot_id = m1.slot_id\nJOIN reg_time_slots ts2 ON ts2.slot_id = m2.slot_id AND ts2.weekday = ts1.weekday\n                       AND ts1.start_time < ts2.end_time AND ts2.start_time < ts1.end_time\nORDER BY m1.term_code, m1.room_id, ts1.weekday",
+     "status": "ok",
+     "columns": [
+      "term_code",
+      "room_id",
+      "section_a",
+      "section_b",
+      "weekday"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "2024FA",
+       16,
+       21,
+       22,
+       1
+      ],
+      [
+       "2024FA",
+       16,
+       21,
+       22,
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s31:481381135471": {
+   "statements": [
+    {
+     "sql": "SELECT s.section_id, s.capacity, COUNT(e.person_id) AS enrolled\nFROM reg_sections s LEFT JOIN reg_enrollments e ON e.section_id = s.section_id\nGROUP BY s.section_id, s.capacity\nHAVING COUNT(e.person_id) > s.capacity",
+     "status": "ok",
+     "columns": [
+      "section_id",
+      "capacity",
+      "enrolled"
+     ],
+     "row_count": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s32:732e72b2a034": {
+   "statements": [
+    {
+     "sql": "SELECT s.course_id, COUNT(*) AS enrollments_without_passed_prereq\nFROM reg_enrollments e\nJOIN reg_sections s ON s.section_id = e.section_id\nJOIN reg_terms t    ON t.term_code = s.term_code\nJOIN course_prereqs cp ON cp.course_id = s.course_id\nWHERE t.year >= 2023\n  AND NOT EXISTS (SELECT 1 FROM reg_enrollments e2\n                  JOIN reg_sections s2    ON s2.section_id = e2.section_id\n                  JOIN reg_terms t2       ON t2.term_code = s2.term_code\n                  JOIN reg_grade_scale g  ON g.grade_code = e2.grade_code AND g.is_passing\n                  WHERE e2.person_id = e.person_id AND s2.course_id = cp.prereq_id AND t2.starts_on < t.starts_on)\nGROUP BY s.course_id\nORDER BY enrollments_without_passed_prereq DESC, s.course_id",
+     "status": "ok",
+     "columns": [
+      "course_id",
+      "enrollments_without_passed_prereq"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "DATA-245",
+       30
+      ],
+      [
+       "CS-146",
+       26
+      ],
+      [
+       "DATA-225",
+       18
+      ],
+      [
+       "CS-157A",
+       12
+      ],
+      [
+       "CS-149",
+       11
+      ],
+      [
+       "CS-157B",
+       9
+      ],
+      [
+       "DATA-226",
+       4
+      ],
+      [
+       "CS-160",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s33:ca86757d1ebb": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO course_prereqs VALUES ('CS-046', 'CS-157B')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "WITH RECURSIVE walk AS (\n  SELECT course_id AS start_course, prereq_id, CAST(CONCAT(',', course_id, ',', prereq_id, ',') AS CHAR(500)) AS visited, 0 AS is_cycle\n  FROM course_prereqs\n  UNION ALL\n  SELECT w.start_course, cp.prereq_id, CONCAT(w.visited, cp.prereq_id, ','),\n         LOCATE(CONCAT(',', cp.prereq_id, ','), w.visited) > 0\n  FROM walk w JOIN course_prereqs cp ON cp.course_id = w.prereq_id\n  WHERE w.is_cycle = 0\n)\nSELECT start_course, visited FROM walk WHERE is_cycle = 1 ORDER BY start_course LIMIT 3",
+     "status": "ok",
+     "columns": [
+      "start_course",
+      "visited"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "CS-046",
+       ",CS-046,CS-157B,CS-157A,CS-146,CS-046,"
+      ],
+      [
+       "CS-146",
+       ",CS-146,CS-046,CS-157B,CS-157A,CS-146,"
+      ],
+      [
+       "CS-149",
+       ",CS-149,CS-146,CS-046,CS-157B,CS-157A,CS-146,"
+      ]
+     ]
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  }
+ }
+}

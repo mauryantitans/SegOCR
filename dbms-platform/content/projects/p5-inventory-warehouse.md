@@ -74,7 +74,7 @@ After interviews with the operations manager and the finance controller, the fir
 | N1 | Peak 600 movements/minute across all sites; 3 years of history online (~150 M rows at full scale) | Volume | IT | Indexing and partitioning |
 | N2 | Reservation and pick confirmation < 100 ms at the 95th percentile | Latency | Operations | Short transactions, index access |
 
-Two things to notice. First, R2 and BR1 together contain a design decision you will spend Stage 4 on: if history is a ledger, *the current stock is a derived value*. Second, N1 tells you the ledger is the largest and most write-intensive table — so every index on it has a cost, and partitioning will matter.
+Note what R2 and BR1 imply together: if history is a ledger, *current stock is a derived value* (Stage 4). N1 says the ledger is the largest, most write-intensive table — every index on it has a cost.
 
 :::best-practice[Interview technique for database requirements]
 Ask for **examples and exceptions**, not abstractions. "Can stock ever go negative?" gets "no". "What happens when a picker finds the shelf empty but the system says 3?" gets the real process (a negative adjustment, a cycle count, a short pick), and each of those becomes a movement type. Ask finance how they *audit* a number — the answer defines your history requirements.
@@ -145,7 +145,7 @@ The legacy system stores only state: one number per product per warehouse. When 
 
 > on_hand(w, p) = Σ qty over movements where warehouse = w and product = p
 
-This is exactly how accounting has worked for centuries (a general ledger and account balances), and it gives you audit, as-of reporting ("what was on hand on 30 June?") and the ability to rebuild state after a bug. What it does not give you for free is **fast current stock**: summing thousands of movements on every availability check is too slow at N2 latency. Stage 4 resolves this.
+This is how accounting has always worked (a ledger and balances): it gives audit, as-of reporting and the ability to rebuild state after a bug — but not **fast current stock**, since summing thousands of movements per availability check is too slow for N2. Stage 4 resolves this.
 
 ```mermaid
 flowchart LR
@@ -267,7 +267,7 @@ How to read the important parts:
 - `STOCK_LEVEL` is the associative entity of the WAREHOUSE–PRODUCT M:N relationship; its primary key is the pair.
 - `STOCK_MOVEMENT` points at `STOCK_LEVEL`, not at WAREHOUSE and PRODUCT separately. That single design choice makes BR4 ("only move stock a warehouse carries") a foreign key instead of application logic.
 - `ORDER_LINE` is a weak entity: `line_no` is only unique within its order.
-- `PICK_TASK` carries a copy of `warehouse_id`. That is deliberate redundancy for the picking queue index (Stage 9); Stage 7 shows how a composite foreign key keeps the copy consistent with the order.
+- `PICK_TASK` carries a deliberate copy of `warehouse_id` for the picking-queue index; a composite foreign key keeps it consistent (Stage 7).
 
 The order line lifecycle is a small state machine — worth drawing because each arrow is a transaction you will write:
 
@@ -672,7 +672,7 @@ SELECT MIN(on_hand) AS min_on_hand, MAX(on_hand) AS max_on_hand, SUM(on_hand) AS
 FROM stock_levels;
 ```
 
-Every one of the 201,500 movements fired the trigger once — `SUM(version)` counts exactly those balance updates — and the total on hand equals the ledger's net units. The load was split into two statements of 100,000 rows to keep each well under the sandbox's 10-second statement limit; in production you would batch bulk loads the same way to keep transactions and undo logs small.
+Every one of the 201,500 movements fired the trigger once — `SUM(version)` counts those balance updates — and total on-hand equals the ledger's net units. The load is split into two statements to stay well under the sandbox's 10-second limit; production bulk loads are batched the same way to keep transactions and undo small.
 
 ### Prove the rules
 
@@ -969,13 +969,11 @@ solution: |
   JOIN suppliers sp ON sp.supplier_id = p.supplier_id
   WHERE s.on_hand - s.reserved <= s.reorder_point;
 explanation: |
-  The decisive detail is **available vs on-hand**: OAK's SKU-00008 has 125 on hand — comfortably above its
-  reorder point of 120 — but 60 units are reserved, so only 65 are available and it must be reordered. A
-  report on `on_hand` would leave buyers blind to stock that is already promised to customers.
-  In production this report would also subtract quantities already **on order** (open purchase orders), which
-  this schema does not model yet — a good extension. Because the filter is on an expression, no index can
-  serve it; that is fine for a 1,500-row (or even 1.5-million-row) balance table read once a morning, and it
-  is one reason the report reads the maintained balance rather than summing the ledger.
+  The decisive detail is **available vs on-hand**: OAK's SKU-00008 has 125 on hand — above its reorder point of
+  120 — but 60 units are reserved, so only 65 are available and it must be reordered. A report on `on_hand`
+  would leave buyers blind to stock already promised to customers. In production the report would also subtract
+  quantities already **on order** (open purchase orders), which this schema does not model yet. The filter is on
+  an expression, so no index serves it — fine for a balance table read once a morning.
 ```
 
 ```exercise
@@ -1087,14 +1085,12 @@ check: |
          (SELECT GROUP_CONCAT(CONCAT(reference, ' ', movement_type, ' ', qty) ORDER BY reference, movement_type) FROM stock_movements WHERE reference LIKE 'TR-%') AS transfer_movements;
 explanation: |
   Expected: `DONE,REJECTED,DONE`; warehouse 1 ends at 39 on hand / 30 reserved, warehouse 2 at 19, warehouse 3
-  at 0, and TR-2 left no movements. The **ascending lock order** is the deadlock-prevention technique from
-  Module 8: if one session transfers OAK→SJC while another transfers SJC→OAK and each locks "source first",
-  each can hold one row and wait for the other — a cycle InnoDB breaks by killing one transaction (error 1213).
-  Locking in a global order (by warehouse_id) makes a cycle impossible. Checking **available** rather than
-  on_hand matters: the first transfer must not ship units reserved for customers. A version that does not lock
-  first and relies on the CHECK constraint would still never go negative, but would let a transfer consume
-  reserved stock as long as on_hand stayed ≥ reserved — and the CHECK would only stop the *last* such transfer.
-  Production code also adds an `EXIT HANDLER FOR SQLEXCEPTION` that rolls back and `RESIGNAL`s.
+  at 0, and TR-2 left no movements. The **ascending lock order** prevents deadlocks: if one session transfers
+  OAK→SJC while another transfers SJC→OAK and each locks "source first", each can hold one row and wait for the
+  other — a cycle InnoDB breaks by rolling one back (error 1213). A global order makes the cycle impossible.
+  Checking **available** rather than on_hand stops a transfer from shipping units reserved for customers; the
+  CHECK constraint alone would only stop the transfer that finally made on_hand < reserved. Production code also
+  adds an `EXIT HANDLER FOR SQLEXCEPTION` that rolls back and `RESIGNAL`s.
 ```
 
 ```exercise
@@ -1145,13 +1141,11 @@ solution: |
   LEFT JOIN demand d ON d.product_id = s.product_id
   WHERE s.warehouse_id = 1;
 explanation: |
-  Two OAK products never appear in a pick in this generated history (the generator never routes picks to
-  them — exactly the kind of slow mover a real catalogue has). An inner join silently drops them; `COALESCE`
-  then `NULLIF` makes the semantics explicit: zero demand, undefined cover. MySQL returns NULL for division by
-  zero rather than an error (with a warning under the default SQL mode in SELECT), so `/ 0` would also give
-  NULL here — but relying on that hides intent and fails in strict contexts and other databases. Aggregating
-  demand **before** joining keeps the join one-row-per-product; joining movements first and grouping later
-  works too but multiplies work.
+  Two OAK products never appear in a pick in this generated history — the slow movers every real catalogue has.
+  An inner join silently drops them; `COALESCE` and `NULLIF` make the semantics explicit: zero demand, undefined
+  cover. MySQL returns NULL for division by zero in a SELECT (with a warning), so `/ 0` would also give NULL — but
+  relying on that hides intent and fails in strict contexts and other databases. Aggregating demand **before**
+  joining keeps the join one row per product.
 ```
 
 ## 9. Indexing Strategy
@@ -1255,15 +1249,12 @@ check: |
   WHERE table_schema = DATABASE() AND table_name = 'stock_movements'
   ORDER BY index_name, seq_in_index;
 explanation: |
-  One statement is enough. An index that InnoDB created **implicitly** for a foreign key is dropped silently
-  as soon as you create another index that can enforce the same foreign key (one whose leftmost columns are the
-  FK columns) — the MySQL manual documents this behaviour. A `DROP INDEX fk_movements_stock` after the CREATE
-  therefore fails with "check that column/key exists", and one *before* it fails with error 1553 ("needed in a
-  foreign key constraint"). Had you created the FK index **explicitly** (`KEY idx_x (warehouse_id, product_id)`),
-  it would not be dropped automatically and you would remove it yourself. The result is one index instead of
-  two — one less B+ tree to maintain on every insert — and Q5 now reads the newest 50 rows straight from the
-  index in order (a backward index scan), with no filesort. "Extend instead of add" is one of the most
-  effective index-tuning habits on write-heavy tables.
+  One statement is enough. An index that InnoDB created **implicitly** for a foreign key is dropped silently as
+  soon as you create another index that can enforce the same foreign key (one whose leftmost columns are the FK
+  columns), as the MySQL manual documents. A `DROP INDEX fk_movements_stock` before the CREATE fails with error
+  1553 ("needed in a foreign key constraint"); after it, the index no longer exists. An FK index you had created
+  **explicitly** would stay, and you would drop it yourself. Result: one B+ tree less to maintain on every
+  insert, and Q5 reads the newest 50 rows straight from the index (a backward index scan) with no filesort.
 ```
 
 ## 10. Transaction Management
@@ -1298,7 +1289,7 @@ steps:
     note: Two units were shipped from a shelf that held one. The balance says 0, the ledger says −1 — the two sources of truth disagree, and no constraint noticed.
 ```
 
-The flaw is not the isolation level: REPEATABLE READ (InnoDB's default) let each transaction read a consistent snapshot, exactly as designed. The flaw is **writing a value computed from a stale read**. There are three correct fixes.
+The flaw is not the isolation level — REPEATABLE READ gave each transaction a consistent snapshot, as designed — but **writing a value computed from a stale read**. There are three correct fixes.
 
 ### Scenario 2 — pessimistic: lock the row when you read it
 
@@ -1485,13 +1476,11 @@ check: |
          CONCAT_WS(',', IFNULL(@t1, 'none'), IFNULL(@t2, 'none'), IFNULL(@t3, 'none'), IFNULL(@t4, 'none')) AS returned
   FROM pick_tasks ORDER BY task_id;
 explanation: |
-  Expected return values: 102, 104, 105 and none. Run sequentially, SKIP LOCKED makes no visible difference —
-  its value appears under concurrency (Scenario 5), where forty pickers calling this procedure at once each get
-  a different task instead of queueing on task 102. The index `(warehouse_id, status, task_id)` matters as much
-  as the SKIP LOCKED: it lets the locking read go straight to the first open task of the warehouse in order.
-  Without it InnoDB would scan (and, with FOR UPDATE, lock) rows of other warehouses and of DONE tasks too. A
-  claimed task whose picker disappears needs a time-out rule (e.g. release CLAIMED tasks older than 15 minutes),
-  which is why `claimed_at` is recorded.
+  Expected return values: 102, 104, 105 and none. Run sequentially, SKIP LOCKED makes no visible difference — its
+  value appears under concurrency (Scenario 5), where forty pickers calling this procedure at once each get a
+  different task. The index `(warehouse_id, status, task_id)` matters as much: it lets the locking read go
+  straight to the warehouse's first open task instead of scanning (and locking) other warehouses' and DONE tasks.
+  A claimed task whose picker disappears needs a time-out rule, which is why `claimed_at` is recorded.
 ```
 
 ## 11. Query Optimization
@@ -1630,7 +1619,7 @@ Both run with definer rights, the default. `sql_data_access` shows `CONTAINS SQL
 A `SQL SECURITY DEFINER` procedure is a privilege escalation by design: anyone allowed to execute it acts with the definer's rights. Never build dynamic SQL from parameters inside one (`PREPARE` from concatenated strings is an injection hole with elevated rights), define such routines with a dedicated low-privilege definer account rather than `root`, and review them like security-sensitive code. In MySQL 8.0.16+ the `SET_USER_ID` privilege (8.4: `SET_ANY_DEFINER`/`ALLOW_NONEXISTENT_DEFINER`) controls who may create objects with another definer.
 :::
 
-Other controls a reviewer will look for: TLS for handheld connections (`REQUIRE SSL` on accounts), `entered_by` captured on adjustments (use the application's authenticated user, passed as a parameter, since all floor traffic shares one database account), and binary logs retained long enough to reconstruct any change for audit.
+A reviewer will also look for TLS on handheld connections (`REQUIRE SSL`), an `entered_by` on adjustments (the application's authenticated user, passed as a parameter, since floor traffic shares one account), and binary-log retention long enough for audit.
 
 ```exercise
 id: p5-ex13
@@ -1734,7 +1723,7 @@ SET s.on_hand = l.ledger_on_hand;
 SELECT on_hand FROM stock_levels WHERE warehouse_id = 2 AND product_id = 10;
 ```
 
-A complete validation suite for this project also includes **constraint tests** (each `sql run error` block in Stage 7 is one: a statement that must fail), **concurrency tests** (Stage 10's scenarios, automated with two connections in CI), and **performance regression tests** (the Stage 9 plans checked for "covering index range scan", not for timings).
+A complete suite also includes **constraint tests** (each `sql run error` block in Stage 7 is one), **concurrency tests** (Stage 10's scenarios, automated in CI) and **plan regression tests** (checking for "covering index range scan", not timings).
 
 ```exercise
 id: p5-ex14
@@ -1887,11 +1876,11 @@ Archiving old movements changes the meaning of `SUM(qty)`: the balance at the ar
 
 ### The rest of the production checklist
 
-- **Hot-row contention.** Monitor lock waits on `stock_levels` (`performance_schema.data_lock_waits`, `sys.innodb_lock_waits` on the real server). If a few SKUs dominate, keep transactions minimal; as a last resort split a hot balance into N "bucket" rows whose sum is the balance.
-- **Replica reads.** Reorder and finance reports run on a read replica, accepting replication lag; reservations always run on the primary.
-- **Online schema change.** Adding an index to a 150 M-row ledger: InnoDB online DDL (`ALGORITHM=INPLACE, LOCK=NONE`) or a tool such as gh-ost; test on a restored copy and watch replica lag.
-- **Backups and recovery.** Physical backups (MySQL Enterprise Backup / Percona XtraBackup) plus binary logs for point-in-time recovery; restore drills measured against the RTO.
-- **Monitoring the invariants.** The Stage 13 reconciliation runs nightly and alerts on any non-zero result; the trigger and CHECKs make a non-zero result a sign of a bypass, not of a normal bug.
+- **Hot-row contention.** Monitor lock waits on `stock_levels` (`sys.innodb_lock_waits` on the real server); keep transactions minimal, and as a last resort split a hot balance into N "bucket" rows whose sum is the balance.
+- **Replica reads.** Reorder and finance reports run on a read replica; reservations always run on the primary.
+- **Online schema change.** Index a 150 M-row ledger with InnoDB online DDL (`ALGORITHM=INPLACE, LOCK=NONE`) or gh-ost, rehearsed on a restored copy.
+- **Backups and recovery.** Physical backups plus binary logs for point-in-time recovery; restore drills measured against the RTO.
+- **Monitoring the invariants.** The Stage 13 reconciliation runs nightly and alerts on any non-zero result — with the trigger and CHECKs in place, that means a bypass, not a normal bug.
 - **Trigger visibility.** Document `trg_movements_apply` prominently: side effects invisible in application code surprise developers, and tools that bypass triggers would break the invariant.
 
 :::note[Revise]
@@ -1936,12 +1925,11 @@ check: |
   WHERE p.table_schema = DATABASE() AND p.table_name = 'stock_movements_by_month'
   ORDER BY p.partition_ordinal_position;
 explanation: |
-  `REORGANIZE PARTITION` rewrites only the partitions named (here `p_future`, which holds the two 2026 rows), so
-  it is cheap when done **before** the month starts — which is why production systems run it from a scheduled
-  job weeks ahead. Done late, it copies a whole month of rows under a metadata lock. `ADD PARTITION` cannot be
-  used here because a MAXVALUE partition already exists — new ranges can only be added after the last
-  partition. Dropping `p_future` altogether is the other common design: then an insert beyond the last range
-  fails (error 1526), which is a loud alarm that the roll-forward job did not run.
+  `REORGANIZE PARTITION` rewrites only the partitions named (here `p_future`, holding the two 2026 rows), so it is
+  cheap when run **before** the month starts — production systems schedule it weeks ahead; run late, it copies a
+  month of rows under a metadata lock. `ADD PARTITION` cannot be used because a MAXVALUE partition already exists.
+  Omitting `p_future` altogether is the other common design: an insert beyond the last range then fails
+  (error 1526) — a loud alarm that the roll-forward job did not run.
 ```
 
 ### Project review
