@@ -1,0 +1,932 @@
+{
+ "doc": "m12-caching",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:06ecb37ab974": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE cache_entries (\n  cache_key  VARCHAR(64) PRIMARY KEY,\n  payload    JSON        NOT NULL,\n  version    INT         NOT NULL,\n  expires_at DATETIME(3) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE cache_stats (\n  id        INT AUTO_INCREMENT PRIMARY KEY,\n  cache_key VARCHAR(64) NOT NULL,\n  outcome   ENUM('hit', 'miss') NOT NULL,\n  at        DATETIME(3) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE products ADD COLUMN version INT NOT NULL DEFAULT 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE PROCEDURE get_product(IN pid INT, IN now_ts DATETIME(3), IN ttl_s INT)\nBEGIN\n  DECLARE k VARCHAR(64) DEFAULT CONCAT('product:', pid);\n  DECLARE v JSON;\n  SET v = (SELECT payload FROM cache_entries WHERE cache_key = k AND expires_at > now_ts);\n  IF v IS NOT NULL THEN\n    INSERT INTO cache_stats (cache_key, outcome, at) VALUES (k, 'hit', now_ts);\n    SELECT 'cache' AS served_from, v AS payload;\n  ELSE\n    INSERT INTO cache_stats (cache_key, outcome, at) VALUES (k, 'miss', now_ts);\n    SET v = (SELECT JSON_OBJECT('id', p.product_id, 'name', p.name, 'price', p.price,\n                                'reviews', COUNT(r.review_id), 'avg_rating', ROUND(AVG(r.rating), 2))\n             FROM products p LEFT JOIN reviews r ON r.product_id = p.product_id\n             WHERE p.product_id = pid GROUP BY p.product_id);\n    INSERT INTO cache_entries (cache_key, payload, version, expires_at)\n      SELECT k, v, version, now_ts + INTERVAL ttl_s SECOND FROM products WHERE product_id = pid\n      ON DUPLICATE KEY UPDATE payload = v, version = products.version, expires_at = now_ts + INTERVAL ttl_s SECOND;\n    SELECT 'database' AS served_from, v AS payload;\n  END IF;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s2:e573a97905ac": {
+   "statements": [
+    {
+     "sql": "CALL get_product(25, '2024-12-01 10:00:00.000', 60)",
+     "status": "ok",
+     "columns": [
+      "served_from",
+      "payload"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       "database",
+       "{\"id\": 25, \"name\": \"Yoga Mat\", \"price\": 35.00, \"reviews\": 5, \"avg_rating\": 4.40}"
+      ]
+     ]
+    },
+    {
+     "sql": "CALL get_product(25, '2024-12-01 10:00:05.000', 60)",
+     "status": "ok",
+     "columns": [
+      "served_from",
+      "payload"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       "cache",
+       "{\"id\": 25, \"name\": \"Yoga Mat\", \"price\": 35.00, \"reviews\": 5, \"avg_rating\": 4.40}"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT cache_key, payload, version, expires_at FROM cache_entries",
+     "status": "ok",
+     "columns": [
+      "cache_key",
+      "payload",
+      "version",
+      "expires_at"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "product:25",
+       "{\"id\": 25, \"name\": \"Yoga Mat\", \"price\": 35.00, \"reviews\": 5, \"avg_rating\": 4.40}",
+       1,
+       "2024-12-01 10:01:00.000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:10fff76e56b6": {
+   "statements": [
+    {
+     "sql": "CALL get_product(25, '2024-12-01 10:01:30.000', 60)",
+     "status": "ok",
+     "columns": [
+      "served_from",
+      "payload"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       "database",
+       "{\"id\": 25, \"name\": \"Yoga Mat\", \"price\": 35.00, \"reviews\": 5, \"avg_rating\": 4.40}"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT outcome, COUNT(*) AS n FROM cache_stats GROUP BY outcome ORDER BY outcome",
+     "status": "ok",
+     "columns": [
+      "outcome",
+      "n"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "hit",
+       1
+      ],
+      [
+       "miss",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:c06d5f2e610e": {
+   "statements": [
+    {
+     "sql": "UPDATE products SET price = price - 10.00, version = version + 1 WHERE product_id = 25",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CALL get_product(25, '2024-12-01 10:01:40.000', 60)",
+     "status": "ok",
+     "columns": [
+      "served_from",
+      "payload"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       "cache",
+       "{\"id\": 25, \"name\": \"Yoga Mat\", \"price\": 35.00, \"reviews\": 5, \"avg_rating\": 4.40}"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT price AS price_in_database, version FROM products WHERE product_id = 25",
+     "status": "ok",
+     "columns": [
+      "price_in_database",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "25.00",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:0b4724ef1537": {
+   "statements": [
+    {
+     "sql": "DELETE FROM cache_entries WHERE cache_key = 'product:25'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CALL get_product(25, '2024-12-01 10:01:41.000', 60)",
+     "status": "ok",
+     "columns": [
+      "served_from",
+      "payload"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       "database",
+       "{\"id\": 25, \"name\": \"Yoga Mat\", \"price\": 25.00, \"reviews\": 5, \"avg_rating\": 4.40}"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:0f91c1bc40a9": {
+   "statements": [
+    {
+     "sql": "CREATE TRIGGER products_cache_invalidate AFTER UPDATE ON products FOR EACH ROW\n  DELETE FROM cache_entries WHERE cache_key = CONCAT('product:', NEW.product_id)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL get_product(5, '2024-12-01 11:00:00.000', 60)",
+     "status": "ok",
+     "columns": [
+      "served_from",
+      "payload"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       "database",
+       "{\"id\": 5, \"name\": \"Wireless Mouse\", \"price\": 29.99, \"reviews\": 1, \"avg_rating\": 2.00}"
+      ]
+     ]
+    },
+    {
+     "sql": "UPDATE products SET price = 27.99, version = version + 1 WHERE product_id = 5",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS cached_entries_for_product_5 FROM cache_entries WHERE cache_key = 'product:5'",
+     "status": "ok",
+     "columns": [
+      "cached_entries_for_product_5"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "CALL get_product(5, '2024-12-01 11:00:02.000', 60)",
+     "status": "ok",
+     "columns": [
+      "served_from",
+      "payload"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       "database",
+       "{\"id\": 5, \"name\": \"Wireless Mouse\", \"price\": 27.99, \"reviews\": 1, \"avg_rating\": 2.00}"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:18669bb1168c": {
+   "statements": [
+    {
+     "sql": "-- Reader: cache miss for product 9; reads the row (version and price) — think of this as the reader's SELECT\nSET @read_version = (SELECT version FROM products WHERE product_id = 9)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @read_payload = (SELECT JSON_OBJECT('id', product_id, 'price', price) FROM products WHERE product_id = 9)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- Writer: updates the product (the trigger invalidates the cache; nothing cached yet anyway)\nUPDATE products SET price = 35.00, version = version + 1 WHERE product_id = 9",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- Reader, naive fill: writes what it read, unconditionally\nINSERT INTO cache_entries VALUES ('product:9', @read_payload, @read_version, '2024-12-01 12:05:00.000') AS new\n  ON DUPLICATE KEY UPDATE payload = new.payload",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT c.payload AS cached, p.price AS in_database\nFROM cache_entries c JOIN products p ON p.product_id = 9 WHERE c.cache_key = 'product:9'",
+     "status": "ok",
+     "columns": [
+      "cached",
+      "in_database"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "{\"id\": 9, \"price\": 39.99}",
+       "35.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:1d0adcf1ca84": {
+   "statements": [
+    {
+     "sql": "DELETE FROM cache_entries WHERE cache_key = 'product:9'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SET @read_version = (SELECT version FROM products WHERE product_id = 9)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @read_payload = (SELECT JSON_OBJECT('id', product_id, 'price', price) FROM products WHERE product_id = 9)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE products SET price = 33.00, version = version + 1 WHERE product_id = 9",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO cache_entries (cache_key, payload, version, expires_at)\n  SELECT 'product:9', @read_payload, @read_version, '2024-12-01 12:05:00.000'\n  FROM products WHERE product_id = 9 AND version = @read_version",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS rows_cached, (SELECT COUNT(*) FROM cache_entries WHERE cache_key = 'product:9') AS entries",
+     "status": "ok",
+     "columns": [
+      "rows_cached",
+      "entries"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:0a41f1a8e811": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE products SET price = 239.00, version = version + 1 WHERE product_id = 10",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "REPLACE INTO cache_entries (cache_key, payload, version, expires_at)\n  SELECT 'product:10', JSON_OBJECT('id', product_id, 'name', name, 'price', price), version, '2024-12-01 13:00:00.000'\n  FROM products WHERE product_id = 10",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT c.payload, c.version AS cached_version, p.version AS db_version\nFROM cache_entries c JOIN products p ON p.product_id = 10 WHERE c.cache_key = 'product:10'",
+     "status": "ok",
+     "columns": [
+      "payload",
+      "cached_version",
+      "db_version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "{\"id\": 10, \"name\": \"Noise-Cancelling Headphones\", \"price\": 239.00}",
+       2,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:14ca0b065e76": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE product_rating_summary (\n  product_id   INT UNSIGNED PRIMARY KEY,\n  review_count INT UNSIGNED NOT NULL,\n  rating_sum   INT UNSIGNED NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO product_rating_summary\nSELECT product_id, COUNT(*), SUM(rating) FROM reviews GROUP BY product_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 23,
+     "info": "Records: 23  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER reviews_summary_ai AFTER INSERT ON reviews FOR EACH ROW\n  INSERT INTO product_rating_summary VALUES (NEW.product_id, 1, NEW.rating)\n  ON DUPLICATE KEY UPDATE review_count = review_count + 1, rating_sum = rating_sum + NEW.rating",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO reviews (product_id, customer_id, rating, comment, created_at)\nVALUES (25, 2, 1, 'Stopped working after a week', '2024-12-20 10:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT s.product_id, s.review_count, ROUND(s.rating_sum / s.review_count, 2) AS avg_rating,\n       (SELECT ROUND(AVG(rating), 2) FROM reviews WHERE product_id = 25) AS recomputed\nFROM product_rating_summary s WHERE s.product_id = 25",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "review_count",
+      "avg_rating",
+      "recomputed"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25,
+       6,
+       "3.83",
+       "3.83"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:1a5ee3abf091": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS fresh_hits FROM report_cache WHERE cache_key = 'dashboard' AND expires_at > '2024-12-01 10:00:05'",
+       "status": "ok",
+       "columns": [
+        "fresh_hits"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS fresh_hits FROM report_cache WHERE cache_key = 'dashboard' AND expires_at > '2024-12-01 10:00:05'",
+       "status": "ok",
+       "columns": [
+        "fresh_hits"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS fresh_hits FROM report_cache WHERE cache_key = 'dashboard' AND expires_at > '2024-12-01 10:00:05'",
+       "status": "ok",
+       "columns": [
+        "fresh_hits"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "INSERT INTO recompute_log (session_label) VALUES ('A')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "SELECT SUM(amount) INTO @rev FROM payments WHERE status = 'succeeded'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE report_cache SET payload = JSON_OBJECT('revenue', @rev), expires_at = '2024-12-01 10:01:05' WHERE cache_key = 'dashboard'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "INSERT INTO recompute_log (session_label) VALUES ('B')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "SELECT SUM(amount) INTO @rev FROM payments WHERE status = 'succeeded'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE report_cache SET payload = JSON_OBJECT('revenue', @rev), expires_at = '2024-12-01 10:01:05' WHERE cache_key = 'dashboard'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Rows matched: 1  Changed: 0  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "INSERT INTO recompute_log (session_label) VALUES ('C')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "SELECT SUM(amount) INTO @rev FROM payments WHERE status = 'succeeded'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE report_cache SET payload = JSON_OBJECT('revenue', @rev), expires_at = '2024-12-01 10:01:05' WHERE cache_key = 'dashboard'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Rows matched: 1  Changed: 0  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT session_label FROM recompute_log ORDER BY id",
+       "status": "ok",
+       "columns": [
+        "session_label"
+       ],
+       "row_count": 3,
+       "rows": [
+        [
+         "A"
+        ],
+        [
+         "B"
+        ],
+        [
+         "C"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:eabaefff0009": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT cache_key FROM cache_locks WHERE cache_key = 'dashboard' FOR UPDATE SKIP LOCKED",
+       "status": "ok",
+       "columns": [
+        "cache_key"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "dashboard"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT cache_key FROM cache_locks WHERE cache_key = 'dashboard' FOR UPDATE SKIP LOCKED",
+       "status": "ok",
+       "columns": [
+        "cache_key"
+       ],
+       "row_count": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT payload AS stale_payload FROM report_cache WHERE cache_key = 'dashboard'",
+       "status": "ok",
+       "columns": [
+        "stale_payload"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "{\"revenue\": 1000}"
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "489035",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "cache_locks",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "cache_locks",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "'dashboard'"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT cache_key FROM cache_locks WHERE cache_key = 'dashboard' FOR UPDATE SKIP LOCKED",
+       "status": "ok",
+       "columns": [
+        "cache_key"
+       ],
+       "row_count": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT payload AS stale_payload FROM report_cache WHERE cache_key = 'dashboard'",
+       "status": "ok",
+       "columns": [
+        "stale_payload"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "{\"revenue\": 1000}"
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "INSERT INTO recompute_log (session_label) VALUES ('A')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "SELECT SUM(amount) INTO @rev FROM payments WHERE status = 'succeeded'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE report_cache SET payload = JSON_OBJECT('revenue', @rev), expires_at = '2024-12-01 10:01:05' WHERE cache_key = 'dashboard'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT session_label FROM recompute_log ORDER BY id",
+       "status": "ok",
+       "columns": [
+        "session_label"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "A"
+        ]
+       ]
+      },
+      {
+       "sql": "SELECT payload FROM report_cache WHERE cache_key = 'dashboard'",
+       "status": "ok",
+       "columns": [
+        "payload"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "{\"revenue\": 62962.08}"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s11:40143b99d13f": {
+   "statements": [
+    {
+     "sql": "SELECT SUM(outcome = 'hit') AS hits, SUM(outcome = 'miss') AS misses,\n       ROUND(100 * AVG(outcome = 'hit'), 1) AS hit_ratio_pct\nFROM cache_stats",
+     "status": "ok",
+     "columns": [
+      "hits",
+      "misses",
+      "hit_ratio_pct"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2",
+       "5",
+       "28.6"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:7a361dd987b0": {
+   "statements": [
+    {
+     "sql": "SELECT SQL_CACHE name FROM products WHERE product_id = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1054,
+      "message": "Unknown column 'SQL_CACHE' in 'field list'"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

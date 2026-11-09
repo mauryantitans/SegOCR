@@ -1,0 +1,1172 @@
+{
+ "doc": "m13-json",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:beabfaa3e58a": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE product_docs (\n  product_id INT UNSIGNED PRIMARY KEY,\n  doc        JSON NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO product_docs (product_id, doc)\nSELECT p.product_id,\n       JSON_OBJECT(\n         'sku', p.sku, 'name', p.name, 'price', p.price, 'category', c.name,\n         'tags', CASE p.product_id % 4 WHEN 0 THEN JSON_ARRAY('gift', 'sale')\n                                       WHEN 1 THEN JSON_ARRAY('new')\n                                       WHEN 2 THEN JSON_ARRAY('eco', 'sale')\n                                       ELSE JSON_ARRAY() END,\n         'dims', JSON_OBJECT('w_cm', 10 + p.product_id, 'h_cm', 5 + p.product_id % 7),\n         'variants', IF(p.product_id % 3 = 0,\n                        JSON_ARRAY(JSON_OBJECT('color', 'black', 'stock', p.stock_qty),\n                                   JSON_OBJECT('color', 'white', 'stock', p.stock_qty DIV 2)),\n                        JSON_ARRAY()))\nFROM products p LEFT JOIN categories c ON c.category_id = p.category_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 30,
+     "info": "Records: 30  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id, doc FROM product_docs ORDER BY product_id LIMIT 3",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "doc"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "{\"sku\": \"SKU-1001\", \"dims\": {\"h_cm\": 6, \"w_cm\": 11}, \"name\": \"Ultrabook 14 Pro\", \"tags\": [\"new\"], \"price\": 1299.00, \"category\": \"Laptops\", \"variants\": []}"
+      ],
+      [
+       2,
+       "{\"sku\": \"SKU-1002\", \"dims\": {\"h_cm\": 7, \"w_cm\": 12}, \"name\": \"Ultrabook 13 Air\", \"tags\": [\"eco\", \"sale\"], \"price\": 999.00, \"category\": \"Laptops\", \"variants\": []}"
+      ],
+      [
+       3,
+       "{\"sku\": \"SKU-1003\", \"dims\": {\"h_cm\": 8, \"w_cm\": 13}, \"name\": \"Gaming Laptop 16\", \"tags\": [], \"price\": 1799.00, \"category\": \"Laptops\", \"variants\": [{\"color\": \"black\", \"stock\": 196}, {\"color\": \"white\", \"stock\": 98}]}"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:4312c5e7856e": {
+   "statements": [
+    {
+     "sql": "SELECT product_id,\n       doc->'$.name'                      AS name_json,\n       doc->>'$.name'                     AS name_text,\n       doc->'$.price'                     AS price,\n       doc->'$.tags[0]'                   AS first_tag,\n       doc->'$.dims.w_cm'                 AS width,\n       JSON_EXTRACT(doc, '$.variants[*].color') AS colors\nFROM product_docs\nWHERE product_id IN (3, 6)\nORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name_json",
+      "name_text",
+      "price",
+      "first_tag",
+      "width",
+      "colors"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       3,
+       "\"Gaming Laptop 16\"",
+       "Gaming Laptop 16",
+       "1799.00",
+       null,
+       "13",
+       "[\"black\", \"white\"]"
+      ],
+      [
+       6,
+       "\"Mechanical Keyboard\"",
+       "Mechanical Keyboard",
+       "89.99",
+       "\"eco\"",
+       "16",
+       "[\"black\", \"white\"]"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:ad949d195e1e": {
+   "statements": [
+    {
+     "sql": "SELECT JSON_EXTRACT('[10, 20, 30, 40]', '$[last]')   AS last_elem,\n       JSON_EXTRACT('[10, 20, 30, 40]', '$[1 to 2]') AS a_range,\n       JSON_EXTRACT('{\"a b\": 1}', '$.\"a b\"')         AS quoted_key,\n       JSON_SEARCH('{\"a\": [\"x\", \"y\"]}', 'one', 'y')  AS path_of_y,\n       JSON_KEYS('{\"a\": 1, \"b\": 2}')                 AS keys_,\n       JSON_MERGE_PATCH('{\"a\": 1, \"b\": 2}', '{\"b\": null, \"c\": 3}') AS patched",
+     "status": "ok",
+     "columns": [
+      "last_elem",
+      "a_range",
+      "quoted_key",
+      "path_of_y",
+      "keys_",
+      "patched"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "40",
+       "[20, 30]",
+       "1",
+       "\"$.a[1]\"",
+       "[\"a\", \"b\"]",
+       "{\"a\": 1, \"c\": 3}"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:d7ea2a891aa1": {
+   "statements": [
+    {
+     "sql": "SELECT pd.product_id, v.rn, v.color, v.stock\nFROM product_docs AS pd,\n     JSON_TABLE(pd.doc, '$.variants[*]'\n       COLUMNS (rn    FOR ORDINALITY,\n                color VARCHAR(10) PATH '$.color',\n                stock INT         PATH '$.stock' DEFAULT '0' ON EMPTY)) AS v\nWHERE pd.product_id IN (3, 6)\nORDER BY pd.product_id, v.rn",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "rn",
+      "color",
+      "stock"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       3,
+       1,
+       "black",
+       196
+      ],
+      [
+       3,
+       2,
+       "white",
+       98
+      ],
+      [
+       6,
+       1,
+       "black",
+       89
+      ],
+      [
+       6,
+       2,
+       "white",
+       44
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:c38509ae9494": {
+   "statements": [
+    {
+     "sql": "SELECT pd.product_id, t.tag\nFROM product_docs AS pd\nLEFT JOIN JSON_TABLE(pd.doc, '$.tags[*]' COLUMNS (tag VARCHAR(20) PATH '$')) AS t ON TRUE\nWHERE pd.product_id <= 4\nORDER BY pd.product_id, t.tag",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "tag"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "new"
+      ],
+      [
+       2,
+       "eco"
+      ],
+      [
+       2,
+       "sale"
+      ],
+      [
+       3,
+       null
+      ],
+      [
+       4,
+       "gift"
+      ],
+      [
+       4,
+       "sale"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:f8c0bf7a3e0d": {
+   "statements": [
+    {
+     "sql": "SELECT t.tag, COUNT(*) AS products\nFROM product_docs AS pd,\n     JSON_TABLE(pd.doc, '$.tags[*]' COLUMNS (tag VARCHAR(20) PATH '$')) AS t\nGROUP BY t.tag\nORDER BY products DESC, t.tag",
+     "status": "ok",
+     "columns": [
+      "tag",
+      "products"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "sale",
+       15
+      ],
+      [
+       "eco",
+       8
+      ],
+      [
+       "new",
+       8
+      ],
+      [
+       "gift",
+       7
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:b3d02adf79f7": {
+   "statements": [
+    {
+     "sql": "SELECT *\nFROM JSON_TABLE(\n  '{\"o\": [{\"id\": 1, \"lines\": [{\"sku\": \"A\", \"q\": 2}, {\"sku\": \"B\", \"q\": 1}]},\n          {\"id\": 2, \"lines\": [{\"sku\": \"C\", \"q\": 5}]}]}',\n  '$.o[*]' COLUMNS (\n     order_id INT PATH '$.id',\n     NESTED PATH '$.lines[*]' COLUMNS (sku VARCHAR(5) PATH '$.sku', qty INT PATH '$.q'))) AS jt",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "sku",
+      "qty"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "A",
+       2
+      ],
+      [
+       1,
+       "B",
+       1
+      ],
+      [
+       2,
+       "C",
+       5
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT *\nFROM JSON_TABLE('[{\"q\": \"abc\"}, {\"q\": 7}, {}]', '$[*]'\n  COLUMNS (q     INT PATH '$.q' DEFAULT '0' ON EMPTY NULL ON ERROR,\n           has_q INT EXISTS PATH '$.q')) AS jt",
+     "status": "ok",
+     "columns": [
+      "q",
+      "has_q"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       null,
+       1
+      ],
+      [
+       7,
+       1
+      ],
+      [
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:5dbd569907bf": {
+   "statements": [
+    {
+     "sql": "SELECT JSON_SET(doc,     '$.price', 1.5, '$.color', 'red') AS with_set,\n       JSON_INSERT(doc,  '$.price', 1.5, '$.color', 'red') AS with_insert,\n       JSON_REPLACE(doc, '$.price', 1.5, '$.color', 'red') AS with_replace\nFROM product_docs WHERE product_id = 1",
+     "status": "ok",
+     "columns": [
+      "with_set",
+      "with_insert",
+      "with_replace"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "{\"sku\": \"SKU-1001\", \"dims\": {\"h_cm\": 6, \"w_cm\": 11}, \"name\": \"Ultrabook 14 Pro\", \"tags\": [\"new\"], \"color\": \"red\", \"price\": 1.5, \"category\": \"Laptops\", \"variants\": []}",
+       "{\"sku\": \"SKU-1001\", \"dims\": {\"h_cm\": 6, \"w_cm\": 11}, \"name\": \"Ultrabook 14 Pro\", \"tags\": [\"new\"], \"color\": \"red\", \"price\": 1299.00, \"category\": \"Laptops\", \"variants\": []}",
+       "{\"sku\": \"SKU-1001\", \"dims\": {\"h_cm\": 6, \"w_cm\": 11}, \"name\": \"Ultrabook 14 Pro\", \"tags\": [\"new\"], \"price\": 1.5, \"category\": \"Laptops\", \"variants\": []}"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT JSON_REMOVE(doc, '$.dims', '$.variants') AS slimmed\nFROM product_docs WHERE product_id = 1",
+     "status": "ok",
+     "columns": [
+      "slimmed"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "{\"sku\": \"SKU-1001\", \"name\": \"Ultrabook 14 Pro\", \"tags\": [\"new\"], \"price\": 1299.00, \"category\": \"Laptops\"}"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:dc4a5e954749": {
+   "statements": [
+    {
+     "sql": "SELECT JSON_STORAGE_SIZE(doc) AS bytes, JSON_STORAGE_FREE(doc) AS freed\nFROM product_docs WHERE product_id = 1",
+     "status": "ok",
+     "columns": [
+      "bytes",
+      "freed"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       174,
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "UPDATE product_docs SET doc = JSON_REPLACE(doc, '$.name', 'UB14') WHERE product_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT JSON_STORAGE_SIZE(doc) AS bytes, JSON_STORAGE_FREE(doc) AS freed, doc->>'$.name' AS name\nFROM product_docs WHERE product_id = 1",
+     "status": "ok",
+     "columns": [
+      "bytes",
+      "freed",
+      "name"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       174,
+       12,
+       "UB14"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:33f386c634df": {
+   "statements": [
+    {
+     "sql": "SELECT @@binlog_row_value_options AS row_value_options, @@binlog_row_image AS row_image",
+     "status": "ok",
+     "columns": [
+      "row_value_options",
+      "row_image"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "",
+       "FULL"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:b7210ff75f39": {
+   "statements": [
+    {
+     "sql": "SELECT c.name AS category,\n       JSON_ARRAYAGG(p.sku)            AS skus,\n       JSON_OBJECTAGG(p.sku, p.price)  AS price_by_sku\nFROM products p JOIN categories c USING (category_id)\nWHERE c.category_id IN (3, 4)\nGROUP BY c.name\nORDER BY c.name",
+     "status": "ok",
+     "columns": [
+      "category",
+      "skus",
+      "price_by_sku"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Accessories",
+       "[\"SKU-1005\", \"SKU-1006\", \"SKU-1007\", \"SKU-1009\", \"SKU-1030\"]",
+       "{\"SKU-1005\": 29.99, \"SKU-1006\": 89.99, \"SKU-1007\": 49.99, \"SKU-1009\": 39.99, \"SKU-1030\": 69.99}"
+      ],
+      [
+       "Laptops",
+       "[\"SKU-1001\", \"SKU-1002\", \"SKU-1003\", \"SKU-1004\"]",
+       "{\"SKU-1001\": 1299.00, \"SKU-1002\": 999.00, \"SKU-1003\": 1799.00, \"SKU-1004\": 249.00}"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:8021461ca5ef": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE product_attrs (\n  product_id INT UNSIGNED PRIMARY KEY,\n  attrs JSON NOT NULL,\n  CONSTRAINT chk_attrs_schema CHECK (JSON_SCHEMA_VALID('{\n    \"type\": \"object\",\n    \"required\": [\"sku\", \"price\"],\n    \"properties\": {\n      \"sku\":   {\"type\": \"string\", \"pattern\": \"^SKU-[0-9]{4}$\"},\n      \"price\": {\"type\": \"number\", \"minimum\": 0},\n      \"tags\":  {\"type\": \"array\", \"items\": {\"type\": \"string\"}}\n    },\n    \"additionalProperties\": false}', attrs))\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO product_attrs VALUES (1, '{\"sku\": \"SKU-1001\", \"price\": 12.5, \"tags\": [\"new\"]}')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id, attrs FROM product_attrs",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "attrs"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "{\"sku\": \"SKU-1001\", \"tags\": [\"new\"], \"price\": 12.5}"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:992707be7d9a": {
+   "statements": [
+    {
+     "sql": "INSERT INTO product_attrs VALUES (2, '{\"sku\": \"SKU-1002\", \"price\": -1}')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_attrs_schema' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s15:0f4718cd34e7": {
+   "statements": [
+    {
+     "sql": "SELECT JSON_PRETTY(JSON_SCHEMA_VALIDATION_REPORT(\n  '{\"type\": \"object\", \"properties\": {\"price\": {\"type\": \"number\", \"minimum\": 0}}}',\n  '{\"price\": -1}')) AS report",
+     "status": "ok",
+     "columns": [
+      "report"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "{\n  \"valid\": false,\n  \"reason\": \"The JSON document location '#/price' failed requirement 'minimum' at JSON Schema location '#/properties/price'\",\n  \"schema-location\": \"#/properties/price\",\n  \"document-location\": \"#/price\",\n  \"schema-failed-keyword\": \"minimum\"\n}"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:df94b37d85c7": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE events_json (\n  event_id INT UNSIGNED PRIMARY KEY,\n  payload  JSON NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 50000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO events_json\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 50000)\nSELECT n, JSON_OBJECT('type',    ELT(1 + n % 5, 'click', 'view', 'purchase', 'signup', 'refund'),\n                      'user_id', 1 + n % 2000,\n                      'amount',  IF(n % 5 = 2, ROUND((n % 997) / 3, 2), NULL),\n                      'labels',  JSON_ARRAY(CONCAT('L', n % 50), CONCAT('L', (n * 7) % 50)))\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Records: 50000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE events_json",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "events_json",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:a6f7c60d4b98": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM events_json WHERE payload->>'$.user_id' = 42",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events_json",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       49764,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `events_json` where (json_unquote(json_extract(`events_json`.`payload`,'$.user_id')) = 42)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:1e3f8d1eb0f2": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE events_json\n  ADD COLUMN user_id INT UNSIGNED AS (payload->>'$.user_id') VIRTUAL,\n  ADD INDEX idx_user (user_id)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE events_json",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "events_json",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:a6f7c60d4b98": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM events_json WHERE payload->>'$.user_id' = 42",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events_json",
+       null,
+       "ref",
+       "idx_user",
+       "idx_user",
+       "5",
+       "const",
+       25,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `events_json` where (`events_json`.`user_id` = 42)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:bf2252ec4fcf": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE events_json ADD INDEX idx_type ((CAST(payload->>'$.type' AS CHAR(10)) COLLATE utf8mb4_bin))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE events_json",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "events_json",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM events_json WHERE payload->>'$.type' = 'refund'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events_json",
+       null,
+       "ref",
+       "idx_type",
+       "idx_type",
+       "43",
+       "const",
+       17998,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `events_json` where ((cast(json_unquote(json_extract(`payload`,_utf8mb4'$.type')) as char(10) charset utf8mb4) collate utf8mb4_bin) = 'refund')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:51e7a8b204a5": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE events_json ADD INDEX idx_labels ((CAST(payload->'$.labels' AS CHAR(5) ARRAY)))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Records: 50000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE events_json",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "events_json",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT event_id FROM events_json WHERE 'L7' MEMBER OF (payload->'$.labels')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events_json",
+       null,
+       "ref",
+       "idx_labels",
+       "idx_labels",
+       "23",
+       "const",
+       2000,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `events_json`.`event_id` AS `event_id` from `events_json` where json'\"L7\"' member of (cast(json_extract(`payload`,_utf8mb4'$.labels') as char(5) array))"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT event_id FROM events_json WHERE JSON_CONTAINS(payload->'$.labels', '[\"L7\", \"L49\"]')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events_json",
+       null,
+       "range",
+       "idx_labels",
+       "idx_labels",
+       "23",
+       null,
+       4000,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `events_json`.`event_id` AS `event_id` from `events_json` where json_contains(cast(json_extract(`payload`,_utf8mb4'$.labels') as char(5) array),json'[\"L7\", \"L49\"]')"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT event_id FROM events_json WHERE JSON_OVERLAPS(payload->'$.labels', '[\"L7\", \"L49\"]')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events_json",
+       null,
+       "range",
+       "idx_labels",
+       "idx_labels",
+       "23",
+       null,
+       4000,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `events_json`.`event_id` AS `event_id` from `events_json` where json_overlaps(cast(json_extract(`payload`,_utf8mb4'$.labels') as char(5) array),json'[\"L7\", \"L49\"]')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:e34e4b43c535": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT event_id FROM events_json WHERE JSON_CONTAINS(payload, '\"L7\"', '$.labels')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events_json",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       49764,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `events_json`.`event_id` AS `event_id` from `events_json` where json_contains(`events_json`.`payload`,<cache>('\"L7\"'),'$.labels')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:7e51fc8eb80b": {
+   "statements": [
+    {
+     "sql": "SELECT INDEX_NAME, SEQ_IN_INDEX, COLUMN_NAME, EXPRESSION\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'events_json'\nORDER BY INDEX_NAME, SEQ_IN_INDEX",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "SEQ_IN_INDEX",
+      "COLUMN_NAME",
+      "EXPRESSION"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "idx_labels",
+       1,
+       null,
+       "cast(json_extract(`payload`,_utf8mb4\\'$.labels\\') as char(5) array)"
+      ],
+      [
+       "idx_type",
+       1,
+       null,
+       "(cast(json_unquote(json_extract(`payload`,_utf8mb4\\'$.type\\')) as char(10) charset utf8mb4) collate utf8mb4_bin)"
+      ],
+      [
+       "idx_user",
+       1,
+       "user_id",
+       null
+      ],
+      [
+       "PRIMARY",
+       1,
+       "event_id",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:30df4113a875": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM events_json WHERE payload->>'$.user_id' = 42)                          AS user_42_events,\n       (SELECT COUNT(*) FROM events_json WHERE 'L7' MEMBER OF (payload->'$.labels'))                AS has_l7,\n       (SELECT COUNT(*) FROM events_json WHERE JSON_CONTAINS(payload->'$.labels', '[\"L7\", \"L49\"]')) AS has_l7_and_l49,\n       (SELECT COUNT(*) FROM events_json WHERE JSON_OVERLAPS(payload->'$.labels', '[\"L7\", \"L49\"]')) AS has_l7_or_l49",
+     "status": "ok",
+     "columns": [
+      "user_42_events",
+      "has_l7",
+      "has_l7_and_l49",
+      "has_l7_or_l49"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25,
+       2000,
+       1000,
+       3000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:f138b1f37c8a": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM events_json WHERE 'L7' MEMBER OF (payload->'$.labels')",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=665 rows=1) (actual time=4.46..4.46 rows=1 loops=1)\n    -> Filter: json'\"L7\"' member of (cast(json_extract(payload,_utf8mb4'$.labels') as char(5) array))  (cost=465 rows=2000) (actual time=0.049..4.37 rows=2000 loops=1)\n        -> Index lookup on events_json using idx_labels (cast(json_extract(payload,_utf8mb4'$.labels') as char(5) array)=json'\"L7\"')  (cost=465 rows=2000) (actual time=0.0475..3.89 rows=2000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 5.66
+    }
+   ],
+   "measured": true
+  },
+  "s20:66084d12f247": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE price_docs (id INT PRIMARY KEY, doc JSON NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO price_docs VALUES (1, '{\"price\": 999.00}'), (2, '{\"price\": 1299.00}'), (3, '{\"price\": 89.99}')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT id, doc->>'$.price' AS price_text FROM price_docs WHERE doc->>'$.price' > '200' ORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "price_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "999.0"
+      ],
+      [
+       3,
+       "89.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:b6d2a6d09167": {
+   "statements": [
+    {
+     "sql": "SELECT id, doc->'$.price' AS price FROM price_docs WHERE doc->'$.price' > 200 ORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "999.0"
+      ],
+      [
+       2,
+       "1299.0"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT id FROM price_docs ORDER BY JSON_VALUE(doc, '$.price' RETURNING DECIMAL(10,2))",
+     "status": "ok",
+     "columns": [
+      "id"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       3
+      ],
+      [
+       1
+      ],
+      [
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:9042bc94fd60": {
+   "statements": [
+    {
+     "sql": "SELECT CONCAT('Name: ', doc->'$.name') AS with_arrow, CONCAT('Name: ', doc->>'$.name') AS with_double_arrow\nFROM product_docs WHERE product_id = 2",
+     "status": "ok",
+     "columns": [
+      "with_arrow",
+      "with_double_arrow"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Name: \"Ultrabook 13 Air\"",
+       "Name: Ultrabook 13 Air"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:9689e99fe102": {
+   "statements": [
+    {
+     "sql": "SELECT JSON_SET('{\"a\": 1}', '$.ship.weight', 2)                       AS silently_ignored,\n       JSON_SET('{\"a\": 1}', '$.ship', JSON_OBJECT('weight', 2))        AS creates_object",
+     "status": "ok",
+     "columns": [
+      "silently_ignored",
+      "creates_object"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "{\"a\": 1}",
+       "{\"a\": 1, \"ship\": {\"weight\": 2}}"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s24:15705721a5bf": {
+   "statements": [
+    {
+     "sql": "INSERT INTO price_docs VALUES (4, '{\"price\": 10,}')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3140,
+      "message": "Invalid JSON text: \"Missing a name for object member.\" at position 13 in value for column 'price_docs.doc'."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s25:e0cba7f56f3f": {
+   "statements": [
+    {
+     "sql": "SELECT JSON_EXTRACT('{\"a\": 1}', '$a')",
+     "status": "error",
+     "columns": [
+      "JSON_EXTRACT('{\"a\": 1}', '$a')"
+     ],
+     "rows": [],
+     "error": {
+      "code": 3143,
+      "message": "Invalid JSON path expression. The error is around character position 1."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

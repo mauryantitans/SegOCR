@@ -1,0 +1,1051 @@
+{
+ "doc": "m13-generated-columns",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s3:fb91e40a8ae2": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE order_lines (\n  order_id    INT UNSIGNED  NOT NULL,\n  product_id  INT UNSIGNED  NOT NULL,\n  quantity    INT UNSIGNED  NOT NULL,\n  unit_price  DECIMAL(10,2) NOT NULL,\n  line_total  DECIMAL(20,2) AS (quantity * unit_price) VIRTUAL,\n  PRIMARY KEY (order_id, product_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO order_lines (order_id, product_id, quantity, unit_price)\nSELECT order_id, product_id, quantity, unit_price FROM order_items",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 182,
+     "info": "Records: 182  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT order_id, product_id, quantity, unit_price, line_total\nFROM order_lines ORDER BY order_id, product_id LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "product_id",
+      "quantity",
+      "unit_price",
+      "line_total"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       5,
+       3,
+       "29.99",
+       "89.97"
+      ],
+      [
+       1,
+       30,
+       3,
+       "62.99",
+       "188.97"
+      ],
+      [
+       2,
+       9,
+       1,
+       "39.99",
+       "39.99"
+      ],
+      [
+       2,
+       10,
+       1,
+       "224.99",
+       "224.99"
+      ],
+      [
+       2,
+       12,
+       1,
+       "129.99",
+       "129.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:f8414a3a195a": {
+   "statements": [
+    {
+     "sql": "SELECT COLUMN_NAME, COLUMN_TYPE, EXTRA, GENERATION_EXPRESSION\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'order_lines'\nORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "COLUMN_TYPE",
+      "EXTRA",
+      "GENERATION_EXPRESSION"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "order_id",
+       "int unsigned",
+       "",
+       ""
+      ],
+      [
+       "product_id",
+       "int unsigned",
+       "",
+       ""
+      ],
+      [
+       "quantity",
+       "int unsigned",
+       "",
+       ""
+      ],
+      [
+       "unit_price",
+       "decimal(10,2)",
+       "",
+       ""
+      ],
+      [
+       "line_total",
+       "decimal(20,2)",
+       "VIRTUAL GENERATED",
+       "(`quantity` * `unit_price`)"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:30e1a82ad97d": {
+   "statements": [
+    {
+     "sql": "INSERT INTO order_lines (order_id, product_id, quantity, unit_price, line_total)\nVALUES (1, 30, 1, 10.00, 999.00)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3105,
+      "message": "The value specified for generated column 'line_total' in table 'order_lines' is not allowed."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:7447d227f59a": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE bad_now (id INT PRIMARY KEY, created DATETIME AS (NOW()))",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3763,
+      "message": "Expression of generated column 'created' contains a disallowed function: now."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:45dd38fbdf40": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE bad_ai (id INT AUTO_INCREMENT PRIMARY KEY, doubled INT AS (id * 2))",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3109,
+      "message": "Generated column 'doubled' cannot refer to auto-increment column."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:078a11018f58": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE orders_by_month (\n  order_id    INT UNSIGNED PRIMARY KEY,\n  customer_id INT UNSIGNED NOT NULL,\n  order_date  DATETIME     NOT NULL,\n  status      VARCHAR(10)  NOT NULL,\n  order_month CHAR(7) AS (DATE_FORMAT(order_date, '%Y-%m')) VIRTUAL,\n  INDEX idx_order_month (order_month)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders_by_month (order_id, customer_id, order_date, status)\nSELECT order_id, customer_id, order_date, status FROM orders",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 80,
+     "info": "Records: 80  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders_by_month",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "orders_by_month",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM orders_by_month WHERE DATE_FORMAT(order_date, '%Y-%m') = '2024-03'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders_by_month",
+       null,
+       "ref",
+       "idx_order_month",
+       "idx_order_month",
+       "29",
+       "const",
+       6,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `orders_by_month` where (`orders_by_month`.`order_month` = '2024-03')"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT order_month, COUNT(*) AS orders\nFROM orders_by_month GROUP BY order_month ORDER BY order_month LIMIT 4",
+     "status": "ok",
+     "columns": [
+      "order_month",
+      "orders"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "2024-01",
+       3
+      ],
+      [
+       "2024-02",
+       9
+      ],
+      [
+       "2024-03",
+       6
+      ],
+      [
+       "2024-04",
+       9
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:fdd4ff3235d2": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE accounts (\n  account_id INT PRIMARY KEY,\n  email      VARCHAR(255) COLLATE utf8mb4_bin NOT NULL,\n  email_norm VARCHAR(255) AS (LOWER(TRIM(email))) STORED,\n  UNIQUE KEY uq_accounts_email_norm (email_norm),\n  CONSTRAINT chk_accounts_email CHECK (email_norm LIKE '%_@_%._%')\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO accounts (account_id, email) VALUES (1, 'Ann@Example.com')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, email, email_norm FROM accounts",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "email",
+      "email_norm"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "Ann@Example.com",
+       "ann@example.com"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:02c49c88a428": {
+   "statements": [
+    {
+     "sql": "INSERT INTO accounts (account_id, email) VALUES (2, ' ann@example.COM')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'ann@example.com' for key 'accounts.uq_accounts_email_norm'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:2383cb22d0d7": {
+   "statements": [
+    {
+     "sql": "INSERT INTO accounts (account_id, email) VALUES (3, 'not-an-email')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_accounts_email' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:fae16cb14e16": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE subscriptions (\n  sub_id          INT PRIMARY KEY,\n  customer_id     INT UNSIGNED NOT NULL,\n  status          ENUM('active', 'cancelled') NOT NULL,\n  active_customer INT UNSIGNED AS (IF(status = 'active', customer_id, NULL)) VIRTUAL,\n  UNIQUE KEY uq_one_active (active_customer),\n  CONSTRAINT fk_subscriptions_customer FOREIGN KEY (customer_id) REFERENCES customers (customer_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO subscriptions (sub_id, customer_id, status)\nVALUES (1, 1, 'cancelled'), (2, 1, 'cancelled'), (3, 1, 'active'), (4, 3, 'active')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT sub_id, customer_id, status, active_customer FROM subscriptions ORDER BY sub_id",
+     "status": "ok",
+     "columns": [
+      "sub_id",
+      "customer_id",
+      "status",
+      "active_customer"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       1,
+       "cancelled",
+       null
+      ],
+      [
+       2,
+       1,
+       "cancelled",
+       null
+      ],
+      [
+       3,
+       1,
+       "active",
+       1
+      ],
+      [
+       4,
+       3,
+       "active",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:9534254e08b2": {
+   "statements": [
+    {
+     "sql": "INSERT INTO subscriptions (sub_id, customer_id, status) VALUES (5, 1, 'active')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '1' for key 'subscriptions.uq_one_active'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:9ed0b5a1d550": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE feed_rows (\n  row_id   INT PRIMARY KEY,\n  raw_cust VARCHAR(10) NOT NULL,\n  cust_id  INT UNSIGNED AS (CAST(raw_cust AS UNSIGNED)) STORED,\n  CONSTRAINT fk_feed_customer FOREIGN KEY (cust_id) REFERENCES customers (customer_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO feed_rows (row_id, raw_cust) VALUES (1, '7')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT row_id, raw_cust, cust_id FROM feed_rows",
+     "status": "ok",
+     "columns": [
+      "row_id",
+      "raw_cust",
+      "cust_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "7",
+       7
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:6381ddaeb5f5": {
+   "statements": [
+    {
+     "sql": "INSERT INTO feed_rows (row_id, raw_cust) VALUES (2, '999')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`feed_rows`, CONSTRAINT `fk_feed_customer` FOREIGN KEY (`cust_id`) REFERENCES `customers` (`customer_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s16:e4c71cb98144": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE feed_rows_v (\n  row_id   INT PRIMARY KEY,\n  raw_cust VARCHAR(10) NOT NULL,\n  cust_id  INT UNSIGNED AS (CAST(raw_cust AS UNSIGNED)) VIRTUAL,\n  CONSTRAINT fk_feed_customer_v FOREIGN KEY (cust_id) REFERENCES customers (customer_id)\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3733,
+      "message": "Foreign key 'fk_feed_customer_v' uses virtual column 'cust_id' which is not supported."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s17:fe099ae3e94f": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE lines_virtual (\n  id INT PRIMARY KEY, qty INT NOT NULL, unit_price DECIMAL(10,2) NOT NULL, note VARCHAR(100) NOT NULL,\n  line_total DECIMAL(20,2) AS (qty * unit_price)  VIRTUAL,\n  note_upper VARCHAR(100)  AS (UPPER(note))        VIRTUAL,\n  note_hash  CHAR(64)      AS (SHA2(note, 256))    VIRTUAL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE lines_stored (\n  id INT PRIMARY KEY, qty INT NOT NULL, unit_price DECIMAL(10,2) NOT NULL, note VARCHAR(100) NOT NULL,\n  line_total DECIMAL(20,2) AS (qty * unit_price)  STORED,\n  note_upper VARCHAR(100)  AS (UPPER(note))        STORED,\n  note_hash  CHAR(64)      AS (SHA2(note, 256))    STORED\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 100000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO lines_virtual (id, qty, unit_price, note)\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 100000)\nSELECT n, 1 + n % 9, (n % 500) + 0.99, CONCAT('order line ', n) FROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO lines_stored (id, qty, unit_price, note)\nSELECT id, qty, unit_price, note FROM lines_virtual",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:d04d7c9a9e66": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE lines_virtual, lines_stored",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "lines_virtual",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lines_stored",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT TABLE_NAME, TABLE_ROWS, DATA_LENGTH, INDEX_LENGTH, AVG_ROW_LENGTH\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('lines_virtual', 'lines_stored')\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "TABLE_ROWS",
+      "DATA_LENGTH",
+      "INDEX_LENGTH",
+      "AVG_ROW_LENGTH"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "lines_stored",
+       99174,
+       15220736,
+       0,
+       153
+      ],
+      [
+       "lines_virtual",
+       100176,
+       5783552,
+       0,
+       57
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:f6a56fb28065": {
+   "statements": [
+    {
+     "sql": "SELECT v.id, v.line_total AS virtual_total, s.line_total AS stored_total, v.note_upper\nFROM lines_virtual v JOIN lines_stored s USING (id)\nWHERE v.id <= 3 ORDER BY v.id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "virtual_total",
+      "stored_total",
+      "note_upper"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "3.98",
+       "3.98",
+       "ORDER LINE 1"
+      ],
+      [
+       2,
+       "8.97",
+       "8.97",
+       "ORDER LINE 2"
+      ],
+      [
+       3,
+       "15.96",
+       "15.96",
+       "ORDER LINE 3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:88bc8f88a892": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE lines_virtual ADD COLUMN qty_band TINYINT AS (qty DIV 3) VIRTUAL, ALGORITHM=INSTANT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:28691d758f85": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE lines_stored ADD COLUMN qty_band TINYINT AS (qty DIV 3) STORED, ALGORITHM=INPLACE",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1845,
+      "message": "ALGORITHM=INPLACE is not supported for this operation. Try ALGORITHM=COPY."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:b48337a1993d": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE lines_stored ADD COLUMN qty_band TINYINT AS (qty DIV 3) STORED",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:76be3b244148": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE lines_virtual ADD INDEX idx_total (line_total)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE lines_stored  ADD INDEX idx_total (line_total)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE lines_virtual, lines_stored",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "lines_virtual",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lines_stored",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT TABLE_NAME, DATA_LENGTH, INDEX_LENGTH\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('lines_virtual', 'lines_stored')\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "DATA_LENGTH",
+      "INDEX_LENGTH"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "lines_stored",
+       16269312,
+       2637824
+      ],
+      [
+       "lines_virtual",
+       5783552,
+       2637824
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.6:866978ee964b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT id FROM lines_virtual WHERE qty * unit_price = 3.98",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "lines_virtual",
+       null,
+       "ref",
+       "idx_total",
+       "idx_total",
+       "10",
+       "const",
+       23,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lines_virtual`.`id` AS `id` from `lines_virtual` where (`lines_virtual`.`line_total` = 3.98)"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT id FROM lines_virtual WHERE qty * unit_price > 4400.00",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "lines_virtual",
+       null,
+       "range",
+       "idx_total",
+       "idx_total",
+       "10",
+       null,
+       267,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lines_virtual`.`id` AS `id` from `lines_virtual` where (`lines_virtual`.`line_total` > 4400.00)"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT id FROM lines_virtual WHERE qty * unit_price > 4400",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "lines_virtual",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       97568,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lines_virtual`.`id` AS `id` from `lines_virtual` where ((`lines_virtual`.`qty` * `lines_virtual`.`unit_price`) > 4400)"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT id FROM lines_virtual WHERE line_total > 4400",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "lines_virtual",
+       null,
+       "range",
+       "idx_total",
+       "idx_total",
+       "10",
+       null,
+       267,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lines_virtual`.`id` AS `id` from `lines_virtual` where (`lines_virtual`.`line_total` > 4400.00)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:b91de476ff30": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME,\n       ROUND(DATA_LENGTH / 1024 / 1024, 1)  AS data_mb,\n       ROUND(INDEX_LENGTH / 1024 / 1024, 1) AS index_mb,\n       (SELECT COUNT(*) FROM information_schema.COLUMNS c\n        WHERE c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME\n          AND c.EXTRA LIKE '%GENERATED%') AS generated_columns\nFROM information_schema.TABLES t\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('lines_virtual', 'lines_stored')\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "data_mb",
+      "index_mb",
+      "generated_columns"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "lines_stored",
+       "15.5",
+       "2.5",
+       4
+      ],
+      [
+       "lines_virtual",
+       "5.5",
+       "2.5",
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:1c2bc2a0df5e": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE orders_by_month ADD INDEX idx_order_year ((YEAR(order_date)))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COLUMN_NAME, EXTRA FROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders_by_month' ORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "EXTRA"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "order_id",
+       ""
+      ],
+      [
+       "customer_id",
+       ""
+      ],
+      [
+       "order_date",
+       ""
+      ],
+      [
+       "status",
+       ""
+      ],
+      [
+       "order_month",
+       "VIRTUAL GENERATED"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT INDEX_NAME, COLUMN_NAME, EXPRESSION FROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders_by_month' ORDER BY INDEX_NAME, SEQ_IN_INDEX",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "COLUMN_NAME",
+      "EXPRESSION"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "idx_order_month",
+       "order_month",
+       null
+      ],
+      [
+       "idx_order_year",
+       null,
+       "year(`order_date`)"
+      ],
+      [
+       "PRIMARY",
+       "order_id",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:f8e8a7c66627": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM lines_virtual WHERE line_total > 4400",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=81.6 rows=1) (actual time=0.0867..0.0868 rows=1 loops=1)\n    -> Filter: (lines_virtual.line_total > 4400.00)  (cost=54.9 rows=267) (actual time=0.0154..0.0738 rows=267 loops=1)\n        -> Covering index range scan on lines_virtual using idx_total over (4400.00 < line_total)  (cost=54.9 rows=267) (actual time=0.014..0.0483 rows=267 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.08
+    }
+   ],
+   "measured": true
+  },
+  "s21:802fc411d43a": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE orders_by_month MODIFY order_month CHAR(7) AS (DATE_FORMAT(order_date, '%Y-%m')) STORED",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3106,
+      "message": "'Changing the STORED status' is not supported for generated columns."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s22:c1493248e294": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE orders_by_month DROP COLUMN order_date",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3108,
+      "message": "Column 'order_date' has a generated column dependency."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

@@ -1,0 +1,543 @@
+{
+ "doc": "m12-ha-dr",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:ed80e504bb31": {
+   "statements": [
+    {
+     "sql": "SELECT nines, slo_pct,\n       ROUND((1 - slo_pct / 100) * 365 * 24 * 60, 1)  AS downtime_min_per_year,\n       ROUND((1 - slo_pct / 100) * 30 * 24 * 60, 1)   AS downtime_min_per_30_days,\n       ROUND((1 - slo_pct / 100) * 7 * 24 * 3600, 0)  AS downtime_s_per_week\nFROM (SELECT 'two' AS nines, 99.0 AS slo_pct UNION ALL SELECT 'three', 99.9 UNION ALL\n      SELECT 'three and a half', 99.95 UNION ALL SELECT 'four', 99.99 UNION ALL SELECT 'five', 99.999) t\nORDER BY slo_pct",
+     "status": "ok",
+     "columns": [
+      "nines",
+      "slo_pct",
+      "downtime_min_per_year",
+      "downtime_min_per_30_days",
+      "downtime_s_per_week"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "two",
+       "99.000",
+       "5256.0",
+       "432.0",
+       "6048"
+      ],
+      [
+       "three",
+       "99.900",
+       "525.6",
+       "43.2",
+       "605"
+      ],
+      [
+       "three and a half",
+       "99.950",
+       "262.8",
+       "21.6",
+       "302"
+      ],
+      [
+       "four",
+       "99.990",
+       "52.6",
+       "4.3",
+       "60"
+      ],
+      [
+       "five",
+       "99.999",
+       "5.3",
+       "0.4",
+       "6"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:c9417f5533b1": {
+   "statements": [
+    {
+     "sql": "SET @lb = 0.9999, @app_instance = 0.995, @db_single = 0.999, @db_failover_success = 0.99",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROUND(100 * @lb * @db_single, 4)                                  AS lb_and_single_db_pct,\n       ROUND(100 * (1 - POW(1 - @app_instance, 3)), 6)                   AS app_tier_3_instances_pct,\n       ROUND(100 * (1 - (1 - @db_single) * ((1 - @db_single) + (1 - @db_failover_success) * @db_single)), 5)\n                                                                         AS db_pair_with_failover_pct,\n       ROUND(100 * @lb * (1 - POW(1 - @app_instance, 3))\n                 * (1 - (1 - @db_single) * ((1 - @db_single) + (1 - @db_failover_success) * @db_single)), 4)\n                                                                         AS end_to_end_pct",
+     "status": "ok",
+     "columns": [
+      "lb_and_single_db_pct",
+      "app_tier_3_instances_pct",
+      "db_pair_with_failover_pct",
+      "end_to_end_pct"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "99.8900",
+       99.999988,
+       "99.99890",
+       99.9889
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:14583f205e56": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE primary_commits (seq INT PRIMARY KEY, committed_at DATETIME(3) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO primary_commits\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 600)\nSELECT n, '2024-12-01 03:00:00' + INTERVAL n * 100000 MICROSECOND FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 600,
+     "info": "Records: 600  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- one commit every 100 ms\nCREATE TABLE replica_positions (replica VARCHAR(10) PRIMARY KEY, received_seq INT NOT NULL, applied_seq INT NOT NULL, az VARCHAR(4) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO replica_positions VALUES ('db-b', 596, 590, 'az2'), ('db-c', 571, 571, 'az3'), ('db-dr', 540, 538, 'eu-1')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SET @crash_at = (SELECT MAX(committed_at) FROM primary_commits)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT r.replica, r.az, r.received_seq, r.applied_seq,\n       (SELECT COUNT(*) FROM primary_commits WHERE seq > r.received_seq) AS lost_if_promoted,\n       ROUND(TIMESTAMPDIFF(MICROSECOND,\n             (SELECT committed_at FROM primary_commits WHERE seq = r.received_seq), @crash_at) / 1e6, 1) AS rpo_seconds\nFROM replica_positions r\nORDER BY r.received_seq DESC",
+     "status": "ok",
+     "columns": [
+      "replica",
+      "az",
+      "received_seq",
+      "applied_seq",
+      "lost_if_promoted",
+      "rpo_seconds"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "db-b",
+       "az2",
+       596,
+       590,
+       4,
+       0.4
+      ],
+      [
+       "db-c",
+       "az3",
+       571,
+       571,
+       29,
+       2.9
+      ],
+      [
+       "db-dr",
+       "eu-1",
+       540,
+       538,
+       60,
+       6.0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:255391063850": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE backup_catalog (kind VARCHAR(10) NOT NULL, finished_at DATETIME NOT NULL, covers_until DATETIME NOT NULL, size_gb INT NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO backup_catalog VALUES\n  ('full',   '2024-12-01 01:40:00', '2024-12-01 01:00:00', 1800),\n  ('binlog', '2024-12-01 02:05:00', '2024-12-01 02:00:00', 4),\n  ('binlog', '2024-12-01 03:05:00', '2024-12-01 03:00:00', 5),\n  ('binlog', '2024-12-01 04:05:00', '2024-12-01 04:00:00', 5),\n  ('binlog', '2024-12-01 05:05:00', '2024-12-01 05:00:00', 6)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SET @disaster_at = '2024-12-01 05:47:00', @restore_gb_per_hour = 600, @binlog_apply_min_per_hour = 9",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT MAX(covers_until) AS recoverable_until,\n       TIMESTAMPDIFF(MINUTE, MAX(covers_until), @disaster_at) AS rpo_minutes,\n       ROUND((SELECT size_gb FROM backup_catalog WHERE kind = 'full') / @restore_gb_per_hour * 60\n             + TIMESTAMPDIFF(HOUR, (SELECT covers_until FROM backup_catalog WHERE kind = 'full'), MAX(covers_until))\n               * @binlog_apply_min_per_hour) AS estimated_restore_minutes\nFROM backup_catalog\nWHERE finished_at <= @disaster_at",
+     "status": "ok",
+     "columns": [
+      "recoverable_until",
+      "rpo_minutes",
+      "estimated_restore_minutes"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-12-01 05:00:00",
+       47,
+       "216"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:0dd6d1a381ea": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE incidents (incident_id INT PRIMARY KEY, started_at DATETIME NOT NULL, detected_at DATETIME NOT NULL,\n                        mitigated_at DATETIME NOT NULL, cause VARCHAR(60) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO incidents VALUES\n  (1, '2024-11-03 02:10:00', '2024-11-03 02:12:30', '2024-11-03 02:14:00', 'primary host failure, automatic failover'),\n  (2, '2024-11-12 14:00:00', '2024-11-12 14:06:00', '2024-11-12 14:11:00', 'MDL pile-up during migration'),\n  (3, '2024-11-20 09:30:00', '2024-11-20 09:31:00', '2024-11-20 09:33:30', 'connection pool exhaustion'),\n  (4, '2024-11-27 22:00:00', '2024-11-27 22:04:00', '2024-11-27 22:09:00', 'replica promoted with lag, writes paused')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SET @slo = 99.95, @window_min = 30 * 24 * 60",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT incident_id, cause,\n       TIMESTAMPDIFF(SECOND, started_at, detected_at) / 60   AS time_to_detect_min,\n       TIMESTAMPDIFF(SECOND, detected_at, mitigated_at) / 60 AS time_to_mitigate_min,\n       TIMESTAMPDIFF(SECOND, started_at, mitigated_at) / 60  AS downtime_min,\n       ROUND((1 - @slo / 100) * @window_min\n             - SUM(TIMESTAMPDIFF(SECOND, started_at, mitigated_at) / 60) OVER (ORDER BY started_at), 1) AS budget_left_min\nFROM incidents ORDER BY started_at",
+     "status": "ok",
+     "columns": [
+      "incident_id",
+      "cause",
+      "time_to_detect_min",
+      "time_to_mitigate_min",
+      "downtime_min",
+      "budget_left_min"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "primary host failure, automatic failover",
+       "2.5000",
+       "1.5000",
+       "4.0000",
+       "17.6"
+      ],
+      [
+       2,
+       "MDL pile-up during migration",
+       "6.0000",
+       "5.0000",
+       "11.0000",
+       "6.6"
+      ],
+      [
+       3,
+       "connection pool exhaustion",
+       "1.0000",
+       "2.5000",
+       "3.5000",
+       "3.1"
+      ],
+      [
+       4,
+       "replica promoted with lag, writes paused",
+       "4.0000",
+       "5.0000",
+       "9.0000",
+       "-5.9"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:23bfa129b2d7": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE cluster_epoch (id TINYINT PRIMARY KEY, epoch INT NOT NULL, primary_node VARCHAR(10) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO cluster_epoch VALUES (1, 7, 'db-a')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE ledger (entry_id INT AUTO_INCREMENT PRIMARY KEY, written_by VARCHAR(10) NOT NULL, epoch INT NOT NULL, amount DECIMAL(10,2) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- Failover: db-b is promoted, epoch 7 → 8\nUPDATE cluster_epoch SET epoch = epoch + 1, primary_node = 'db-b' WHERE id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- The new primary writes with epoch 8\nINSERT INTO ledger (written_by, epoch, amount)\n  SELECT 'db-b', 8, 100.00 FROM cluster_epoch WHERE id = 1 AND epoch = 8",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS accepted_from_db_b",
+     "status": "ok",
+     "columns": [
+      "accepted_from_db_b"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "-- The old primary db-a comes back and still believes it is primary with epoch 7\nINSERT INTO ledger (written_by, epoch, amount)\n  SELECT 'db-a', 7, 250.00 FROM cluster_epoch WHERE id = 1 AND epoch = 7",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS accepted_from_db_a",
+     "status": "ok",
+     "columns": [
+      "accepted_from_db_a"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT * FROM ledger",
+     "status": "ok",
+     "columns": [
+      "entry_id",
+      "written_by",
+      "epoch",
+      "amount"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "db-b",
+       8,
+       "100.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:c1fdfda61a4d": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE failover_timeline (step_no INT PRIMARY KEY, at DATETIME(3) NOT NULL, phase VARCHAR(20) NOT NULL, detail VARCHAR(80) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO failover_timeline VALUES\n  (1, '2024-11-03 02:10:00.000', 'failure',   'db-a kernel panic'),\n  (2, '2024-11-03 02:10:15.400', 'detection', '3 failed health checks (5 s interval)'),\n  (3, '2024-11-03 02:10:21.900', 'decision',  'quorum of observers agrees db-a is down; db-b most advanced'),\n  (4, '2024-11-03 02:10:24.300', 'catch-up',  'db-b applied remaining relay log'),\n  (5, '2024-11-03 02:10:25.100', 'promotion', 'db-b read-write, epoch 7 -> 8, replicas re-pointed'),\n  (6, '2024-11-03 02:10:31.000', 'routing',   'proxies updated; new connections go to db-b'),\n  (7, '2024-11-03 02:14:00.000', 'recovered', 'error rate back to baseline after client retries')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 7,
+     "info": "Records: 7  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM failover_timeline ORDER BY step_no",
+     "status": "ok",
+     "columns": [
+      "step_no",
+      "at",
+      "phase",
+      "detail"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       1,
+       "2024-11-03 02:10:00.000",
+       "failure",
+       "db-a kernel panic"
+      ],
+      [
+       2,
+       "2024-11-03 02:10:15.400",
+       "detection",
+       "3 failed health checks (5 s interval)"
+      ],
+      [
+       3,
+       "2024-11-03 02:10:21.900",
+       "decision",
+       "quorum of observers agrees db-a is down; db-b most advanced"
+      ],
+      [
+       4,
+       "2024-11-03 02:10:24.300",
+       "catch-up",
+       "db-b applied remaining relay log"
+      ],
+      [
+       5,
+       "2024-11-03 02:10:25.100",
+       "promotion",
+       "db-b read-write, epoch 7 -> 8, replicas re-pointed"
+      ],
+      [
+       6,
+       "2024-11-03 02:10:31.000",
+       "routing",
+       "proxies updated; new connections go to db-b"
+      ],
+      [
+       7,
+       "2024-11-03 02:14:00.000",
+       "recovered",
+       "error rate back to baseline after client retries"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:f6642a1237bd": {
+   "statements": [
+    {
+     "sql": "SELECT phase, detail,\n       ROUND(TIMESTAMPDIFF(MICROSECOND, LAG(at) OVER (ORDER BY step_no), at) / 1e6, 1) AS seconds_since_previous,\n       ROUND(TIMESTAMPDIFF(MICROSECOND, FIRST_VALUE(at) OVER (ORDER BY step_no), at) / 1e6, 1) AS seconds_since_failure\nFROM failover_timeline ORDER BY step_no",
+     "status": "ok",
+     "columns": [
+      "phase",
+      "detail",
+      "seconds_since_previous",
+      "seconds_since_failure"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "failure",
+       "db-a kernel panic",
+       null,
+       0.0
+      ],
+      [
+       "detection",
+       "3 failed health checks (5 s interval)",
+       15.4,
+       15.4
+      ],
+      [
+       "decision",
+       "quorum of observers agrees db-a is down; db-b most advanced",
+       6.5,
+       21.9
+      ],
+      [
+       "catch-up",
+       "db-b applied remaining relay log",
+       2.4,
+       24.3
+      ],
+      [
+       "promotion",
+       "db-b read-write, epoch 7 -> 8, replicas re-pointed",
+       0.8,
+       25.1
+      ],
+      [
+       "routing",
+       "proxies updated; new connections go to db-b",
+       5.9,
+       31.0
+      ],
+      [
+       "recovered",
+       "error rate back to baseline after client retries",
+       209.0,
+       240.0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:e2d8b288a01c": {
+   "statements": [
+    {
+     "sql": "SELECT ROUND(TIMESTAMPDIFF(MICROSECOND, MIN(at), MAX(CASE WHEN phase = 'routing' THEN at END)) / 1e6, 1) AS db_failover_seconds,\n       ROUND(TIMESTAMPDIFF(MICROSECOND, MIN(at), MAX(at)) / 1e6, 1) AS user_visible_seconds\nFROM failover_timeline",
+     "status": "ok",
+     "columns": [
+      "db_failover_seconds",
+      "user_visible_seconds"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       31.0,
+       240.0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

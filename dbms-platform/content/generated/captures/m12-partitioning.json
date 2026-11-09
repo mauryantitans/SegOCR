@@ -85,7 +85,7 @@
        "p2024_01",
        1,
        "739282",
-       20073
+       20004
       ],
       [
        "p2024_02",
@@ -97,13 +97,13 @@
        "p2024_03",
        3,
        "739342",
-       20073
+       20590
       ],
       [
        "p2024_04",
        4,
        "739372",
-       20235
+       19727
       ],
       [
        "p2024_05",
@@ -121,7 +121,7 @@
        "p2024_07",
        7,
        "739464",
-       20590
+       20073
       ],
       [
        "p2024_08",
@@ -133,25 +133,25 @@
        "p2024_09",
        9,
        "739525",
-       19727
+       20235
       ],
       [
        "p2024_10",
        10,
        "739556",
-       20073
+       20590
       ],
       [
        "p2024_11",
        11,
        "739586",
-       19727
+       19300
       ],
       [
        "p2024_12",
        12,
        "739617",
-       19525
+       18075
       ],
       [
        "pmax",
@@ -195,7 +195,7 @@
        null,
        null,
        null,
-       40146,
+       40594,
        11.11,
        "Using where"
       ]
@@ -242,7 +242,7 @@
        "idx_events_customer",
        "4",
        null,
-       60898,
+       60312,
        11.11,
        "Using where; Using index"
       ]
@@ -405,7 +405,7 @@
        null,
        null,
        null,
-       20074,
+       20005,
        11.11,
        "Using where"
       ]
@@ -470,7 +470,7 @@
      "columns": [],
      "affected_rows": 19127,
      "rows": [],
-     "elapsed_ms": 79.06
+     "elapsed_ms": 93.36
     }
    ],
    "measured": true
@@ -484,7 +484,7 @@
      "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 20.76
+     "elapsed_ms": 34.6
     }
    ],
    "measured": true
@@ -513,7 +513,7 @@
       ],
       [
        "p2024_03",
-       20073
+       20590
       ]
      ]
     },
@@ -640,7 +640,7 @@
        "PRIMARY",
        "38",
        null,
-       33455,
+       33472,
        20.0,
        "Using where; Using index"
       ]
@@ -1115,7 +1115,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=2255 rows=1) (actual time=3.71..3.71 rows=1 loops=1)\n    -> Filter: ((`events`.created_at >= TIMESTAMP'2024-05-10 00:00:00') and (`events`.created_at < TIMESTAMP'2024-05-20 00:00:00'))  (cost=2032 rows=2230) (actual time=0.128..3.49 rows=6595 loops=1)\n        -> Covering index scan on events using idx_events_customer  (cost=2032 rows=20073) (actual time=0.124..2.09 rows=20446 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=2255 rows=1) (actual time=4..4.01 rows=1 loops=1)\n    -> Filter: ((`events`.created_at >= TIMESTAMP'2024-05-10 00:00:00') and (`events`.created_at < TIMESTAMP'2024-05-20 00:00:00'))  (cost=2032 rows=2230) (actual time=0.139..3.74 rows=6595 loops=1)\n        -> Covering index scan on events using idx_events_customer  (cost=2032 rows=20073) (actual time=0.135..2.18 rows=20446 loops=1)\n"
       ]
      ]
     }
@@ -1238,7 +1238,7 @@
        "idx_events_customer",
        "4",
        null,
-       179762,
+       179741,
        100.0,
        "Using where; Using index"
       ]

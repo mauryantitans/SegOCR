@@ -1,0 +1,622 @@
+{
+ "doc": "m11-restore-pitr",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:468cbfd10bdb": {
+   "statements": [
+    {
+     "sql": "SELECT @@log_bin                        AS log_bin,\n       @@binlog_format                  AS binlog_format,\n       @@gtid_mode                      AS gtid_mode,\n       @@sync_binlog                    AS sync_binlog,\n       @@innodb_flush_log_at_trx_commit AS flush_at_commit,\n       @@binlog_expire_logs_seconds     AS binlog_retention_seconds",
+     "status": "ok",
+     "columns": [
+      "log_bin",
+      "binlog_format",
+      "gtid_mode",
+      "sync_binlog",
+      "flush_at_commit",
+      "binlog_retention_seconds"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "ROW",
+       "OFF",
+       1,
+       1,
+       2592000
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'@@binlog_format' is deprecated and will be removed in a future release."
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:91107b0d382e": {
+   "statements": [
+    {
+     "sql": "SHOW BINARY LOGS",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1227,
+      "message": "Access denied; you need (at least one of) the SUPER, REPLICATION CLIENT privilege(s) for this operation"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s3:16737f539241": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE accounts_backup LIKE accounts",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO accounts_backup SELECT * FROM accounts",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "info": "Records: 25  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE transactions_backup LIKE transactions",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO transactions_backup SELECT * FROM transactions",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 166,
+     "info": "Records: 166  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM accounts_backup)     AS accounts_in_backup,\n       (SELECT COUNT(*) FROM transactions_backup) AS ledger_rows_in_backup,\n       (SELECT SUM(balance) FROM accounts_backup) AS total_balance_in_backup",
+     "status": "ok",
+     "columns": [
+      "accounts_in_backup",
+      "ledger_rows_in_backup",
+      "total_balance_in_backup"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25,
+       166,
+       "112705.43"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:94521349d0ef": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE binlog_events (\n  seq        INT PRIMARY KEY,          -- order in the log (file + position in real life)\n  gtid       VARCHAR(60) NOT NULL,\n  event_time DATETIME    NOT NULL,\n  stmt       TEXT        NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO binlog_events VALUES\n (1, 'src-uuid:501', '2024-09-01 02:15:00', 'UPDATE accounts SET balance = balance + 200.00, version = version + 1 WHERE account_id = 1'),\n (2, 'src-uuid:501', '2024-09-01 02:15:00', 'INSERT INTO transactions VALUES (167, 1, ''deposit'', 200.00, 692.57, ''DEP-9001'', ''2024-09-01 02:15:00'')'),\n (3, 'src-uuid:502', '2024-09-01 08:40:00', 'UPDATE accounts SET balance = balance - 150.00, version = version + 1 WHERE account_id = 3'),\n (4, 'src-uuid:502', '2024-09-01 08:40:00', 'INSERT INTO transactions VALUES (168, 3, ''withdrawal'', 150.00, 10082.88, NULL, ''2024-09-01 08:40:00'')'),\n (5, 'src-uuid:503', '2024-09-01 09:05:00', 'UPDATE accounts SET balance = balance - 300.00, version = version + 1 WHERE account_id = 4'),\n (6, 'src-uuid:503', '2024-09-01 09:05:00', 'UPDATE accounts SET balance = balance + 300.00, version = version + 1 WHERE account_id = 5'),\n (7, 'src-uuid:503', '2024-09-01 09:05:00', 'INSERT INTO transactions VALUES (169, 4, ''transfer_out'', 300.00, 7646.37, ''TRF-777'', ''2024-09-01 09:05:00'')'),\n (8, 'src-uuid:503', '2024-09-01 09:05:00', 'INSERT INTO transactions VALUES (170, 5, ''transfer_in'', 300.00, 7298.91, ''TRF-777'', ''2024-09-01 09:05:00'')'),\n (9, 'src-uuid:504', '2024-09-01 10:17:42', 'UPDATE accounts SET balance = 0.00'),\n (10,'src-uuid:505', '2024-09-01 10:18:30', 'UPDATE accounts SET balance = balance + 75.00, version = version + 1 WHERE account_id = 9'),\n (11,'src-uuid:505', '2024-09-01 10:18:30', 'INSERT INTO transactions VALUES (171, 9, ''deposit'', 75.00, 9244.88, ''DEP-9002'', ''2024-09-01 10:18:30'')'),\n (12,'src-uuid:506', '2024-09-01 10:25:00', 'UPDATE accounts SET balance = balance + 40.00, version = version + 1 WHERE account_id = 2'),\n (13,'src-uuid:506', '2024-09-01 10:25:00', 'INSERT INTO transactions VALUES (172, 2, ''deposit'', 40.00, 4468.20, ''DEP-9003'', ''2024-09-01 10:25:00'')')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 13,
+     "info": "Records: 13  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT gtid, MIN(event_time) AS committed_at, COUNT(*) AS events\nFROM binlog_events GROUP BY gtid ORDER BY MIN(seq)",
+     "status": "ok",
+     "columns": [
+      "gtid",
+      "committed_at",
+      "events"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "src-uuid:501",
+       "2024-09-01 02:15:00",
+       2
+      ],
+      [
+       "src-uuid:502",
+       "2024-09-01 08:40:00",
+       2
+      ],
+      [
+       "src-uuid:503",
+       "2024-09-01 09:05:00",
+       4
+      ],
+      [
+       "src-uuid:504",
+       "2024-09-01 10:17:42",
+       1
+      ],
+      [
+       "src-uuid:505",
+       "2024-09-01 10:18:30",
+       2
+      ],
+      [
+       "src-uuid:506",
+       "2024-09-01 10:25:00",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:acf593df549a": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE replay_events(IN p_stop_before DATETIME, IN p_exclude_gtid VARCHAR(60))\nBEGIN\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE v_stmt TEXT;\n  DECLARE cur CURSOR FOR\n    SELECT stmt FROM binlog_events\n    WHERE (p_stop_before IS NULL OR event_time < p_stop_before)\n      AND (p_exclude_gtid IS NULL OR gtid <> p_exclude_gtid)\n    ORDER BY seq;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  SET @replayed = 0;\n  OPEN cur;\n  replay: LOOP\n    FETCH cur INTO v_stmt;\n    IF done THEN LEAVE replay; END IF;\n    SET @s = v_stmt;\n    PREPARE ev FROM @s;\n    EXECUTE ev;\n    DEALLOCATE PREPARE ev;\n    SET @replayed = @replayed + 1;\n  END LOOP;\n  CLOSE cur;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s6:1df210b17d1b": {
+   "statements": [
+    {
+     "sql": "CALL replay_events(NULL, NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @replayed AS events_applied",
+     "status": "ok",
+     "columns": [
+      "events_applied"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       13
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2, 3, 4, 5, 9) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "0.00"
+      ],
+      [
+       2,
+       "40.00"
+      ],
+      [
+       3,
+       "0.00"
+      ],
+      [
+       4,
+       "0.00"
+      ],
+      [
+       5,
+       "0.00"
+      ],
+      [
+       9,
+       "75.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:5dd7fb133ce9": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS accounts_violating_invariant\nFROM accounts a\nJOIN (SELECT account_id, balance_after,\n             ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY created_at DESC, txn_id DESC) AS rn\n      FROM transactions) last_txn\n  ON last_txn.account_id = a.account_id AND last_txn.rn = 1\nWHERE a.balance <> last_txn.balance_after",
+     "status": "ok",
+     "columns": [
+      "accounts_violating_invariant"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       24
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:80cebfc0c884": {
+   "statements": [
+    {
+     "sql": "SELECT seq, gtid, event_time, stmt\nFROM binlog_events\nWHERE (stmt LIKE 'UPDATE %' OR stmt LIKE 'DELETE %')\n  AND stmt NOT LIKE '% WHERE %'\nORDER BY seq",
+     "status": "ok",
+     "columns": [
+      "seq",
+      "gtid",
+      "event_time",
+      "stmt"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       9,
+       "src-uuid:504",
+       "2024-09-01 10:17:42",
+       "UPDATE accounts SET balance = 0.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:4ece72b4a9cf": {
+   "statements": [
+    {
+     "sql": "DELETE FROM transactions",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 172,
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM accounts",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO accounts SELECT * FROM accounts_backup",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "info": "Records: 25  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO transactions SELECT * FROM transactions_backup",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 166,
+     "info": "Records: 166  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS accounts, SUM(balance) AS total_balance FROM accounts",
+     "status": "ok",
+     "columns": [
+      "accounts",
+      "total_balance"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25,
+       "112705.43"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:9e85e003f48a": {
+   "statements": [
+    {
+     "sql": "CALL replay_events('2024-09-01 10:17:42', NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @replayed AS events_applied",
+     "status": "ok",
+     "columns": [
+      "events_applied"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       8
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2, 3, 4, 5, 9) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "692.57"
+      ],
+      [
+       2,
+       "4428.20"
+      ],
+      [
+       3,
+       "10082.88"
+      ],
+      [
+       4,
+       "7646.37"
+      ],
+      [
+       5,
+       "7298.91"
+      ],
+      [
+       9,
+       "9169.88"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:003b306d8c67": {
+   "statements": [
+    {
+     "sql": "DELETE FROM transactions",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 170,
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM accounts",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO accounts SELECT * FROM accounts_backup",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "info": "Records: 25  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO transactions SELECT * FROM transactions_backup",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 166,
+     "info": "Records: 166  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CALL replay_events(NULL, 'src-uuid:504')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @replayed AS events_applied",
+     "status": "ok",
+     "columns": [
+      "events_applied"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       12
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2, 3, 4, 5, 9) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "692.57"
+      ],
+      [
+       2,
+       "4468.20"
+      ],
+      [
+       3,
+       "10082.88"
+      ],
+      [
+       4,
+       "7646.37"
+      ],
+      [
+       5,
+       "7298.91"
+      ],
+      [
+       9,
+       "9244.88"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:5dd7fb133ce9": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS accounts_violating_invariant\nFROM accounts a\nJOIN (SELECT account_id, balance_after,\n             ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY created_at DESC, txn_id DESC) AS rn\n      FROM transactions) last_txn\n  ON last_txn.account_id = a.account_id AND last_txn.rn = 1\nWHERE a.balance <> last_txn.balance_after",
+     "status": "ok",
+     "columns": [
+      "accounts_violating_invariant"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:fa307f15fa1a": {
+   "statements": [
+    {
+     "sql": "SELECT txn_id, account_id, txn_type, amount, reference\nFROM transactions WHERE txn_id > 166 ORDER BY txn_id",
+     "status": "ok",
+     "columns": [
+      "txn_id",
+      "account_id",
+      "txn_type",
+      "amount",
+      "reference"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       167,
+       1,
+       "deposit",
+       "200.00",
+       "DEP-9001"
+      ],
+      [
+       168,
+       3,
+       "withdrawal",
+       "150.00",
+       null
+      ],
+      [
+       169,
+       4,
+       "transfer_out",
+       "300.00",
+       "TRF-777"
+      ],
+      [
+       170,
+       5,
+       "transfer_in",
+       "300.00",
+       "TRF-777"
+      ],
+      [
+       171,
+       9,
+       "deposit",
+       "75.00",
+       "DEP-9002"
+      ],
+      [
+       172,
+       2,
+       "deposit",
+       "40.00",
+       "DEP-9003"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:84984d0e10b2": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT SUM(balance) FROM accounts_backup)            AS total_at_backup,\n       (SELECT SUM(balance) FROM accounts)                   AS total_now,\n       (SELECT SUM(balance) FROM accounts) - (SELECT SUM(balance) FROM accounts_backup) AS net_change",
+     "status": "ok",
+     "columns": [
+      "total_at_backup",
+      "total_now",
+      "net_change"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "112705.43",
+       "112870.43",
+       "165.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:dba0215e1312": {
+   "statements": [
+    {
+     "sql": "SET SESSION sql_safe_updates = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = 0.00",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1175,
+      "message": "You are using safe update mode and you tried to update a table without a WHERE that uses a KEY column. "
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s13:849ccd6cbb79": {
+   "statements": [
+    {
+     "sql": "SET SESSION sql_safe_updates = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  }
+ }
+}

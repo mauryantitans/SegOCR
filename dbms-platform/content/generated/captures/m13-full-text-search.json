@@ -1,0 +1,873 @@
+{
+ "doc": "m13-full-text-search",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:44f540d47ebc": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE help_articles (\n  article_id INT UNSIGNED PRIMARY KEY,\n  title      VARCHAR(200) NOT NULL,\n  body       TEXT NOT NULL,\n  FULLTEXT KEY ft_title_body (title, body)\n) ENGINE=InnoDB",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO help_articles VALUES\n (1, 'How to reset your password', 'If you forgot your password, open the login page and choose Forgot password. We email a reset link that expires after one hour.'),\n (2, 'Changing the email on your account', 'You can change the email address used for login and receipts from Account settings. A confirmation link is sent to the new address.'),\n (3, 'Tracking a shipped order', 'Once an order has shipped you receive a tracking number by email. Tracking updates can take up to 24 hours to appear.'),\n (4, 'Returning a damaged item', 'If an item arrived damaged, start a return within 30 days. Attach photos of the damaged packaging and the product.'),\n (5, 'Refund timelines', 'Refunds are issued to the original payment method. Card refunds take 5 to 10 business days; gift card refunds are instant.'),\n (6, 'Laptop battery care', 'Keep the laptop battery between 20 and 80 percent for long battery life. Avoid leaving the laptop in a hot car.'),\n (7, 'Pairing wireless headphones', 'Hold the power button for five seconds to enter pairing mode, then select the headphones in your device Bluetooth menu.'),\n (8, 'Mechanical keyboard switch types', 'Linear, tactile and clicky switches differ in feel and noise. Tactile switches give a bump without the click.'),\n (9, 'Using a discount code', 'Enter the discount code at checkout before payment. Only one discount code can be used per order.'),\n (10, 'Order cancelled by mistake', 'Cancelled orders cannot be restored, but you can place a new order. Any payment for the cancelled order is refunded.'),\n (11, 'Gift card balance', 'Check your gift card balance in Account settings under Payment methods. Gift cards never expire.'),\n (12, 'Monitor calibration basics', 'Calibrate a new monitor by adjusting brightness, contrast and color temperature. A hardware calibrator gives the best color accuracy.'),\n (13, 'Shipping to another state', 'We ship to all US states. Shipping times depend on the destination state and the carrier.'),\n (14, 'Password requirements', 'A password must have at least 12 characters. Passphrases made of several words are easier to remember and hard to guess.'),\n (15, 'Two-factor authentication', 'Turn on two-factor authentication in Account settings to protect your login with a one-time code.'),\n (16, 'Wireless mouse not connecting', 'Replace the battery, then re-pair the wireless mouse. Interference from other wireless devices can cause lag.')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 16,
+     "info": "Records: 16  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s2:ac4783188ca2": {
+   "statements": [
+    {
+     "sql": "SELECT article_id, title,\n       ROUND(MATCH(title, body) AGAINST ('password reset'), 4) AS score\nFROM help_articles\nWHERE MATCH(title, body) AGAINST ('password reset')\nORDER BY score DESC, article_id",
+     "status": "ok",
+     "columns": [
+      "article_id",
+      "title",
+      "score"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "How to reset your password",
+       5.3465
+      ],
+      [
+       14,
+       "Password requirements",
+       1.6311
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:acba0df859a3": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_ft_min_token_size AS min_token, @@innodb_ft_max_token_size AS max_token,\n       @@ngram_token_size AS ngram_n, @@innodb_ft_enable_stopword AS stopwords_on,\n       @@innodb_ft_user_stopword_table AS user_stopword_table",
+     "status": "ok",
+     "columns": [
+      "min_token",
+      "max_token",
+      "ngram_n",
+      "stopwords_on",
+      "user_stopword_table"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3,
+       84,
+       2,
+       1,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:9f837b4ffe3b": {
+   "statements": [
+    {
+     "sql": "SELECT article_id, title FROM help_articles\nWHERE MATCH(title, body) AGAINST ('+wireless -mouse' IN BOOLEAN MODE) ORDER BY article_id",
+     "status": "ok",
+     "columns": [
+      "article_id",
+      "title"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       7,
+       "Pairing wireless headphones"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT article_id, title FROM help_articles\nWHERE MATCH(title, body) AGAINST ('refund*' IN BOOLEAN MODE) ORDER BY article_id",
+     "status": "ok",
+     "columns": [
+      "article_id",
+      "title"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       5,
+       "Refund timelines"
+      ],
+      [
+       10,
+       "Order cancelled by mistake"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT article_id, title FROM help_articles\nWHERE MATCH(title, body) AGAINST ('\"gift card\"' IN BOOLEAN MODE) ORDER BY article_id",
+     "status": "ok",
+     "columns": [
+      "article_id",
+      "title"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       5,
+       "Refund timelines"
+      ],
+      [
+       11,
+       "Gift card balance"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:74fb23e1923f": {
+   "statements": [
+    {
+     "sql": "SELECT article_id, title,\n       ROUND(MATCH(title, body) AGAINST ('>password <login' IN BOOLEAN MODE), 4) AS score\nFROM help_articles\nWHERE MATCH(title, body) AGAINST ('password login' IN BOOLEAN MODE)\nORDER BY score DESC, article_id",
+     "status": "ok",
+     "columns": [
+      "article_id",
+      "title",
+      "score"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "How to reset your password",
+       2.9752
+      ],
+      [
+       14,
+       "Password requirements",
+       2.6311
+      ],
+      [
+       2,
+       "Changing the email on your account",
+       -0.4715
+      ],
+      [
+       15,
+       "Two-factor authentication",
+       -0.4715
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:5c5cb8d08188": {
+   "statements": [
+    {
+     "sql": "SELECT 'passwords' AS query_word, COUNT(*) AS hits FROM help_articles WHERE MATCH(title, body) AGAINST ('passwords')\nUNION ALL\nSELECT 'password',  COUNT(*) FROM help_articles WHERE MATCH(title, body) AGAINST ('password')\nUNION ALL\nSELECT 'password*', COUNT(*) FROM help_articles WHERE MATCH(title, body) AGAINST ('password*' IN BOOLEAN MODE)",
+     "status": "ok",
+     "columns": [
+      "query_word",
+      "hits"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "passwords",
+       0
+      ],
+      [
+       "password",
+       2
+      ],
+      [
+       "password*",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:463cf245f706": {
+   "statements": [
+    {
+     "sql": "SELECT article_id, title, ROUND(MATCH(title, body) AGAINST ('battery' WITH QUERY EXPANSION), 4) AS score\nFROM help_articles\nWHERE MATCH(title, body) AGAINST ('battery' WITH QUERY EXPANSION)\nORDER BY score DESC, article_id",
+     "status": "ok",
+     "columns": [
+      "article_id",
+      "title",
+      "score"
+     ],
+     "row_count": 13,
+     "rows": [
+      [
+       6,
+       "Laptop battery care",
+       21.3861
+      ],
+      [
+       16,
+       "Wireless mouse not connecting",
+       20.282
+      ],
+      [
+       7,
+       "Pairing wireless headphones",
+       1.6311
+      ],
+      [
+       2,
+       "Changing the email on your account",
+       0.3458
+      ],
+      [
+       3,
+       "Tracking a shipped order",
+       0.2552
+      ],
+      [
+       9,
+       "Using a discount code",
+       0.2552
+      ],
+      [
+       10,
+       "Order cancelled by mistake",
+       0.2552
+      ],
+      [
+       8,
+       "Mechanical keyboard switch types",
+       0.1812
+      ],
+      [
+       1,
+       "How to reset your password",
+       0.0906
+      ],
+      [
+       4,
+       "Returning a damaged item",
+       0.0906
+      ],
+      [
+       12,
+       "Monitor calibration basics",
+       0.0906
+      ],
+      [
+       13,
+       "Shipping to another state",
+       0.0906
+      ],
+      [
+       14,
+       "Password requirements",
+       0.0906
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:fb8350ae78f7": {
+   "statements": [
+    {
+     "sql": "SELECT 'the' AS word, COUNT(*) AS hits FROM help_articles WHERE MATCH(title, body) AGAINST ('the')\nUNION ALL SELECT 'US',  COUNT(*) FROM help_articles WHERE MATCH(title, body) AGAINST ('US')\nUNION ALL SELECT 'car', COUNT(*) FROM help_articles WHERE MATCH(title, body) AGAINST ('car')",
+     "status": "ok",
+     "columns": [
+      "word",
+      "hits"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "the",
+       0
+      ],
+      [
+       "US",
+       0
+      ],
+      [
+       "car",
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS default_stopwords FROM information_schema.INNODB_FT_DEFAULT_STOPWORD",
+     "status": "ok",
+     "columns": [
+      "default_stopwords"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       36
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT value FROM information_schema.INNODB_FT_DEFAULT_STOPWORD ORDER BY value LIMIT 12",
+     "status": "ok",
+     "columns": [
+      "value"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       "a"
+      ],
+      [
+       "about"
+      ],
+      [
+       "an"
+      ],
+      [
+       "are"
+      ],
+      [
+       "as"
+      ],
+      [
+       "at"
+      ],
+      [
+       "be"
+      ],
+      [
+       "by"
+      ],
+      [
+       "com"
+      ],
+      [
+       "de"
+      ],
+      [
+       "en"
+      ],
+      [
+       "for"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:88d9bd28dca6": {
+   "statements": [
+    {
+     "sql": "SET SESSION innodb_ft_min_token_size = 2",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1238,
+      "message": "Variable 'innodb_ft_min_token_size' is a read only variable"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:461c7148102e": {
+   "statements": [
+    {
+     "sql": "SET SESSION innodb_ft_enable_stopword = OFF",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE help_articles_nostop (\n  article_id INT UNSIGNED PRIMARY KEY, title VARCHAR(200) NOT NULL, body TEXT NOT NULL,\n  FULLTEXT KEY ft_all (title, body))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO help_articles_nostop SELECT * FROM help_articles",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 16,
+     "info": "Records: 16  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION innodb_ft_enable_stopword = ON",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_matching_the FROM help_articles_nostop WHERE MATCH(title, body) AGAINST ('the')",
+     "status": "ok",
+     "columns": [
+      "rows_matching_the"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       12
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:7180a5e18e73": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE docs_ngram (id INT PRIMARY KEY, body VARCHAR(200) NOT NULL, FULLTEXT KEY ft_body (body) WITH PARSER ngram)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE docs_std   (id INT PRIMARY KEY, body VARCHAR(200) NOT NULL, FULLTEXT KEY ft_body (body))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO docs_ngram VALUES (1, '数据库系统概念'), (2, '分布式数据库'), (3, '机器学习入门'), (4, 'データベース設計の基礎')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO docs_std SELECT * FROM docs_ngram",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT 'ngram' AS parser, id, body FROM docs_ngram WHERE MATCH(body) AGAINST ('数据库')\nUNION ALL\nSELECT 'built-in', id, body FROM docs_std WHERE MATCH(body) AGAINST ('数据库')\nORDER BY parser, id",
+     "status": "ok",
+     "columns": [
+      "parser",
+      "id",
+      "body"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "ngram",
+       1,
+       "数据库系统概念"
+      ],
+      [
+       "ngram",
+       2,
+       "分布式数据库"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT id, body FROM docs_ngram WHERE MATCH(body) AGAINST ('データ') ORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "body"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4,
+       "データベース設計の基礎"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:32ebb8eb50ac": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT article_id FROM help_articles WHERE MATCH(title, body) AGAINST ('password')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "help_articles",
+       null,
+       "fulltext",
+       "ft_title_body",
+       "ft_title_body",
+       "0",
+       "const",
+       1,
+       100.0,
+       "Using where; Ft_hints: sorted"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `help_articles`.`article_id` AS `article_id` from `help_articles` where (match `help_articles`.`title`,`help_articles`.`body` against ('password'))"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT article_id FROM help_articles WHERE MATCH(title, body) AGAINST ('password')",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (match help_articles.title,help_articles.body against ('password'))  (cost=0.35 rows=1)\n    -> Full-text index search on help_articles using ft_title_body (title='password')  (cost=0.35 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:daba6a57c727": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO help_articles VALUES (17, 'Exchanging a gift', 'You can exchange a gift for store credit using the gift receipt.')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT 'MATCH' AS method, article_id FROM help_articles WHERE MATCH(title, body) AGAINST ('receipt')\nUNION ALL\nSELECT 'LIKE', article_id FROM help_articles WHERE body LIKE '%receipt%'",
+     "status": "ok",
+     "columns": [
+      "method",
+      "article_id"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "LIKE",
+       2
+      ],
+      [
+       "LIKE",
+       17
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:3bf7c421fac1": {
+   "statements": [
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT article_id FROM help_articles WHERE MATCH(title, body) AGAINST ('receipt')",
+     "status": "ok",
+     "columns": [
+      "article_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       17
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:92032d95b404": {
+   "statements": [
+    {
+     "sql": "DELETE FROM help_articles WHERE article_id = 17",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:49065b74ba59": {
+   "statements": [
+    {
+     "sql": "SELECT article_id,\n       ROUND(MATCH(title, body) AGAINST ('wireless'), 4) AS mysql_score,\n       (LENGTH(LOWER(CONCAT(title, ' ', body))) - LENGTH(REPLACE(LOWER(CONCAT(title, ' ', body)), 'wireless', ''))) / LENGTH('wireless') AS tf,\n       ROUND(((LENGTH(LOWER(CONCAT(title, ' ', body))) - LENGTH(REPLACE(LOWER(CONCAT(title, ' ', body)), 'wireless', ''))) / LENGTH('wireless'))\n             * POW(LOG10(16 / 2), 2), 4) AS tf_idf_idf\nFROM help_articles\nWHERE MATCH(title, body) AGAINST ('wireless')\nORDER BY mysql_score DESC",
+     "status": "ok",
+     "columns": [
+      "article_id",
+      "mysql_score",
+      "tf",
+      "tf_idf_idf"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       16,
+       2.4467,
+       "3.0000",
+       2.4467
+      ],
+      [
+       7,
+       0.8156,
+       "1.0000",
+       0.8156
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:94a87f9f0fc2": {
+   "statements": [
+    {
+     "sql": "SELECT article_id, title,\n       ROUND(MATCH(title, body) AGAINST ('account settings login'), 4) AS score\nFROM help_articles\nWHERE MATCH(title, body) AGAINST ('+account +settings' IN BOOLEAN MODE)\nORDER BY score DESC, article_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "article_id",
+      "title",
+      "score"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       2,
+       "Changing the email on your account",
+       2.1141
+      ],
+      [
+       15,
+       "Two-factor authentication",
+       1.5856
+      ],
+      [
+       11,
+       "Gift card balance",
+       1.0571
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:7d735dcb5432": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE tickets (ticket_id INT PRIMARY KEY, body VARCHAR(300) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 100000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO tickets\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 100000)\nSELECT n, CONCAT_WS(' ',\n  ELT(1 + n % 7, 'customer', 'user', 'buyer', 'client', 'shopper', 'member', 'guest'),\n  ELT(1 + (n DIV 7) % 11, 'reports', 'says', 'complains', 'asks', 'mentions', 'writes', 'notes', 'claims', 'explains', 'states', 'confirms'),\n  ELT(1 + (n DIV 77) % 13, 'late', 'damaged', 'missing', 'wrong', 'broken', 'duplicate', 'delayed', 'lost', 'refunded', 'cancelled', 'incomplete', 'returned', 'opened'),\n  ELT(1 + (n DIV 1001) % 9, 'laptop', 'keyboard', 'monitor', 'headphones', 'mouse', 'charger', 'tablet', 'speaker', 'webcam'),\n  'order', n,\n  IF(n % 997 = 0, 'warranty escalation needed', 'no escalation'))\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE tickets ADD FULLTEXT INDEX ft_body (body)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 1",
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 124,
+       "message": "InnoDB rebuilding table to add column FTS_DOC_ID"
+      }
+     ]
+    },
+    {
+     "sql": "ANALYZE TABLE tickets",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "tickets",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:a7ec8d1c6fda": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT ticket_id FROM tickets WHERE body LIKE '%warranty%'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (tickets.body like '%warranty%')  (cost=10591 rows=11019) (actual time=0.614..54.4 rows=100 loops=1)\n    -> Table scan on tickets  (cost=10591 rows=99180) (actual time=0.0608..22.7 rows=100000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 55.46
+    },
+    {
+     "sql": "EXPLAIN ANALYZE SELECT ticket_id FROM tickets WHERE MATCH(body) AGAINST ('warranty')",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (match tickets.body against ('warranty'))  (cost=1.1 rows=1) (actual time=0.0393..0.92 rows=100 loops=1)\n    -> Full-text index search on tickets using ft_body (body='warranty')  (cost=1.1 rows=1) (actual time=0.0378..0.908 rows=100 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 2.23
+    }
+   ],
+   "measured": true
+  },
+  "s17:b015b639c34b": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS tickets_matching_order FROM tickets WHERE MATCH(body) AGAINST ('order')",
+     "status": "ok",
+     "columns": [
+      "tickets_matching_order"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       100000
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT ticket_id, MATCH(body) AGAINST ('order') AS score FROM tickets\nWHERE MATCH(body) AGAINST ('order') ORDER BY ticket_id LIMIT 3",
+     "status": "ok",
+     "columns": [
+      "ticket_id",
+      "score"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       1.2787032574124169e-05
+      ],
+      [
+       2,
+       1.2787032574124169e-05
+      ],
+      [
+       3,
+       1.2787032574124169e-05
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:2ea04011eda5": {
+   "statements": [
+    {
+     "sql": "SELECT article_id FROM help_articles WHERE MATCH(body) AGAINST ('password')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1191,
+      "message": "Can't find FULLTEXT index matching the column list"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s19:dc208f60041b": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS rows_found FROM help_articles WHERE MATCH(title, body) AGAINST ('-mouse' IN BOOLEAN MODE)",
+     "status": "ok",
+     "columns": [
+      "rows_found"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

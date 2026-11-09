@@ -1,0 +1,712 @@
+{
+ "doc": "m11-migrations-versioning",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:8caaae8ab5b4": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE coupons (code VARCHAR(20) PRIMARY KEY, pct TINYINT UNSIGNED NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO coupons VALUES ('WELCOME10', 10)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS coupons_rows,\n       (SELECT COUNT(*) FROM information_schema.TABLES\n         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'coupons') AS table_exists",
+     "status": "ok",
+     "columns": [
+      "coupons_rows",
+      "table_exists"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:36fc795105e7": {
+   "statements": [
+    {
+     "sql": "DROP TABLE coupons",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE schema_migrations (\n  version        INT          NOT NULL PRIMARY KEY,\n  description    VARCHAR(200) NOT NULL,\n  checksum       BIGINT       NOT NULL,              -- CRC32 of the script text\n  installed_on   DATETIME     NOT NULL,\n  success        BOOLEAN      NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE migration_files (                        -- stands in for the files in db/migrations/\n  version     INT          NOT NULL PRIMARY KEY,\n  description VARCHAR(200) NOT NULL,\n  script      TEXT         NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO migration_files VALUES\n  (1, 'create coupons',            'CREATE TABLE coupons (code VARCHAR(20) PRIMARY KEY, pct TINYINT UNSIGNED NOT NULL)'),\n  (2, 'seed welcome coupon',       'INSERT INTO coupons VALUES (''WELCOME10'', 10)'),\n  (3, 'add coupon to orders',      'ALTER TABLE orders ADD COLUMN coupon_code VARCHAR(20) NULL, ALGORITHM=INSTANT'),\n  (4, 'index orders.coupon_code',  'ALTER TABLE orders ADD INDEX idx_orders_coupon (coupon_code), ALGORITHM=INPLACE, LOCK=NONE')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT version, description, CRC32(script) AS checksum FROM migration_files ORDER BY version",
+     "status": "ok",
+     "columns": [
+      "version",
+      "description",
+      "checksum"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "create coupons",
+       163692304
+      ],
+      [
+       2,
+       "seed welcome coupon",
+       2158348144
+      ],
+      [
+       3,
+       "add coupon to orders",
+       26749271
+      ],
+      [
+       4,
+       "index orders.coupon_code",
+       4162873861
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:10561642d04b": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE migrate(IN p_now DATETIME)\nBEGIN\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE v_version INT;\n  DECLARE v_desc VARCHAR(200);\n  DECLARE v_script TEXT;\n  DECLARE pending CURSOR FOR\n    SELECT f.version, f.description, f.script\n    FROM migration_files f\n    LEFT JOIN schema_migrations m ON m.version = f.version\n    WHERE m.version IS NULL\n    ORDER BY f.version;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  DECLARE EXIT HANDLER FOR SQLEXCEPTION\n  BEGIN\n    INSERT INTO schema_migrations VALUES (v_version, v_desc, CRC32(v_script), p_now, FALSE);\n    SELECT CONCAT('migration ', v_version, ' failed; stopped') AS result;\n  END;\n  OPEN pending;\n  apply_loop: LOOP\n    FETCH pending INTO v_version, v_desc, v_script;\n    IF done THEN LEAVE apply_loop; END IF;\n    SET @migration_sql = v_script;\n    PREPARE m FROM @migration_sql;\n    EXECUTE m;\n    DEALLOCATE PREPARE m;\n    INSERT INTO schema_migrations VALUES (v_version, v_desc, CRC32(v_script), p_now, TRUE);\n  END LOOP;\n  CLOSE pending;\n  SELECT 'all pending migrations applied' AS result;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL migrate('2026-11-09 09:00:00')",
+     "status": "ok",
+     "columns": [
+      "result"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       "all pending migrations applied"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT version, description, checksum, installed_on, success FROM schema_migrations ORDER BY version",
+     "status": "ok",
+     "columns": [
+      "version",
+      "description",
+      "checksum",
+      "installed_on",
+      "success"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "create coupons",
+       163692304,
+       "2026-11-09 09:00:00",
+       1
+      ],
+      [
+       2,
+       "seed welcome coupon",
+       2158348144,
+       "2026-11-09 09:00:00",
+       1
+      ],
+      [
+       3,
+       "add coupon to orders",
+       26749271,
+       "2026-11-09 09:00:00",
+       1
+      ],
+      [
+       4,
+       "index orders.coupon_code",
+       4162873861,
+       "2026-11-09 09:00:00",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:7e4ce2f97151": {
+   "statements": [
+    {
+     "sql": "CALL migrate('2026-11-09 09:05:00')",
+     "status": "ok",
+     "columns": [
+      "result"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       "all pending migrations applied"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS history_rows FROM schema_migrations",
+     "status": "ok",
+     "columns": [
+      "history_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:263d68a60644": {
+   "statements": [
+    {
+     "sql": "UPDATE migration_files SET script = 'INSERT INTO coupons VALUES (''WELCOME10'', 15)' WHERE version = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT m.version, m.description,\n       m.checksum           AS checksum_applied,\n       CRC32(f.script)      AS checksum_in_repo,\n       CASE WHEN f.version IS NULL THEN 'file missing'\n            WHEN CRC32(f.script) <> m.checksum THEN 'EDITED AFTER APPLY'\n            ELSE 'ok' END    AS validation\nFROM schema_migrations m\nLEFT JOIN migration_files f ON f.version = m.version\nORDER BY m.version",
+     "status": "ok",
+     "columns": [
+      "version",
+      "description",
+      "checksum_applied",
+      "checksum_in_repo",
+      "validation"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "create coupons",
+       163692304,
+       163692304,
+       "ok"
+      ],
+      [
+       2,
+       "seed welcome coupon",
+       2158348144,
+       4258411317,
+       "EDITED AFTER APPLY"
+      ],
+      [
+       3,
+       "add coupon to orders",
+       26749271,
+       26749271,
+       "ok"
+      ],
+      [
+       4,
+       "index orders.coupon_code",
+       4162873861,
+       4162873861,
+       "ok"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:44bcf3552563": {
+   "statements": [
+    {
+     "sql": "UPDATE migration_files SET script = 'INSERT INTO coupons VALUES (''WELCOME10'', 10)' WHERE version = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO migration_files VALUES (5, 'welcome coupon is 15 percent', 'UPDATE coupons SET pct = 15 WHERE code = ''WELCOME10''')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CALL migrate('2026-11-09 10:00:00')",
+     "status": "ok",
+     "columns": [
+      "result"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       "all pending migrations applied"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT version, description, success FROM schema_migrations WHERE version >= 4 ORDER BY version",
+     "status": "ok",
+     "columns": [
+      "version",
+      "description",
+      "success"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       4,
+       "index orders.coupon_code",
+       1
+      ],
+      [
+       5,
+       "welcome coupon is 15 percent",
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT * FROM coupons",
+     "status": "ok",
+     "columns": [
+      "code",
+      "pct"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "WELCOME10",
+       15
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:0b1dbd7f8262": {
+   "statements": [
+    {
+     "sql": "INSERT INTO migration_files VALUES\n  (6, 'add coupon max_uses',             'ALTER TABLE coupons ADD COLUMN max_uses INT NULL, ALGORITHM=INSTANT'),\n  (7, 'coupon pct must be at most 10',   'ALTER TABLE coupons ADD CONSTRAINT chk_coupon_pct CHECK (pct <= 10)'),\n  (8, 'add coupon expiry',               'ALTER TABLE coupons ADD COLUMN expires_on DATE NULL, ALGORITHM=INSTANT')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CALL migrate('2026-11-09 11:00:00')",
+     "status": "ok",
+     "columns": [
+      "result"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       "migration 7 failed; stopped"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT version, description, success FROM schema_migrations WHERE version >= 6 ORDER BY version",
+     "status": "ok",
+     "columns": [
+      "version",
+      "description",
+      "success"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       6,
+       "add coupon max_uses",
+       1
+      ],
+      [
+       7,
+       "coupon pct must be at most 10",
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COLUMN_NAME FROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'coupons' ORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "code"
+      ],
+      [
+       "pct"
+      ],
+      [
+       "max_uses"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:7db85ae41c8c": {
+   "statements": [
+    {
+     "sql": "-- EXPAND: add the new column (instant, nullable, old code unaffected)\nALTER TABLE customers ADD COLUMN phone_digits VARCHAR(15) NULL, ALGORITHM=INSTANT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- keep it in sync for writes from old and new application versions\nCREATE TRIGGER trg_customers_phone_ins BEFORE INSERT ON customers FOR EACH ROW\n  SET NEW.phone_digits = NULLIF(REGEXP_REPLACE(NEW.phone, '[^0-9]', ''), '')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER trg_customers_phone_upd BEFORE UPDATE ON customers FOR EACH ROW\n  SET NEW.phone_digits = NULLIF(REGEXP_REPLACE(NEW.phone, '[^0-9]', ''), '')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- BACKFILL existing rows (in production: in small batches by primary-key range)\nUPDATE customers SET phone_digits = NULLIF(REGEXP_REPLACE(phone, '[^0-9]', ''), '')\nWHERE customer_id BETWEEN 1 AND 25",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 20,
+     "info": "Rows matched: 25  Changed: 20  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT customer_id, phone, phone_digits FROM customers ORDER BY customer_id LIMIT 6",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "phone",
+      "phone_digits"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "+1-450-555-4657",
+       "14505554657"
+      ],
+      [
+       2,
+       "+1-232-555-1488",
+       "12325551488"
+      ],
+      [
+       3,
+       "+1-774-555-4257",
+       "17745554257"
+      ],
+      [
+       4,
+       "+1-206-555-3615",
+       "12065553615"
+      ],
+      [
+       5,
+       null,
+       null
+      ],
+      [
+       6,
+       "+1-567-555-6635",
+       "15675556635"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:407a10a640d2": {
+   "statements": [
+    {
+     "sql": "UPDATE customers SET phone = '+1 (512) 555-0199' WHERE customer_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_out_of_sync\nFROM customers\nWHERE NOT (phone_digits <=> NULLIF(REGEXP_REPLACE(phone, '[^0-9]', ''), ''))",
+     "status": "ok",
+     "columns": [
+      "rows_out_of_sync"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT customer_id, phone, phone_digits FROM customers WHERE customer_id = 1",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "phone",
+      "phone_digits"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "+1 (512) 555-0199",
+       "15125550199"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:4fbb363a71c4": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE customers MODIFY last_name VARCHAR(60) NOT NULL, ALGORITHM=INPLACE, LOCK=NONE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s12:c6eff18abd57": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE customers MODIFY last_name VARCHAR(40) NOT NULL, ALGORITHM=INPLACE, LOCK=NONE",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1846,
+      "message": "ALGORITHM=INPLACE is not supported. Reason: Cannot change column type INPLACE. Try ALGORITHM=COPY."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s13:c411da691783": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE customers ADD INDEX idx_customers_phone_digits (phone_digits), ALGORITHM=INSTANT",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1845,
+      "message": "ALGORITHM=INSTANT is not supported for this operation. Try ALGORITHM=COPY/INPLACE."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:9889b0214089": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE customers ADD INDEX idx_customers_phone_digits (phone_digits), ALGORITHM=INPLACE, LOCK=NONE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s15:f226fa1562f8": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE customers MODIFY last_name VARCHAR(40) NOT NULL, ALGORITHM=COPY, LOCK=NONE",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1846,
+      "message": "LOCK=NONE is not supported. Reason: COPY algorithm requires a lock. Try LOCK=SHARED."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "c1:3ae3a925848f": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT COUNT(*) AS active_products FROM products WHERE is_active = TRUE",
+       "status": "ok",
+       "columns": [
+        "active_products"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         29
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "ALTER TABLE products ADD COLUMN warranty_months TINYINT UNSIGNED NULL, ALGORITHM=INSTANT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Records: 0  Duplicates: 0  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 2,
+     "session": "C",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) FROM products",
+       "status": "ok",
+       "columns": [
+        "COUNT(*)"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         30
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS columns_now FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products'",
+       "status": "ok",
+       "columns": [
+        "columns_now"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         10
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

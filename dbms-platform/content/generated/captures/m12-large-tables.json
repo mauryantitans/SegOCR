@@ -1,0 +1,1208 @@
+{
+ "doc": "m12-large-tables",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:638235d055ac": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 300000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE events (\n  event_id   INT UNSIGNED NOT NULL PRIMARY KEY,\n  user_id    INT UNSIGNED NOT NULL,\n  created_at DATETIME     NOT NULL,\n  kind       VARCHAR(12)  NOT NULL,\n  payload    VARCHAR(60)  NOT NULL,\n  KEY idx_events_created (created_at),\n  KEY idx_events_user (user_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO events\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 300000)\nSELECT n, (n * 7919) % 50000 + 1, '2022-01-01' + INTERVAL (n * 5) MINUTE,\n       ELT(1 + n % 3, 'view', 'click', 'purchase'), CONCAT('payload-', n)\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 300000,
+     "info": "Records: 300000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE events_copy LIKE events",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO events_copy SELECT * FROM events",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 300000,
+     "info": "Records: 300000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE events, events_copy",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "events",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "events_copy",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS total_rows, MIN(created_at) AS oldest, MAX(created_at) AS newest,\n       SUM(created_at < '2023-01-01') AS older_than_2023\nFROM events",
+     "status": "ok",
+     "columns": [
+      "total_rows",
+      "oldest",
+      "newest",
+      "older_than_2023"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       300000,
+       "2022-01-01 00:05:00",
+       "2024-11-07 16:00:00",
+       "105119"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:d0f83b43bd66": {
+   "statements": [
+    {
+     "sql": "DELETE FROM events_copy WHERE created_at < '2023-01-01'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 105119,
+     "rows": [],
+     "elapsed_ms": 737.8
+    }
+   ],
+   "measured": true
+  },
+  "s3:000c0f3d8621": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE purge_events(IN cutoff DATETIME, IN batch_size INT)\nBEGIN\n  DECLARE deleted INT DEFAULT 1;\n  DECLARE batches INT DEFAULT 0;\n  DECLARE total INT DEFAULT 0;\n  WHILE deleted > 0 DO\n    DELETE FROM events WHERE created_at < cutoff ORDER BY created_at, event_id LIMIT batch_size;\n    SET deleted = ROW_COUNT();\n    SET total = total + deleted;\n    SET batches = batches + 1;\n    -- production: DO SLEEP(0.1); and/or stop if replica lag > threshold\n  END WHILE;\n  SELECT batches AS statements_run, total AS rows_deleted;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s4:494f52800cd3": {
+   "statements": [
+    {
+     "sql": "CALL purge_events('2023-01-01', 5000)",
+     "status": "ok",
+     "columns": [
+      "statements_run",
+      "rows_deleted"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       23,
+       105119
+      ]
+     ],
+     "elapsed_ms": 1375.91
+    }
+   ],
+   "measured": true
+  },
+  "s5:5824415846f3": {
+   "statements": [
+    {
+     "sql": "EXPLAIN DELETE FROM events WHERE created_at < '2023-06-01' ORDER BY created_at, event_id LIMIT 5000",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "DELETE",
+       "events",
+       null,
+       "range",
+       "idx_events_created",
+       "idx_events_created",
+       "5",
+       "const",
+       97006,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "delete from `events` where (`events`.`created_at` < TIMESTAMP'2023-06-01 00:00:00') order by `events`.`created_at`,`events`.`event_id` limit 5000"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:3639eaab5883": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE events ADD COLUMN kind_code TINYINT NULL, ALGORITHM=INSTANT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE job_progress (job VARCHAR(40) PRIMARY KEY, last_key INT UNSIGNED NOT NULL, chunks INT NOT NULL DEFAULT 0)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE PROCEDURE backfill_kind_code(IN chunk_size INT, IN max_chunks INT)\nBEGIN\n  DECLARE lo INT UNSIGNED;\n  DECLARE hi INT UNSIGNED;\n  DECLARE done_chunks INT DEFAULT 0;\n  INSERT IGNORE INTO job_progress (job, last_key) VALUES ('backfill_kind_code', 0);\n  chunk_loop: LOOP\n    SELECT last_key INTO lo FROM job_progress WHERE job = 'backfill_kind_code';\n    -- upper bound of the next chunk: the chunk_size-th key after lo (keyset, robust to gaps)\n    SET hi = (SELECT MAX(event_id) FROM (SELECT event_id FROM events WHERE event_id > lo\n                                         ORDER BY event_id LIMIT chunk_size) AS nxt);\n    IF hi IS NULL OR done_chunks >= max_chunks THEN LEAVE chunk_loop; END IF;\n    START TRANSACTION;\n    UPDATE events SET kind_code = ELT(FIELD(kind, 'view', 'click', 'purchase'), 1, 2, 3)\n     WHERE event_id > lo AND event_id <= hi;\n    UPDATE job_progress SET last_key = hi, chunks = chunks + 1 WHERE job = 'backfill_kind_code';\n    COMMIT;\n    SET done_chunks = done_chunks + 1;\n  END LOOP;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s8:e781fcf75c8a": {
+   "statements": [
+    {
+     "sql": "CALL backfill_kind_code(20000, 4)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM job_progress",
+     "status": "ok",
+     "columns": [
+      "job",
+      "last_key",
+      "chunks"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "backfill_kind_code",
+       185119,
+       4
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT SUM(kind_code IS NOT NULL) AS filled, SUM(kind_code IS NULL) AS remaining FROM events",
+     "status": "ok",
+     "columns": [
+      "filled",
+      "remaining"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "80000",
+       "114881"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:6e970675d74b": {
+   "statements": [
+    {
+     "sql": "CALL backfill_kind_code(20000, 1000)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": [],
+     "elapsed_ms": 1841.76
+    }
+   ],
+   "measured": true
+  },
+  "s10:0ca5bce40937": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM job_progress",
+     "status": "ok",
+     "columns": [
+      "job",
+      "last_key",
+      "chunks"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "backfill_kind_code",
+       300000,
+       10
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT SUM(kind_code IS NOT NULL) AS filled, SUM(kind_code IS NULL) AS remaining,\n       SUM(kind_code <> ELT(FIELD(kind, 'view', 'click', 'purchase'), 1, 2, 3)) AS wrong\nFROM events",
+     "status": "ok",
+     "columns": [
+      "filled",
+      "remaining",
+      "wrong"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "194881",
+       "0",
+       "0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:d0981cf5af2f": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE events_archive LIKE events",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE PROCEDURE archive_events(IN cutoff DATETIME, IN chunk_size INT)\nBEGIN\n  DECLARE lo INT UNSIGNED DEFAULT 0;\n  DECLARE hi INT UNSIGNED;\n  DECLARE moved INT DEFAULT 0;\n  archive_loop: LOOP\n    SET hi = (SELECT MAX(event_id) FROM (SELECT event_id FROM events\n                                         WHERE event_id > lo AND created_at < cutoff\n                                         ORDER BY event_id LIMIT chunk_size) AS nxt);\n    IF hi IS NULL THEN LEAVE archive_loop; END IF;\n    START TRANSACTION;\n    INSERT INTO events_archive SELECT * FROM events WHERE event_id > lo AND event_id <= hi AND created_at < cutoff;\n    DELETE FROM events WHERE event_id > lo AND event_id <= hi AND created_at < cutoff;\n    SET moved = moved + ROW_COUNT();\n    COMMIT;\n    SET lo = hi;\n  END LOOP;\n  SELECT moved AS rows_archived;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s12:d53b1f61f91a": {
+   "statements": [
+    {
+     "sql": "CALL archive_events('2024-01-01', 10000)",
+     "status": "ok",
+     "columns": [
+      "rows_archived"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       105120
+      ]
+     ],
+     "elapsed_ms": 1894.07
+    }
+   ],
+   "measured": true
+  },
+  "s13:6934c90c783d": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM events)         AS hot_rows,\n       (SELECT COUNT(*) FROM events_archive) AS archived_rows,\n       (SELECT COUNT(*) FROM events) + (SELECT COUNT(*) FROM events_archive) AS total,\n       (SELECT MIN(created_at) FROM events)  AS hot_oldest,\n       (SELECT MAX(created_at) FROM events_archive) AS archive_newest,\n       (SELECT COUNT(*) FROM events e JOIN events_archive a USING (event_id)) AS in_both",
+     "status": "ok",
+     "columns": [
+      "hot_rows",
+      "archived_rows",
+      "total",
+      "hot_oldest",
+      "archive_newest",
+      "in_both"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       89761,
+       105120,
+       194881,
+       "2024-01-01 00:00:00",
+       "2023-12-31 23:55:00",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:0abb21e7d29d": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Handler_read_next'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Handler_read_next",
+       "1609865"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT event_id, created_at FROM events ORDER BY event_id LIMIT 1000 OFFSET 50000",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "created_at"
+     ],
+     "row_count": 1000,
+     "truncated": true,
+     "rows": [
+      [
+       260240,
+       "2024-06-22 14:40:00"
+      ],
+      [
+       260241,
+       "2024-06-22 14:45:00"
+      ],
+      [
+       260242,
+       "2024-06-22 14:50:00"
+      ],
+      [
+       260243,
+       "2024-06-22 14:55:00"
+      ],
+      [
+       260244,
+       "2024-06-22 15:00:00"
+      ],
+      [
+       260245,
+       "2024-06-22 15:05:00"
+      ],
+      [
+       260246,
+       "2024-06-22 15:10:00"
+      ],
+      [
+       260247,
+       "2024-06-22 15:15:00"
+      ],
+      [
+       260248,
+       "2024-06-22 15:20:00"
+      ],
+      [
+       260249,
+       "2024-06-22 15:25:00"
+      ],
+      [
+       260250,
+       "2024-06-22 15:30:00"
+      ],
+      [
+       260251,
+       "2024-06-22 15:35:00"
+      ],
+      [
+       260252,
+       "2024-06-22 15:40:00"
+      ],
+      [
+       260253,
+       "2024-06-22 15:45:00"
+      ],
+      [
+       260254,
+       "2024-06-22 15:50:00"
+      ],
+      [
+       260255,
+       "2024-06-22 15:55:00"
+      ],
+      [
+       260256,
+       "2024-06-22 16:00:00"
+      ],
+      [
+       260257,
+       "2024-06-22 16:05:00"
+      ],
+      [
+       260258,
+       "2024-06-22 16:10:00"
+      ],
+      [
+       260259,
+       "2024-06-22 16:15:00"
+      ],
+      [
+       260260,
+       "2024-06-22 16:20:00"
+      ],
+      [
+       260261,
+       "2024-06-22 16:25:00"
+      ],
+      [
+       260262,
+       "2024-06-22 16:30:00"
+      ],
+      [
+       260263,
+       "2024-06-22 16:35:00"
+      ],
+      [
+       260264,
+       "2024-06-22 16:40:00"
+      ],
+      [
+       260265,
+       "2024-06-22 16:45:00"
+      ],
+      [
+       260266,
+       "2024-06-22 16:50:00"
+      ],
+      [
+       260267,
+       "2024-06-22 16:55:00"
+      ],
+      [
+       260268,
+       "2024-06-22 17:00:00"
+      ],
+      [
+       260269,
+       "2024-06-22 17:05:00"
+      ],
+      [
+       260270,
+       "2024-06-22 17:10:00"
+      ],
+      [
+       260271,
+       "2024-06-22 17:15:00"
+      ],
+      [
+       260272,
+       "2024-06-22 17:20:00"
+      ],
+      [
+       260273,
+       "2024-06-22 17:25:00"
+      ],
+      [
+       260274,
+       "2024-06-22 17:30:00"
+      ],
+      [
+       260275,
+       "2024-06-22 17:35:00"
+      ],
+      [
+       260276,
+       "2024-06-22 17:40:00"
+      ],
+      [
+       260277,
+       "2024-06-22 17:45:00"
+      ],
+      [
+       260278,
+       "2024-06-22 17:50:00"
+      ],
+      [
+       260279,
+       "2024-06-22 17:55:00"
+      ],
+      [
+       260280,
+       "2024-06-22 18:00:00"
+      ],
+      [
+       260281,
+       "2024-06-22 18:05:00"
+      ],
+      [
+       260282,
+       "2024-06-22 18:10:00"
+      ],
+      [
+       260283,
+       "2024-06-22 18:15:00"
+      ],
+      [
+       260284,
+       "2024-06-22 18:20:00"
+      ],
+      [
+       260285,
+       "2024-06-22 18:25:00"
+      ],
+      [
+       260286,
+       "2024-06-22 18:30:00"
+      ],
+      [
+       260287,
+       "2024-06-22 18:35:00"
+      ],
+      [
+       260288,
+       "2024-06-22 18:40:00"
+      ],
+      [
+       260289,
+       "2024-06-22 18:45:00"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Handler_read_next'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Handler_read_next",
+       "1660864"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:a2ecf81721cf": {
+   "statements": [
+    {
+     "sql": "SET @last_seen = (SELECT MAX(event_id) FROM (SELECT event_id FROM events ORDER BY event_id LIMIT 50000) AS x)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Handler_read_next'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Handler_read_next",
+       "1710863"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT event_id, created_at FROM events WHERE event_id > @last_seen ORDER BY event_id LIMIT 1000",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "created_at"
+     ],
+     "row_count": 1000,
+     "truncated": true,
+     "rows": [
+      [
+       260240,
+       "2024-06-22 14:40:00"
+      ],
+      [
+       260241,
+       "2024-06-22 14:45:00"
+      ],
+      [
+       260242,
+       "2024-06-22 14:50:00"
+      ],
+      [
+       260243,
+       "2024-06-22 14:55:00"
+      ],
+      [
+       260244,
+       "2024-06-22 15:00:00"
+      ],
+      [
+       260245,
+       "2024-06-22 15:05:00"
+      ],
+      [
+       260246,
+       "2024-06-22 15:10:00"
+      ],
+      [
+       260247,
+       "2024-06-22 15:15:00"
+      ],
+      [
+       260248,
+       "2024-06-22 15:20:00"
+      ],
+      [
+       260249,
+       "2024-06-22 15:25:00"
+      ],
+      [
+       260250,
+       "2024-06-22 15:30:00"
+      ],
+      [
+       260251,
+       "2024-06-22 15:35:00"
+      ],
+      [
+       260252,
+       "2024-06-22 15:40:00"
+      ],
+      [
+       260253,
+       "2024-06-22 15:45:00"
+      ],
+      [
+       260254,
+       "2024-06-22 15:50:00"
+      ],
+      [
+       260255,
+       "2024-06-22 15:55:00"
+      ],
+      [
+       260256,
+       "2024-06-22 16:00:00"
+      ],
+      [
+       260257,
+       "2024-06-22 16:05:00"
+      ],
+      [
+       260258,
+       "2024-06-22 16:10:00"
+      ],
+      [
+       260259,
+       "2024-06-22 16:15:00"
+      ],
+      [
+       260260,
+       "2024-06-22 16:20:00"
+      ],
+      [
+       260261,
+       "2024-06-22 16:25:00"
+      ],
+      [
+       260262,
+       "2024-06-22 16:30:00"
+      ],
+      [
+       260263,
+       "2024-06-22 16:35:00"
+      ],
+      [
+       260264,
+       "2024-06-22 16:40:00"
+      ],
+      [
+       260265,
+       "2024-06-22 16:45:00"
+      ],
+      [
+       260266,
+       "2024-06-22 16:50:00"
+      ],
+      [
+       260267,
+       "2024-06-22 16:55:00"
+      ],
+      [
+       260268,
+       "2024-06-22 17:00:00"
+      ],
+      [
+       260269,
+       "2024-06-22 17:05:00"
+      ],
+      [
+       260270,
+       "2024-06-22 17:10:00"
+      ],
+      [
+       260271,
+       "2024-06-22 17:15:00"
+      ],
+      [
+       260272,
+       "2024-06-22 17:20:00"
+      ],
+      [
+       260273,
+       "2024-06-22 17:25:00"
+      ],
+      [
+       260274,
+       "2024-06-22 17:30:00"
+      ],
+      [
+       260275,
+       "2024-06-22 17:35:00"
+      ],
+      [
+       260276,
+       "2024-06-22 17:40:00"
+      ],
+      [
+       260277,
+       "2024-06-22 17:45:00"
+      ],
+      [
+       260278,
+       "2024-06-22 17:50:00"
+      ],
+      [
+       260279,
+       "2024-06-22 17:55:00"
+      ],
+      [
+       260280,
+       "2024-06-22 18:00:00"
+      ],
+      [
+       260281,
+       "2024-06-22 18:05:00"
+      ],
+      [
+       260282,
+       "2024-06-22 18:10:00"
+      ],
+      [
+       260283,
+       "2024-06-22 18:15:00"
+      ],
+      [
+       260284,
+       "2024-06-22 18:20:00"
+      ],
+      [
+       260285,
+       "2024-06-22 18:25:00"
+      ],
+      [
+       260286,
+       "2024-06-22 18:30:00"
+      ],
+      [
+       260287,
+       "2024-06-22 18:35:00"
+      ],
+      [
+       260288,
+       "2024-06-22 18:40:00"
+      ],
+      [
+       260289,
+       "2024-06-22 18:45:00"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Handler_read_next'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Handler_read_next",
+       "1711862"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:48e4dc8aef92": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE load_a (id INT PRIMARY KEY, v VARCHAR(20) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE load_b LIKE load_a",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE load_c LIKE load_a",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE PROCEDURE load_rows_autocommit(IN n INT)\nBEGIN\n  DECLARE i INT DEFAULT 1;\n  WHILE i <= n DO\n    INSERT INTO load_a VALUES (i, CONCAT('row ', i));   -- autocommit: one commit per row\n    SET i = i + 1;\n  END WHILE;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE PROCEDURE load_rows_one_trx(IN n INT)\nBEGIN\n  DECLARE i INT DEFAULT 1;\n  START TRANSACTION;\n  WHILE i <= n DO\n    INSERT INTO load_b VALUES (i, CONCAT('row ', i));\n    SET i = i + 1;\n  END WHILE;\n  COMMIT;                                              -- one commit for all rows\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s17:5505128c68df": {
+   "statements": [
+    {
+     "sql": "CALL load_rows_autocommit(3000)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": [],
+     "elapsed_ms": 1729.73
+    }
+   ],
+   "measured": true
+  },
+  "s18:e6a4f960a7e7": {
+   "statements": [
+    {
+     "sql": "CALL load_rows_one_trx(3000)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 61.05
+    }
+   ],
+   "measured": true
+  },
+  "s19:d3e0b457cb7b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO load_c\nWITH RECURSIVE s(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM s WHERE i < 3000)\nSELECT i, CONCAT('row ', i) FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3000,
+     "info": "Records: 3000  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 13.18
+    }
+   ],
+   "measured": true
+  },
+  "c1:e6728a26385f": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "DELETE FROM ev WHERE created_at < '2022-01-26 01:00:00'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 600,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION innodb_lock_wait_timeout = 3",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE ev SET flag = 1 WHERE event_id = 42",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS remaining FROM ev",
+       "status": "ok",
+       "columns": [
+        "remaining"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         300
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "w1.0:ec9d77fd5f84": {
+   "statements": [
+    {
+     "sql": "SELECT job, last_key, chunks FROM job_progress",
+     "status": "ok",
+     "columns": [
+      "job",
+      "last_key",
+      "chunks"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "backfill_kind_code",
+       300000,
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:19e5b7836db0": {
+   "statements": [
+    {
+     "sql": "SET @hi = (SELECT MAX(event_id) FROM (SELECT event_id FROM events WHERE event_id > 0 ORDER BY event_id LIMIT 20000) AS nxt)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @hi AS hi, (SELECT COUNT(*) FROM events WHERE event_id > 0 AND event_id <= @hi) AS rows_in_chunk",
+     "status": "ok",
+     "columns": [
+      "hi",
+      "rows_in_chunk"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       230239,
+       20000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:068a592a57f9": {
+   "statements": [
+    {
+     "sql": "EXPLAIN UPDATE events SET kind_code = kind_code WHERE event_id > 0 AND event_id <= @hi",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "UPDATE",
+       "events",
+       null,
+       "range",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "const",
+       39178,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "update `events` set `events`.`kind_code` = `events`.`kind_code` where ((`events`.`event_id` > 0) and (`events`.`event_id` <= (@`hi`)))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:98c06ebef547": {
+   "statements": [
+    {
+     "sql": "EXPLAIN DELETE FROM events WHERE payload LIKE 'payload-2%' ORDER BY event_id LIMIT 5000",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "DELETE",
+       "events",
+       null,
+       "index",
+       null,
+       "PRIMARY",
+       "4",
+       null,
+       89775,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "delete from `events` where (`events`.`payload` like 'payload-2%') order by `events`.`event_id` limit 5000"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:9b77b3447e04": {
+   "statements": [
+    {
+     "sql": "DELETE e FROM events e JOIN events_archive a ON a.event_id = e.event_id LIMIT 1000",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'LIMIT 1000' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

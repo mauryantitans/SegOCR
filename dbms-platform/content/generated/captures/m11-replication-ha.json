@@ -1,0 +1,425 @@
+{
+ "doc": "m11-replication-ha",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:dbd2c54f42dc": {
+   "statements": [
+    {
+     "sql": "SELECT @@server_id                     AS server_id,\n       @@log_bin                       AS log_bin,\n       @@gtid_mode                     AS gtid_mode,\n       @@enforce_gtid_consistency      AS enforce_gtid_consistency,\n       @@read_only                     AS read_only,\n       @@super_read_only               AS super_read_only,\n       @@replica_parallel_workers      AS replica_parallel_workers,\n       @@replica_preserve_commit_order AS replica_preserve_commit_order",
+     "status": "ok",
+     "columns": [
+      "server_id",
+      "log_bin",
+      "gtid_mode",
+      "enforce_gtid_consistency",
+      "read_only",
+      "super_read_only",
+      "replica_parallel_workers",
+      "replica_preserve_commit_order"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1,
+       "OFF",
+       "OFF",
+       0,
+       0,
+       4,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:637887e1cfb0": {
+   "statements": [
+    {
+     "sql": "SELECT @@binlog_transaction_dependency_tracking AS dependency_tracking",
+     "status": "ok",
+     "columns": [
+      "dependency_tracking"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "COMMIT_ORDER"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'@@binlog_transaction_dependency_tracking' is deprecated and will be removed in a future release."
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:173eebadd06b": {
+   "statements": [
+    {
+     "sql": "SHOW REPLICA STATUS",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1227,
+      "message": "Access denied; you need (at least one of) the SUPER, REPLICATION CLIENT privilege(s) for this operation"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s4:03c969940a31": {
+   "statements": [
+    {
+     "sql": "SHOW REPLICAS",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1227,
+      "message": "Access denied; you need (at least one of) the REPLICATION SLAVE privilege(s) for this operation"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s5:d70166fbc580": {
+   "statements": [
+    {
+     "sql": "SET @source_executed  = '3e11fa47-71ca-11e1-9e33-c80aa9429562:1-120'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @replica_executed = '3e11fa47-71ca-11e1-9e33-c80aa9429562:1-115'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT GTID_SUBSET(@replica_executed, @source_executed)  AS replica_is_subset_of_source,\n       GTID_SUBTRACT(@source_executed, @replica_executed) AS replica_is_missing,\n       GTID_SUBTRACT(@replica_executed, @source_executed) AS replica_has_extra",
+     "status": "ok",
+     "columns": [
+      "replica_is_subset_of_source",
+      "replica_is_missing",
+      "replica_has_extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "3e11fa47-71ca-11e1-9e33-c80aa9429562:116-120",
+       ""
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:6b30c5a76c16": {
+   "statements": [
+    {
+     "sql": "SELECT WAIT_FOR_EXECUTED_GTID_SET('3e11fa47-71ca-11e1-9e33-c80aa9429562:1-120', 1)",
+     "status": "error",
+     "columns": [
+      "WAIT_FOR_EXECUTED_GTID_SET('3e11fa47-71ca-11e1-9e33-c80aa9429562:1-120', 1)"
+     ],
+     "rows": [],
+     "error": {
+      "code": 3062,
+      "message": "Cannot use WAIT_FOR_EXECUTED_GTID_SET when GTID_MODE = OFF."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:754ad148f05a": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE replica_observations (\n  replica               VARCHAR(20)  NOT NULL PRIMARY KEY,\n  observed_at           DATETIME(3)  NOT NULL,\n  last_heartbeat_applied DATETIME(3) NOT NULL,\n  io_running            BOOLEAN      NOT NULL,\n  sql_running           BOOLEAN      NOT NULL,\n  seconds_behind_source INT          NULL      -- as reported by SHOW REPLICA STATUS\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO replica_observations VALUES\n  ('db2', '2026-11-09 12:00:10.000', '2026-11-09 12:00:09.850', TRUE,  TRUE,  0),\n  ('db3', '2026-11-09 12:00:10.000', '2026-11-09 11:58:31.200', TRUE,  TRUE,  98),\n  ('db4', '2026-11-09 12:00:10.000', '2026-11-09 11:41:02.000', FALSE, TRUE,  0),\n  ('dr1', '2026-11-09 12:00:10.000', '2026-11-09 12:00:08.900', TRUE,  TRUE,  1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT replica,\n       ROUND(TIMESTAMPDIFF(MICROSECOND, last_heartbeat_applied, observed_at) / 1e6, 1) AS heartbeat_lag_s,\n       seconds_behind_source,\n       CASE WHEN NOT io_running OR NOT sql_running THEN 'BROKEN'\n            WHEN TIMESTAMPDIFF(MICROSECOND, last_heartbeat_applied, observed_at) > 30e6 THEN 'LAGGING'\n            ELSE 'OK' END AS state\nFROM replica_observations\nORDER BY replica",
+     "status": "ok",
+     "columns": [
+      "replica",
+      "heartbeat_lag_s",
+      "seconds_behind_source",
+      "state"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "db2",
+       0.2,
+       0,
+       "OK"
+      ],
+      [
+       "db3",
+       98.8,
+       98,
+       "LAGGING"
+      ],
+      [
+       "db4",
+       1148.0,
+       0,
+       "BROKEN"
+      ],
+      [
+       "dr1",
+       1.1,
+       1,
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:c8598d50f9f6": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE semisync_flush (trx VARCHAR(10) PRIMARY KEY, binlog_flushed_at DATETIME(3) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE semisync_ack (trx VARCHAR(10) NOT NULL, replica VARCHAR(10) NOT NULL, acked_at DATETIME(3) NOT NULL,\n                           PRIMARY KEY (trx, replica))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO semisync_flush VALUES\n  ('t1', '2026-11-09 12:00:00.000'), ('t2', '2026-11-09 12:00:00.100'), ('t3', '2026-11-09 12:00:00.200')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO semisync_ack VALUES\n  ('t1', 'db2', '2026-11-09 12:00:00.004'), ('t1', 'dr1', '2026-11-09 12:00:00.071'),\n  ('t2', 'db2', '2026-11-09 12:00:00.103'),\n  ('t3', 'dr1', '2026-11-09 12:00:00.281')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT f.trx,\n       TIMESTAMPDIFF(MICROSECOND, f.binlog_flushed_at, MIN(a.acked_at)) / 1000 AS wait_ms,\n       COUNT(a.replica) AS acks_received,\n       CASE WHEN MIN(a.acked_at) IS NULL\n              OR TIMESTAMPDIFF(MICROSECOND, f.binlog_flushed_at, MIN(a.acked_at)) > 10000000\n            THEN 'timeout: fell back to async' ELSE 'semi-sync' END AS outcome\nFROM semisync_flush f\nLEFT JOIN semisync_ack a ON a.trx = f.trx\nGROUP BY f.trx, f.binlog_flushed_at\nORDER BY f.trx",
+     "status": "ok",
+     "columns": [
+      "trx",
+      "wait_ms",
+      "acks_received",
+      "outcome"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "t1",
+       "4.0000",
+       2,
+       "semi-sync"
+      ],
+      [
+       "t2",
+       "3.0000",
+       1,
+       "semi-sync"
+      ],
+      [
+       "t3",
+       "81.0000",
+       1,
+       "semi-sync"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:4b6292d899fd": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE replica_gtids (replica VARCHAR(10) PRIMARY KEY, gtid_executed TEXT NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO replica_gtids VALUES\n  ('db2', '3e11fa47-71ca-11e1-9e33-c80aa9429562:1-1187'),\n  ('db3', '3e11fa47-71ca-11e1-9e33-c80aa9429562:1-1203'),\n  ('db4', '3e11fa47-71ca-11e1-9e33-c80aa9429562:1-1203,7d1c4a2e-1111-11ef-a1b2-0242ac120004:1-2')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SET @last_known_source_set = '3e11fa47-71ca-11e1-9e33-c80aa9429562:1-1205'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT r.replica,\n       GTID_SUBTRACT(@last_known_source_set, r.gtid_executed) AS missing_vs_source,\n       NOT EXISTS (SELECT 1 FROM replica_gtids o\n                   WHERE o.replica <> r.replica\n                     AND NOT GTID_SUBSET(GTID_SUBTRACT(o.gtid_executed, '7d1c4a2e-1111-11ef-a1b2-0242ac120004:1-2'),\n                                         r.gtid_executed)) AS has_everything_others_have,\n       GTID_SUBTRACT(r.gtid_executed, @last_known_source_set) AS errant_transactions\nFROM replica_gtids r\nORDER BY r.replica",
+     "status": "ok",
+     "columns": [
+      "replica",
+      "missing_vs_source",
+      "has_everything_others_have",
+      "errant_transactions"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "db2",
+       "3e11fa47-71ca-11e1-9e33-c80aa9429562:1188-1205",
+       0,
+       ""
+      ],
+      [
+       "db3",
+       "3e11fa47-71ca-11e1-9e33-c80aa9429562:1204-1205",
+       1,
+       ""
+      ],
+      [
+       "db4",
+       "3e11fa47-71ca-11e1-9e33-c80aa9429562:1204-1205",
+       1,
+       "7d1c4a2e-1111-11ef-a1b2-0242ac120004:1-2"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:e84962699b3d": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE user_sessions (session_id INT PRIMARY KEY, last_write_gtid VARCHAR(80) NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO user_sessions VALUES\n  (1, '3e11fa47-71ca-11e1-9e33-c80aa9429562:1180'),\n  (2, '3e11fa47-71ca-11e1-9e33-c80aa9429562:1195'),\n  (3, NULL),\n  (4, '3e11fa47-71ca-11e1-9e33-c80aa9429562:1204')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT s.session_id,\n       COALESCE(\n         (SELECT MIN(r.replica) FROM replica_gtids r\n          WHERE r.replica <> 'db4'                        -- quarantined: errant transactions\n            AND (s.last_write_gtid IS NULL OR GTID_SUBSET(s.last_write_gtid, r.gtid_executed))),\n         'source') AS route_read_to\nFROM user_sessions s\nORDER BY s.session_id",
+     "status": "ok",
+     "columns": [
+      "session_id",
+      "route_read_to"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "db2"
+      ],
+      [
+       2,
+       "db3"
+      ],
+      [
+       3,
+       "db2"
+      ],
+      [
+       4,
+       "source"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:b8389e018a45": {
+   "statements": [
+    {
+     "sql": "SELECT GTID_SUBSET('3e11fa47-71ca-11e1-9e33-c80aa9429562:1-1205', gtid_executed) AS caught_up,\n       GTID_SUBTRACT('3e11fa47-71ca-11e1-9e33-c80aa9429562:1-1205', gtid_executed) AS still_missing\nFROM replica_gtids WHERE replica = 'db3'",
+     "status": "ok",
+     "columns": [
+      "caught_up",
+      "still_missing"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       "3e11fa47-71ca-11e1-9e33-c80aa9429562:1204-1205"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:39b94badf93c": {
+   "statements": [
+    {
+     "sql": "UPDATE replica_gtids SET gtid_executed = '3e11fa47-71ca-11e1-9e33-c80aa9429562:1-1205' WHERE replica = 'db3'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT GTID_SUBSET('3e11fa47-71ca-11e1-9e33-c80aa9429562:1-1205', gtid_executed) AS caught_up,\n       GTID_SUBTRACT('3e11fa47-71ca-11e1-9e33-c80aa9429562:1-1205', gtid_executed) AS still_missing\nFROM replica_gtids WHERE replica = 'db3'",
+     "status": "ok",
+     "columns": [
+      "caught_up",
+      "still_missing"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       ""
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

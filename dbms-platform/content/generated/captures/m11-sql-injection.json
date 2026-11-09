@@ -393,7 +393,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 502.67
+     "elapsed_ms": 502.46
     },
     {
      "sql": "CALL log_search_unsafe('x''), (IF(SUBSTRING((SELECT password_hash FROM app_users WHERE username = ''admin''), 1, 1) = ''8'', SLEEP(0.5), ''n'')) -- ')",
@@ -401,7 +401,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 2.19
+     "elapsed_ms": 2.42
     }
    ],
    "measured": true

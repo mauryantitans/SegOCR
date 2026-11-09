@@ -1,0 +1,706 @@
+{
+ "doc": "m11-monitoring",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:14f7430e4b24": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN\n  ('Questions', 'Select_scan', 'Handler_read_key', 'Handler_read_next', 'Handler_read_rnd_next')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Handler_read_key",
+       "0"
+      ],
+      [
+       "Handler_read_next",
+       "0"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "0"
+      ],
+      [
+       "Questions",
+       "3"
+      ],
+      [
+       "Select_scan",
+       "0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:0cc704c05e6d": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS vip20_orders FROM orders WHERE discount_code = 'VIP20'",
+     "status": "ok",
+     "columns": [
+      "vip20_orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       15
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:14f7430e4b24": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN\n  ('Questions', 'Select_scan', 'Handler_read_key', 'Handler_read_next', 'Handler_read_rnd_next')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Handler_read_key",
+       "1"
+      ],
+      [
+       "Handler_read_next",
+       "0"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "81"
+      ],
+      [
+       "Questions",
+       "5"
+      ],
+      [
+       "Select_scan",
+       "1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:8ae68da7ef11": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS customer_9_orders FROM orders WHERE customer_id = 9",
+     "status": "ok",
+     "columns": [
+      "customer_9_orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN\n  ('Questions', 'Select_scan', 'Handler_read_key', 'Handler_read_next', 'Handler_read_rnd_next')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Handler_read_key",
+       "2"
+      ],
+      [
+       "Handler_read_next",
+       "1"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "81"
+      ],
+      [
+       "Questions",
+       "7"
+      ],
+      [
+       "Select_scan",
+       "1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:78c1921ab9e1": {
+   "statements": [
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN\n  ('Uptime', 'Questions', 'Threads_connected', 'Threads_running', 'Max_used_connections',\n   'Slow_queries', 'Aborted_connects', 'Connection_errors_max_connections',\n   'Innodb_buffer_pool_read_requests', 'Innodb_buffer_pool_reads', 'Innodb_row_lock_waits')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 11,
+     "rows": [
+      [
+       "Aborted_connects",
+       "0"
+      ],
+      [
+       "Connection_errors_max_connections",
+       "0"
+      ],
+      [
+       "Innodb_buffer_pool_read_requests",
+       "244944695"
+      ],
+      [
+       "Innodb_buffer_pool_reads",
+       "19975"
+      ],
+      [
+       "Innodb_row_lock_waits",
+       "69"
+      ],
+      [
+       "Max_used_connections",
+       "9"
+      ],
+      [
+       "Questions",
+       "62008"
+      ],
+      [
+       "Slow_queries",
+       "1"
+      ],
+      [
+       "Threads_connected",
+       "2"
+      ],
+      [
+       "Threads_running",
+       "1"
+      ],
+      [
+       "Uptime",
+       "5311"
+      ]
+     ],
+     "elapsed_ms": 1.07
+    }
+   ],
+   "measured": true
+  },
+  "s6:4b0c68197aa5": {
+   "statements": [
+    {
+     "sql": "SELECT @@performance_schema  AS performance_schema_on,\n       @@max_connections     AS max_connections,\n       @@slow_query_log      AS slow_query_log,\n       @@long_query_time     AS long_query_time,\n       @@log_error_verbosity AS error_log_verbosity,\n       @@log_error_services  AS error_log_pipeline",
+     "status": "ok",
+     "columns": [
+      "performance_schema_on",
+      "max_connections",
+      "slow_query_log",
+      "long_query_time",
+      "error_log_verbosity",
+      "error_log_pipeline"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       151,
+       0,
+       10.0,
+       2,
+       "log_filter_internal; log_sink_internal"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:14d40c8cd318": {
+   "statements": [
+    {
+     "sql": "SELECT EVENT_NAME, COUNT_STAR FROM performance_schema.events_statements_summary_global_by_event_name LIMIT 5",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1142,
+      "message": "SELECT command denied to user 'your_lab'@'localhost' for table 'events_statements_summary_global_by_event_name'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:075ce86b838a": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM information_schema.INNODB_TRX",
+     "status": "error",
+     "columns": [
+      "trx_id",
+      "trx_state",
+      "trx_started",
+      "trx_requested_lock_id",
+      "trx_wait_started",
+      "trx_weight",
+      "trx_mysql_thread_id",
+      "trx_query",
+      "trx_operation_state",
+      "trx_tables_in_use",
+      "trx_tables_locked",
+      "trx_lock_structs",
+      "trx_lock_memory_bytes",
+      "trx_rows_locked",
+      "trx_rows_modified",
+      "trx_concurrency_tickets",
+      "trx_isolation_level",
+      "trx_unique_checks",
+      "trx_foreign_key_checks",
+      "trx_last_foreign_key_error",
+      "trx_adaptive_hash_latched",
+      "trx_adaptive_hash_timeout",
+      "trx_is_read_only",
+      "trx_autocommit_non_locking",
+      "trx_schedule_weight"
+     ],
+     "rows": [],
+     "error": {
+      "code": 1227,
+      "message": "Access denied; you need (at least one of) the PROCESS privilege(s) for this operation"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:ae919f0ca259": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE metrics_samples (\n  server        VARCHAR(20) NOT NULL,\n  sampled_at    DATETIME    NOT NULL,\n  questions     BIGINT NOT NULL,   -- counter (signed on purpose, see Common Mistakes)\n  bp_read_req   BIGINT NOT NULL,   -- Innodb_buffer_pool_read_requests (counter)\n  bp_reads      BIGINT NOT NULL,   -- Innodb_buffer_pool_reads (counter: misses → disk)\n  slow_queries  BIGINT NOT NULL,   -- counter\n  threads_running INT NOT NULL,             -- gauge\n  threads_connected INT NOT NULL,           -- gauge\n  PRIMARY KEY (server, sampled_at)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO metrics_samples VALUES\n  ('db1', '2026-11-09 10:00:00', 1000000, 50000000, 20000, 100,  6, 120),\n  ('db1', '2026-11-09 10:01:00', 1090000, 54500000, 20450, 101,  5, 118),\n  ('db1', '2026-11-09 10:02:00', 1181000, 59050000, 20900, 101,  7, 121),\n  ('db1', '2026-11-09 10:03:00', 1270000, 63500000, 41000, 140, 38, 145),\n  ('db1', '2026-11-09 10:04:00', 1342000, 67100000, 62500, 188, 44, 149),\n  ('db1', '2026-11-09 10:05:00', 1410000, 70500000, 83000, 230, 41, 150),\n  ('db1', '2026-11-09 10:06:00',     5200,    260000,  1200,   0,  4,  60),\n  ('db1', '2026-11-09 10:07:00',    95000,   4750000,  3900,   1,  6, 115)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 8,
+     "info": "Records: 8  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS samples FROM metrics_samples",
+     "status": "ok",
+     "columns": [
+      "samples"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       8
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:af66d704b4e3": {
+   "statements": [
+    {
+     "sql": "SELECT sampled_at,\n       questions - LAG(questions) OVER w AS delta_questions,\n       TIMESTAMPDIFF(SECOND, LAG(sampled_at) OVER w, sampled_at) AS seconds,\n       CASE WHEN questions < LAG(questions) OVER w THEN NULL\n            ELSE ROUND((questions - LAG(questions) OVER w)\n                       / TIMESTAMPDIFF(SECOND, LAG(sampled_at) OVER w, sampled_at), 1)\n       END AS qps,\n       questions < LAG(questions) OVER w AS counter_reset\nFROM metrics_samples\nWHERE server = 'db1'\nWINDOW w AS (ORDER BY sampled_at)\nORDER BY sampled_at",
+     "status": "ok",
+     "columns": [
+      "sampled_at",
+      "delta_questions",
+      "seconds",
+      "qps",
+      "counter_reset"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "2026-11-09 10:00:00",
+       null,
+       null,
+       null,
+       null
+      ],
+      [
+       "2026-11-09 10:01:00",
+       90000,
+       60,
+       "1500.0",
+       0
+      ],
+      [
+       "2026-11-09 10:02:00",
+       91000,
+       60,
+       "1516.7",
+       0
+      ],
+      [
+       "2026-11-09 10:03:00",
+       89000,
+       60,
+       "1483.3",
+       0
+      ],
+      [
+       "2026-11-09 10:04:00",
+       72000,
+       60,
+       "1200.0",
+       0
+      ],
+      [
+       "2026-11-09 10:05:00",
+       68000,
+       60,
+       "1133.3",
+       0
+      ],
+      [
+       "2026-11-09 10:06:00",
+       -1404800,
+       60,
+       null,
+       1
+      ],
+      [
+       "2026-11-09 10:07:00",
+       89800,
+       60,
+       "1496.7",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:bc9af82165f5": {
+   "statements": [
+    {
+     "sql": "SELECT sampled_at,\n       ROUND(100 * (bp_reads - LAG(bp_reads) OVER w)\n                 / NULLIF(bp_read_req - LAG(bp_read_req) OVER w, 0), 3) AS miss_pct_interval,\n       ROUND(100 * bp_reads / bp_read_req, 3) AS miss_pct_lifetime\nFROM metrics_samples\nWHERE server = 'db1' AND sampled_at <= '2026-11-09 10:05:00'\nWINDOW w AS (ORDER BY sampled_at)\nORDER BY sampled_at",
+     "status": "ok",
+     "columns": [
+      "sampled_at",
+      "miss_pct_interval",
+      "miss_pct_lifetime"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "2026-11-09 10:00:00",
+       null,
+       "0.040"
+      ],
+      [
+       "2026-11-09 10:01:00",
+       "0.010",
+       "0.038"
+      ],
+      [
+       "2026-11-09 10:02:00",
+       "0.010",
+       "0.035"
+      ],
+      [
+       "2026-11-09 10:03:00",
+       "0.452",
+       "0.065"
+      ],
+      [
+       "2026-11-09 10:04:00",
+       "0.597",
+       "0.093"
+      ],
+      [
+       "2026-11-09 10:05:00",
+       "0.603",
+       "0.118"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:d0a15a833c75": {
+   "statements": [
+    {
+     "sql": "WITH flagged AS (\n  SELECT sampled_at, threads_running, threads_running > 32 AS breach,\n         ROW_NUMBER() OVER (ORDER BY sampled_at)\n       - ROW_NUMBER() OVER (PARTITION BY threads_running > 32 ORDER BY sampled_at) AS grp\n  FROM metrics_samples\n  WHERE server = 'db1'\n)\nSELECT MIN(sampled_at) AS breach_started, MAX(sampled_at) AS breach_last_seen,\n       COUNT(*) AS consecutive_samples, MAX(threads_running) AS peak_threads_running\nFROM flagged\nWHERE breach\nGROUP BY grp\nHAVING COUNT(*) >= 3",
+     "status": "ok",
+     "columns": [
+      "breach_started",
+      "breach_last_seen",
+      "consecutive_samples",
+      "peak_threads_running"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2026-11-09 10:03:00",
+       "2026-11-09 10:05:00",
+       3,
+       44
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:13270ca173b0": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE error_log_sample (\n  logged     DATETIME    NOT NULL,\n  prio       ENUM('System','Error','Warning','Note') NOT NULL,\n  error_code VARCHAR(10) NOT NULL,\n  subsystem  VARCHAR(10) NOT NULL,\n  data       VARCHAR(200) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO error_log_sample VALUES\n  ('2026-11-09 10:03:10', 'Warning', 'MY-010055', 'Server', 'IP address could not be resolved: Name or service not known'),\n  ('2026-11-09 10:03:40', 'Warning', 'MY-013360', 'Server', 'Plugin mysql_native_password reported: deprecated'),\n  ('2026-11-09 10:04:02', 'Error',   'MY-012592', 'InnoDB', 'Operating system error number 28 in a file operation'),\n  ('2026-11-09 10:04:05', 'Error',   'MY-012592', 'InnoDB', 'Operating system error number 28 in a file operation'),\n  ('2026-11-09 10:05:30', 'System',  'MY-010116', 'Server', 'mysqld starting as process 4242'),\n  ('2026-11-09 10:05:58', 'System',  'MY-010931', 'Server', 'ready for connections'),\n  ('2026-11-09 10:06:20', 'Warning', 'MY-010055', 'Server', 'IP address could not be resolved: Name or service not known')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 7,
+     "info": "Records: 7  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT prio, error_code, subsystem, COUNT(*) AS occurrences,\n       MIN(logged) AS first_seen, MAX(logged) AS last_seen\nFROM error_log_sample\nGROUP BY prio, error_code, subsystem\nORDER BY FIELD(prio, 'System', 'Error', 'Warning', 'Note'), occurrences DESC, error_code",
+     "status": "ok",
+     "columns": [
+      "prio",
+      "error_code",
+      "subsystem",
+      "occurrences",
+      "first_seen",
+      "last_seen"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "System",
+       "MY-010116",
+       "Server",
+       1,
+       "2026-11-09 10:05:30",
+       "2026-11-09 10:05:30"
+      ],
+      [
+       "System",
+       "MY-010931",
+       "Server",
+       1,
+       "2026-11-09 10:05:58",
+       "2026-11-09 10:05:58"
+      ],
+      [
+       "Error",
+       "MY-012592",
+       "InnoDB",
+       2,
+       "2026-11-09 10:04:02",
+       "2026-11-09 10:04:05"
+      ],
+      [
+       "Warning",
+       "MY-010055",
+       "Server",
+       2,
+       "2026-11-09 10:03:10",
+       "2026-11-09 10:06:20"
+      ],
+      [
+       "Warning",
+       "MY-013360",
+       "Server",
+       1,
+       "2026-11-09 10:03:40",
+       "2026-11-09 10:03:40"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:a6f2264f092b": {
+   "statements": [
+    {
+     "sql": "SELECT sampled_at, questions, bp_reads, slow_queries, threads_running\nFROM metrics_samples WHERE server = 'db1' AND sampled_at <= '2026-11-09 10:05:00' ORDER BY sampled_at",
+     "status": "ok",
+     "columns": [
+      "sampled_at",
+      "questions",
+      "bp_reads",
+      "slow_queries",
+      "threads_running"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "2026-11-09 10:00:00",
+       1000000,
+       20000,
+       100,
+       6
+      ],
+      [
+       "2026-11-09 10:01:00",
+       1090000,
+       20450,
+       101,
+       5
+      ],
+      [
+       "2026-11-09 10:02:00",
+       1181000,
+       20900,
+       101,
+       7
+      ],
+      [
+       "2026-11-09 10:03:00",
+       1270000,
+       41000,
+       140,
+       38
+      ],
+      [
+       "2026-11-09 10:04:00",
+       1342000,
+       62500,
+       188,
+       44
+      ],
+      [
+       "2026-11-09 10:05:00",
+       1410000,
+       83000,
+       230,
+       41
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:297f60c93557": {
+   "statements": [
+    {
+     "sql": "SELECT sampled_at,\n       ROUND((questions - LAG(questions) OVER w) / 60, 0)  AS qps,\n       (slow_queries - LAG(slow_queries) OVER w)            AS slow_per_min,\n       ROUND((bp_reads - LAG(bp_reads) OVER w) / 60, 0)     AS disk_reads_per_s,\n       threads_running\nFROM metrics_samples\nWHERE server = 'db1' AND sampled_at <= '2026-11-09 10:05:00'\nWINDOW w AS (ORDER BY sampled_at)\nORDER BY sampled_at",
+     "status": "ok",
+     "columns": [
+      "sampled_at",
+      "qps",
+      "slow_per_min",
+      "disk_reads_per_s",
+      "threads_running"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "2026-11-09 10:00:00",
+       null,
+       null,
+       null,
+       6
+      ],
+      [
+       "2026-11-09 10:01:00",
+       "1500",
+       1,
+       "8",
+       5
+      ],
+      [
+       "2026-11-09 10:02:00",
+       "1517",
+       0,
+       "8",
+       7
+      ],
+      [
+       "2026-11-09 10:03:00",
+       "1483",
+       39,
+       "335",
+       38
+      ],
+      [
+       "2026-11-09 10:04:00",
+       "1200",
+       48,
+       "358",
+       44
+      ],
+      [
+       "2026-11-09 10:05:00",
+       "1133",
+       42,
+       "342",
+       41
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:35e59ee16b20": {
+   "statements": [
+    {
+     "sql": "SHOW STATUS LIKE 'Questions'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Questions",
+       "23"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:69f74b42b8fe": {
+   "statements": [
+    {
+     "sql": "SELECT CAST(5200 AS UNSIGNED) - CAST(1410000 AS UNSIGNED) AS delta_after_restart",
+     "status": "error",
+     "columns": [
+      "delta_after_restart"
+     ],
+     "rows": [],
+     "error": {
+      "code": 1690,
+      "message": "BIGINT UNSIGNED value is out of range in '(cast(5200 as unsigned) - cast(1410000 as unsigned))'"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

@@ -1,0 +1,466 @@
+id: m11-assessment
+module: m11
+title: "Module 11 Assessment — Database Security & Administration"
+passMark: 70
+description: >-
+  Covers the whole module: accounts and authentication ('user'@'host' matching, caching_sha2_password, password
+  policies, account locking, the 8.4 removal of mysql_native_password by default), authorization with privileges,
+  roles, default roles and definer-security objects, SQL injection and parameterization, TLS and encryption at rest,
+  logical and physical backups with consistent snapshots and verification, restore and point-in-time recovery with
+  the binary log and GTIDs, monitoring with status counters and performance_schema, replication and high
+  availability with 8.4 terminology, and versioned schema migrations with online DDL.
+questions:
+  - id: q1
+    question: "A client connects as `app` from 10.0.1.9. The server has accounts `'app'@'%'`, `'app'@'10.0.1.%'` and `''@'10.0.1.%'`. Which account is matched?"
+    options:
+      - "'app'@'%', because the user name matches exactly"
+      - "'app'@'10.0.1.%' — the more specific host wins, and a named user beats the anonymous user for the same host"
+      - "''@'10.0.1.%', because anonymous accounts are checked first"
+      - "Whichever account's password matches"
+    answer: 1
+    explanation: "MySQL sorts by host specificity first ('%' last), then by user (anonymous last), and uses the first match only. There is no fallback to another row if the password is wrong."
+    concepts: [account-names, authentication]
+  - id: q2
+    question: "After an upgrade to MySQL 8.4 with default settings, which accounts fail to log in?"
+    options:
+      - "Accounts using caching_sha2_password"
+      - "Accounts using mysql_native_password, because that plugin is disabled by default in 8.4"
+      - "Accounts with REQUIRE SSL"
+      - "Locked accounts that were unlocked after the upgrade"
+    answer: 1
+    explanation: "8.4 does not load mysql_native_password unless started with --mysql-native-password=ON. caching_sha2_password is the default; TLS requirements are unaffected."
+    concepts: [caching-sha2-password]
+  - id: q3
+    question: "Which mechanism allows rotating an application's password without any failed logins during the rollout?"
+    options:
+      - "PASSWORD EXPIRE INTERVAL 1 DAY"
+      - "ALTER USER … IDENTIFIED BY 'new' RETAIN CURRENT PASSWORD, then DISCARD OLD PASSWORD after all instances use the new one"
+      - "FAILED_LOGIN_ATTEMPTS 0"
+      - "ACCOUNT LOCK during the rollout"
+    answer: 1
+    explanation: "Dual passwords keep the old password valid as a secondary until discarded. Expiry would cause outages; failed-login settings and locking do not help rotation."
+    concepts: [password-policy]
+  - id: q4
+    question: "`GRANT 'r_app_rw' TO 'orders_app'@'10.0.1.%'` succeeded, yet the application gets error 1142 on INSERT. Which fix is correct?"
+    options:
+      - "FLUSH PRIVILEGES"
+      - "SET DEFAULT ROLE 'r_app_rw' TO 'orders_app'@'10.0.1.%' (or enable activate_all_roles_on_login)"
+      - "GRANT 'r_app_rw' … WITH ADMIN OPTION"
+      - "Restart the server"
+    answer: 1
+    explanation: "Granted roles are inactive at login unless they are default roles. GRANT updates the ACL cache itself; ADMIN OPTION is about delegating the role; no restart is needed."
+    concepts: [roles, default-roles]
+  - id: q5
+    question: "Analysts must query orders but never see customers.email. Which design enforces it in MySQL? (Select all that apply.)"
+    type: multi
+    options:
+      - "A SQL SECURITY DEFINER view without the email column; grant SELECT on the view only"
+      - "Column-level grants on customers that exclude email"
+      - "A SQL SECURITY INVOKER view without the email column, plus SELECT on customers"
+      - "Telling the BI tool to hide the column"
+    answer: [0, 1]
+    explanation: "A definer view checks base-table privileges against the definer; column grants restrict at the server level. An INVOKER view requires SELECT on the table (so email is reachable directly); hiding in a tool is not enforcement."
+    concepts: [definer-security, privileges]
+  - id: q6
+    question: "Why does `\"… WHERE order_id = \" + input` remain injectable even if every quote in the input is escaped?"
+    options:
+      - "Because MySQL ignores escaping in WHERE clauses"
+      - "Because the value is in an unquoted numeric context, so a payload like `0 UNION SELECT …` needs no quote at all"
+      - "Because escaping only works with prepared statements"
+      - "It is not injectable"
+    answer: 1
+    explanation: "Escaping protects quoted string literals only. Placeholders (and typed parameters) fix the problem for every context."
+    concepts: [sql-injection]
+  - id: q7
+    question: "An endpoint only answers 'valid'/'invalid', yet an attacker extracts a password hash through it. Which technique is this, and what defeats it?"
+    options:
+      - "UNION-based injection; defeated by hiding error messages"
+      - "Boolean-based blind injection; defeated by parameterized queries"
+      - "Stacked queries; defeated by disabling multi-statements"
+      - "Second-order injection; defeated by input length limits"
+    answer: 1
+    explanation: "Blind injection infers one bit per request from any observable difference. Parameterization removes the injection itself; hiding errors or disabling multi-statements does not."
+    concepts: [blind-injection, prepared-statements]
+  - id: q8
+    question: "A client uses `--ssl-mode=REQUIRED`. Which threat remains?"
+    options:
+      - "Passive sniffing of query traffic"
+      - "A man in the middle presenting its own certificate, because REQUIRED does not verify the server certificate"
+      - "Clear-text fallback when TLS fails"
+      - "Unencrypted replication"
+    answer: 1
+    explanation: "REQUIRED encrypts (so passive sniffing is defeated) and fails instead of falling back, but does not authenticate the server. VERIFY_CA/VERIFY_IDENTITY do."
+    concepts: [ssl-mode, tls]
+  - id: q9
+    question: "InnoDB tablespace encryption is enabled with a keyring. Who can still read the plaintext data?"
+    options:
+      - "Nobody without the master key file"
+      - "Any account with SELECT on the table, because the server decrypts pages transparently"
+      - "Only accounts with the ENCRYPTION privilege"
+      - "Only the root account"
+    answer: 1
+    explanation: "TDE protects files at rest (stolen disks, copied files). SQL access goes through the server, which decrypts in the buffer pool; there is no ENCRYPTION privilege."
+    concepts: [encryption-at-rest]
+  - id: q10
+    question: "What exactly makes `mysqldump --single-transaction` consistent for InnoDB tables?"
+    options:
+      - "It locks every table with LOCK TABLES … READ"
+      - "One REPEATABLE READ transaction started WITH CONSISTENT SNAPSHOT, so every table is read from the same MVCC read view"
+      - "It copies the redo log and applies it afterwards"
+      - "It reads each table in a separate transaction as fast as possible"
+    answer: 1
+    explanation: "A single read view gives one consistent point without blocking writers. Table locks block writes; redo application is how physical tools work; separate transactions produce inconsistent dumps."
+    concepts: [consistent-snapshot, mysqldump]
+  - id: q11
+    question: "Which statements about backup verification are correct? (Select all that apply.)"
+    type: multi
+    options:
+      - "A backup is only proven by restoring it and checking the result"
+      - "Row counts plus an order-independent hash (e.g. BIT_XOR of CRC32 per row) detect changed values that counts miss"
+      - "information_schema.TABLES.TABLE_ROWS is an exact InnoDB row count suitable for verification"
+      - "CHECKSUM TABLE values are comparable only between compatible servers (row format/version)"
+    answer: [0, 1, 3]
+    explanation: "TABLE_ROWS is an estimate for InnoDB. Restores, counts plus hashes, and CHECKSUM TABLE (within its limits) are real verification tools."
+    concepts: [backup-verification, checksums]
+  - id: q12
+    question: "A bad `UPDATE` (GTID …:504) ran at 10:17:42; independent transactions continued until 10:30. Which recovery keeps the most correct data?"
+    options:
+      - "Restore the nightly backup only"
+      - "Restore the backup, then replay binlogs with --stop-datetime='10:17:42'"
+      - "Restore the backup, then replay binlogs with --exclude-gtids='…:504'"
+      - "Run the UPDATE again with the opposite values"
+    answer: 2
+    explanation: "Excluding exactly the bad GTID keeps the later independent work; a datetime stop loses everything after 10:17:42; the backup alone loses the whole day; an 'opposite' UPDATE is impossible without before-images."
+    concepts: [point-in-time-recovery, gtid]
+  - id: q13
+    question: "A company takes nightly backups and copies binary logs off the server every 15 minutes. If the primary's disks are lost, what is the realistic RPO?"
+    options: ["24 hours", "About 15 minutes", "Zero", "It depends only on the restore speed"]
+    answer: 1
+    explanation: "Restore plus replay of archived binlogs reaches the last archived event, so up to the archiving interval is lost. Restore speed determines RTO, not RPO."
+    concepts: [rpo-rto]
+  - id: q14
+    question: "Which value should you alert on for buffer-pool health?"
+    options:
+      - "Innodb_buffer_pool_reads ÷ Innodb_buffer_pool_read_requests since start-up"
+      - "The same ratio computed from deltas between consecutive samples"
+      - "The absolute value of Innodb_buffer_pool_reads"
+      - "Threads_connected"
+    answer: 1
+    explanation: "Lifetime ratios dilute current incidents; absolute counters have no time base; Threads_connected is unrelated. Interval ratios show what is happening now."
+    concepts: [metrics-rates, monitoring]
+  - id: q15
+    question: "A monitoring agent needs to read InnoDB transactions and statement digests. Which grants are appropriate?"
+    options:
+      - "ALL PRIVILEGES ON *.*"
+      - "PROCESS, REPLICATION CLIENT and SELECT on performance_schema"
+      - "SUPER"
+      - "SELECT on mysql.*"
+    answer: 1
+    explanation: "INNODB_TRX and SHOW ENGINE INNODB STATUS need PROCESS; replica status needs REPLICATION CLIENT; digests live in performance_schema. Broad or SUPER privileges give a monitoring host destructive power."
+    concepts: [monitoring, least-privilege]
+  - id: q16
+    question: "Which MySQL 8.4 statements replace removed MASTER/SLAVE syntax? (Select all that apply.)"
+    type: multi
+    options:
+      - "CHANGE REPLICATION SOURCE TO replaces CHANGE MASTER TO"
+      - "SHOW REPLICA STATUS replaces SHOW SLAVE STATUS"
+      - "SHOW BINARY LOG STATUS replaces SHOW MASTER STATUS"
+      - "START SLAVE remains available as an alias"
+    answer: [0, 1, 2]
+    explanation: "8.4 removed the MASTER/SLAVE statement forms entirely, including START SLAVE; use START REPLICA."
+    concepts: [replication]
+  - id: q17
+    question: "During failover, two replicas have applied the same source GTIDs, but one also contains GTIDs with its own server UUID. Which should be promoted?"
+    options:
+      - "The one with extra GTIDs, because it has more transactions"
+      - "The one without them — the extra GTIDs are errant transactions that do not exist on the source"
+      - "Either; GTIDs do not matter for failover"
+      - "Neither; restore from backup"
+    answer: 1
+    explanation: "Errant transactions (written directly on a replica) would become part of history and break the other replicas' auto-positioning. Promote the clean, equally advanced replica and investigate the errant one."
+    concepts: [failover, gtid]
+  - id: q18
+    question: "An `ALTER TABLE … ADD COLUMN …, ALGORITHM=INSTANT` hangs on a busy table and soon all queries on it wait. What happened and what prevents it?"
+    options:
+      - "INSTANT copies the table; use INPLACE"
+      - "The ALTER waits for an exclusive metadata lock behind a long transaction, and new queries queue behind it; set a low lock_wait_timeout for the migration and clear long transactions first"
+      - "The buffer pool is full; increase innodb_buffer_pool_size"
+      - "Replication lag; stop replicas during migrations"
+    answer: 1
+    explanation: "All DDL needs an exclusive MDL at least briefly; a pending exclusive request blocks new shared requests. INSTANT itself is metadata-only; buffer pool and replication are unrelated."
+    concepts: [online-ddl, schema-migrations]
+  - id: q19
+    question: "Migration V12 has been applied everywhere. A developer edits V12 to fix a default value. What will a checksum-validating migration tool do, and what should the developer have done?"
+    options:
+      - "Nothing; edits are applied automatically"
+      - "Abort with a checksum mismatch; the fix should have been a new migration V13"
+      - "Re-apply V12 on every environment"
+      - "Delete V12 from history"
+    answer: 1
+    explanation: "Applied migrations are immutable; validation detects edits by checksum. Corrections are new migrations so every environment converges."
+    concepts: [versioned-migrations]
+challenges:
+  - id: c1
+    title: A masked, definer-secured support view
+    dataset: shop
+    difficulty: medium
+    kind: dml
+    concepts: [definer-security, least-privilege, data-masking]
+    prompt: |
+      Support agents may look up customers but must never see full e-mail addresses or phone numbers. Create a view
+      **`v_support_customers`** with `SQL SECURITY DEFINER` and the columns:
+
+      - `customer_id`, `first_name`, `last_name`, `city`
+      - `email_masked` — the first character of the e-mail, then `***@`, then the domain (`a***@example.com`)
+      - `phone_last4` — the last 4 characters of `phone`, or NULL when there is no phone
+
+      (In production you would then `GRANT SELECT ON shop.v_support_customers TO 'r_support'` and grant nothing on
+      `customers`.) The checker reads the view's security type and its rows for customers 1–5.
+    hints:
+      - "CONCAT(LEFT(email, 1), '***@', SUBSTRING_INDEX(email, '@', -1))"
+      - "RIGHT(phone, 4) returns NULL for a NULL phone."
+    solution: |
+      CREATE SQL SECURITY DEFINER VIEW v_support_customers AS
+      SELECT customer_id, first_name, last_name, city,
+             CONCAT(LEFT(email, 1), '***@', SUBSTRING_INDEX(email, '@', -1)) AS email_masked,
+             RIGHT(phone, 4) AS phone_last4
+      FROM customers;
+    check: |
+      SELECT v.SECURITY_TYPE, c.customer_id, c.first_name, c.last_name, c.city, c.email_masked, c.phone_last4
+      FROM information_schema.VIEWS v
+      CROSS JOIN v_support_customers c
+      WHERE v.TABLE_SCHEMA = DATABASE() AND v.TABLE_NAME = 'v_support_customers' AND c.customer_id <= 5
+      ORDER BY c.customer_id;
+    explanation: |
+      With `SQL SECURITY DEFINER`, MySQL checks privileges on `customers` against the view's definer, so support
+      needs only `SELECT` on the view and cannot reach the raw columns with any query. The view is mergeable (no
+      aggregation), so it adds no execution cost. An `INVOKER` view would require `SELECT` on `customers`, making the
+      masking cosmetic.
+  - id: c2
+    title: Locate the damaged chunks of a backup
+    dataset: shop
+    difficulty: hard
+    concepts: [backup-verification, checksums]
+    setup: |
+      CREATE TABLE order_items_backup LIKE order_items;
+      INSERT INTO order_items_backup SELECT * FROM order_items;
+      UPDATE order_items_backup SET quantity = quantity + 1 WHERE order_id = 17;
+      DELETE FROM order_items_backup WHERE order_id = 63;
+    prompt: |
+      `order_items_backup` should be an exact copy of `order_items` (composite key `order_id, product_id`). Split both
+      tables into chunks by `chunk = FLOOR((order_id - 1) / 10)` and compute per chunk the row count and the hash
+      `BIT_XOR(CRC32(CONCAT_WS('|', order_id, product_id, quantity, unit_price)))`. Return **only the chunks that
+      differ** (count or hash), with columns `chunk`, `source_rows`, `backup_rows`. A chunk missing entirely from the
+      backup must also be reported (with `backup_rows` = 0). Order by `chunk`.
+    hints:
+      - "Aggregate each table by chunk in its own CTE, then LEFT JOIN source chunks to backup chunks."
+      - "COALESCE(b.n, 0) for missing chunks; compare with NOT (s.n <=> b.n AND s.h <=> b.h)."
+    solution: |
+      WITH s AS (
+        SELECT FLOOR((order_id - 1) / 10) AS chunk, COUNT(*) AS n,
+               BIT_XOR(CRC32(CONCAT_WS('|', order_id, product_id, quantity, unit_price))) AS h
+        FROM order_items GROUP BY chunk
+      ), b AS (
+        SELECT FLOOR((order_id - 1) / 10) AS chunk, COUNT(*) AS n,
+               BIT_XOR(CRC32(CONCAT_WS('|', order_id, product_id, quantity, unit_price))) AS h
+        FROM order_items_backup GROUP BY chunk
+      )
+      SELECT s.chunk, s.n AS source_rows, COALESCE(b.n, 0) AS backup_rows
+      FROM s LEFT JOIN b ON b.chunk = s.chunk
+      WHERE NOT (s.n <=> b.n AND s.h <=> b.h)
+      ORDER BY s.chunk;
+    orderMatters: true
+    explanation: |
+      Chunk 1 (orders 11–20) has the same row count but a different hash — a changed value that a row count alone would
+      miss; chunk 6 (orders 61–70) lost rows. This is the strategy of pt-table-checksum and similar tools: checksum
+      ranges, then drill into only the ranges that differ. The null-safe comparison handles chunks absent from the
+      backup. (A complete check would also look for chunks that exist only in the backup.)
+  - id: c3
+    title: Point-in-time recovery that skips one transaction
+    dataset: bank
+    difficulty: hard
+    kind: dml
+    concepts: [point-in-time-recovery, gtid, restore]
+    setup: |
+      CREATE TABLE accounts_backup LIKE accounts;
+      INSERT INTO accounts_backup SELECT * FROM accounts;
+      CREATE TABLE binlog_events (seq INT PRIMARY KEY, gtid VARCHAR(40) NOT NULL, event_time DATETIME NOT NULL, stmt TEXT NOT NULL);
+      INSERT INTO binlog_events VALUES
+        (1,'src:901','2024-09-03 08:00:00','UPDATE accounts SET balance = balance + 120.00 WHERE account_id = 3'),
+        (2,'src:902','2024-09-03 08:10:00','UPDATE accounts SET balance = balance - 20.00 WHERE account_id = 5'),
+        (3,'src:903','2024-09-03 08:12:30','UPDATE accounts SET balance = ROUND(balance * 0.5, 2)'),
+        (4,'src:904','2024-09-03 08:20:00','UPDATE accounts SET balance = balance + 60.00 WHERE account_id = 6');
+      CREATE PROCEDURE apply_binlog(IN p_exclude_gtid VARCHAR(40))
+      BEGIN
+        DECLARE done BOOLEAN DEFAULT FALSE;
+        DECLARE v_stmt TEXT;
+        DECLARE cur CURSOR FOR
+          SELECT stmt FROM binlog_events WHERE p_exclude_gtid IS NULL OR gtid <> p_exclude_gtid ORDER BY seq;
+        DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+        OPEN cur;
+        l: LOOP
+          FETCH cur INTO v_stmt;
+          IF done THEN LEAVE l; END IF;
+          SET @s = v_stmt; PREPARE e FROM @s; EXECUTE e; DEALLOCATE PREPARE e;
+        END LOOP;
+        CLOSE cur;
+      END;
+      CALL apply_binlog(NULL);
+    prompt: |
+      The setup took a backup (`accounts_backup`) and then applied the whole binary log (`binlog_events`) to the live
+      `accounts` table — including GTID `src:903`, a buggy job that halved every balance. A procedure
+      `apply_binlog(p_exclude_gtid)` replays the log in order, optionally skipping one GTID.
+
+      Recover `accounts` so that it reflects **every transaction except `src:903`**. (`DELETE FROM accounts` is blocked
+      by the ledger's foreign key — restore the balances with an `UPDATE … JOIN accounts_backup`.)
+
+      The checker reads `account_id, balance` for accounts 1–8.
+    hints:
+      - "UPDATE accounts a JOIN accounts_backup b ON b.account_id = a.account_id SET a.balance = b.balance;"
+      - "Then CALL apply_binlog('src:903');"
+    solution: |
+      UPDATE accounts a JOIN accounts_backup b ON b.account_id = a.account_id SET a.balance = b.balance;
+      CALL apply_binlog('src:903');
+    check: |
+      SELECT account_id, balance FROM accounts WHERE account_id BETWEEN 1 AND 8 ORDER BY account_id;
+    explanation: |
+      Restoring first and replaying second is the essence of PITR: the backup is the checkpoint, the log brings it
+      forward. Replaying without restoring would apply 901, 902 and 904 twice (on a GTID-enabled server, auto-skip
+      prevents that). Skipping 903 is correct because 904 is a relative update independent of the halving; had a later
+      transaction read a halved balance and made a decision, the recovery would need business review.
+  - id: c4
+    title: A sustained-saturation alert from raw samples
+    dataset: empty
+    difficulty: hard
+    concepts: [metrics-rates, alerting, monitoring]
+    setup: |
+      CREATE TABLE samples (server VARCHAR(10) NOT NULL, sampled_at DATETIME NOT NULL, questions BIGINT NOT NULL,
+        threads_running INT NOT NULL, PRIMARY KEY (server, sampled_at));
+      INSERT INTO samples VALUES
+        ('db1','2026-11-09 10:00:00',100000,4),('db1','2026-11-09 10:01:00',160000,5),('db1','2026-11-09 10:02:00',221000,40),
+        ('db1','2026-11-09 10:03:00',270000,45),('db1','2026-11-09 10:04:00',300000,48),('db1','2026-11-09 10:05:00',3000,6),
+        ('db2','2026-11-09 10:00:00',50000,3),('db2','2026-11-09 10:01:00',80000,36),('db2','2026-11-09 10:02:00',111000,4),
+        ('db2','2026-11-09 10:03:00',140000,37),('db2','2026-11-09 10:04:00',171000,38);
+    prompt: |
+      `samples` holds one-minute samples of the cumulative `Questions` counter and the `threads_running` gauge per
+      server. Report every **alert**: a run of **at least 3 consecutive samples** (per server) with
+      `threads_running > 32`. For each alert return `server`, `started_at`, `ended_at`, `samples`, and `avg_qps` —
+      the average statements per second over the intervals that **end** inside the run (Δquestions ÷ 60, ignoring any
+      interval with a counter reset), rounded to 1. Order by `server`, `started_at`.
+    hints:
+      - "First compute per-sample qps with LAG() per server; treat a negative delta as NULL (reset)."
+      - "Gaps and islands: ROW_NUMBER() over all samples minus ROW_NUMBER() over breaching samples identifies runs."
+      - "Group breaching rows by (server, island id) and keep groups with COUNT(*) >= 3; AVG ignores NULL qps."
+    solution: |
+      WITH r AS (
+        SELECT server, sampled_at, threads_running,
+               CASE WHEN questions >= LAG(questions) OVER (PARTITION BY server ORDER BY sampled_at)
+                    THEN (questions - LAG(questions) OVER (PARTITION BY server ORDER BY sampled_at)) / 60 END AS qps,
+               ROW_NUMBER() OVER (PARTITION BY server ORDER BY sampled_at)
+             - ROW_NUMBER() OVER (PARTITION BY server, threads_running > 32 ORDER BY sampled_at) AS island
+        FROM samples
+      )
+      SELECT server, MIN(sampled_at) AS started_at, MAX(sampled_at) AS ended_at, COUNT(*) AS samples,
+             ROUND(AVG(qps), 1) AS avg_qps
+      FROM r
+      WHERE threads_running > 32
+      GROUP BY server, island
+      HAVING COUNT(*) >= 3
+      ORDER BY server, started_at;
+    orderMatters: true
+    explanation: |
+      db1 breaches for three consecutive minutes (10:02–10:04) while throughput falls — a genuine saturation incident,
+      followed by a restart (the counter reset at 10:05 is excluded from rates). db2 breaches three times (10:01, 10:03 and
+      10:04) but never in three consecutive samples, so no alert fires: duration requirements are what keep short
+      spikes from paging people. The `questions >= LAG(…)` test turns the reset interval into NULL, which `AVG` ignores.
+interview:
+  - id: i1
+    question: "Walk through what happens, from the network to the first query, when an application connects to MySQL 8.4 as 'orders_app'@'10.0.1.%' with --ssl-mode=VERIFY_IDENTITY. Where do authentication and authorization happen?"
+    answer: |
+      The client opens TCP; the server sends a greeting with its version, a random nonce and its default plugin. The
+      client requests TLS and verifies the server's certificate chain against its CA bundle and the host name against the
+      certificate's SAN (VERIFY_IDENTITY) — a man in the middle fails here. Inside TLS the client sends the user name;
+      the server matches exactly one account row by host specificity, then user (anonymous last), using `CURRENT_USER()`
+      semantics. The account's plugin, `caching_sha2_password`, either completes *fast authentication* (cached SHA-256
+      digest, nonce-based scramble) or *full authentication* (the password, protected by TLS, verified against the
+      salted, 5,000-round stored hash). The server checks `ACCOUNT LOCK`, password expiry, failed-login lockout, `REQUIRE
+      SSL/X509` and resource limits, then activates the default roles. That is **authentication** (stage 1).
+      **Authorization** (stage 2) happens on every statement: the resolver lists the objects and actions needed, and the
+      in-memory ACL caches are checked outside-in — global, schema, table, column, routine — including privileges of
+      active roles, minus partial revokes. A missing privilege yields 1142/1143/1227 before the statement touches data.
+      In 8.4, `mysql_native_password` is disabled by default, so legacy accounts must be migrated beforehand.
+    concepts: [authentication, privileges, tls]
+  - id: i2
+    question: "Design least-privilege accounts for an application, its migration pipeline, analysts and the backup job. What can an attacker do with each credential?"
+    answer: |
+      Use roles. `r_app_rw`: `SELECT, INSERT, UPDATE, DELETE` (and `EXECUTE`) on the application schema only — a stolen
+      credential or an injection can read and change application data but cannot alter the schema, read other schemas or
+      `mysql.*`, use `FILE`, see other sessions (`PROCESS`) or manage accounts. `r_migrator`: DDL privileges on the
+      application schema, used only from CI/CD with secrets injected at deploy time — a leak permits schema damage in that
+      schema (mitigated by backups/PITR) but nothing beyond it. `r_analyst`: `SELECT` on definer views that hide or mask
+      sensitive columns, ideally on a replica — read-only exposure of curated data. `r_backup`: read access plus the tool's
+      minimal administrative privileges (e.g. `LOCK TABLES`, `PROCESS`, `RELOAD`, `REPLICATION CLIENT`,
+      `BACKUP_ADMIN` depending on the tool), authenticated with `auth_socket` on the DB host so there is no password to
+      steal — but its backups contain everything, so they must be encrypted and access-controlled. Accounts are
+      host-restricted, `REQUIRE SSL`, have default roles set, and are reviewed periodically with `SHOW GRANTS … USING`.
+    concepts: [least-privilege, roles]
+  - id: i3
+    question: "Why are parameterized queries the primary defence against SQL injection, and what cases do they not cover?"
+    answer: |
+      Injection changes the parse tree by smuggling SQL syntax inside data. With parameterization the statement is parsed
+      with `?` markers first; values are bound afterwards and can only ever be literals of the marker's type, so no input
+      can alter the structure — a structural guarantee rather than a filter. It covers tautologies, comment truncation,
+      `UNION` extraction, blind boolean/time-based attacks and second-order attacks (if every later statement is
+      parameterized too). It does **not** cover parts of SQL that are not values: identifiers (table/column names),
+      keywords (`ASC`/`DESC`), operators and variable-length `IN` lists built as text. Those need allow-lists mapping user
+      choices to developer-written fragments, then identifier quoting. Placeholders also do not neutralize `LIKE`
+      wildcards inside bound values. Defence in depth adds typed parameters, least-privilege accounts, generic error
+      messages, rate limits, and monitoring for new statement digests from the application account.
+    concepts: [sql-injection, prepared-statements]
+  - id: i4
+    question: "Explain how you would recover from `DELETE FROM payments` executed by mistake at 14:05 on a MySQL 8.4 primary with replicas, nightly physical backups and archived binlogs."
+    answer: |
+      First stop the damage (disable the job/account) and note the time; replicas have already applied the delete, so
+      they are not a recovery source (unless a delayed replica exists — then stop it before the bad GTID with
+      `START REPLICA UNTIL SQL_BEFORE_GTIDS` and extract the data from it, the fastest path). Find the transaction in the
+      binlog with `mysqlbinlog --base64-output=DECODE-ROWS -v` around 14:05 and record its GTID and position. Provision
+      a recovery instance, restore the last physical backup (prepared data directory), and read its GTID set. Replay
+      archived binlogs from that point with `--exclude-gtids=<bad GTID>` (or stop just before it if later transactions
+      depended on the deleted rows), piping all files through one `mysqlbinlog` into `mysql`, or use the replication
+      applier for parallel replay. Verify: row counts and checksums for `payments`, business invariants (payments vs
+      orders and ledgers). Then either copy the recovered `payments` rows back into the primary (smallest disruption) or
+      promote the recovery instance and rebuild replicas with Clone. Afterwards: incident review, `sql_safe_updates`
+      for humans, least privilege for jobs, alerts on mass deletes, and a drill to confirm the measured RTO.
+    concepts: [point-in-time-recovery, rpo-rto]
+  - id: i5
+    question: "Compare asynchronous replication, semi-synchronous replication and InnoDB Cluster for a service that must not lose committed orders when a server fails."
+    answer: |
+      **Asynchronous**: the source commits and returns before any replica has the transaction; if it dies, unreceived
+      transactions are lost, and failover requires an external tool plus fencing. Lowest latency, simplest. **Semi-sync
+      (`AFTER_SYNC`)**: the source waits until at least one replica has written the transaction to its relay log before
+      committing to InnoDB, so acknowledged transactions survive a source failure; it costs one round trip to the
+      nearest replica per commit and silently **falls back to async** after `rpl_semi_sync_source_timeout`, which must be
+      monitored. Failover is still external. **InnoDB Cluster** (Group Replication + MySQL Router + Shell): transactions
+      commit after a majority agrees on their order (Paxos), conflicts are certified, a primary is elected automatically,
+      members without quorum stop accepting writes (no split brain), and Router follows the primary; 3 members tolerate
+      1 failure. Costs: consensus latency, flow control, more operational complexity. For "no lost orders" within a
+      region, semi-sync with careful monitoring or InnoDB Cluster both work; InnoDB Cluster adds automated, quorum-safe
+      failover; ClusterSet extends it to DR regions asynchronously. In all cases use GTIDs, `super_read_only` on
+      replicas, heartbeat-based lag monitoring and GTID-aware read-your-writes. Use 8.4 syntax: `CHANGE REPLICATION
+      SOURCE TO`, `START REPLICA`, `SHOW REPLICA STATUS`.
+    concepts: [replication, group-replication, semi-synchronous-replication]
+  - id: i6
+    question: "How do you roll out a breaking schema change (renaming a heavily used column) on a large MySQL table without downtime, and how do you roll it back?"
+    answer: |
+      Use **expand/contract** across releases. Expand: add the new column (`ALGORITHM=INSTANT`), keep it in sync for
+      writes from old code (triggers or application dual-writes), backfill existing rows in small, throttled
+      primary-key batches watching replica lag. Switch: deploy code that reads the new column (behind a feature flag),
+      then code that writes only the new column. Contract: in a later release, drop the triggers and the old column.
+      Every migration is a separate, reviewed, checksummed script with explicit `ALGORITHM`/`LOCK`, run with a short
+      `lock_wait_timeout` so metadata-lock waits cannot stall traffic; changes that would need `COPY` on a big table go
+      through gh-ost or pt-online-schema-change. Rollback: until the contract step, flip the flag back — the old column
+      is still current thanks to dual writes. MySQL DDL is not transactional, so "down migrations" cannot undo
+      destructive steps; the contract step is the point of no return and is preceded by a backup checkpoint. CI applies
+      migrations to a production-like copy, runs old and new application tests against the migrated schema, and lints
+      for risky operations.
+    concepts: [expand-contract, online-ddl, rollback-strategy]

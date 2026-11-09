@@ -695,14 +695,14 @@ explanation: |
 
 ```quiz
 - id: q1
-  question: "A table is partitioned `BY RANGE (TO_DAYS(created_at))` by month. Which query is pruned to a single partition?"
+  question: "A table is partitioned `BY RANGE (TO_DAYS(created_at))` by month. Which WHERE clause lets the optimizer prune away the partitions of the other months?"
   options:
     - "WHERE YEAR(created_at) = 2024 AND MONTH(created_at) = 3"
     - "WHERE created_at >= '2024-03-01' AND created_at < '2024-04-01'"
     - "WHERE customer_id = 42"
     - "WHERE DATE_FORMAT(created_at, '%Y-%m') = '2024-03'"
   answer: 1
-  explanation: "Pruning maps predicates on the bare partitioning column through the partitioning function. Wrapping the column in YEAR/MONTH/DATE_FORMAT hides it, and customer_id is not the partitioning key."
+  explanation: "Pruning maps predicates on the bare partitioning column through the partitioning function (with TO_DAYS the first partition may also be listed, as the lab showed). Wrapping the column in YEAR/MONTH/DATE_FORMAT hides it, and customer_id is not the partitioning key."
   concepts: [partition-pruning]
 - id: q2
   question: "`CREATE TABLE t (id INT PRIMARY KEY, d DATE NOT NULL) PARTITION BY RANGE COLUMNS(d) (...)` fails with error 1503. Why?"

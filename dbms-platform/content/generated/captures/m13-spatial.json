@@ -1,0 +1,908 @@
+{
+ "doc": "m13-spatial",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:32ecc262be1e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE stores (\n  store_id INT PRIMARY KEY,\n  name     VARCHAR(40) NOT NULL,\n  city     VARCHAR(40) NOT NULL,\n  location POINT NOT NULL SRID 4326,\n  SPATIAL INDEX sp_stores_location (location)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO stores VALUES\n (1, 'Downtown San Jose', 'San Jose',      ST_GeomFromText('POINT(37.3352 -121.8811)', 4326)),\n (2, 'Mission District',  'San Francisco', ST_GeomFromText('POINT(37.7599 -122.4148)', 4326)),\n (3, 'University Ave',    'Palo Alto',     ST_GeomFromText('POINT(37.4419 -122.1430)', 4326)),\n (4, 'Seattle Center',    'Seattle',       ST_GeomFromText('POINT(47.6205 -122.3493)', 4326)),\n (5, 'South Congress',    'Austin',        ST_GeomFromText('POINT(30.2500 -97.7500)',  4326))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT store_id, name, ST_AsText(location) AS wkt,\n       ST_Latitude(location) AS lat, ST_Longitude(location) AS lng, ST_SRID(location) AS srid\nFROM stores ORDER BY store_id",
+     "status": "ok",
+     "columns": [
+      "store_id",
+      "name",
+      "wkt",
+      "lat",
+      "lng",
+      "srid"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "Downtown San Jose",
+       "POINT(37.3352 -121.8811)",
+       37.3352,
+       -121.88109999999999,
+       4326
+      ],
+      [
+       2,
+       "Mission District",
+       "POINT(37.7599 -122.4148)",
+       37.7599,
+       -122.41480000000001,
+       4326
+      ],
+      [
+       3,
+       "University Ave",
+       "POINT(37.4419 -122.143)",
+       37.4419,
+       -122.143,
+       4326
+      ],
+      [
+       4,
+       "Seattle Center",
+       "POINT(47.6205 -122.3493)",
+       47.6205,
+       -122.3493,
+       4326
+      ],
+      [
+       5,
+       "South Congress",
+       "POINT(30.25 -97.75)",
+       30.25,
+       -97.75,
+       4326
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:29da3b3b8ca6": {
+   "statements": [
+    {
+     "sql": "SET @sjsu = ST_SRID(POINT(-121.8811, 37.3352), 4326)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT ST_AsText(@sjsu)                         AS wkt_default,\n       ST_AsText(@sjsu, 'axis-order=long-lat')  AS wkt_long_lat,\n       ST_AsGeoJSON(@sjsu)                      AS geojson,\n       ST_AsText(ST_GeomFromGeoJSON('{\"type\": \"Point\", \"coordinates\": [-121.8811, 37.3352]}')) AS from_geojson",
+     "status": "ok",
+     "columns": [
+      "wkt_default",
+      "wkt_long_lat",
+      "geojson",
+      "from_geojson"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "POINT(37.3352 -121.8811)",
+       "POINT(-121.8811 37.3352)",
+       "{\"type\": \"Point\", \"coordinates\": [-121.8811, 37.3352]}",
+       "POINT(37.3352 -121.8811)"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:b6a358d4cc5c": {
+   "statements": [
+    {
+     "sql": "INSERT INTO stores VALUES (9, 'Swapped', 'Nowhere', ST_GeomFromText('POINT(-121.8811 37.3352)', 4326))",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3617,
+      "message": "Latitude -121.881100 is out of range in function st_geomfromtext. It must be within [-90.000000, 90.000000]."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s4:32e1576ee364": {
+   "statements": [
+    {
+     "sql": "SELECT SRS_ID, SRS_NAME, ORGANIZATION\nFROM information_schema.ST_SPATIAL_REFERENCE_SYSTEMS\nWHERE SRS_ID IN (0, 3857, 4326) ORDER BY SRS_ID",
+     "status": "ok",
+     "columns": [
+      "SRS_ID",
+      "SRS_NAME",
+      "ORGANIZATION"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       0,
+       "",
+       null
+      ],
+      [
+       3857,
+       "WGS 84 / Pseudo-Mercator",
+       "EPSG"
+      ],
+      [
+       4326,
+       "WGS 84",
+       "EPSG"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS srs_defined FROM information_schema.ST_SPATIAL_REFERENCE_SYSTEMS",
+     "status": "ok",
+     "columns": [
+      "srs_defined"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5152
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:23daeaa8a79a": {
+   "statements": [
+    {
+     "sql": "SELECT store_id, name,\n       ROUND(ST_Distance(location, @sjsu) / 1000, 1)        AS km_ellipsoid,\n       ROUND(ST_Distance_Sphere(location, @sjsu) / 1000, 1) AS km_sphere\nFROM stores\nORDER BY km_ellipsoid",
+     "status": "ok",
+     "columns": [
+      "store_id",
+      "name",
+      "km_ellipsoid",
+      "km_sphere"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "Downtown San Jose",
+       0.0,
+       0.0
+      ],
+      [
+       3,
+       "University Ave",
+       26.0,
+       26.0
+      ],
+      [
+       2,
+       "Mission District",
+       66.7,
+       66.7
+      ],
+      [
+       4,
+       "Seattle Center",
+       1143.2,
+       1144.3
+      ],
+      [
+       5,
+       "South Congress",
+       2360.9,
+       2357.0
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT ST_Distance(ST_GeomFromText('POINT(0 0)'), ST_GeomFromText('POINT(3 4)')) AS cartesian_units",
+     "status": "ok",
+     "columns": [
+      "cartesian_units"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5.0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:004b2e1a39c6": {
+   "statements": [
+    {
+     "sql": "SET @same_day_zone = ST_GeomFromText(\n  'POLYGON((37.20 -122.05, 37.20 -121.75, 37.45 -121.75, 37.45 -122.05, 37.20 -122.05))', 4326)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT ST_IsValid(@same_day_zone)                 AS valid_polygon,\n       ROUND(ST_Area(@same_day_zone) / 1e6, 1)    AS area_km2",
+     "status": "ok",
+     "columns": [
+      "valid_polygon",
+      "area_km2"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       737.7
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT store_id, name,\n       ST_Contains(@same_day_zone, location) AS zone_contains_store,\n       ST_Within(location, @same_day_zone)   AS store_within_zone\nFROM stores ORDER BY store_id",
+     "status": "ok",
+     "columns": [
+      "store_id",
+      "name",
+      "zone_contains_store",
+      "store_within_zone"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "Downtown San Jose",
+       1,
+       1
+      ],
+      [
+       2,
+       "Mission District",
+       0,
+       0
+      ],
+      [
+       3,
+       "University Ave",
+       0,
+       0
+      ],
+      [
+       4,
+       "Seattle Center",
+       0,
+       0
+      ],
+      [
+       5,
+       "South Congress",
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:cd4e44de937b": {
+   "statements": [
+    {
+     "sql": "SET @square = ST_GeomFromText('POLYGON((0 0, 4 0, 4 4, 0 4, 0 0))')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT ST_Contains(@square, POINT(4, 2))   AS contains_edge_point,\n       ST_Intersects(@square, POINT(4, 2)) AS intersects_edge_point,\n       ST_Contains(@square, POINT(2, 2))   AS contains_interior_point",
+     "status": "ok",
+     "columns": [
+      "contains_edge_point",
+      "intersects_edge_point",
+      "contains_interior_point"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:f5afb9832a3e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE city_coords (\n  city  VARCHAR(60) PRIMARY KEY,\n  state CHAR(2) NOT NULL,\n  pt    POINT NOT NULL SRID 4326\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO city_coords VALUES\n ('Austin', 'TX',        ST_SRID(POINT(-97.7431, 30.2672), 4326)),\n ('Boston', 'MA',        ST_SRID(POINT(-71.0589, 42.3601), 4326)),\n ('Chicago', 'IL',       ST_SRID(POINT(-87.6298, 41.8781), 4326)),\n ('Los Angeles', 'CA',   ST_SRID(POINT(-118.2437, 34.0522), 4326)),\n ('New York', 'NY',      ST_SRID(POINT(-74.0060, 40.7128), 4326)),\n ('San Francisco', 'CA', ST_SRID(POINT(-122.4194, 37.7749), 4326)),\n ('San Jose', 'CA',      ST_SRID(POINT(-121.8863, 37.3382), 4326)),\n ('Seattle', 'WA',       ST_SRID(POINT(-122.3321, 47.6062), 4326))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 8,
+     "info": "Records: 8  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT c.customer_id, c.city, nearest.name AS nearest_store, nearest.km\nFROM customers c\nJOIN city_coords cc ON cc.city = c.city\nJOIN LATERAL (\n  SELECT s.name, ROUND(ST_Distance(s.location, cc.pt) / 1000, 1) AS km\n  FROM stores s\n  ORDER BY ST_Distance(s.location, cc.pt), s.store_id\n  LIMIT 1\n) AS nearest ON TRUE\nWHERE c.customer_id <= 8\nORDER BY c.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "city",
+      "nearest_store",
+      "km"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       1,
+       "Austin",
+       "South Congress",
+       2.0
+      ],
+      [
+       2,
+       "Boston",
+       "South Congress",
+       2731.2
+      ],
+      [
+       3,
+       "San Jose",
+       "Downtown San Jose",
+       0.6
+      ],
+      [
+       4,
+       "Austin",
+       "South Congress",
+       2.0
+      ],
+      [
+       5,
+       "Seattle",
+       "Seattle Center",
+       2.0
+      ],
+      [
+       6,
+       "San Francisco",
+       "Mission District",
+       1.7
+      ],
+      [
+       7,
+       "San Francisco",
+       "Mission District",
+       1.7
+      ],
+      [
+       8,
+       "San Francisco",
+       "Mission District",
+       1.7
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:ef77f813b8f4": {
+   "statements": [
+    {
+     "sql": "SELECT ROUND(ST_Length(ST_GeomFromText(\n         'LINESTRING(37.3352 -121.8811, 37.4419 -122.1430, 37.7599 -122.4148)', 4326)) / 1000, 1) AS route_km_via_palo_alto,\n       ROUND(ST_Distance(\n         ST_GeomFromText('POINT(37.3352 -121.8811)', 4326),\n         ST_GeomFromText('POINT(37.7599 -122.4148)', 4326)) / 1000, 1) AS direct_km",
+     "status": "ok",
+     "columns": [
+      "route_km_via_palo_alto",
+      "direct_km"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       68.7,
+       66.7
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:3ef3070fdfbc": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE courier_pings (\n  ping_id INT PRIMARY KEY,\n  pos     POINT NOT NULL SRID 4326\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 20000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO courier_pings\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 20000)\nSELECT n, ST_SRID(POINT(-123 + (n * 7919 % 30011) / 15005.5,\n                        36.5 + (n * 104729 % 29989) / 14994.5), 4326)\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 20000,
+     "info": "Records: 20000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE courier_pings ADD SPATIAL INDEX sp_pings_pos (pos)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE courier_pings",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "courier_pings",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:7daf033e2fcf": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM courier_pings WHERE ST_Contains(@same_day_zone, pos)",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "courier_pings",
+       null,
+       "range",
+       "sp_pings_pos",
+       "sp_pings_pos",
+       "34",
+       null,
+       360,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `courier_pings` where st_contains(<cache>((@`same_day_zone`)),`courier_pings`.`pos`)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:a6d67230422c": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS pings_in_zone FROM courier_pings WHERE ST_Contains(@same_day_zone, pos)",
+     "status": "ok",
+     "columns": [
+      "pings_in_zone"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       377
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:ae785eded253": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT ping_id FROM courier_pings WHERE ST_Distance_Sphere(pos, @sjsu) <= 5000",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "courier_pings",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       19158,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `courier_pings`.`ping_id` AS `ping_id` from `courier_pings` where (st_distance_sphere(`courier_pings`.`pos`,<cache>((@`sjsu`))) <= 5000)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:521b1087aa67": {
+   "statements": [
+    {
+     "sql": "SET @r_m = 5000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @lat = ST_Latitude(@sjsu), @lng = ST_Longitude(@sjsu)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @dlat = @r_m / 111320, @dlng = @r_m / (111320 * COS(RADIANS(@lat)))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @bbox = ST_GeomFromText(CONCAT('POLYGON((',\n    @lat - @dlat, ' ', @lng - @dlng, ',', @lat - @dlat, ' ', @lng + @dlng, ',',\n    @lat + @dlat, ' ', @lng + @dlng, ',', @lat + @dlat, ' ', @lng - @dlng, ',',\n    @lat - @dlat, ' ', @lng - @dlng, '))'), 4326)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT ST_AsText(@bbox) AS bbox",
+     "status": "ok",
+     "columns": [
+      "bbox"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "POLYGON((37.290284442 -121.93759037869518,37.290284442 -121.8246096213048,37.380115558 -121.8246096213048,37.380115558 -121.93759037869518,37.290284442 -121.93759037869518))"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:6982da5b7fcf": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT ping_id FROM courier_pings WHERE MBRContains(@bbox, pos) AND ST_Distance_Sphere(pos, @sjsu) <= @r_m",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "courier_pings",
+       null,
+       "range",
+       "sp_pings_pos",
+       "sp_pings_pos",
+       "34",
+       null,
+       49,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `courier_pings`.`ping_id` AS `ping_id` from `courier_pings` where (mbrcontains(<cache>((@`bbox`)),`courier_pings`.`pos`) and (st_distance_sphere(`courier_pings`.`pos`,<cache>((@`sjsu`))) <= <cache>((@`r_m`))))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:c9d4af2c1103": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM courier_pings WHERE ST_Distance_Sphere(pos, @sjsu) <= @r_m)                          AS naive_count,\n       (SELECT COUNT(*) FROM courier_pings WHERE MBRContains(@bbox, pos))                                        AS box_candidates,\n       (SELECT COUNT(*) FROM courier_pings WHERE MBRContains(@bbox, pos) AND ST_Distance_Sphere(pos, @sjsu) <= @r_m) AS indexed_count",
+     "status": "ok",
+     "columns": [
+      "naive_count",
+      "box_candidates",
+      "indexed_count"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       42,
+       55,
+       42
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:05a6ee487bea": {
+   "statements": [
+    {
+     "sql": "SELECT ping_id,\n       ROUND(ST_Distance_Sphere(pos, @sjsu)) AS metres,\n       ST_AsText(pos) AS wkt\nFROM courier_pings\nWHERE MBRContains(@bbox, pos) AND ST_Distance_Sphere(pos, @sjsu) <= @r_m\nORDER BY metres, ping_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "ping_id",
+      "metres",
+      "wkt"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       6331,
+       256.0,
+       "POINT(37.333505618 -121.879144314)"
+      ],
+      [
+       17488,
+       449.0,
+       "POINT(37.33657341 -121.88587518)"
+      ],
+      [
+       17939,
+       1060.0,
+       "POINT(37.343509286 -121.875212423)"
+      ],
+      [
+       5880,
+       1230.0,
+       "POINT(37.326569742 -121.889807071)"
+      ],
+      [
+       6782,
+       1259.0,
+       "POINT(37.340441495 -121.868481557)"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:293f0265483c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM courier_pings WHERE ST_Contains(@same_day_zone, pos)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=198 rows=1) (actual time=3.06..3.06 rows=1 loops=1)\n    -> Filter: st_contains(<cache>((@same_day_zone)),courier_pings.pos)  (cost=162 rows=360) (actual time=0.0579..3.03 rows=377 loops=1)\n        -> Index range scan on courier_pings using sp_pings_pos over (pos unprintable_geometry_value)  (cost=162 rows=360) (actual time=0.0411..0.829 rows=377 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 4.99
+    },
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM courier_pings IGNORE INDEX (sp_pings_pos) WHERE ST_Contains(@same_day_zone, pos)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=3856 rows=1) (actual time=96.6..96.6 rows=1 loops=1)\n    -> Filter: st_contains(<cache>((@same_day_zone)),courier_pings.pos)  (cost=1940 rows=19158) (actual time=0.128..96.5 rows=377 loops=1)\n        -> Table scan on courier_pings  (cost=1940 rows=19158) (actual time=0.0155..7.54 rows=20000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 97.62
+    }
+   ],
+   "measured": true
+  },
+  "s13:af2cf83b9fd2": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM courier_pings WHERE ST_Distance_Sphere(pos, @sjsu) <= @r_m",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=3856 rows=1) (actual time=56.9..56.9 rows=1 loops=1)\n    -> Filter: (st_distance_sphere(courier_pings.pos,<cache>((@sjsu))) <= <cache>((@r_m)))  (cost=1940 rows=19158) (actual time=7.03..56.9 rows=42 loops=1)\n        -> Table scan on courier_pings  (cost=1940 rows=19158) (actual time=0.0139..6.55 rows=20000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 57.97
+    },
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM courier_pings WHERE MBRContains(@bbox, pos) AND ST_Distance_Sphere(pos, @sjsu) <= @r_m",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=27.2 rows=1) (actual time=0.71..0.71 rows=1 loops=1)\n    -> Filter: (mbrcontains(<cache>((@bbox)),courier_pings.pos) and (st_distance_sphere(courier_pings.pos,<cache>((@sjsu))) <= <cache>((@r_m))))  (cost=22.3 rows=49) (actual time=0.146..0.705 rows=42 loops=1)\n        -> Index range scan on courier_pings using sp_pings_pos over (pos unprintable_geometry_value)  (cost=22.3 rows=49) (actual time=0.0959..0.352 rows=55 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.85
+    }
+   ],
+   "measured": true
+  },
+  "s14:49d3c6e19f40": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE bad_nullable (id INT PRIMARY KEY, g POINT SRID 4326, SPATIAL INDEX (g))",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1252,
+      "message": "All parts of a SPATIAL index must be NOT NULL"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s15:785fe8c328b3": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE bad_no_srid (id INT PRIMARY KEY, g POINT NOT NULL, SPATIAL INDEX sp_g (g))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 3674,
+       "message": "The spatial index on column 'g' will not be used by the query optimizer since the column does not have an SRID attribute. Consider adding an SRID attribute to the column."
+      }
+     ]
+    },
+    {
+     "sql": "SHOW WARNINGS",
+     "status": "ok",
+     "columns": [
+      "Level",
+      "Code",
+      "Message"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Warning",
+       3674,
+       "The spatial index on column 'g' will not be used by the query optimizer since the column does not have an SRID attribute. Consider adding an SRID attribute to the column."
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:e0714fa09975": {
+   "statements": [
+    {
+     "sql": "INSERT INTO stores VALUES (10, 'No SRID', 'San Jose', ST_GeomFromText('POINT(37.33 -121.88)'))",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3643,
+      "message": "The SRID of the geometry does not match the SRID of the column 'location'. The SRID of the geometry is 0, but the SRID of the column is 4326. Consider changing the SRID of the geometry or the SRID property of the column."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s17:f2735e1b23a6": {
+   "statements": [
+    {
+     "sql": "SELECT ST_Distance(ST_SRID(POINT(-121.88, 37.33), 4326), ST_SRID(POINT(-122.41, 37.76), 3857))",
+     "status": "error",
+     "columns": [
+      "ST_Distance(ST_SRID(POINT(-121.88, 37.33), 4326), ST_SRID(POINT(-122.41, 37.76), 3857))"
+     ],
+     "rows": [],
+     "error": {
+      "code": 3033,
+      "message": "Binary geometry function st_distance given two geometries of different srids: 4326 and 3857, which should have been identical."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}
