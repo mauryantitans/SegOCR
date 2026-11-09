@@ -85,73 +85,73 @@
        "p2024_01",
        1,
        "739282",
-       20004
+       20073
       ],
       [
        "p2024_02",
        2,
        "739311",
-       19035
+       18768
       ],
       [
        "p2024_03",
        3,
        "739342",
-       20590
+       20073
       ],
       [
        "p2024_04",
        4,
        "739372",
-       19300
+       20235
       ],
       [
        "p2024_05",
        5,
        "739403",
-       20590
+       20073
       ],
       [
        "p2024_06",
        6,
        "739433",
-       19300
+       20235
       ],
       [
        "p2024_07",
        7,
        "739464",
-       20004
+       20590
       ],
       [
        "p2024_08",
        8,
        "739495",
-       20590
+       20073
       ],
       [
        "p2024_09",
        9,
        "739525",
-       20235
+       19727
       ],
       [
        "p2024_10",
        10,
        "739556",
-       20590
+       20073
       ],
       [
        "p2024_11",
        11,
        "739586",
-       20235
+       19727
       ],
       [
        "p2024_12",
        12,
        "739617",
-       18565
+       19525
       ],
       [
        "pmax",
@@ -195,7 +195,7 @@
        null,
        null,
        null,
-       40594,
+       40146,
        11.11,
        "Using where"
       ]
@@ -242,7 +242,7 @@
        "idx_events_customer",
        "4",
        null,
-       59308,
+       60898,
        11.11,
        "Using where; Using index"
       ]
@@ -258,7 +258,61 @@
    ],
    "measured": null
   },
-  "s5:08e7b2e543a2": {
+  "s5:8553d1ac9ef8": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE events_rc (\n  event_id INT UNSIGNED NOT NULL, created_at DATETIME NOT NULL, PRIMARY KEY (event_id, created_at)\n)\nPARTITION BY RANGE COLUMNS (created_at) (\n  PARTITION p2024_02 VALUES LESS THAN ('2024-03-01'),\n  PARTITION p2024_03 VALUES LESS THAN ('2024-04-01'),\n  PARTITION p2024_04 VALUES LESS THAN ('2024-05-01'),\n  PARTITION pmax     VALUES LESS THAN (MAXVALUE)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM events_rc WHERE created_at >= '2024-03-01' AND created_at < '2024-04-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events_rc",
+       "p2024_03",
+       "index",
+       "PRIMARY",
+       "PRIMARY",
+       "9",
+       null,
+       1,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `events_rc` where ((`events_rc`.`created_at` >= TIMESTAMP'2024-03-01 00:00:00') and (`events_rc`.`created_at` < TIMESTAMP'2024-04-01 00:00:00'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:08e7b2e543a2": {
    "statements": [
     {
      "sql": "EXPLAIN SELECT COUNT(*) FROM events WHERE customer_id = 4217",
@@ -305,7 +359,7 @@
    ],
    "measured": null
   },
-  "s7:bb679347d915": {
+  "s8:bb679347d915": {
    "statements": [
     {
      "sql": "ALTER TABLE events REORGANIZE PARTITION pmax INTO (\n  PARTITION p2025_01 VALUES LESS THAN (TO_DAYS('2025-02-01')),\n  PARTITION pmax     VALUES LESS THAN MAXVALUE\n)",
@@ -351,7 +405,7 @@
        null,
        null,
        null,
-       20005,
+       20074,
        11.11,
        "Using where"
       ]
@@ -367,7 +421,7 @@
    ],
    "measured": null
   },
-  "s8:e0ed85f9c393": {
+  "s9:e0ed85f9c393": {
    "statements": [
     {
      "sql": "CREATE TABLE events_feb_copy LIKE events",
@@ -408,7 +462,7 @@
    ],
    "measured": null
   },
-  "s9:f4c68135fe58": {
+  "s10:f4c68135fe58": {
    "statements": [
     {
      "sql": "DELETE FROM events_feb_copy WHERE created_at >= '2024-02-01' AND created_at < '2024-03-01'",
@@ -416,12 +470,12 @@
      "columns": [],
      "affected_rows": 19127,
      "rows": [],
-     "elapsed_ms": 80.3
+     "elapsed_ms": 79.06
     }
    ],
    "measured": true
   },
-  "s10:9e1f57ad9f7f": {
+  "s11:9e1f57ad9f7f": {
    "statements": [
     {
      "sql": "ALTER TABLE events DROP PARTITION p2024_01",
@@ -430,12 +484,12 @@
      "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 26.94
+     "elapsed_ms": 20.76
     }
    ],
    "measured": true
   },
-  "s11:3eab57368b2e": {
+  "s12:3eab57368b2e": {
    "statements": [
     {
      "sql": "ALTER TABLE events TRUNCATE PARTITION p2024_02",
@@ -459,7 +513,7 @@
       ],
       [
        "p2024_03",
-       20590
+       20073
       ]
      ]
     },
@@ -479,7 +533,7 @@
    ],
    "measured": null
   },
-  "s12:c5bb79747ae6": {
+  "s13:c5bb79747ae6": {
    "statements": [
     {
      "sql": "CREATE TABLE events_archive_2024_03 LIKE events",
@@ -521,7 +575,7 @@
    ],
    "measured": null
   },
-  "s13:0fcbba0a3663": {
+  "s14:0fcbba0a3663": {
    "statements": [
     {
      "sql": "CREATE TABLE customers_by_region (\n  customer_id INT UNSIGNED NOT NULL,\n  region      VARCHAR(8)   NOT NULL,\n  name        VARCHAR(40)  NOT NULL,\n  PRIMARY KEY (customer_id, region)\n)\nPARTITION BY LIST COLUMNS (region) (\n  PARTITION p_americas VALUES IN ('NA', 'LATAM'),\n  PARTITION p_europe   VALUES IN ('EU', 'UK'),\n  PARTITION p_asia     VALUES IN ('APAC', 'IN')\n)",
@@ -586,7 +640,7 @@
        "PRIMARY",
        "38",
        null,
-       32502,
+       33455,
        20.0,
        "Using where; Using index"
       ]
@@ -602,7 +656,7 @@
    ],
    "measured": null
   },
-  "s14:a20a17ab491a": {
+  "s15:a20a17ab491a": {
    "statements": [
     {
      "sql": "INSERT INTO customers_by_region VALUES (100001, 'MEA', 'new market customer')",
@@ -617,7 +671,7 @@
    ],
    "measured": null
   },
-  "s15:559a56c0d244": {
+  "s16:559a56c0d244": {
    "statements": [
     {
      "sql": "CREATE TABLE carts (\n  customer_id INT UNSIGNED NOT NULL,\n  product_id  INT UNSIGNED NOT NULL,\n  qty         INT UNSIGNED NOT NULL,\n  PRIMARY KEY (customer_id, product_id)\n)\nPARTITION BY HASH (customer_id) PARTITIONS 8",
@@ -825,7 +879,7 @@
    ],
    "measured": null
   },
-  "s16:f863c01cb653": {
+  "s17:f863c01cb653": {
    "statements": [
     {
      "sql": "CREATE TABLE api_tokens (\n  token_hash CHAR(32)     NOT NULL PRIMARY KEY,\n  user_id    INT UNSIGNED NOT NULL,\n  expires_at DATETIME     NOT NULL\n)\nPARTITION BY KEY (token_hash) PARTITIONS 4",
@@ -1034,7 +1088,7 @@
        "idx_events_customer",
        "4",
        null,
-       20590,
+       20073,
        11.11,
        "Using where; Using index"
       ]
@@ -1061,14 +1115,14 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=2312 rows=1) (actual time=4.67..4.67 rows=1 loops=1)\n    -> Filter: ((`events`.created_at >= TIMESTAMP'2024-05-10 00:00:00') and (`events`.created_at < TIMESTAMP'2024-05-20 00:00:00'))  (cost=2083 rows=2287) (actual time=0.273..4.38 rows=6595 loops=1)\n        -> Covering index scan on events using idx_events_customer  (cost=2083 rows=20590) (actual time=0.268..2.59 rows=20446 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=2255 rows=1) (actual time=3.71..3.71 rows=1 loops=1)\n    -> Filter: ((`events`.created_at >= TIMESTAMP'2024-05-10 00:00:00') and (`events`.created_at < TIMESTAMP'2024-05-20 00:00:00'))  (cost=2032 rows=2230) (actual time=0.128..3.49 rows=6595 loops=1)\n        -> Covering index scan on events using idx_events_customer  (cost=2032 rows=20073) (actual time=0.124..2.09 rows=20446 loops=1)\n"
       ]
      ]
     }
    ],
    "measured": null
   },
-  "s17:4dbed8f48613": {
+  "s18:4dbed8f48613": {
    "statements": [
     {
      "sql": "SHOW SESSION STATUS LIKE 'Handler_read_key'",
@@ -1081,7 +1135,7 @@
      "rows": [
       [
        "Handler_read_key",
-       "2623"
+       "2675"
       ]
      ]
     },
@@ -1109,14 +1163,14 @@
      "rows": [
       [
        "Handler_read_key",
-       "2636"
+       "2688"
       ]
      ]
     }
    ],
    "measured": null
   },
-  "s18:30c42e89b903": {
+  "s19:30c42e89b903": {
    "statements": [
     {
      "sql": "CREATE TABLE orders_p (\n  order_id   INT UNSIGNED NOT NULL PRIMARY KEY,\n  order_date DATE NOT NULL\n)\nPARTITION BY RANGE COLUMNS (order_date) (\n  PARTITION p2024 VALUES LESS THAN ('2025-01-01'),\n  PARTITION pmax  VALUES LESS THAN (MAXVALUE)\n)",
@@ -1131,7 +1185,7 @@
    ],
    "measured": null
   },
-  "s19:a4c95029c57b": {
+  "s20:a4c95029c57b": {
    "statements": [
     {
      "sql": "CREATE TABLE customers_fk (customer_id INT UNSIGNED PRIMARY KEY)",
@@ -1153,7 +1207,7 @@
    ],
    "measured": null
   },
-  "s20:f663a2ca9bca": {
+  "s21:f663a2ca9bca": {
    "statements": [
     {
      "sql": "EXPLAIN SELECT COUNT(*) FROM events WHERE DATE_FORMAT(created_at, '%Y-%m') = '2024-05'",
@@ -1184,7 +1238,7 @@
        "idx_events_customer",
        "4",
        null,
-       179371,
+       179762,
        100.0,
        "Using where; Using index"
       ]

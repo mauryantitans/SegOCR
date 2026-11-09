@@ -148,19 +148,36 @@ ORDER BY PARTITION_ORDINAL_POSITION;
 
 ### Partition pruning in EXPLAIN
 
-A query for March touches one partition:
+A query for March:
 
 ```sql run
 EXPLAIN SELECT COUNT(*), SUM(amount) FROM events
 WHERE created_at >= '2024-03-01' AND created_at < '2024-04-01';
 ```
 
-The `partitions` column reads `p2024_03` — the other twelve partitions are never opened. A range that spans a month boundary touches exactly the partitions it overlaps:
+The `partitions` column reads `p2024_01,p2024_03`: March, as expected — plus the **first** partition. A range that spans a month boundary touches the partitions it overlaps, and again the first one:
 
 ```sql run
 EXPLAIN SELECT COUNT(*) FROM events
 WHERE created_at BETWEEN '2024-06-25' AND '2024-07-05 23:59:59';
 ```
+
+The first partition appears for some range shapes when the partitioning expression is `TO_DAYS()` (or `TO_SECONDS()`, `YEAR()`) of a date column. The explanation consistent with the manual's rules is NULL handling: for RANGE partitioning, a row whose partitioning expression is NULL is stored in the lowest partition, and `TO_DAYS()` returns NULL for invalid dates, so when the optimizer maps a date interval through the function it cannot always exclude the lowest partition. A range strictly inside one month (`'2024-03-05' … '2024-03-20'`) is pruned to that month alone. The standard mitigations are an **always-empty first partition** (e.g. `PARTITION p_start VALUES LESS THAN (TO_DAYS('2000-01-01'))`), which makes the extra partition free to scan, or **`RANGE COLUMNS`**, which compares the column itself with the bounds:
+
+```sql run
+CREATE TABLE events_rc (
+  event_id INT UNSIGNED NOT NULL, created_at DATETIME NOT NULL, PRIMARY KEY (event_id, created_at)
+)
+PARTITION BY RANGE COLUMNS (created_at) (
+  PARTITION p2024_02 VALUES LESS THAN ('2024-03-01'),
+  PARTITION p2024_03 VALUES LESS THAN ('2024-04-01'),
+  PARTITION p2024_04 VALUES LESS THAN ('2024-05-01'),
+  PARTITION pmax     VALUES LESS THAN (MAXVALUE)
+);
+EXPLAIN SELECT COUNT(*) FROM events_rc WHERE created_at >= '2024-03-01' AND created_at < '2024-04-01';
+```
+
+With `RANGE COLUMNS` the same March predicate is pruned to `p2024_03` only. Whichever form you use, the lesson is the same: **check the `partitions` column** rather than assuming what the optimizer will prune.
 
 A query that does not constrain the partitioning column cannot be pruned:
 
@@ -168,7 +185,7 @@ A query that does not constrain the partitioning column cannot be pruned:
 EXPLAIN SELECT COUNT(*) FROM events WHERE customer_id = 4217;
 ```
 
-Every partition is listed. The `idx_events_customer` index is still used — but there are 13 copies of it, one per partition, and MySQL must probe each.
+All 13 partitions are listed. The `idx_events_customer` index is still used (`type: ref`) — but there are 13 copies of it, one per partition, and MySQL must probe each.
 
 ## Syntax Breakdown
 
@@ -218,7 +235,7 @@ INSERT INTO events VALUES (240001, '2025-01-15 08:00:00', 42, 'purchase', 19.99)
 EXPLAIN SELECT * FROM events WHERE created_at >= '2025-01-01' AND created_at < '2025-02-01';
 ```
 
-The new event landed in `p2025_01`, and a January 2025 query prunes to it.
+The new event landed in `p2025_01`, and a January 2025 query prunes to it (plus, once again, the first partition `p2024_01`).
 
 Now retire the oldest month. First, the slow way for comparison — on a copy of February, `DELETE` removes rows one by one:
 
@@ -237,7 +254,7 @@ DELETE FROM events_feb_copy WHERE created_at >= '2024-02-01' AND created_at < '2
 ALTER TABLE events DROP PARTITION p2024_01;
 ```
 
-The `DELETE` reported every row as affected; each was locked, undo-logged and (in production) written to the binary log as a row event for replicas to replay. `DROP PARTITION` reported 0 rows: it removed January's tablespace in one dictionary operation and writes a single DDL statement to the binary log. On the build machine the two timings differ by an order of magnitude for ~20,000 rows; on a partition of 50 million rows, the `DELETE` takes hours while `DROP PARTITION` stays roughly constant.
+The `DELETE` reported all 19,127 February rows as affected; each was locked, undo-logged and (in production) written to the binary log as a row event for replicas to replay. `DROP PARTITION` reported 0 rows: it removed January's tablespace (about 20,000 rows) in one dictionary operation and writes a single DDL statement to the binary log. On the build machine, with everything in memory, the `DELETE` took roughly three times as long as the `DROP` — a small gap at this size, because 20,000 cached rows are cheap to delete. The difference that matters is how each **scales**: `DELETE` is proportional to the number of rows (plus index entries, undo, redo, binlog and replica apply), while `DROP PARTITION` stays roughly constant, so for a 50-million-row partition the `DELETE` takes hours and the `DROP` still takes well under a second of work plus a brief metadata lock.
 
 **TRUNCATE PARTITION** empties a partition but keeps its definition (useful for reloading a month):
 
@@ -350,10 +367,10 @@ steps:
     explain: "created_at in [2024-05-10, 2024-05-20) becomes TO_DAYS in [TO_DAYS('2024-05-10'), TO_DAYS('2024-05-20')). That interval lies entirely below p2024_05's bound and above p2024_04's, so only p2024_05 survives."
     sql: SELECT TO_DAYS('2024-05-10') AS low, TO_DAYS('2024-05-20') AS high;
   - title: "3. EXPLAIN confirms the surviving partition"
-    explain: The partitions column shows p2024_05 only. The access path within the partition is a scan of that one partition's clustered index (the primary key starts with event_id, so there is no index on created_at to range-scan).
+    explain: The partitions column shows p2024_05 only (a range strictly inside one month). Within the partition there is no index that starts with created_at, so MySQL scans the smallest structure that contains created_at — the partition's copy of idx_events_customer, which is covering because every secondary index also stores the primary-key columns (event_id, created_at).
     sql: EXPLAIN SELECT COUNT(*) FROM events WHERE created_at >= '2024-05-10' AND created_at < '2024-05-20';
   - title: "4. Execute and measure"
-    explain: EXPLAIN ANALYZE shows the scan reading only about one month of rows (roughly 20,000) before the filter keeps the ten days requested — not the whole table.
+    explain: EXPLAIN ANALYZE shows the covering index scan reading 20,446 rows — one month — and the filter keeping the 6,595 that fall in the ten days requested. Without partitioning (and without an index on created_at), the same query would read all 240,000 rows.
     sql: EXPLAIN ANALYZE SELECT COUNT(*) FROM events WHERE created_at >= '2024-05-10' AND created_at < '2024-05-20';
 ```
 
@@ -363,10 +380,10 @@ Pruning is a **compile-time** decision when the predicate uses constants. With a
 
 What the captured outputs established:
 
-- The 240,000 events were spread across the twelve 2024 partitions (about 20,000 each), with `pmax` empty.
-- Queries constrained on `created_at` listed only the overlapping partitions in EXPLAIN's `partitions` column; the query on `customer_id` listed all partitions.
+- The 240,000 events were spread across the twelve 2024 partitions (about 19,000–20,600 each by the statistics estimate), with `pmax` empty.
+- Queries constrained on `created_at` listed only the overlapping partitions in EXPLAIN's `partitions` column — plus, for some range shapes, the first partition, which `RANGE COLUMNS` avoided; the query on `customer_id` listed all partitions.
 - `REORGANIZE PARTITION pmax` created `p2025_01`, and a new January 2025 row was routed there.
-- `DELETE` of a month affected every row; `DROP PARTITION` affected none and was far faster; `TRUNCATE PARTITION` emptied February; `EXCHANGE PARTITION` moved March into an ordinary table.
+- `DELETE` of a month affected all 19,127 rows; `DROP PARTITION` affected none and was faster even at this small size; `TRUNCATE PARTITION` emptied February; `EXCHANGE PARTITION` moved March's 20,446 rows into an ordinary table.
 - LIST pruned `IN ('EU','UK')` to `p_europe` and rejected an unlisted region with error 1526.
 - HASH pruned equality to one partition and short integer ranges to a few, but not wide ranges.
 
@@ -407,12 +424,13 @@ SHOW SESSION STATUS LIKE 'Handler_read_key';
 :::best-practice[Partitioning that pays for itself]
 1. **Partition for lifecycle first.** The strongest reason is cheap retention and archiving on large time-series tables; pruning is a bonus.
 2. **Choose a key that (almost) every important query filters on** — usually the time column for event/log/fact tables.
-3. **Keep an empty `pmax` (or none at all) and pre-create partitions ahead of time** with a scheduled job, so `REORGANIZE` never has to split a populated partition; monitor that next month's partition exists.
-4. **Put the partitioning column into the primary key deliberately** and decide how uniqueness of the business key (e.g. `event_id` alone) will be guaranteed — by an ID generator, by a separate non-partitioned lookup table, or by accepting per-partition uniqueness.
-5. **Write sargable predicates on the bare partitioning column** (`created_at >= ? AND created_at < ?`), never `YEAR(created_at) = 2024`.
-6. **Verify pruning with EXPLAIN** (`partitions` column) for every important query when designing the scheme.
-7. **Don't use partitioning as an index.** If queries are by `customer_id`, index `customer_id`; partitioning by it with HASH helps only special cases.
-8. **Run partition DDL with a short `lock_wait_timeout`** and from a job with alerting — a forgotten "add next month" job eventually routes every insert into `pmax` (or fails with error 1526 if there is no `pmax`).
+3. **With `TO_DAYS()`-style RANGE partitioning, make the first partition an always-empty sentinel** (or use `RANGE COLUMNS`), so that the occasional inclusion of the first partition in a pruned plan costs nothing.
+4. **Keep an empty `pmax` (or none at all) and pre-create partitions ahead of time** with a scheduled job, so `REORGANIZE` never has to split a populated partition; monitor that next month's partition exists.
+5. **Put the partitioning column into the primary key deliberately** and decide how uniqueness of the business key (e.g. `event_id` alone) will be guaranteed — by an ID generator, by a separate non-partitioned lookup table, or by accepting per-partition uniqueness.
+6. **Write sargable predicates on the bare partitioning column** (`created_at >= ? AND created_at < ?`), never `YEAR(created_at) = 2024`.
+7. **Verify pruning with EXPLAIN** (`partitions` column) for every important query when designing the scheme.
+8. **Don't use partitioning as an index.** If queries are by `customer_id`, index `customer_id`; partitioning by it with HASH helps only special cases.
+9. **Run partition DDL with a short `lock_wait_timeout`** and from a job with alerting — a forgotten "add next month" job eventually routes every insert into `pmax` (or fails with error 1526 if there is no `pmax`).
 :::
 
 ## Common Mistakes
