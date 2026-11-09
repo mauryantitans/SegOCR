@@ -1,0 +1,575 @@
+{
+ "doc": "m13-technology-selection",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:46ec05daee65": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)                                   AS orders_2024,\n       COUNT(DISTINCT customer_id)                AS active_customers,\n       ROUND(COUNT(*) / 366, 2)                   AS orders_per_day,\n       (SELECT COUNT(*) FROM order_items)         AS order_lines,\n       ROUND((SELECT COUNT(*) FROM order_items) / COUNT(*), 2) AS lines_per_order\nFROM orders",
+     "status": "ok",
+     "columns": [
+      "orders_2024",
+      "active_customers",
+      "orders_per_day",
+      "order_lines",
+      "lines_per_order"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       80,
+       20,
+       "0.22",
+       182,
+       "2.28"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT QUARTER(order_date) AS quarter, COUNT(*) AS orders,\n       ROUND(100 * (COUNT(*) / LAG(COUNT(*)) OVER (ORDER BY QUARTER(order_date)) - 1), 1) AS growth_pct_vs_prev_q\nFROM orders GROUP BY QUARTER(order_date) ORDER BY quarter",
+     "status": "ok",
+     "columns": [
+      "quarter",
+      "orders",
+      "growth_pct_vs_prev_q"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       18,
+       null
+      ],
+      [
+       2,
+       19,
+       "5.6"
+      ],
+      [
+       3,
+       20,
+       "5.3"
+      ],
+      [
+       4,
+       23,
+       "15.0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:ca8760d69b23": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE customers, orders, order_items, payments, products, reviews",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "customers",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "orders",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "order_items",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "payments",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "products",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "reviews",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT TABLE_NAME, TABLE_ROWS,\n       ROUND(DATA_LENGTH / 1024, 1)  AS data_kb,\n       ROUND(INDEX_LENGTH / 1024, 1) AS index_kb,\n       ROUND((DATA_LENGTH + INDEX_LENGTH) / NULLIF(TABLE_ROWS, 0)) AS bytes_per_row_incl_indexes\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('customers', 'orders', 'order_items', 'payments', 'products', 'reviews')\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "TABLE_ROWS",
+      "data_kb",
+      "index_kb",
+      "bytes_per_row_incl_indexes"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "customers",
+       25,
+       "16.0",
+       "16.0",
+       "1311"
+      ],
+      [
+       "order_items",
+       182,
+       "16.0",
+       "16.0",
+       "180"
+      ],
+      [
+       "orders",
+       80,
+       "16.0",
+       "32.0",
+       "614"
+      ],
+      [
+       "payments",
+       76,
+       "16.0",
+       "16.0",
+       "431"
+      ],
+      [
+       "products",
+       30,
+       "16.0",
+       "32.0",
+       "1638"
+      ],
+      [
+       "reviews",
+       45,
+       "16.0",
+       "32.0",
+       "1092"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:431d990f24ed": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) FROM orders WHERE status = 'paid'",
+     "status": "ok",
+     "columns": [
+      "COUNT(*)"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       6
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT * FROM order_items WHERE order_id = 12",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "product_id",
+      "quantity",
+      "unit_price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       12,
+       2,
+       2,
+       "899.10"
+      ],
+      [
+       12,
+       24,
+       3,
+       "18.99"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Com_select', 'Com_insert', 'Com_update', 'Com_delete', 'Handler_read_key', 'Handler_read_rnd_next')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "Com_delete",
+       "0"
+      ],
+      [
+       "Com_insert",
+       "0"
+      ],
+      [
+       "Com_select",
+       "5"
+      ],
+      [
+       "Com_update",
+       "0"
+      ],
+      [
+       "Handler_read_key",
+       "119"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "100"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:a7acd6084682": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE options (\n  option_name       VARCHAR(40) PRIMARY KEY,\n  meets_constraints BOOLEAN NOT NULL,\n  constraint_notes  VARCHAR(200) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO options VALUES\n ('Managed MySQL 8.4',          TRUE,  'ACID, available in region, multi-AZ HA'),\n ('Managed PostgreSQL',         TRUE,  'ACID, available in region, multi-AZ HA'),\n ('Distributed SQL service',    TRUE,  'ACID across shards, available in region'),\n ('Document database',          TRUE,  'Multi-document transactions available; schema-flexible'),\n ('Wide-column store',          FALSE, 'No multi-row ACID transactions for order + payment')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE criteria (\n  criterion VARCHAR(30) PRIMARY KEY,\n  weight    DECIMAL(4,3) NOT NULL,\n  rubric    VARCHAR(200) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO criteria VALUES\n ('integrity',     0.25, '5 = FKs, CHECK, multi-row ACID with well-understood isolation'),\n ('workload_fit',  0.20, '5 = proven for OLTP at >= 10x projected peak'),\n ('ops_maturity',  0.20, '5 = mature managed offering, backups/PITR, monitoring, upgrade path'),\n ('team_skills',   0.15, '5 = team already operates it in production'),\n ('scalability',   0.10, '5 = horizontal write scale without application sharding'),\n ('cost',          0.10, '5 = lowest 3-year TCO including engineering time')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 6,
+     "info": "Records: 6  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE scores (\n  option_name VARCHAR(40) NOT NULL,\n  criterion   VARCHAR(30) NOT NULL,\n  score       TINYINT NOT NULL CHECK (score BETWEEN 1 AND 5),\n  PRIMARY KEY (option_name, criterion),\n  FOREIGN KEY (option_name) REFERENCES options (option_name),\n  FOREIGN KEY (criterion)   REFERENCES criteria (criterion)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO scores VALUES\n ('Managed MySQL 8.4','integrity',5), ('Managed MySQL 8.4','workload_fit',5), ('Managed MySQL 8.4','ops_maturity',5),\n ('Managed MySQL 8.4','team_skills',5), ('Managed MySQL 8.4','scalability',2), ('Managed MySQL 8.4','cost',4),\n ('Managed PostgreSQL','integrity',5), ('Managed PostgreSQL','workload_fit',5), ('Managed PostgreSQL','ops_maturity',5),\n ('Managed PostgreSQL','team_skills',3), ('Managed PostgreSQL','scalability',2), ('Managed PostgreSQL','cost',4),\n ('Distributed SQL service','integrity',4), ('Distributed SQL service','workload_fit',4), ('Distributed SQL service','ops_maturity',3),\n ('Distributed SQL service','team_skills',2), ('Distributed SQL service','scalability',5), ('Distributed SQL service','cost',2),\n ('Document database','integrity',3), ('Document database','workload_fit',3), ('Document database','ops_maturity',4),\n ('Document database','team_skills',2), ('Document database','scalability',4), ('Document database','cost',3),\n ('Wide-column store','integrity',1), ('Wide-column store','workload_fit',2), ('Wide-column store','ops_maturity',3),\n ('Wide-column store','team_skills',1), ('Wide-column store','scalability',5), ('Wide-column store','cost',3)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 30,
+     "info": "Records: 30  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROUND(SUM(weight), 3) AS weights_sum FROM criteria",
+     "status": "ok",
+     "columns": [
+      "weights_sum"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "1.000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:ffc456d08557": {
+   "statements": [
+    {
+     "sql": "SELECT o.option_name,\n       ROUND(SUM(c.weight * s.score), 2) AS weighted_score,\n       RANK() OVER (ORDER BY SUM(c.weight * s.score) DESC) AS rank_\nFROM options o\nJOIN scores s   ON s.option_name = o.option_name\nJOIN criteria c ON c.criterion = s.criterion\nWHERE o.meets_constraints\nGROUP BY o.option_name\nORDER BY weighted_score DESC, o.option_name",
+     "status": "ok",
+     "columns": [
+      "option_name",
+      "weighted_score",
+      "rank_"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Managed MySQL 8.4",
+       "4.60",
+       1
+      ],
+      [
+       "Managed PostgreSQL",
+       "4.30",
+       2
+      ],
+      [
+       "Distributed SQL service",
+       "3.40",
+       3
+      ],
+      [
+       "Document database",
+       "3.15",
+       4
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT option_name, constraint_notes AS rejected_because FROM options WHERE NOT meets_constraints",
+     "status": "ok",
+     "columns": [
+      "option_name",
+      "rejected_because"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Wide-column store",
+       "No multi-row ACID transactions for order + payment"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:5ad076f62fc8": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE weight_scenarios (\n  scenario  VARCHAR(30) NOT NULL,\n  criterion VARCHAR(30) NOT NULL,\n  weight    DECIMAL(4,3) NOT NULL,\n  PRIMARY KEY (scenario, criterion)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO weight_scenarios\nSELECT 'baseline', criterion, weight FROM criteria\nUNION ALL SELECT 'growth_first', criterion,\n  CASE criterion WHEN 'scalability' THEN 0.30 WHEN 'integrity' THEN 0.20 WHEN 'workload_fit' THEN 0.15\n                 WHEN 'ops_maturity' THEN 0.15 WHEN 'team_skills' THEN 0.10 ELSE 0.10 END FROM criteria\nUNION ALL SELECT 'skills_neutral', criterion,\n  CASE criterion WHEN 'team_skills' THEN 0.00 WHEN 'integrity' THEN 0.30 WHEN 'workload_fit' THEN 0.25\n                 WHEN 'ops_maturity' THEN 0.25 ELSE weight END FROM criteria",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 18,
+     "info": "Records: 18  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT scenario, ROUND(SUM(weight), 3) AS weights_sum FROM weight_scenarios GROUP BY scenario ORDER BY scenario",
+     "status": "ok",
+     "columns": [
+      "scenario",
+      "weights_sum"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "baseline",
+       "1.000"
+      ],
+      [
+       "growth_first",
+       "1.000"
+      ],
+      [
+       "skills_neutral",
+       "1.000"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT scenario, option_name, weighted_score, rank_in_scenario\nFROM (\n  SELECT w.scenario, s.option_name,\n         ROUND(SUM(w.weight * s.score), 2) AS weighted_score,\n         RANK() OVER (PARTITION BY w.scenario ORDER BY SUM(w.weight * s.score) DESC) AS rank_in_scenario\n  FROM weight_scenarios w\n  JOIN scores s  ON s.criterion = w.criterion\n  JOIN options o ON o.option_name = s.option_name AND o.meets_constraints\n  GROUP BY w.scenario, s.option_name\n) AS ranked\nWHERE rank_in_scenario <= 2\nORDER BY scenario, rank_in_scenario, option_name",
+     "status": "ok",
+     "columns": [
+      "scenario",
+      "option_name",
+      "weighted_score",
+      "rank_in_scenario"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "baseline",
+       "Managed MySQL 8.4",
+       "4.60",
+       1
+      ],
+      [
+       "baseline",
+       "Managed PostgreSQL",
+       "4.30",
+       2
+      ],
+      [
+       "growth_first",
+       "Managed MySQL 8.4",
+       "4.00",
+       1
+      ],
+      [
+       "growth_first",
+       "Managed PostgreSQL",
+       "3.80",
+       2
+      ],
+      [
+       "skills_neutral",
+       "Managed MySQL 8.4",
+       "4.60",
+       1
+      ],
+      [
+       "skills_neutral",
+       "Managed PostgreSQL",
+       "4.60",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:3a2fe3b8304d": {
+   "statements": [
+    {
+     "sql": "WITH current_volume AS (\n  SELECT (SELECT COUNT(*) FROM orders)      AS orders_per_year,\n         (SELECT COUNT(*) FROM order_items) AS lines_per_year\n),\nassumptions AS (\n  SELECT 20 AS growth_factor, 3 AS years_retained,\n         350 AS bytes_per_order_incl_indexes,      -- assumption: typical for this schema at scale\n         180 AS bytes_per_line_incl_indexes        -- assumption\n)\nSELECT cv.orders_per_year * a.growth_factor                             AS orders_per_year_at_horizon,\n       cv.orders_per_year * a.growth_factor * a.years_retained          AS orders_retained,\n       ROUND(cv.orders_per_year * a.growth_factor * a.years_retained * a.bytes_per_order_incl_indexes / POW(1024, 2), 2) AS orders_mb,\n       ROUND(cv.lines_per_year  * a.growth_factor * a.years_retained * a.bytes_per_line_incl_indexes  / POW(1024, 2), 2) AS lines_mb\nFROM current_volume cv CROSS JOIN assumptions a",
+     "status": "ok",
+     "columns": [
+      "orders_per_year_at_horizon",
+      "orders_retained",
+      "orders_mb",
+      "lines_mb"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1600,
+       4800,
+       1.6,
+       1.87
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:03228843e43f": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT product_id, name FROM products WHERE name LIKE '%keyboard%' OR sku LIKE '%keyboard%'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "products",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       30,
+       20.99,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `products`.`product_id` AS `product_id`,`products`.`name` AS `name` from `products` where ((`products`.`name` like '%keyboard%') or (`products`.`sku` like '%keyboard%'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:6adfc42990bb": {
+   "statements": [
+    {
+     "sql": "SELECT o.option_name, o.meets_constraints, ROUND(SUM(c.weight * s.score), 2) AS weighted_score_without_filter\nFROM options o JOIN scores s USING (option_name) JOIN criteria c USING (criterion)\nGROUP BY o.option_name, o.meets_constraints\nORDER BY weighted_score_without_filter DESC, o.option_name",
+     "status": "ok",
+     "columns": [
+      "option_name",
+      "meets_constraints",
+      "weighted_score_without_filter"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Managed MySQL 8.4",
+       1,
+       "4.60"
+      ],
+      [
+       "Managed PostgreSQL",
+       1,
+       "4.30"
+      ],
+      [
+       "Distributed SQL service",
+       1,
+       "3.40"
+      ],
+      [
+       "Document database",
+       1,
+       "3.15"
+      ],
+      [
+       "Wide-column store",
+       0,
+       "2.20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

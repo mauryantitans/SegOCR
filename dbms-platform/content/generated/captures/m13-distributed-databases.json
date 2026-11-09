@@ -1,0 +1,784 @@
+{
+ "doc": "m13-distributed-databases",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:1b3f2d09d7e2": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "492.57"
+      ],
+      [
+       2,
+       "4428.20"
+      ]
+     ]
+    },
+    {
+     "sql": "XA START 'transfer-42', 'debit'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance - 100 WHERE account_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "XA END 'transfer-42', 'debit'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "XA PREPARE 'transfer-42', 'debit'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "XA COMMIT 'transfer-42', 'debit'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "392.57"
+      ],
+      [
+       2,
+       "4428.20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:880b77c5e577": {
+   "statements": [
+    {
+     "sql": "XA START 'demo-1'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1399,
+      "message": "XAER_RMFAIL: The command cannot be executed when global transaction is in the  ACTIVE state"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s3:099f07fc9ac8": {
+   "statements": [
+    {
+     "sql": "XA END 'demo-1'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance + 1 WHERE account_id = 3",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1399,
+      "message": "XAER_RMFAIL: The command cannot be executed when global transaction is in the  IDLE state"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s4:41d87dc87ed2": {
+   "statements": [
+    {
+     "sql": "XA ROLLBACK 'demo-1'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s5:93bd6a1cd1fb": {
+   "statements": [
+    {
+     "sql": "XA COMMIT 'transfer-42', 'debit'",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1397,
+      "message": "XAER_NOTA: Unknown XID"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:4c7d973af988": {
+   "statements": [
+    {
+     "sql": "XA RECOVER",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1401,
+      "message": "XAER_RMERR: Fatal error occurred in the transaction branch - check your data for consistency"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:57ed6d7ebb66": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 10000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "WITH RECURSIVE ids(id) AS (SELECT 1 UNION ALL SELECT id + 1 FROM ids WHERE id < 10000)\nSELECT COUNT(*) AS keys_total,\n       SUM(CRC32(id) % 4 <> CRC32(id) % 5) AS keys_moved_mod,\n       ROUND(100 * AVG(CRC32(id) % 4 <> CRC32(id) % 5), 1) AS pct_moved_mod\nFROM ids",
+     "status": "ok",
+     "columns": [
+      "keys_total",
+      "keys_moved_mod",
+      "pct_moved_mod"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10000,
+       "8045",
+       "80.5"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:7c66468fe5f1": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE bucket_map (bucket SMALLINT UNSIGNED PRIMARY KEY, shard TINYINT UNSIGNED NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO bucket_map\nWITH RECURSIVE b(n) AS (SELECT 0 UNION ALL SELECT n + 1 FROM b WHERE n < 1023)\nSELECT n, n % 4 FROM b",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1024,
+     "info": "Records: 1024  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- add shard 4: move every 5th bucket to it (about 1/5 of the buckets)\nCREATE TABLE bucket_map_v2 AS SELECT bucket, IF(bucket % 5 = 0, 4, shard) AS shard FROM bucket_map",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1024,
+     "info": "Records: 1024  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "WITH RECURSIVE ids(id) AS (SELECT 1 UNION ALL SELECT id + 1 FROM ids WHERE id < 10000)\nSELECT ROUND(100 * AVG(m1.shard <> m2.shard), 1) AS pct_keys_moved_with_buckets,\n       COUNT(DISTINCT m2.shard) AS shards_after\nFROM ids\nJOIN bucket_map    m1 ON m1.bucket = CRC32(ids.id) % 1024\nJOIN bucket_map_v2 m2 ON m2.bucket = CRC32(ids.id) % 1024",
+     "status": "ok",
+     "columns": [
+      "pct_keys_moved_with_buckets",
+      "shards_after"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "20.2",
+       5
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT shard, COUNT(*) AS buckets FROM bucket_map_v2 GROUP BY shard ORDER BY shard",
+     "status": "ok",
+     "columns": [
+      "shard",
+      "buckets"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       0,
+       204
+      ],
+      [
+       1,
+       205
+      ],
+      [
+       2,
+       205
+      ],
+      [
+       3,
+       205
+      ],
+      [
+       4,
+       205
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:dbc50b48de00": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE n(v) AS (SELECT 3 UNION ALL SELECT v + 2 FROM n WHERE v < 5),\n     k(v) AS (SELECT 1 UNION ALL SELECT v + 1 FROM k WHERE v < 5)\nSELECT n.v AS N, w.v AS W, r.v AS R,\n       (r.v + w.v > n.v)      AS reads_see_latest_write,\n       (w.v > n.v / 2)        AS no_conflicting_write_quorums,\n       n.v - w.v              AS failures_tolerated_for_writes,\n       n.v - r.v              AS failures_tolerated_for_reads\nFROM n JOIN k w ON w.v <= n.v JOIN k r ON r.v <= n.v\nWHERE (n.v, w.v, r.v) IN ((3,2,2), (3,3,1), (3,1,3), (3,1,1), (5,3,3), (5,4,2))\nORDER BY N, W, R",
+     "status": "ok",
+     "columns": [
+      "N",
+      "W",
+      "R",
+      "reads_see_latest_write",
+      "no_conflicting_write_quorums",
+      "failures_tolerated_for_writes",
+      "failures_tolerated_for_reads"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       3,
+       1,
+       1,
+       0,
+       0,
+       2,
+       2
+      ],
+      [
+       3,
+       1,
+       3,
+       1,
+       0,
+       2,
+       0
+      ],
+      [
+       3,
+       2,
+       2,
+       1,
+       1,
+       1,
+       1
+      ],
+      [
+       3,
+       3,
+       1,
+       1,
+       1,
+       0,
+       2
+      ],
+      [
+       5,
+       3,
+       3,
+       1,
+       1,
+       2,
+       2
+      ],
+      [
+       5,
+       4,
+       2,
+       1,
+       1,
+       1,
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:a968895a0a52": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "XA START 'transfer-77', 'debit'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance - 250 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "XA END 'transfer-77', 'debit'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "XA START 'transfer-77', 'credit'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance + 250 WHERE account_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "XA END 'transfer-77', 'credit'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "XA PREPARE 'transfer-77', 'debit'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "XA PREPARE 'transfer-77', 'credit'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "C",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance + 1 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 5,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 5,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "XA COMMIT 'transfer-77', 'debit'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "XA COMMIT 'transfer-77', 'credit'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 7,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2) ORDER BY account_id",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "balance"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         1,
+         "751.00"
+        ],
+        [
+         2,
+         "1250.00"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:cbfe54f2f0f7": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "XA START 'transfer-78', 'credit'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance + 500 WHERE account_id = 4",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "XA END 'transfer-78', 'credit'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "XA PREPARE 'transfer-78', 'credit'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "A",
+     "status": "error",
+     "statements": [
+      {
+       "sql": "XA START 'transfer-78', 'debit'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance - 500 WHERE account_id = 3",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 3819,
+        "message": "Check constraint 'chk_accounts_balance' is violated."
+       }
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "XA END 'transfer-78', 'debit'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "XA ROLLBACK 'transfer-78', 'debit'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "XA ROLLBACK 'transfer-78', 'credit'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (3, 4) ORDER BY account_id",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "balance"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         3,
+         "100.00"
+        ],
+        [
+         4,
+         "100.00"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "w1.0:4a52daeffc4d": {
+   "statements": [
+    {
+     "sql": "XA START 'walk-1'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance + 5 WHERE account_id = 6",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id = 6",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       6,
+       "15841.16"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:22694501aa26": {
+   "statements": [
+    {
+     "sql": "XA END 'walk-1'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:bbb8a390555d": {
+   "statements": [
+    {
+     "sql": "XA PREPARE 'walk-1'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @@xa_detach_on_prepare AS detached_on_prepare",
+     "status": "ok",
+     "columns": [
+      "detached_on_prepare"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:9fdb3b9fa558": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id = 6",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       6,
+       "15836.16"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:cdd55df198dd": {
+   "statements": [
+    {
+     "sql": "XA COMMIT 'walk-1'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id = 6",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       6,
+       "15841.16"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:3f8074356780": {
+   "statements": [
+    {
+     "sql": "SELECT a.account_id, a.balance,\n       (SELECT t.balance_after FROM transactions t WHERE t.account_id = a.account_id\n        ORDER BY t.created_at DESC, t.txn_id DESC LIMIT 1) AS last_ledger_balance\nFROM accounts a WHERE a.account_id IN (1, 6) ORDER BY a.account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "last_ledger_balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "392.57",
+       "492.57"
+      ],
+      [
+       6,
+       "15841.16",
+       "15836.16"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

@@ -1349,7 +1349,7 @@
        "idx_applications_submitted",
        "5",
        null,
-       99745,
+       97287,
        100.0,
        "Using where; Using index"
       ]
@@ -1443,10 +1443,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=20069 rows=1) (actual time=18.5..18.5 rows=1 loops=1)\n    -> Filter: ((year(admission_applications.submitted_at) = 2025) and (month(admission_applications.submitted_at) = 3))  (cost=10095 rows=99745) (actual time=12.9..18.4 rows=2830 loops=1)\n        -> Covering index scan on admission_applications using idx_applications_submitted  (cost=10095 rows=99745) (actual time=0.03..11.5 rows=100000 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=19578 rows=1) (actual time=23..23 rows=1 loops=1)\n    -> Filter: ((year(admission_applications.submitted_at) = 2025) and (month(admission_applications.submitted_at) = 3))  (cost=9849 rows=97287) (actual time=17.4..22.9 rows=2830 loops=1)\n        -> Covering index scan on admission_applications using idx_applications_submitted  (cost=9849 rows=97287) (actual time=0.0393..14.9 rows=100000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 19.37
+     "elapsed_ms": 23.98
     }
    ],
    "measured": true
@@ -1462,10 +1462,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=850 rows=1) (actual time=0.828..0.828 rows=1 loops=1)\n    -> Filter: ((admission_applications.submitted_at >= TIMESTAMP'2025-03-01 00:00:00') and (admission_applications.submitted_at < TIMESTAMP'2025-04-01 00:00:00'))  (cost=567 rows=2830) (actual time=0.0315..0.704 rows=2830 loops=1)\n        -> Covering index range scan on admission_applications using idx_applications_submitted over ('2025-03-01 00:00:00' <= submitted_at < '2025-04-01 00:00:00')  (cost=567 rows=2830) (actual time=0.0294..0.4 rows=2830 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=850 rows=1) (actual time=0.856..0.856 rows=1 loops=1)\n    -> Filter: ((admission_applications.submitted_at >= TIMESTAMP'2025-03-01 00:00:00') and (admission_applications.submitted_at < TIMESTAMP'2025-04-01 00:00:00'))  (cost=567 rows=2830) (actual time=0.0255..0.734 rows=2830 loops=1)\n        -> Covering index range scan on admission_applications using idx_applications_submitted over ('2025-03-01 00:00:00' <= submitted_at < '2025-04-01 00:00:00')  (cost=567 rows=2830) (actual time=0.0241..0.455 rows=2830 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 1.83
+     "elapsed_ms": 1.76
     }
    ],
    "measured": true

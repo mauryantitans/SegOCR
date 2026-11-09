@@ -1,0 +1,2138 @@
+{
+ "doc": "p5-inventory-warehouse",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:77d2fdf13258": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE legacy_stock_sheet (\n  warehouse_code  CHAR(3),\n  warehouse_name  VARCHAR(60),\n  sku             VARCHAR(20),\n  product_name    VARCHAR(100),\n  supplier_name   VARCHAR(80),\n  lead_time_days  TINYINT,\n  qty             INT,\n  reorder_point   INT\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO legacy_stock_sheet VALUES\n  ('OAK', 'Oakland DC',  'BOLT-M8', 'M8 hex bolt (100)', 'Bayline Fasteners', 5, 140, 60),\n  ('SJC', 'San Jose DC', 'BOLT-M8', 'M8 hex bolt (100)', 'Bayline Fasteners', 5,  35, 60),\n  ('OAK', 'Oakland DC',  'NUT-M8',  'M8 nut (100)',      'Bayline Fasteners', 7, 410, 80),\n  ('SJC', 'San Jose',    'DRILL-18','18V drill',         'Sierra Tools',     12,   4, 10)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT supplier_name, COUNT(DISTINCT lead_time_days) AS lead_times_recorded,\n       GROUP_CONCAT(DISTINCT lead_time_days ORDER BY lead_time_days) AS values_seen\nFROM legacy_stock_sheet\nGROUP BY supplier_name\nORDER BY supplier_name",
+     "status": "ok",
+     "columns": [
+      "supplier_name",
+      "lead_times_recorded",
+      "values_seen"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Bayline Fasteners",
+       2,
+       "5,7"
+      ],
+      [
+       "Sierra Tools",
+       1,
+       "12"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:e2c7181e8893": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE warehouses (\n  warehouse_id  TINYINT UNSIGNED NOT NULL,\n  code          CHAR(3)     NOT NULL,\n  name          VARCHAR(60) NOT NULL,\n  PRIMARY KEY (warehouse_id),\n  UNIQUE KEY uq_warehouses_code (code)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE suppliers (\n  supplier_id     SMALLINT UNSIGNED NOT NULL,\n  name            VARCHAR(80) NOT NULL,\n  lead_time_days  TINYINT UNSIGNED NOT NULL,\n  PRIMARY KEY (supplier_id),\n  CONSTRAINT chk_suppliers_lead CHECK (lead_time_days BETWEEN 1 AND 120)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE products (\n  product_id   INT UNSIGNED NOT NULL,\n  sku          VARCHAR(20)  NOT NULL,\n  name         VARCHAR(100) NOT NULL,\n  supplier_id  SMALLINT UNSIGNED NOT NULL,\n  unit_cost    DECIMAL(10,2) NOT NULL,\n  is_active    BOOLEAN NOT NULL DEFAULT TRUE,\n  PRIMARY KEY (product_id),\n  UNIQUE KEY uq_products_sku (sku),\n  CONSTRAINT fk_products_supplier FOREIGN KEY (supplier_id) REFERENCES suppliers (supplier_id),\n  CONSTRAINT chk_products_cost CHECK (unit_cost >= 0)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE stock_levels (\n  warehouse_id   TINYINT UNSIGNED NOT NULL,\n  product_id     INT UNSIGNED NOT NULL,\n  on_hand        INT NOT NULL DEFAULT 0,\n  reserved       INT NOT NULL DEFAULT 0,\n  reorder_point  INT NOT NULL DEFAULT 0,\n  reorder_qty    INT NOT NULL DEFAULT 0,\n  version        INT UNSIGNED NOT NULL DEFAULT 0,\n  PRIMARY KEY (warehouse_id, product_id),\n  KEY idx_stock_levels_product (product_id),\n  CONSTRAINT fk_stock_levels_warehouse FOREIGN KEY (warehouse_id) REFERENCES warehouses (warehouse_id),\n  CONSTRAINT fk_stock_levels_product   FOREIGN KEY (product_id)   REFERENCES products (product_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE stock_movements (\n  movement_id    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n  warehouse_id   TINYINT UNSIGNED NOT NULL,\n  product_id     INT UNSIGNED NOT NULL,\n  movement_type  ENUM('RECEIPT','PICK','ADJUST','TRANSFER_IN','TRANSFER_OUT','RETURN') NOT NULL,\n  qty            INT NOT NULL,\n  reference      VARCHAR(30) NOT NULL,\n  moved_at       DATETIME NOT NULL,\n  PRIMARY KEY (movement_id),\n  CONSTRAINT fk_movements_stock FOREIGN KEY (warehouse_id, product_id)\n    REFERENCES stock_levels (warehouse_id, product_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE orders (\n  order_id      INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  warehouse_id  TINYINT UNSIGNED NOT NULL,\n  customer_ref  VARCHAR(30) NOT NULL,\n  status        ENUM('OPEN','RELEASED','SHIPPED','CANCELLED') NOT NULL DEFAULT 'OPEN',\n  created_at    DATETIME NOT NULL,\n  PRIMARY KEY (order_id),\n  UNIQUE KEY uq_orders_id_warehouse (order_id, warehouse_id),\n  CONSTRAINT fk_orders_warehouse FOREIGN KEY (warehouse_id) REFERENCES warehouses (warehouse_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE order_lines (\n  order_id    INT UNSIGNED NOT NULL,\n  line_no     SMALLINT UNSIGNED NOT NULL,\n  product_id  INT UNSIGNED NOT NULL,\n  qty         INT NOT NULL,\n  status      ENUM('OPEN','RESERVED','PICKED','SHORT','CANCELLED') NOT NULL DEFAULT 'OPEN',\n  PRIMARY KEY (order_id, line_no),\n  CONSTRAINT fk_lines_order   FOREIGN KEY (order_id)   REFERENCES orders (order_id),\n  CONSTRAINT fk_lines_product FOREIGN KEY (product_id) REFERENCES products (product_id),\n  CONSTRAINT chk_lines_qty CHECK (qty > 0)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE pick_tasks (\n  task_id       INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  warehouse_id  TINYINT UNSIGNED NOT NULL,\n  order_id      INT UNSIGNED NOT NULL,\n  line_no       SMALLINT UNSIGNED NOT NULL,\n  status        ENUM('OPEN','CLAIMED','DONE') NOT NULL DEFAULT 'OPEN',\n  picker        VARCHAR(30) NULL,\n  claimed_at    DATETIME NULL,\n  PRIMARY KEY (task_id),\n  UNIQUE KEY uq_pick_tasks_line (order_id, line_no),\n  KEY idx_pick_tasks_queue (warehouse_id, status, task_id),\n  CONSTRAINT fk_tasks_line     FOREIGN KEY (order_id, line_no)      REFERENCES order_lines (order_id, line_no),\n  CONSTRAINT fk_tasks_order_wh FOREIGN KEY (order_id, warehouse_id) REFERENCES orders (order_id, warehouse_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s3:db38a4a6459e": {
+   "statements": [
+    {
+     "sql": "SELECT table_name, constraint_name,\n       GROUP_CONCAT(column_name ORDER BY ordinal_position) AS fk_columns,\n       referenced_table_name AS parent\nFROM information_schema.key_column_usage\nWHERE table_schema = DATABASE() AND referenced_table_name IS NOT NULL\nGROUP BY table_name, constraint_name, referenced_table_name\nORDER BY table_name, constraint_name",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "CONSTRAINT_NAME",
+      "fk_columns",
+      "parent"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       "order_lines",
+       "fk_lines_order",
+       "order_id",
+       "orders"
+      ],
+      [
+       "order_lines",
+       "fk_lines_product",
+       "product_id",
+       "products"
+      ],
+      [
+       "orders",
+       "fk_orders_warehouse",
+       "warehouse_id",
+       "warehouses"
+      ],
+      [
+       "pick_tasks",
+       "fk_tasks_line",
+       "order_id,line_no",
+       "order_lines"
+      ],
+      [
+       "pick_tasks",
+       "fk_tasks_order_wh",
+       "order_id,warehouse_id",
+       "orders"
+      ],
+      [
+       "products",
+       "fk_products_supplier",
+       "supplier_id",
+       "suppliers"
+      ],
+      [
+       "stock_levels",
+       "fk_stock_levels_product",
+       "product_id",
+       "products"
+      ],
+      [
+       "stock_levels",
+       "fk_stock_levels_warehouse",
+       "warehouse_id",
+       "warehouses"
+      ],
+      [
+       "stock_movements",
+       "fk_movements_stock",
+       "warehouse_id,product_id",
+       "stock_levels"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:4106afe327dc": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE stock_levels\n  ADD CONSTRAINT chk_stock_on_hand  CHECK (on_hand >= 0),\n  ADD CONSTRAINT chk_stock_reserved CHECK (reserved >= 0 AND reserved <= on_hand),\n  ADD CONSTRAINT chk_stock_policy   CHECK (reorder_point >= 0 AND reorder_qty >= 0)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE stock_movements\n  ADD CONSTRAINT chk_movements_qty  CHECK (qty <> 0),\n  ADD CONSTRAINT chk_movements_sign CHECK (\n       (movement_type IN ('RECEIPT', 'TRANSFER_IN', 'RETURN') AND qty > 0)\n    OR (movement_type IN ('PICK', 'TRANSFER_OUT') AND qty < 0)\n    OR  movement_type = 'ADJUST')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER trg_movements_apply\nAFTER INSERT ON stock_movements\nFOR EACH ROW\n  UPDATE stock_levels\n  SET on_hand = on_hand + NEW.qty,\n      version = version + 1\n  WHERE warehouse_id = NEW.warehouse_id AND product_id = NEW.product_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s5:889d30816fd7": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 200000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO warehouses VALUES (1, 'OAK', 'Oakland DC'), (2, 'SJC', 'San Jose DC'), (3, 'SAC', 'Sacramento DC')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO suppliers VALUES (1, 'Bayline Fasteners', 5), (2, 'Sierra Tools', 12),\n                             (3, 'Pacific Safety', 8), (4, 'Redwood Electric', 21)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO products (product_id, sku, name, supplier_id, unit_cost)\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 500)\nSELECT n, CONCAT('SKU-', LPAD(n, 5, '0')),\n       CONCAT(ELT(1 + n % 5, 'Hex bolt', 'Drill bit', 'Safety glove', 'Cable tie', 'LED lamp'), ' #', n),\n       1 + n % 4, 2.50 + (n * 37) % 200\nFROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 500,
+     "info": "Records: 500  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO stock_levels (warehouse_id, product_id, reorder_point, reorder_qty)\nSELECT w.warehouse_id, p.product_id, 40 + (p.product_id % 12) * 10, 200\nFROM warehouses w CROSS JOIN products p",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1500,
+     "info": "Records: 1500  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO stock_movements (warehouse_id, product_id, movement_type, qty, reference, moved_at)\nSELECT w.warehouse_id, p.product_id, 'ADJUST', 60, 'OPENING', '2025-01-01 00:00:00'\nFROM warehouses w CROSS JOIN products p",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1500,
+     "info": "Records: 1500  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s6:dbb10686b9f5": {
+   "statements": [
+    {
+     "sql": "INSERT INTO stock_movements (warehouse_id, product_id, movement_type, qty, reference, moved_at)\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 100000)\nSELECT IF(n % 10 = 0, 1 + (n DIV 10) % 3, 1 + n % 3),\n       IF(n % 10 = 0, 1 + ((n DIV 10) * 261) % 500, 1 + (n * 261) % 500),\n       IF(n % 10 = 0, 'RECEIPT', 'PICK'),\n       IF(n % 10 = 0, 24, -(1 + (n DIV 7) % 3)),\n       CONCAT('DOC-', n),\n       '2025-01-01 06:00:00' + INTERVAL n * 157 SECOND\nFROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s7:0bbe9a8e7391": {
+   "statements": [
+    {
+     "sql": "INSERT INTO stock_movements (warehouse_id, product_id, movement_type, qty, reference, moved_at)\nWITH RECURSIVE s(n) AS (SELECT 100001 UNION ALL SELECT n + 1 FROM s WHERE n < 200000)\nSELECT IF(n % 10 = 0, 1 + (n DIV 10) % 3, 1 + n % 3),\n       IF(n % 10 = 0, 1 + ((n DIV 10) * 261) % 500, 1 + (n * 261) % 500),\n       IF(n % 10 = 0, 'RECEIPT', 'PICK'),\n       IF(n % 10 = 0, 24, -(1 + (n DIV 7) % 3)),\n       CONCAT('DOC-', n),\n       '2025-01-01 06:00:00' + INTERVAL n * 157 SECOND\nFROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS movements, MIN(moved_at) AS first_movement, MAX(moved_at) AS last_movement,\n       SUM(qty) AS net_units\nFROM stock_movements",
+     "status": "ok",
+     "columns": [
+      "movements",
+      "first_movement",
+      "last_movement",
+      "net_units"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       201500,
+       "2025-01-01 00:00:00",
+       "2025-12-30 16:13:20",
+       "210006"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT MIN(on_hand) AS min_on_hand, MAX(on_hand) AS max_on_hand, SUM(on_hand) AS total_on_hand,\n       SUM(version) AS balance_updates\nFROM stock_levels",
+     "status": "ok",
+     "columns": [
+      "min_on_hand",
+      "max_on_hand",
+      "total_on_hand",
+      "balance_updates"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       87,
+       396,
+       "210006",
+       "201500"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:5e5b90b7edcc": {
+   "statements": [
+    {
+     "sql": "INSERT INTO stock_movements (warehouse_id, product_id, movement_type, qty, reference, moved_at)\nVALUES (1, 42, 'PICK', -100000, 'ORD-TEST', '2026-01-02 09:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_stock_on_hand' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:ec16d90a4180": {
+   "statements": [
+    {
+     "sql": "INSERT INTO stock_movements (warehouse_id, product_id, movement_type, qty, reference, moved_at)\nVALUES (1, 42, 'RECEIPT', -5, 'PO-TEST', '2026-01-02 09:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_movements_sign' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s10:6a692ca1ba0b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO products (product_id, sku, name, supplier_id, unit_cost)\nVALUES (501, 'SKU-00501', 'Torque wrench #501', 2, 64.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s11:250296414f88": {
+   "statements": [
+    {
+     "sql": "INSERT INTO stock_movements (warehouse_id, product_id, movement_type, qty, reference, moved_at)\nVALUES (1, 501, 'RECEIPT', 10, 'PO-7781', '2026-01-02 09:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`stock_movements`, CONSTRAINT `fk_movements_stock` FOREIGN KEY (`warehouse_id`, `product_id`) REFERENCES `stock_levels` (`warehouse_id`, `product_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:c46ea3af8f7d": {
+   "statements": [
+    {
+     "sql": "SELECT s.on_hand,\n       (SELECT SUM(qty) FROM stock_movements m\n        WHERE m.warehouse_id = 1 AND m.product_id = 42) AS ledger_on_hand,\n       s.version\nFROM stock_levels s\nWHERE s.warehouse_id = 1 AND s.product_id = 42",
+     "status": "ok",
+     "columns": [
+      "on_hand",
+      "ledger_on_hand",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       125,
+       "125",
+       147
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:6e9499506c2b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO stock_levels (warehouse_id, product_id, on_hand)\nVALUES (1, 42, -1)\nON DUPLICATE KEY UPDATE on_hand = on_hand - 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_stock_on_hand' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:ae09f9485aba": {
+   "statements": [
+    {
+     "sql": "INSERT INTO stock_movements (warehouse_id, product_id, movement_type, qty, reference, moved_at)\nSELECT warehouse_id, product_id, 'ADJUST', 1, 'COUNT-FIX', '2026-01-02 08:00:00'\nFROM stock_levels\nWHERE warehouse_id = 1 AND product_id = 42",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1442,
+      "message": "Can't update table 'stock_levels' in stored function/trigger because it is already used by statement which invoked this stored function/trigger."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s15:f3b19d21e1e0": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE reserve_line(IN p_order_id INT UNSIGNED, IN p_line_no SMALLINT UNSIGNED,\n                              OUT p_result VARCHAR(10))\nBEGIN\n  DECLARE v_wh TINYINT UNSIGNED;\n  DECLARE v_product INT UNSIGNED;\n  DECLARE v_qty INT;\n  SELECT o.warehouse_id, l.product_id, l.qty INTO v_wh, v_product, v_qty\n  FROM order_lines l JOIN orders o ON o.order_id = l.order_id\n  WHERE l.order_id = p_order_id AND l.line_no = p_line_no AND l.status = 'OPEN'\n  FOR UPDATE;\n  IF v_wh IS NULL THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'order line not found or not OPEN';\n  END IF;\n  UPDATE stock_levels\n  SET reserved = reserved + v_qty, version = version + 1\n  WHERE warehouse_id = v_wh AND product_id = v_product\n    AND on_hand - reserved >= v_qty;\n  IF ROW_COUNT() = 1 THEN\n    UPDATE order_lines SET status = 'RESERVED' WHERE order_id = p_order_id AND line_no = p_line_no;\n    INSERT INTO pick_tasks (warehouse_id, order_id, line_no) VALUES (v_wh, p_order_id, p_line_no);\n    SET p_result = 'RESERVED';\n  ELSE\n    UPDATE order_lines SET status = 'SHORT' WHERE order_id = p_order_id AND line_no = p_line_no;\n    SET p_result = 'SHORT';\n  END IF;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s16:f141077862f1": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE pick_line(IN p_order_id INT UNSIGNED, IN p_line_no SMALLINT UNSIGNED,\n                           IN p_picked_at DATETIME)\nBEGIN\n  DECLARE v_wh TINYINT UNSIGNED;\n  DECLARE v_product INT UNSIGNED;\n  DECLARE v_qty INT;\n  SELECT o.warehouse_id, l.product_id, l.qty INTO v_wh, v_product, v_qty\n  FROM order_lines l JOIN orders o ON o.order_id = l.order_id\n  WHERE l.order_id = p_order_id AND l.line_no = p_line_no AND l.status = 'RESERVED'\n  FOR UPDATE;\n  IF v_wh IS NULL THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'order line not found or not RESERVED';\n  END IF;\n  UPDATE stock_levels SET reserved = reserved - v_qty\n  WHERE warehouse_id = v_wh AND product_id = v_product;\n  INSERT INTO stock_movements (warehouse_id, product_id, movement_type, qty, reference, moved_at)\n  VALUES (v_wh, v_product, 'PICK', -v_qty, CONCAT('ORD-', p_order_id, '/', p_line_no), p_picked_at);\n  UPDATE order_lines SET status = 'PICKED' WHERE order_id = p_order_id AND line_no = p_line_no;\n  UPDATE pick_tasks SET status = 'DONE' WHERE order_id = p_order_id AND line_no = p_line_no;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s17:ed6f90440223": {
+   "statements": [
+    {
+     "sql": "INSERT INTO orders (order_id, warehouse_id, customer_ref, created_at)\nVALUES (1, 1, 'CUST-0042', '2026-01-02 08:15:00'), (2, 1, 'CUST-0077', '2026-01-02 08:20:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO order_lines (order_id, line_no, product_id, qty)\nVALUES (1, 1, 42, 5), (1, 2, 43, 2), (2, 1, 44, 5000)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL reserve_line(1, 1, @r11)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CALL reserve_line(1, 2, @r12)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CALL reserve_line(2, 1, @r21)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @r11, @r12, @r21",
+     "status": "ok",
+     "columns": [
+      "@r11",
+      "@r12",
+      "@r21"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "RESERVED",
+       "RESERVED",
+       "SHORT"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT product_id, on_hand, reserved, on_hand - reserved AS available, version\nFROM stock_levels WHERE warehouse_id = 1 AND product_id IN (42, 43, 44) ORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "on_hand",
+      "reserved",
+      "available",
+      "version"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       42,
+       125,
+       5,
+       120,
+       148
+      ],
+      [
+       43,
+       125,
+       2,
+       123,
+       148
+      ],
+      [
+       44,
+       125,
+       0,
+       125,
+       147
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:f0aeb678ad84": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL pick_line(1, 1, '2026-01-02 10:05:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT movement_id, movement_type, qty, reference, moved_at\nFROM stock_movements WHERE warehouse_id = 1 AND product_id = 42\nORDER BY movement_id DESC LIMIT 3",
+     "status": "ok",
+     "columns": [
+      "movement_id",
+      "movement_type",
+      "qty",
+      "reference",
+      "moved_at"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       264191,
+       "PICK",
+       -5,
+       "ORD-1/1",
+       "2026-01-02 10:05:00"
+      ],
+      [
+       232098,
+       "PICK",
+       -1,
+       "DOC-198981",
+       "2025-12-28 19:46:57"
+      ],
+      [
+       230598,
+       "PICK",
+       -3,
+       "DOC-197481",
+       "2025-12-26 02:21:57"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT l.order_id, l.line_no, l.status AS line_status, t.task_id, t.status AS task_status\nFROM order_lines l LEFT JOIN pick_tasks t ON t.order_id = l.order_id AND t.line_no = l.line_no\nORDER BY l.order_id, l.line_no",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "line_no",
+      "line_status",
+      "task_id",
+      "task_status"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       1,
+       "PICKED",
+       1,
+       "DONE"
+      ],
+      [
+       1,
+       2,
+       "RESERVED",
+       2,
+       "OPEN"
+      ],
+      [
+       2,
+       1,
+       "SHORT",
+       null,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:ec7a70af81d4": {
+   "statements": [
+    {
+     "sql": "SELECT w.code AS warehouse, p.sku, s.on_hand, s.reserved, s.on_hand - s.reserved AS available\nFROM stock_levels s\nJOIN warehouses w ON w.warehouse_id = s.warehouse_id\nJOIN products p   ON p.product_id = s.product_id\nWHERE p.sku = 'SKU-00043'\nORDER BY w.code",
+     "status": "ok",
+     "columns": [
+      "warehouse",
+      "sku",
+      "on_hand",
+      "reserved",
+      "available"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "OAK",
+       "SKU-00043",
+       125,
+       2,
+       123
+      ],
+      [
+       "SAC",
+       "SKU-00043",
+       87,
+       0,
+       87
+      ],
+      [
+       "SJC",
+       "SKU-00043",
+       128,
+       0,
+       128
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:0b866457de4f": {
+   "statements": [
+    {
+     "sql": "SELECT w.code AS warehouse, SUM(m.qty) AS on_hand_at_june_end\nFROM stock_movements m\nJOIN warehouses w ON w.warehouse_id = m.warehouse_id\nWHERE m.product_id = 42 AND m.moved_at < '2025-07-01'\nGROUP BY w.code\nORDER BY w.code",
+     "status": "ok",
+     "columns": [
+      "warehouse",
+      "on_hand_at_june_end"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "OAK",
+       "81"
+      ],
+      [
+       "SAC",
+       "62"
+      ],
+      [
+       "SJC",
+       "94"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:06d5048902d9": {
+   "statements": [
+    {
+     "sql": "SELECT w.code AS warehouse,\n       COUNT(*) AS stocked_skus,\n       SUM(s.on_hand - s.reserved <= s.reorder_point) AS at_or_below_reorder_point\nFROM stock_levels s JOIN warehouses w ON w.warehouse_id = s.warehouse_id\nGROUP BY w.code\nORDER BY w.code",
+     "status": "ok",
+     "columns": [
+      "warehouse",
+      "stocked_skus",
+      "at_or_below_reorder_point"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "OAK",
+       500,
+       "83"
+      ],
+      [
+       "SAC",
+       500,
+       "233"
+      ],
+      [
+       "SJC",
+       500,
+       "155"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:7adc69956368": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE stock_movements, stock_levels, products",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "stock_movements",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "stock_levels",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "products",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:22e079ecb50a": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT warehouse_id, SUM(qty) AS on_hand\nFROM stock_movements\nWHERE product_id = 42 AND moved_at < '2025-07-01'\nGROUP BY warehouse_id",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Group aggregate: sum(stock_movements.qty)  (cost=20981 rows=2)\n    -> Filter: ((stock_movements.product_id = 42) and (stock_movements.moved_at < TIMESTAMP'2025-07-01 00:00:00'))  (cost=20310 rows=6708)\n        -> Index scan on stock_movements using fk_movements_stock  (cost=20310 rows=201256)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s24:3845a1d1f1b1": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT warehouse_id, SUM(qty) AS on_hand\nFROM stock_movements\nWHERE product_id = 42 AND moved_at < '2025-07-01'\nGROUP BY warehouse_id",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Group aggregate: sum(stock_movements.qty)  (cost=20981 rows=2) (actual time=128..321 rows=3 loops=1)\n    -> Filter: ((stock_movements.product_id = 42) and (stock_movements.moved_at < TIMESTAMP'2025-07-01 00:00:00'))  (cost=20310 rows=6708) (actual time=11.5..321 rows=220 loops=1)\n        -> Index scan on stock_movements using fk_movements_stock  (cost=20310 rows=201256) (actual time=2.36..311 rows=201501 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 321.81
+    }
+   ],
+   "measured": true
+  },
+  "s25:ec4fddedba95": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_movements_product_time ON stock_movements (product_id, moved_at, warehouse_id, qty)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE stock_movements",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "stock_movements",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s26:3845a1d1f1b1": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT warehouse_id, SUM(qty) AS on_hand\nFROM stock_movements\nWHERE product_id = 42 AND moved_at < '2025-07-01'\nGROUP BY warehouse_id",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (actual time=0.208..0.208 rows=3 loops=1)\n    -> Aggregate using temporary table  (actual time=0.206..0.206 rows=3 loops=1)\n        -> Filter: ((stock_movements.product_id = 42) and (stock_movements.moved_at < TIMESTAMP'2025-07-01 00:00:00'))  (cost=45.6 rows=220) (actual time=0.0285..0.121 rows=220 loops=1)\n            -> Covering index range scan on stock_movements using idx_movements_product_time over (product_id = 42 AND moved_at < '2025-07-01 00:00:00')  (cost=45.6 rows=220) (actual time=0.0254..0.0932 rows=220 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.82
+    }
+   ],
+   "measured": true
+  },
+  "c1:5ef26926c9c7": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT on_hand FROM stock_levels WHERE warehouse_id = 1 AND product_id = 3",
+       "status": "ok",
+       "columns": [
+        "on_hand"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT on_hand FROM stock_levels WHERE warehouse_id = 1 AND product_id = 3",
+       "status": "ok",
+       "columns": [
+        "on_hand"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE stock_levels SET on_hand = 0 WHERE warehouse_id = 1 AND product_id = 3",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO stock_movements (warehouse_id, product_id, qty, reference) VALUES (1, 3, -1, 'ORD-1001')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE stock_levels SET on_hand = 0 WHERE warehouse_id = 1 AND product_id = 3",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Rows matched: 1  Changed: 0  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO stock_movements (warehouse_id, product_id, qty, reference) VALUES (1, 3, -1, 'ORD-1002')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT s.on_hand, (SELECT SUM(qty) FROM stock_movements) AS ledger_on_hand FROM stock_levels s WHERE warehouse_id = 1 AND product_id = 3",
+       "status": "ok",
+       "columns": [
+        "on_hand",
+        "ledger_on_hand"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0,
+         "-1"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:13c8d6af4111": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT on_hand FROM stock_levels WHERE warehouse_id = 1 AND product_id = 3 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "on_hand"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT on_hand FROM stock_levels WHERE warehouse_id = 1 AND product_id = 3 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "on_hand"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "602932",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "B",
+        "trxId": "602939",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "stock_levels",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "stock_levels",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1, 3"
+       },
+       {
+        "session": "B",
+        "table": "stock_levels",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "stock_levels",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "1, 3"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE stock_levels SET on_hand = on_hand - 1 WHERE warehouse_id = 1 AND product_id = 3",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c3:c522bb949105": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT on_hand, version FROM stock_levels WHERE warehouse_id = 1 AND product_id = 3",
+       "status": "ok",
+       "columns": [
+        "on_hand",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1,
+         7
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT on_hand, version FROM stock_levels WHERE warehouse_id = 1 AND product_id = 3",
+       "status": "ok",
+       "columns": [
+        "on_hand",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1,
+         7
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE stock_levels SET on_hand = on_hand - 1, version = version + 1 WHERE warehouse_id = 1 AND product_id = 3 AND version = 7",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE stock_levels SET on_hand = on_hand - 1, version = version + 1 WHERE warehouse_id = 1 AND product_id = 3 AND version = 7",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT on_hand, version FROM stock_levels WHERE warehouse_id = 1 AND product_id = 3",
+       "status": "ok",
+       "columns": [
+        "on_hand",
+        "version"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0,
+         8
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c4:96d66edabab0": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE stock_levels SET reserved = reserved + 1 WHERE warehouse_id = 1 AND product_id = 3 AND on_hand - reserved >= 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE stock_levels SET reserved = reserved + 1 WHERE warehouse_id = 1 AND product_id = 3 AND on_hand - reserved >= 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 2,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "604006",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
+        "lockStructs": 2
+       },
+       {
+        "session": "B",
+        "trxId": "604015",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "stock_levels",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "stock_levels",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1, 3"
+       },
+       {
+        "session": "B",
+        "table": "stock_levels",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "stock_levels",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "1, 3"
+       }
+      ]
+     }
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT ROW_COUNT() AS rows_reserved_by_b",
+       "status": "ok",
+       "columns": [
+        "rows_reserved_by_b"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c5:6926f7ac4fa7": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT task_id FROM pick_tasks WHERE warehouse_id = 1 AND status = 'OPEN' ORDER BY task_id LIMIT 1 FOR UPDATE SKIP LOCKED",
+       "status": "ok",
+       "columns": [
+        "task_id"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         101
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT task_id FROM pick_tasks WHERE warehouse_id = 1 AND status = 'OPEN' ORDER BY task_id LIMIT 1 FOR UPDATE SKIP LOCKED",
+       "status": "ok",
+       "columns": [
+        "task_id"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         102
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "C",
+     "status": "error",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT task_id FROM pick_tasks WHERE warehouse_id = 1 AND status = 'OPEN' ORDER BY task_id LIMIT 1 FOR UPDATE NOWAIT",
+       "status": "error",
+       "columns": [
+        "task_id"
+       ],
+       "rows": [],
+       "error": {
+        "code": 3572,
+        "message": "Statement aborted because lock(s) could not be acquired immediately and NOWAIT is set."
+       }
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "B",
+        "trxId": "604071",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 2,
+        "rowsModified": 0,
+        "lockStructs": 3
+       },
+       {
+        "session": "A",
+        "trxId": "604067",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 2,
+        "rowsModified": 0,
+        "lockStructs": 3
+       },
+       {
+        "session": "C",
+        "trxId": "604076",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 0,
+        "rowsModified": 0,
+        "lockStructs": 1
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "pick_tasks",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "pick_tasks",
+        "index": "idx_pick_tasks_queue",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "1, 1, 101"
+       },
+       {
+        "session": "A",
+        "table": "pick_tasks",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "101"
+       },
+       {
+        "session": "B",
+        "table": "pick_tasks",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "pick_tasks",
+        "index": "idx_pick_tasks_queue",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "1, 1, 102"
+       },
+       {
+        "session": "B",
+        "table": "pick_tasks",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "102"
+       },
+       {
+        "session": "C",
+        "table": "pick_tasks",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE pick_tasks SET status = 'CLAIMED', picker = 'ana' WHERE task_id = 101",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE pick_tasks SET status = 'CLAIMED', picker = 'ben' WHERE task_id = 102",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT task_id, status, picker FROM pick_tasks ORDER BY task_id",
+       "status": "ok",
+       "columns": [
+        "task_id",
+        "status",
+        "picker"
+       ],
+       "row_count": 5,
+       "rows": [
+        [
+         101,
+         "CLAIMED",
+         "ana"
+        ],
+        [
+         102,
+         "CLAIMED",
+         "ben"
+        ],
+        [
+         103,
+         "OPEN",
+         null
+        ],
+        [
+         104,
+         "OPEN",
+         null
+        ],
+        [
+         201,
+         "OPEN",
+         null
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s27:827a12381ccb": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT COUNT(*) AS movements, SUM(qty) AS net_units\nFROM stock_movements\nWHERE product_id = 42 AND DATE(moved_at) = '2025-06-15'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), sum(stock_movements.qty)  (cost=91 rows=1)\n    -> Filter: (cast(stock_movements.moved_at as date) = '2025-06-15')  (cost=46.6 rows=444)\n        -> Covering index lookup on stock_movements using idx_movements_product_time (product_id=42)  (cost=46.6 rows=444)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s28:07b6dc522c79": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT COUNT(*) AS movements, SUM(qty) AS net_units\nFROM stock_movements\nWHERE product_id = 42 AND moved_at >= '2025-06-15' AND moved_at < '2025-06-16'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), sum(stock_movements.qty)  (cost=1.31 rows=1)\n    -> Filter: ((stock_movements.product_id = 42) and (stock_movements.moved_at >= TIMESTAMP'2025-06-15 00:00:00') and (stock_movements.moved_at < TIMESTAMP'2025-06-16 00:00:00'))  (cost=1.21 rows=1)\n        -> Covering index range scan on stock_movements using idx_movements_product_time over (product_id = 42 AND '2025-06-15 00:00:00' <= moved_at < '2025-06-16 00:00:00')  (cost=1.21 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s29:c3a66e5de439": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT SUM(m.qty * p.unit_cost) AS stock_value\nFROM stock_movements m JOIN products p ON p.product_id = m.product_id\nWHERE m.warehouse_id = 1",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: sum((m.qty * p.unit_cost))  (cost=28721 rows=1) (actual time=106..106 rows=1 loops=1)\n    -> Nested loop inner join  (cost=22350 rows=63710) (actual time=0.216..97.7 rows=67167 loops=1)\n        -> Table scan on p  (cost=51.1 rows=501) (actual time=0.025..0.22 rows=501 loops=1)\n        -> Index lookup on m using fk_movements_stock (warehouse_id=1, product_id=p.product_id)  (cost=31.8 rows=127) (actual time=0.155..0.186 rows=134 loops=501)\n"
+      ]
+     ],
+     "elapsed_ms": 108.29
+    }
+   ],
+   "measured": true
+  },
+  "s30:bcf2ceed1cfa": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT SUM(s.on_hand * p.unit_cost) AS stock_value\nFROM stock_levels s JOIN products p ON p.product_id = s.product_id\nWHERE s.warehouse_id = 1",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: sum((s.on_hand * p.unit_cost))  (cost=275 rows=1) (actual time=0.567..0.567 rows=1 loops=1)\n    -> Nested loop inner join  (cost=225 rows=500) (actual time=0.0565..0.505 rows=500 loops=1)\n        -> Index lookup on s using PRIMARY (warehouse_id=1)  (cost=50.4 rows=500) (actual time=0.0491..0.113 rows=500 loops=1)\n        -> Single-row index lookup on p using PRIMARY (product_id=s.product_id)  (cost=0.25 rows=1) (actual time=608e-6..633e-6 rows=1 loops=500)\n"
+      ]
+     ],
+     "elapsed_ms": 2.07
+    }
+   ],
+   "measured": true
+  },
+  "s31:e9ee7595c3de": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT SUM(m.qty * p.unit_cost) FROM stock_movements m JOIN products p ON p.product_id = m.product_id\n        WHERE m.warehouse_id = 1) AS from_ledger,\n       (SELECT SUM(s.on_hand * p.unit_cost) FROM stock_levels s JOIN products p ON p.product_id = s.product_id\n        WHERE s.warehouse_id = 1) AS from_balance",
+     "status": "ok",
+     "columns": [
+      "from_ledger",
+      "from_balance"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "8061428.00",
+       "8061428.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s33:e3c5184c9bbe": {
+   "statements": [
+    {
+     "sql": "SELECT routine_name, security_type, sql_data_access\nFROM information_schema.routines\nWHERE routine_schema = DATABASE()\nORDER BY routine_name",
+     "status": "ok",
+     "columns": [
+      "ROUTINE_NAME",
+      "SECURITY_TYPE",
+      "SQL_DATA_ACCESS"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "pick_line",
+       "DEFINER",
+       "CONTAINS SQL"
+      ],
+      [
+       "reserve_line",
+       "DEFINER",
+       "CONTAINS SQL"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s34:e0475b11d022": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS stock_levels_checked,\n       SUM(s.on_hand <> COALESCE(l.ledger_on_hand, 0)) AS mismatches\nFROM stock_levels s\nLEFT JOIN (SELECT warehouse_id, product_id, SUM(qty) AS ledger_on_hand\n           FROM stock_movements GROUP BY warehouse_id, product_id) l\n  ON l.warehouse_id = s.warehouse_id AND l.product_id = s.product_id",
+     "status": "ok",
+     "columns": [
+      "stock_levels_checked",
+      "mismatches"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1500,
+       "0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s35:1d3c50b81d20": {
+   "statements": [
+    {
+     "sql": "SELECT s.warehouse_id, s.product_id, s.reserved,\n       COALESCE(SUM(l.qty), 0) AS reserved_by_lines\nFROM stock_levels s\nLEFT JOIN orders o ON o.warehouse_id = s.warehouse_id\nLEFT JOIN order_lines l ON l.order_id = o.order_id AND l.product_id = s.product_id AND l.status = 'RESERVED'\nWHERE s.reserved > 0 OR l.order_id IS NOT NULL\nGROUP BY s.warehouse_id, s.product_id, s.reserved\nORDER BY s.warehouse_id, s.product_id",
+     "status": "ok",
+     "columns": [
+      "warehouse_id",
+      "product_id",
+      "reserved",
+      "reserved_by_lines"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       43,
+       2,
+       "2"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s36:201b011112b7": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS negative_points\nFROM (SELECT SUM(qty) OVER (PARTITION BY warehouse_id, product_id ORDER BY moved_at, movement_id) AS running\n      FROM stock_movements) t\nWHERE running < 0",
+     "status": "ok",
+     "columns": [
+      "negative_points"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s37:08e44ddea46d": {
+   "statements": [
+    {
+     "sql": "UPDATE stock_levels SET on_hand = on_hand + 7 WHERE warehouse_id = 2 AND product_id = 10",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT s.warehouse_id, s.product_id, s.on_hand, SUM(m.qty) AS ledger_on_hand\nFROM stock_levels s JOIN stock_movements m ON m.warehouse_id = s.warehouse_id AND m.product_id = s.product_id\nWHERE s.warehouse_id = 2 AND s.product_id = 10\nGROUP BY s.warehouse_id, s.product_id, s.on_hand",
+     "status": "ok",
+     "columns": [
+      "warehouse_id",
+      "product_id",
+      "on_hand",
+      "ledger_on_hand"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2,
+       10,
+       113,
+       "106"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s38:0968f6b85be2": {
+   "statements": [
+    {
+     "sql": "UPDATE stock_levels s\nJOIN (SELECT warehouse_id, product_id, SUM(qty) AS ledger_on_hand FROM stock_movements\n      WHERE warehouse_id = 2 AND product_id = 10 GROUP BY warehouse_id, product_id) l\n  ON l.warehouse_id = s.warehouse_id AND l.product_id = s.product_id\nSET s.on_hand = l.ledger_on_hand",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT on_hand FROM stock_levels WHERE warehouse_id = 2 AND product_id = 10",
+     "status": "ok",
+     "columns": [
+      "on_hand"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       106
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s39:fdede49cd9af": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE stock_movements_by_month (\n  movement_id    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n  warehouse_id   TINYINT UNSIGNED NOT NULL,\n  product_id     INT UNSIGNED NOT NULL,\n  movement_type  ENUM('RECEIPT','PICK','ADJUST','TRANSFER_IN','TRANSFER_OUT','RETURN') NOT NULL,\n  qty            INT NOT NULL,\n  reference      VARCHAR(30) NOT NULL,\n  moved_at       DATETIME NOT NULL,\n  PRIMARY KEY (movement_id, moved_at),\n  KEY idx_mbm_product_time (product_id, moved_at, warehouse_id, qty)\n)\nPARTITION BY RANGE COLUMNS (moved_at) (\n  PARTITION p2025_01 VALUES LESS THAN ('2025-02-01'),\n  PARTITION p2025_02 VALUES LESS THAN ('2025-03-01'),\n  PARTITION p2025_03 VALUES LESS THAN ('2025-04-01'),\n  PARTITION p2025_04 VALUES LESS THAN ('2025-05-01'),\n  PARTITION p2025_05 VALUES LESS THAN ('2025-06-01'),\n  PARTITION p2025_06 VALUES LESS THAN ('2025-07-01'),\n  PARTITION p2025_07 VALUES LESS THAN ('2025-08-01'),\n  PARTITION p2025_08 VALUES LESS THAN ('2025-09-01'),\n  PARTITION p2025_09 VALUES LESS THAN ('2025-10-01'),\n  PARTITION p2025_10 VALUES LESS THAN ('2025-11-01'),\n  PARTITION p2025_11 VALUES LESS THAN ('2025-12-01'),\n  PARTITION p2025_12 VALUES LESS THAN ('2026-01-01'),\n  PARTITION p_future VALUES LESS THAN (MAXVALUE)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO stock_movements_by_month SELECT * FROM stock_movements",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 201501,
+     "info": "Records: 201501  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE stock_movements_by_month",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "stock_movements_by_month",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT partition_name, table_rows\nFROM information_schema.partitions\nWHERE table_schema = DATABASE() AND table_name = 'stock_movements_by_month'\nORDER BY partition_ordinal_position",
+     "status": "ok",
+     "columns": [
+      "PARTITION_NAME",
+      "TABLE_ROWS"
+     ],
+     "row_count": 13,
+     "rows": [
+      [
+       "p2025_01",
+       17394
+      ],
+      [
+       "p2025_02",
+       15189
+      ],
+      [
+       "p2025_03",
+       16764
+      ],
+      [
+       "p2025_04",
+       16336
+      ],
+      [
+       "p2025_05",
+       17346
+      ],
+      [
+       "p2025_06",
+       16758
+      ],
+      [
+       "p2025_07",
+       16911
+      ],
+      [
+       "p2025_08",
+       17340
+      ],
+      [
+       "p2025_09",
+       16341
+      ],
+      [
+       "p2025_10",
+       17340
+      ],
+      [
+       "p2025_11",
+       16341
+      ],
+      [
+       "p2025_12",
+       16059
+      ],
+      [
+       "p_future",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s40:2264215e47ec": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT warehouse_id, movement_type, COUNT(*) AS movements, SUM(qty) AS units\nFROM stock_movements_by_month\nWHERE moved_at >= '2025-12-01' AND moved_at < '2026-01-01'\nGROUP BY warehouse_id, movement_type",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "stock_movements_by_month",
+       "p2025_12",
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       16059,
+       11.11,
+       "Using where; Using temporary"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `stock_movements_by_month`.`warehouse_id` AS `warehouse_id`,`stock_movements_by_month`.`movement_type` AS `movement_type`,count(0) AS `movements`,sum(`stock_movements_by_month`.`qty`) AS `units` from `stock_movements_by_month` where ((`stock_movements_by_month`.`moved_at` >= TIMESTAMP'2025-12-01 00:00:00') and (`stock_movements_by_month`.`moved_at` < TIMESTAMP'2026-01-01 00:00:00')) group by `stock_movements_by_month`.`warehouse_id`,`stock_movements_by_month`.`movement_type`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s41:2dae2e5320f7": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT warehouse_id, movement_type, COUNT(*) AS movements, SUM(qty) AS units\nFROM stock_movements\nWHERE moved_at >= '2025-12-01' AND moved_at < '2026-01-01'\nGROUP BY warehouse_id, movement_type",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (actual time=64.6..64.6 rows=6 loops=1)\n    -> Aggregate using temporary table  (actual time=64.6..64.6 rows=6 loops=1)\n        -> Filter: ((stock_movements.moved_at >= TIMESTAMP'2025-12-01 00:00:00') and (stock_movements.moved_at < TIMESTAMP'2026-01-01 00:00:00'))  (cost=20289 rows=22334) (actual time=51.7..56.8 rows=16332 loops=1)\n            -> Table scan on stock_movements  (cost=20289 rows=201050) (actual time=0.137..44.5 rows=201501 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 65.86
+    }
+   ],
+   "measured": true
+  },
+  "s42:9f8c027adc97": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT warehouse_id, movement_type, COUNT(*) AS movements, SUM(qty) AS units\nFROM stock_movements_by_month\nWHERE moved_at >= '2025-12-01' AND moved_at < '2026-01-01'\nGROUP BY warehouse_id, movement_type",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (actual time=13.7..13.7 rows=6 loops=1)\n    -> Aggregate using temporary table  (actual time=13.7..13.7 rows=6 loops=1)\n        -> Filter: ((stock_movements_by_month.moved_at >= TIMESTAMP'2025-12-01 00:00:00') and (stock_movements_by_month.moved_at < TIMESTAMP'2026-01-01 00:00:00'))  (cost=1630 rows=1784) (actual time=0.175..5.44 rows=16332 loops=1)\n            -> Table scan on stock_movements_by_month  (cost=1630 rows=16059) (actual time=0.173..3.78 rows=16332 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 14.88
+    }
+   ],
+   "measured": true
+  }
+ }
+}

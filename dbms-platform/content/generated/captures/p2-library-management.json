@@ -1,0 +1,1349 @@
+{
+ "doc": "p2-library-management",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:44710e64fdb0": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE legacy_catalog (\n  isbn13 CHAR(13), title VARCHAR(200), pub_year SMALLINT, publisher VARCHAR(120), publisher_city VARCHAR(60),\n  author VARCHAR(120), author_birth_year SMALLINT\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO legacy_catalog VALUES\n  ('9780000000101', 'Designing Data Systems',     2019, 'Lighthouse Press', 'Portland',  'Ada Moreno',     1975),\n  ('9780000000101', 'Designing Data Systems',     2019, 'Lighthouse Press', 'Portland',  'Kenji Watanabe', 1981),\n  ('9780000000102', 'The Relational Mind',        2015, 'Lighthouse Press', 'Portland',  'Ada Moreno',     1975),\n  ('9780000000103', 'Practical SQL Patterns',     2022, 'Meridian Books',   'Boston',    'Kenji Watanabe', 1981),\n  ('9780000000103', 'Practical SQL Patterns',     2022, 'Meridian Books',   'Boston',    'Tom Becker',     NULL),\n  ('9780000000104', 'Statistics for the Curious', 2018, 'Meridian Books',   'Cambridge', 'Grace Okonkwo',  1979),\n  ('9780000000108', 'The Lighthouse Keeper',      2017, 'Quarry & Finch',   'Seattle',   'Ines Duarte',    1968),\n  ('9780000000109', 'Gardens of Stone',           2020, 'Quarry & Finch',   'Seattle',   'Ines Duarte',    1968)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 8,
+     "info": "Records: 8  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM legacy_catalog ORDER BY isbn13, author",
+     "status": "ok",
+     "columns": [
+      "isbn13",
+      "title",
+      "pub_year",
+      "publisher",
+      "publisher_city",
+      "author",
+      "author_birth_year"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "9780000000101",
+       "Designing Data Systems",
+       2019,
+       "Lighthouse Press",
+       "Portland",
+       "Ada Moreno",
+       1975
+      ],
+      [
+       "9780000000101",
+       "Designing Data Systems",
+       2019,
+       "Lighthouse Press",
+       "Portland",
+       "Kenji Watanabe",
+       1981
+      ],
+      [
+       "9780000000102",
+       "The Relational Mind",
+       2015,
+       "Lighthouse Press",
+       "Portland",
+       "Ada Moreno",
+       1975
+      ],
+      [
+       "9780000000103",
+       "Practical SQL Patterns",
+       2022,
+       "Meridian Books",
+       "Boston",
+       "Kenji Watanabe",
+       1981
+      ],
+      [
+       "9780000000103",
+       "Practical SQL Patterns",
+       2022,
+       "Meridian Books",
+       "Boston",
+       "Tom Becker",
+       null
+      ],
+      [
+       "9780000000104",
+       "Statistics for the Curious",
+       2018,
+       "Meridian Books",
+       "Cambridge",
+       "Grace Okonkwo",
+       1979
+      ],
+      [
+       "9780000000108",
+       "The Lighthouse Keeper",
+       2017,
+       "Quarry & Finch",
+       "Seattle",
+       "Ines Duarte",
+       1968
+      ],
+      [
+       "9780000000109",
+       "Gardens of Stone",
+       2020,
+       "Quarry & Finch",
+       "Seattle",
+       "Ines Duarte",
+       1968
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:9562b9cf20b4": {
+   "statements": [
+    {
+     "sql": "SELECT publisher, COUNT(DISTINCT publisher_city) AS cities,\n       GROUP_CONCAT(DISTINCT publisher_city ORDER BY publisher_city) AS recorded_as\nFROM legacy_catalog\nGROUP BY publisher\nHAVING COUNT(DISTINCT publisher_city) > 1",
+     "status": "ok",
+     "columns": [
+      "publisher",
+      "cities",
+      "recorded_as"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Meridian Books",
+       2,
+       "Boston,Cambridge"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:335d89972ab2": {
+   "statements": [
+    {
+     "sql": "WITH works       AS (SELECT DISTINCT isbn13, title, pub_year, publisher FROM legacy_catalog),\n     publishers  AS (SELECT publisher, MIN(publisher_city) AS publisher_city FROM legacy_catalog GROUP BY publisher),\n     authors     AS (SELECT DISTINCT author, author_birth_year FROM legacy_catalog),\n     authorship  AS (SELECT DISTINCT isbn13, author FROM legacy_catalog)\nSELECT (SELECT COUNT(*) FROM legacy_catalog) AS original_rows,\n       COUNT(*)                              AS rejoined_rows,\n       SUM(p.publisher_city <> l.publisher_city) AS rows_whose_city_was_corrected\nFROM authorship a\nJOIN works w      ON w.isbn13 = a.isbn13\nJOIN publishers p ON p.publisher = w.publisher\nJOIN authors au   ON au.author = a.author\nJOIN legacy_catalog l ON l.isbn13 = a.isbn13 AND l.author = a.author",
+     "status": "ok",
+     "columns": [
+      "original_rows",
+      "rejoined_rows",
+      "rows_whose_city_was_corrected"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       8,
+       8,
+       "1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:42ecdc67c4cf": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE publishers (\n  publisher_id INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  name         VARCHAR(120) NOT NULL,\n  city         VARCHAR(60)  NULL,\n  PRIMARY KEY (publisher_id),\n  CONSTRAINT uq_publishers_name UNIQUE (name)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE books (\n  book_id      INT UNSIGNED      NOT NULL AUTO_INCREMENT,\n  isbn13       CHAR(13)          NOT NULL,\n  title        VARCHAR(200)      NOT NULL,\n  publisher_id INT UNSIGNED      NOT NULL,\n  pub_year     SMALLINT UNSIGNED NOT NULL,\n  PRIMARY KEY (book_id),\n  CONSTRAINT uq_books_isbn UNIQUE (isbn13),\n  CONSTRAINT fk_books_publisher FOREIGN KEY (publisher_id) REFERENCES publishers (publisher_id),\n  CONSTRAINT chk_books_isbn CHECK (isbn13 REGEXP '^97[89][0-9]{10}$'),\n  CONSTRAINT chk_books_year CHECK (pub_year BETWEEN 1450 AND 2100)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE branches (\n  branch_id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,\n  name      VARCHAR(80) NOT NULL,\n  city      VARCHAR(60) NOT NULL,\n  PRIMARY KEY (branch_id),\n  CONSTRAINT uq_branches_name UNIQUE (name)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE authors (\n  author_id  INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  full_name  VARCHAR(120) NOT NULL,\n  birth_year SMALLINT     NULL,\n  PRIMARY KEY (author_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE book_authors (\n  book_id      INT UNSIGNED     NOT NULL,\n  author_id    INT UNSIGNED     NOT NULL,\n  author_order TINYINT UNSIGNED NOT NULL,\n  PRIMARY KEY (book_id, author_id),\n  CONSTRAINT uq_book_authors_order UNIQUE (book_id, author_order),\n  CONSTRAINT fk_book_authors_book   FOREIGN KEY (book_id)   REFERENCES books (book_id) ON DELETE CASCADE,\n  CONSTRAINT fk_book_authors_author FOREIGN KEY (author_id) REFERENCES authors (author_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE subjects (\n  subject_id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,\n  name       VARCHAR(60) NOT NULL,\n  PRIMARY KEY (subject_id),\n  CONSTRAINT uq_subjects_name UNIQUE (name)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE copies (\n  copy_id     INT UNSIGNED      NOT NULL AUTO_INCREMENT,\n  book_id     INT UNSIGNED      NOT NULL,\n  branch_id   SMALLINT UNSIGNED NOT NULL,\n  barcode     CHAR(8)           NOT NULL,\n  acquired_on DATE              NOT NULL,\n  status      ENUM('available','on_loan','lost','withdrawn') NOT NULL DEFAULT 'available',\n  PRIMARY KEY (copy_id),\n  CONSTRAINT uq_copies_barcode UNIQUE (barcode),\n  CONSTRAINT fk_copies_book   FOREIGN KEY (book_id)   REFERENCES books (book_id),\n  CONSTRAINT fk_copies_branch FOREIGN KEY (branch_id) REFERENCES branches (branch_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE members (\n  member_id      INT UNSIGNED      NOT NULL AUTO_INCREMENT,\n  card_number    CHAR(8)           NOT NULL,\n  full_name      VARCHAR(120)      NOT NULL,\n  email          VARCHAR(255)      NOT NULL,\n  home_branch_id SMALLINT UNSIGNED NOT NULL,\n  joined_on      DATE              NOT NULL,\n  max_loans      TINYINT UNSIGNED  NOT NULL DEFAULT 5,\n  status         ENUM('active','suspended','closed') NOT NULL DEFAULT 'active',\n  PRIMARY KEY (member_id),\n  CONSTRAINT uq_members_card  UNIQUE (card_number),\n  CONSTRAINT uq_members_email UNIQUE (email),\n  CONSTRAINT fk_members_branch FOREIGN KEY (home_branch_id) REFERENCES branches (branch_id),\n  CONSTRAINT chk_members_max_loans CHECK (max_loans BETWEEN 1 AND 20)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE loans (\n  loan_id      INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  copy_id      INT UNSIGNED NOT NULL,\n  member_id    INT UNSIGNED NOT NULL,\n  loaned_on    DATE         NOT NULL,\n  due_on       DATE         NOT NULL,\n  returned_on  DATE         NULL,\n  open_copy_id INT UNSIGNED AS (IF(returned_on IS NULL, copy_id, NULL)) VIRTUAL,\n  PRIMARY KEY (loan_id),\n  CONSTRAINT uq_loans_one_open_per_copy UNIQUE (open_copy_id),\n  CONSTRAINT fk_loans_copy   FOREIGN KEY (copy_id)   REFERENCES copies (copy_id),\n  CONSTRAINT fk_loans_member FOREIGN KEY (member_id) REFERENCES members (member_id),\n  CONSTRAINT chk_loans_due      CHECK (due_on > loaned_on),\n  CONSTRAINT chk_loans_returned CHECK (returned_on IS NULL OR returned_on >= loaned_on)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE fines (\n  fine_id     INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  loan_id     INT UNSIGNED NOT NULL,\n  amount      DECIMAL(6,2) NOT NULL,\n  assessed_on DATE         NOT NULL,\n  paid_on     DATE         NULL,\n  PRIMARY KEY (fine_id),\n  CONSTRAINT uq_fines_loan UNIQUE (loan_id),\n  CONSTRAINT fk_fines_loan FOREIGN KEY (loan_id) REFERENCES loans (loan_id),\n  CONSTRAINT chk_fines_amount CHECK (amount > 0)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME, COUNT(*) AS columns\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME <> 'legacy_catalog'\nGROUP BY TABLE_NAME\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "columns"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       "authors",
+       3
+      ],
+      [
+       "book_authors",
+       3
+      ],
+      [
+       "books",
+       5
+      ],
+      [
+       "branches",
+       3
+      ],
+      [
+       "copies",
+       6
+      ],
+      [
+       "fines",
+       5
+      ],
+      [
+       "loans",
+       7
+      ],
+      [
+       "members",
+       8
+      ],
+      [
+       "publishers",
+       3
+      ],
+      [
+       "subjects",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:56b852717ff5": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE book_subjects (\n  book_id    INT UNSIGNED      NOT NULL,\n  subject_id SMALLINT UNSIGNED NOT NULL,\n  PRIMARY KEY (book_id, subject_id),\n  CONSTRAINT fk_book_subjects_book    FOREIGN KEY (book_id)    REFERENCES books (book_id) ON DELETE CASCADE,\n  CONSTRAINT fk_book_subjects_subject FOREIGN KEY (subject_id) REFERENCES subjects (subject_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO branches (branch_id, name, city) VALUES\n  (1, 'Central Library', 'Bayview'), (2, 'Harbor Branch', 'Bayview'), (3, 'Hillside Branch', 'Westfield')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO publishers (publisher_id, name, city) VALUES\n  (1, 'Lighthouse Press', 'Portland'), (2, 'Meridian Books', 'Boston'),\n  (3, 'Quarry & Finch', 'Seattle'), (4, 'Blue Heron Publishing', 'Bayview')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO books (book_id, isbn13, title, publisher_id, pub_year) VALUES\n  (1, '9780000000101', 'Designing Data Systems', 1, 2019),\n  (2, '9780000000102', 'The Relational Mind', 1, 2015),\n  (3, '9780000000103', 'Practical SQL Patterns', 2, 2022),\n  (4, '9780000000104', 'Statistics for the Curious', 2, 2018),\n  (5, '9780000000105', 'Python for Analysts', 1, 2023),\n  (6, '9780000000106', 'Machine Learning in Practice', 3, 2021),\n  (7, '9780000000107', 'Tides of Bayview', 4, 2010),\n  (8, '9780000000108', 'The Lighthouse Keeper', 3, 2017),\n  (9, '9780000000109', 'Gardens of Stone', 3, 2020),\n  (10, '9780000000110', 'A Short History of Maps', 4, 2012),\n  (11, '9780000000111', 'Cooking with Seasons', 2, 2016),\n  (12, '9780000000112', 'The Quiet Orbit', 3, 2024)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 12,
+     "info": "Records: 12  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO authors (author_id, full_name, birth_year) VALUES\n  (1, 'Ada Moreno', 1975), (2, 'Kenji Watanabe', 1981), (3, 'Leila Haddad', 1990), (4, 'Tom Becker', NULL),\n  (5, 'Grace Okonkwo', 1979), (6, 'Ines Duarte', 1968), (7, 'Paul Lindqvist', 1955), (8, 'Ravi Menon', 1986)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 8,
+     "info": "Records: 8  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO book_authors (book_id, author_id, author_order) VALUES\n  (1,1,1),(1,2,2),(2,1,1),(3,2,1),(3,4,2),(4,5,1),(5,4,1),(5,8,2),(6,8,1),(6,1,2),(6,5,3),\n  (7,7,1),(8,6,1),(9,6,1),(10,7,1),(10,3,2),(11,3,1),(12,6,1),(12,2,2)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 19,
+     "info": "Records: 19  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO subjects (subject_id, name) VALUES\n  (1, 'Computing'), (2, 'Data Science'), (3, 'Fiction'), (4, 'History'), (5, 'Statistics'), (6, 'Cooking')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 6,
+     "info": "Records: 6  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO book_subjects (book_id, subject_id) VALUES\n  (1,1),(1,2),(2,1),(3,1),(3,2),(4,5),(4,2),(5,1),(5,2),(6,2),(6,1),(6,5),(7,4),(8,3),(9,3),(10,4),(11,6),(12,3)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 18,
+     "info": "Records: 18  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO copies (copy_id, book_id, branch_id, barcode, acquired_on, status) VALUES\n  (1, 1, 1, 'C0000001', '2020-01-15', 'available'), (2, 1, 2, 'C0000002', '2020-01-15', 'available'),\n  (3, 2, 1, 'C0000003', '2016-03-01', 'on_loan'),   (4, 3, 1, 'C0000004', '2022-09-10', 'on_loan'),\n  (5, 3, 2, 'C0000005', '2022-09-10', 'on_loan'),   (6, 3, 3, 'C0000006', '2022-09-10', 'available'),\n  (7, 4, 1, 'C0000007', '2018-05-20', 'on_loan'),   (8, 5, 1, 'C0000008', '2023-11-01', 'on_loan'),\n  (9, 5, 3, 'C0000009', '2023-11-01', 'available'), (10, 6, 1, 'C0000010', '2021-06-15', 'available'),\n  (11, 6, 2, 'C0000011', '2021-06-15', 'on_loan'),  (12, 7, 1, 'C0000012', '2010-07-01', 'available'),\n  (13, 7, 2, 'C0000013', '2010-07-01', 'on_loan'),  (14, 7, 3, 'C0000014', '2011-02-01', 'available'),\n  (15, 8, 2, 'C0000015', '2017-10-10', 'available'),(16, 8, 3, 'C0000016', '2017-10-10', 'on_loan'),\n  (17, 9, 1, 'C0000017', '2020-11-11', 'on_loan'),  (18, 10, 1, 'C0000018', '2012-04-04', 'lost'),\n  (19, 11, 3, 'C0000019', '2016-12-12', 'available'),(20, 12, 1, 'C0000020', '2024-05-05', 'on_loan'),\n  (21, 12, 2, 'C0000021', '2024-05-05', 'on_loan'), (22, 12, 3, 'C0000022', '2024-05-05', 'on_loan')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 22,
+     "info": "Records: 22  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO members (member_id, card_number, full_name, email, home_branch_id, joined_on, max_loans, status) VALUES\n  (1, 'M0000001', 'Alice Romero',    'alice.romero@mail.example.com',    1, '2019-02-11', 5,  'active'),\n  (2, 'M0000002', 'Ben Carter',      'ben.carter@mail.example.com',      1, '2020-06-01', 5,  'active'),\n  (3, 'M0000003', 'Chen Wei',        'chen.wei@mail.example.com',        2, '2021-09-15', 5,  'active'),\n  (4, 'M0000004', 'Dana Brooks',     'dana.brooks@mail.example.com',     2, '2018-01-20', 10, 'active'),\n  (5, 'M0000005', 'Elif Yilmaz',     'elif.yilmaz@mail.example.com',     3, '2022-03-03', 5,  'active'),\n  (6, 'M0000006', 'Farah Siddiqui',  'farah.siddiqui@mail.example.com',  3, '2023-07-07', 3,  'active'),\n  (7, 'M0000007', 'George Mensah',   'george.mensah@mail.example.com',   1, '2017-05-05', 5,  'suspended'),\n  (8, 'M0000008', 'Hana Sato',       'hana.sato@mail.example.com',       1, '2024-01-10', 5,  'active'),\n  (9, 'M0000009', 'Ivan Petrov',     'ivan.petrov@mail.example.com',     2, '2025-02-14', 5,  'active'),\n  (10, 'M0000010', 'Julia Fernandes', 'julia.fernandes@mail.example.com', 3, '2025-10-01', 5,  'active')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 10,
+     "info": "Records: 10  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO loans (loan_id, copy_id, member_id, loaned_on, due_on, returned_on) VALUES\n  (1, 1, 1, '2025-12-01', '2025-12-22', '2025-12-20'),  (2, 4, 2, '2025-12-03', '2025-12-24', '2026-01-05'),\n  (3, 8, 3, '2025-12-10', '2025-12-31', '2025-12-28'),  (4, 12, 4, '2026-01-05', '2026-01-26', '2026-01-25'),\n  (5, 20, 5, '2026-01-10', '2026-01-31', '2026-02-10'), (6, 15, 6, '2026-01-15', '2026-02-05', '2026-02-01'),\n  (7, 10, 1, '2026-01-20', '2026-02-10', '2026-02-09'), (8, 7, 7, '2025-11-01', '2025-11-22', NULL),\n  (9, 1, 2, '2026-02-01', '2026-02-22', '2026-02-20'),  (10, 4, 3, '2026-02-10', '2026-03-03', NULL),\n  (11, 20, 1, '2026-02-15', '2026-03-08', NULL),        (12, 5, 4, '2026-02-20', '2026-03-13', NULL),\n  (13, 11, 4, '2026-02-25', '2026-03-18', NULL),        (14, 13, 5, '2026-03-01', '2026-03-22', NULL),\n  (15, 16, 6, '2026-03-02', '2026-03-23', NULL),        (16, 8, 8, '2026-03-05', '2026-03-26', NULL),\n  (17, 21, 9, '2026-03-06', '2026-03-27', NULL),        (18, 3, 2, '2026-03-08', '2026-03-29', NULL),\n  (19, 17, 1, '2026-03-10', '2026-03-31', NULL),        (20, 22, 10, '2026-03-12', '2026-04-02', NULL),\n  (21, 9, 3, '2026-01-03', '2026-01-24', '2026-01-30'), (22, 6, 5, '2026-02-02', '2026-02-23', '2026-02-23'),\n  (23, 12, 8, '2026-02-01', '2026-02-22', '2026-03-01'),(24, 19, 10, '2026-02-11', '2026-03-04', '2026-03-02')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 24,
+     "info": "Records: 24  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO fines (fine_id, loan_id, amount, assessed_on, paid_on) VALUES\n  (1, 2, 3.00, '2026-01-05', '2026-01-05'), (2, 5, 2.50, '2026-02-10', '2026-02-10'),\n  (3, 21, 1.50, '2026-01-30', NULL),        (4, 23, 1.75, '2026-03-01', NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM books) AS works, (SELECT COUNT(*) FROM copies) AS copies,\n       (SELECT COUNT(*) FROM members) AS members, (SELECT COUNT(*) FROM loans) AS loans,\n       (SELECT COUNT(*) FROM loans WHERE returned_on IS NULL) AS open_loans,\n       (SELECT COUNT(*) FROM fines) AS fines",
+     "status": "ok",
+     "columns": [
+      "works",
+      "copies",
+      "members",
+      "loans",
+      "open_loans",
+      "fines"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       12,
+       22,
+       10,
+       24,
+       12,
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:67ed5d177a9b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO loans (copy_id, member_id, loaned_on, due_on) VALUES (4, 1, '2026-03-16', '2026-04-06')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '4' for key 'loans.uq_loans_one_open_per_copy'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:580c97650a8d": {
+   "statements": [
+    {
+     "sql": "SELECT loan_id, copy_id, loaned_on, returned_on, open_copy_id\nFROM loans WHERE copy_id IN (1, 4) ORDER BY copy_id, loan_id",
+     "status": "ok",
+     "columns": [
+      "loan_id",
+      "copy_id",
+      "loaned_on",
+      "returned_on",
+      "open_copy_id"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       1,
+       "2025-12-01",
+       "2025-12-20",
+       null
+      ],
+      [
+       9,
+       1,
+       "2026-02-01",
+       "2026-02-20",
+       null
+      ],
+      [
+       2,
+       4,
+       "2025-12-03",
+       "2026-01-05",
+       null
+      ],
+      [
+       10,
+       4,
+       "2026-02-10",
+       null,
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:7ba8929010ff": {
+   "statements": [
+    {
+     "sql": "-- A loan due before it starts (error 3819)\nINSERT INTO loans (copy_id, member_id, loaned_on, due_on) VALUES (2, 1, '2026-03-16', '2026-03-01')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_loans_due' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s10:8d1c9898b12e": {
+   "statements": [
+    {
+     "sql": "-- A copy with loan history cannot be deleted (error 1451) — it is marked 'withdrawn' instead\nDELETE FROM copies WHERE barcode = 'C0000001'",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1451,
+      "message": "Cannot delete or update a parent row: a foreign key constraint fails (`loans`, CONSTRAINT `fk_loans_copy` FOREIGN KEY (`copy_id`) REFERENCES `copies` (`copy_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:17ce9d02d374": {
+   "statements": [
+    {
+     "sql": "INSERT INTO books (book_id, isbn13, title, publisher_id, pub_year) VALUES (99, '9789999999999', 'Duplicate record', 1, 2026)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO book_authors (book_id, author_id, author_order) VALUES (99, 1, 1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM books WHERE book_id = 99",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS authorship_rows_left_for_book_99 FROM book_authors WHERE book_id = 99",
+     "status": "ok",
+     "columns": [
+      "authorship_rows_left_for_book_99"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:54340cf88e6c": {
+   "statements": [
+    {
+     "sql": "DELETE FROM authors WHERE full_name = 'Ada Moreno'",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1451,
+      "message": "Cannot delete or update a parent row: a foreign key constraint fails (`book_authors`, CONSTRAINT `fk_book_authors_author` FOREIGN KEY (`author_id`) REFERENCES `authors` (`author_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s13:2bb18ed07e72": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE holds (\n  hold_id     INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  book_id     INT UNSIGNED NOT NULL,\n  member_id   INT UNSIGNED NOT NULL,\n  placed_at   DATETIME     NOT NULL,\n  status      ENUM('waiting','ready','fulfilled','cancelled') NOT NULL DEFAULT 'waiting',\n  active_flag TINYINT AS (IF(status IN ('waiting','ready'), 1, NULL)) VIRTUAL,\n  PRIMARY KEY (hold_id),\n  CONSTRAINT uq_holds_one_active UNIQUE (member_id, book_id, active_flag),\n  CONSTRAINT fk_holds_book   FOREIGN KEY (book_id)   REFERENCES books (book_id),\n  CONSTRAINT fk_holds_member FOREIGN KEY (member_id) REFERENCES members (member_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO holds (book_id, member_id, placed_at, status) VALUES\n  (12, 2, '2026-03-13 09:00:00', 'waiting'), (12, 4, '2026-03-13 10:30:00', 'waiting'),\n  (12, 1, '2026-03-14 11:00:00', 'waiting'), (3, 1, '2026-03-14 12:15:00', 'waiting'),\n  (8, 1, '2026-01-20 16:00:00', 'fulfilled')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT INDEX_NAME, SEQ_IN_INDEX, COLUMN_NAME\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'holds' AND INDEX_NAME = 'uq_holds_one_active'\nORDER BY SEQ_IN_INDEX",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "SEQ_IN_INDEX",
+      "COLUMN_NAME"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "uq_holds_one_active",
+       1,
+       "member_id"
+      ],
+      [
+       "uq_holds_one_active",
+       2,
+       "book_id"
+      ],
+      [
+       "uq_holds_one_active",
+       3,
+       "active_flag"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:8572b5257208": {
+   "statements": [
+    {
+     "sql": "SELECT b.title,\n       GROUP_CONCAT(a.full_name ORDER BY ba.author_order SEPARATOR ', ') AS authors,\n       p.name AS publisher,\n       b.pub_year\nFROM books b\nJOIN publishers p    ON p.publisher_id = b.publisher_id\nJOIN book_authors ba ON ba.book_id = b.book_id\nJOIN authors a       ON a.author_id = ba.author_id\nJOIN book_subjects bs ON bs.book_id = b.book_id\nJOIN subjects s      ON s.subject_id = bs.subject_id AND s.name = 'Data Science'\nGROUP BY b.book_id, b.title, p.name, b.pub_year\nORDER BY b.title",
+     "status": "ok",
+     "columns": [
+      "title",
+      "authors",
+      "publisher",
+      "pub_year"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Designing Data Systems",
+       "Ada Moreno, Kenji Watanabe",
+       "Lighthouse Press",
+       2019
+      ],
+      [
+       "Machine Learning in Practice",
+       "Ravi Menon, Ada Moreno, Grace Okonkwo",
+       "Quarry & Finch",
+       2021
+      ],
+      [
+       "Practical SQL Patterns",
+       "Kenji Watanabe, Tom Becker",
+       "Meridian Books",
+       2022
+      ],
+      [
+       "Python for Analysts",
+       "Tom Becker, Ravi Menon",
+       "Lighthouse Press",
+       2023
+      ],
+      [
+       "Statistics for the Curious",
+       "Grace Okonkwo",
+       "Meridian Books",
+       2018
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:532c5ada3efc": {
+   "statements": [
+    {
+     "sql": "SELECT c.barcode, b.title, l.loaned_on, l.due_on,\n       CASE WHEN l.due_on < '2026-03-16' THEN 'OVERDUE' ELSE 'ok' END AS state\nFROM members m\nJOIN loans l  ON l.member_id = m.member_id AND l.returned_on IS NULL\nJOIN copies c ON c.copy_id = l.copy_id\nJOIN books b  ON b.book_id = c.book_id\nWHERE m.card_number = 'M0000001'\nORDER BY l.due_on",
+     "status": "ok",
+     "columns": [
+      "barcode",
+      "title",
+      "loaned_on",
+      "due_on",
+      "state"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "C0000020",
+       "The Quiet Orbit",
+       "2026-02-15",
+       "2026-03-08",
+       "OVERDUE"
+      ],
+      [
+       "C0000017",
+       "Gardens of Stone",
+       "2026-03-10",
+       "2026-03-31",
+       "ok"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:7c7e43a5bcdf": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 60000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO loans (copy_id, member_id, loaned_on, due_on, returned_on)\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 60000)\nSELECT 1 + n % 22,\n       1 + (n * 7) % 10,\n       DATE('2016-01-01') + INTERVAL ((n * 37) % 3650) DAY,\n       DATE('2016-01-01') + INTERVAL ((n * 37) % 3650 + 21) DAY,\n       DATE('2016-01-01') + INTERVAL ((n * 37) % 3650 + n % 28) DAY\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 60000,
+     "info": "Records: 60000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE loans",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "loans",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS loans, SUM(returned_on IS NULL) AS open_loans FROM loans",
+     "status": "ok",
+     "columns": [
+      "loans",
+      "open_loans"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       60024,
+       "12"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:7e00eb75d539": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT loan_id, copy_id, member_id, due_on\nFROM loans\nWHERE returned_on IS NULL AND due_on < '2026-03-16'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "loans",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       58861,
+       3.33,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `loans`.`loan_id` AS `loan_id`,`loans`.`copy_id` AS `copy_id`,`loans`.`member_id` AS `member_id`,`loans`.`due_on` AS `due_on` from `loans` where ((`loans`.`returned_on` is null) and (`loans`.`due_on` < DATE'2026-03-16'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:1cc18cf18406": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_loans_open_due ON loans (returned_on, due_on)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE loans",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "loans",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT loan_id, copy_id, member_id, due_on\nFROM loans\nWHERE returned_on IS NULL AND due_on < '2026-03-16'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "loans",
+       null,
+       "range",
+       "idx_loans_open_due",
+       "idx_loans_open_due",
+       "7",
+       null,
+       4,
+       100.0,
+       "Using index condition"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `loans`.`loan_id` AS `loan_id`,`loans`.`copy_id` AS `copy_id`,`loans`.`member_id` AS `member_id`,`loans`.`due_on` AS `due_on` from `loans` where ((`loans`.`returned_on` is null) and (`loans`.`due_on` < DATE'2026-03-16'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:d3d2977dd569": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT loan_id, copy_id, member_id, due_on\nFROM loans\nWHERE returned_on IS NULL AND due_on < '2026-03-16'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Index range scan on loans using idx_loans_open_due over (returned_on = NULL AND due_on < '2026-03-16'), with index condition: ((loans.returned_on is null) and (loans.due_on < DATE'2026-03-16'))  (cost=2.06 rows=4) (actual time=0.0283..0.0308 rows=4 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 0.83
+    }
+   ],
+   "measured": true
+  },
+  "s20:396eb9307f31": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE checkout_copy(IN p_barcode CHAR(8), IN p_card CHAR(8), IN p_today DATE)\nBEGIN\n  DECLARE v_copy_id     INT UNSIGNED;\n  DECLARE v_copy_status VARCHAR(20);\n  DECLARE v_member_id   INT UNSIGNED;\n  DECLARE v_member_stat VARCHAR(20);\n  DECLARE v_max_loans   INT;\n  DECLARE v_open_loans  INT;\n  DECLARE v_overdue     INT;\n  DECLARE v_unpaid      DECIMAL(8,2);\n  DECLARE EXIT HANDLER FOR SQLEXCEPTION\n  BEGIN\n    ROLLBACK;\n    RESIGNAL;\n  END;\n\n  START TRANSACTION;\n  -- 1. Lock the copy row: a concurrent checkout of the same copy waits here\n  SELECT copy_id, status INTO v_copy_id, v_copy_status\n  FROM copies WHERE barcode = p_barcode FOR UPDATE;\n  IF v_copy_id IS NULL THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Unknown barcode';\n  END IF;\n  IF v_copy_status <> 'available' THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Copy is not available';\n  END IF;\n  -- 2. Lock the member row: concurrent checkouts by the same member are serialized (max_loans rule)\n  SELECT member_id, status, max_loans INTO v_member_id, v_member_stat, v_max_loans\n  FROM members WHERE card_number = p_card FOR UPDATE;\n  IF v_member_id IS NULL OR v_member_stat <> 'active' THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Unknown or inactive member';\n  END IF;\n  SELECT COUNT(*), COALESCE(SUM(due_on < p_today), 0) INTO v_open_loans, v_overdue\n  FROM loans WHERE member_id = v_member_id AND returned_on IS NULL;\n  SELECT COALESCE(SUM(f.amount), 0) INTO v_unpaid\n  FROM fines f JOIN loans l ON l.loan_id = f.loan_id\n  WHERE l.member_id = v_member_id AND f.paid_on IS NULL;\n  IF v_overdue > 0 THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Member has overdue loans';\n  END IF;\n  IF v_open_loans >= v_max_loans THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Loan limit reached';\n  END IF;\n  IF v_unpaid > 5.00 THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Unpaid fines exceed 5.00';\n  END IF;\n  -- 3. Write: the loan row and the copy status change commit together\n  INSERT INTO loans (copy_id, member_id, loaned_on, due_on)\n  VALUES (v_copy_id, v_member_id, p_today, p_today + INTERVAL 21 DAY);\n  UPDATE copies SET status = 'on_loan' WHERE copy_id = v_copy_id;\n  COMMIT;\n  SELECT LAST_INSERT_ID() AS loan_id, p_today + INTERVAL 21 DAY AS due_on;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s21:27dee302d739": {
+   "statements": [
+    {
+     "sql": "CALL checkout_copy('C0000001', 'M0000008', '2026-03-16')",
+     "status": "ok",
+     "columns": [
+      "loan_id",
+      "due_on"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       65561,
+       "2026-04-06"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:4c8ac66aef63": {
+   "statements": [
+    {
+     "sql": "SELECT c.barcode, c.status, l.member_id, l.loaned_on, l.due_on\nFROM copies c JOIN loans l ON l.copy_id = c.copy_id AND l.returned_on IS NULL\nWHERE c.barcode = 'C0000001'",
+     "status": "ok",
+     "columns": [
+      "barcode",
+      "status",
+      "member_id",
+      "loaned_on",
+      "due_on"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "C0000001",
+       "on_loan",
+       8,
+       "2026-03-16",
+       "2026-04-06"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:6a921079f753": {
+   "statements": [
+    {
+     "sql": "CALL checkout_copy('C0000001', 'M0000002', '2026-03-16')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Copy is not available"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s24:4d7f85fde5ce": {
+   "statements": [
+    {
+     "sql": "CALL checkout_copy('C0000002', 'M0000003', '2026-03-16')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Member has overdue loans"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s25:2dc45626af3a": {
+   "statements": [
+    {
+     "sql": "SELECT barcode, status FROM copies WHERE barcode IN ('C0000001', 'C0000002') ORDER BY barcode",
+     "status": "ok",
+     "columns": [
+      "barcode",
+      "status"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "C0000001",
+       "on_loan"
+      ],
+      [
+       "C0000002",
+       "available"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s26:bb6fd0892412": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW v_branch_availability AS\nSELECT c.book_id,\n       c.branch_id,\n       SUM(c.status NOT IN ('lost', 'withdrawn'))                       AS lendable_copies,\n       SUM(c.status NOT IN ('lost', 'withdrawn') AND l.loan_id IS NULL) AS available_now\nFROM copies c\nLEFT JOIN loans l ON l.copy_id = c.copy_id AND l.returned_on IS NULL\nGROUP BY c.book_id, c.branch_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT b.title, br.name AS branch, v.lendable_copies, v.available_now\nFROM v_branch_availability v\nJOIN books b     ON b.book_id = v.book_id\nJOIN branches br ON br.branch_id = v.branch_id\nWHERE b.title = 'The Quiet Orbit'\nORDER BY br.name",
+     "status": "ok",
+     "columns": [
+      "title",
+      "branch",
+      "lendable_copies",
+      "available_now"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "The Quiet Orbit",
+       "Central Library",
+       "1",
+       "0"
+      ],
+      [
+       "The Quiet Orbit",
+       "Harbor Branch",
+       "1",
+       "0"
+      ],
+      [
+       "The Quiet Orbit",
+       "Hillside Branch",
+       "1",
+       "0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s27:69b3e0ff475c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT b.title, br.name AS branch, v.lendable_copies, v.available_now\nFROM v_branch_availability v\nJOIN books b     ON b.book_id = v.book_id\nJOIN branches br ON br.branch_id = v.branch_id\nWHERE b.title = 'The Quiet Orbit'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=8.05 rows=0)\n    -> Nested loop inner join  (cost=4.75 rows=0)\n        -> Filter: (b.title = 'The Quiet Orbit')  (cost=1.45 rows=1.2)\n            -> Table scan on b  (cost=1.45 rows=12)\n        -> Index lookup on v using <auto_key0> (book_id=b.book_id)  (cost=0.333..3.67 rows=11)\n            -> Materialize  (cost=0..0 rows=0)\n                -> Table scan on <temporary>\n                    -> Aggregate using temporary table\n                        -> Nested loop left join  (cost=258 rows=731)\n                            -> Table scan on c  (cost=2.45 rows=22)\n                            -> Filter: ((l.copy_id = c.copy_id) and (l.returned_on is null))  (cost=8.46 rows=33.2)\n                                -> Index lookup on l using idx_loans_open_due (returned_on=NULL)  (cost=8.46 rows=33.2)\n    -> Single-row index lookup on br using PRIMARY (branch_id=v.branch_id)  (cost=0.258 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s28:427704db5258": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT branch_id, lendable_copies, available_now FROM v_branch_availability WHERE book_id = 12",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on v_branch_availability  (cost=2.5..2.5 rows=0)\n    -> Materialize  (cost=0..0 rows=0)\n        -> Table scan on <temporary>\n            -> Aggregate using temporary table\n                -> Nested loop left join  (cost=35.7 rows=99.7)\n                    -> Index lookup on c using fk_copies_book (book_id=12)  (cost=0.85 rows=3)\n                    -> Filter: ((l.copy_id = c.copy_id) and (l.returned_on is null))  (cost=9.41 rows=33.2)\n                        -> Index lookup on l using idx_loans_open_due (returned_on=NULL)  (cost=9.41 rows=33.2)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s29:12c557b1881d": {
+   "statements": [
+    {
+     "sql": "-- Wrong: every loan row is paired with every hold row of the same member\nSELECT m.card_number, COUNT(l.loan_id) AS loans_2026, COUNT(h.hold_id) AS active_holds\nFROM members m\nLEFT JOIN loans l ON l.member_id = m.member_id AND l.loaned_on >= '2026-01-01'\nLEFT JOIN holds h ON h.member_id = m.member_id AND h.status IN ('waiting', 'ready')\nGROUP BY m.member_id, m.card_number\nORDER BY m.card_number",
+     "status": "ok",
+     "columns": [
+      "card_number",
+      "loans_2026",
+      "active_holds"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       "M0000001",
+       6,
+       6
+      ],
+      [
+       "M0000002",
+       2,
+       2
+      ],
+      [
+       "M0000003",
+       2,
+       0
+      ],
+      [
+       "M0000004",
+       3,
+       3
+      ],
+      [
+       "M0000005",
+       3,
+       0
+      ],
+      [
+       "M0000006",
+       2,
+       0
+      ],
+      [
+       "M0000007",
+       0,
+       0
+      ],
+      [
+       "M0000008",
+       3,
+       0
+      ],
+      [
+       "M0000009",
+       1,
+       0
+      ],
+      [
+       "M0000010",
+       2,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s30:b97ad885ba6b": {
+   "statements": [
+    {
+     "sql": "SELECT m.card_number,\n       COALESCE(l.loans_2026, 0)  AS loans_2026,\n       COALESCE(h.active_holds, 0) AS active_holds\nFROM members m\nLEFT JOIN (SELECT member_id, COUNT(*) AS loans_2026\n           FROM loans WHERE loaned_on >= '2026-01-01' GROUP BY member_id) AS l\n       ON l.member_id = m.member_id\nLEFT JOIN (SELECT member_id, COUNT(*) AS active_holds\n           FROM holds WHERE status IN ('waiting', 'ready') GROUP BY member_id) AS h\n       ON h.member_id = m.member_id\nORDER BY m.card_number",
+     "status": "ok",
+     "columns": [
+      "card_number",
+      "loans_2026",
+      "active_holds"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       "M0000001",
+       3,
+       2
+      ],
+      [
+       "M0000002",
+       2,
+       1
+      ],
+      [
+       "M0000003",
+       2,
+       0
+      ],
+      [
+       "M0000004",
+       3,
+       1
+      ],
+      [
+       "M0000005",
+       3,
+       0
+      ],
+      [
+       "M0000006",
+       2,
+       0
+      ],
+      [
+       "M0000007",
+       0,
+       0
+      ],
+      [
+       "M0000008",
+       3,
+       0
+      ],
+      [
+       "M0000009",
+       1,
+       0
+      ],
+      [
+       "M0000010",
+       2,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s32:ba7ceaebb718": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW v_public_catalogue AS\nSELECT b.isbn13,\n       b.title,\n       (SELECT GROUP_CONCAT(a.full_name ORDER BY ba.author_order SEPARATOR ', ')\n        FROM book_authors ba JOIN authors a ON a.author_id = ba.author_id\n        WHERE ba.book_id = b.book_id)                                   AS authors,\n       br.name                                                          AS branch,\n       SUM(c.status NOT IN ('lost', 'withdrawn') AND l.loan_id IS NULL) AS available_now\nFROM books b\nJOIN copies c     ON c.book_id = b.book_id\nJOIN branches br  ON br.branch_id = c.branch_id\nLEFT JOIN loans l ON l.copy_id = c.copy_id AND l.returned_on IS NULL\nGROUP BY b.book_id, b.isbn13, b.title, br.branch_id, br.name",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT title, authors, branch, available_now\nFROM v_public_catalogue\nWHERE isbn13 = '9780000000103'\nORDER BY branch",
+     "status": "ok",
+     "columns": [
+      "title",
+      "authors",
+      "branch",
+      "available_now"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Practical SQL Patterns",
+       "Kenji Watanabe, Tom Becker",
+       "Central Library",
+       "0"
+      ],
+      [
+       "Practical SQL Patterns",
+       "Kenji Watanabe, Tom Becker",
+       "Harbor Branch",
+       "0"
+      ],
+      [
+       "Practical SQL Patterns",
+       "Kenji Watanabe, Tom Becker",
+       "Hillside Branch",
+       "1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s33:12be5313539a": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS loans, SUM(returned_on IS NULL) AS open_loans,\n       (SELECT GROUP_CONCAT(status ORDER BY copy_id) FROM copies) AS copy_states\nFROM loans",
+     "status": "ok",
+     "columns": [
+      "loans",
+      "open_loans",
+      "copy_states"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       60025,
+       "13",
+       "on_loan,available,on_loan,on_loan,on_loan,available,on_loan,on_loan,available,available,on_loan,available,on_loan,available,available,on_loan,on_loan,lost,available,on_loan,on_loan,on_loan"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s34:82a082e872a9": {
+   "statements": [
+    {
+     "sql": "-- Test: suspended member must be refused (George Mensah, M0000007)\nCALL checkout_copy('C0000002', 'M0000007', '2026-03-16')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Unknown or inactive member"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s35:686ec760fec2": {
+   "statements": [
+    {
+     "sql": "-- Test: unknown barcode must be refused\nCALL checkout_copy('C9999999', 'M0000001', '2026-03-16')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Unknown barcode"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s36:12be5313539a": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS loans, SUM(returned_on IS NULL) AS open_loans,\n       (SELECT GROUP_CONCAT(status ORDER BY copy_id) FROM copies) AS copy_states\nFROM loans",
+     "status": "ok",
+     "columns": [
+      "loans",
+      "open_loans",
+      "copy_states"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       60025,
+       "13",
+       "on_loan,available,on_loan,on_loan,on_loan,available,on_loan,on_loan,available,available,on_loan,available,on_loan,available,available,on_loan,on_loan,lost,available,on_loan,on_loan,on_loan"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s37:301266affb25": {
+   "statements": [
+    {
+     "sql": "SELECT 'fine_on_open_loan' AS check_name, COUNT(*) AS failures\nFROM fines f JOIN loans l ON l.loan_id = f.loan_id WHERE l.returned_on IS NULL\nUNION ALL\nSELECT 'fine_amount_mismatch', COUNT(*)\nFROM fines f JOIN loans l ON l.loan_id = f.loan_id\nWHERE f.amount <> DATEDIFF(l.returned_on, l.due_on) * 0.25\nUNION ALL\nSELECT 'member_over_limit', COUNT(*)\nFROM (SELECT l.member_id FROM loans l JOIN members m ON m.member_id = l.member_id\n      WHERE l.returned_on IS NULL GROUP BY l.member_id, m.max_loans HAVING COUNT(*) > m.max_loans) AS x",
+     "status": "ok",
+     "columns": [
+      "check_name",
+      "failures"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "fine_on_open_loan",
+       0
+      ],
+      [
+       "fine_amount_mismatch",
+       0
+      ],
+      [
+       "member_over_limit",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

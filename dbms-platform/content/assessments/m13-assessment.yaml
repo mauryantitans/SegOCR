@@ -1,0 +1,421 @@
+id: m13-assessment
+module: m13
+title: "Module 13 Assessment — Advanced MySQL & Industry-Oriented Topics"
+passMark: 70
+description: >-
+  Covers the whole module: JSON paths, JSON_TABLE, partial updates and JSON indexing (generated columns,
+  functional and multi-valued indexes, JSON Schema checks); VIRTUAL vs STORED generated columns and the
+  constraints they enable; FULLTEXT search modes, relevance, stopwords, token size and the ngram parser; spatial
+  types, SRIDs and SPATIAL indexes; database anti-patterns and their fixes; dimensional modelling and slowly
+  changing dimensions; ETL/ELT with watermarks, idempotent upserts, CDC and data-quality checks; analytical
+  optimization with partition pruning, summary tables and window functions; the transactional outbox,
+  SKIP LOCKED and idempotent consumers; replication, partitioning, consensus and XA two-phase commit; MySQL
+  versus PostgreSQL; and requirements-driven technology selection.
+questions:
+  - id: q1
+    question: "For `doc = {\"price\": 89.99}`, which predicate compares the price numerically?"
+    options:
+      - "doc->>'$.price' > '100'"
+      - "doc->'$.price' > 100"
+      - "JSON_UNQUOTE(doc->'$.price') > '100'"
+      - "CONCAT(doc->'$.price') > '100'"
+    answer: 1
+    explanation: "Comparing a JSON number with a numeric literal compares numbers. The other three compare strings character by character, where '89.99' > '100' is true because '8' > '1'."
+    concepts: [json-path, json]
+  - id: q2
+    question: "A multi-valued index exists on `CAST(doc->'$.tags' AS CHAR(20) ARRAY)`. Which predicate can use it?"
+    options:
+      - "JSON_CONTAINS(doc, '\"sale\"', '$.tags')"
+      - "doc->>'$.tags' LIKE '%sale%'"
+      - "JSON_OVERLAPS(doc->'$.tags', '[\"sale\", \"gift\"]')"
+      - "JSON_SEARCH(doc, 'one', 'sale') IS NOT NULL"
+    answer: 2
+    explanation: "MEMBER OF, JSON_CONTAINS and JSON_OVERLAPS can use a multi-valued index when their JSON argument is exactly the indexed expression. The three-argument JSON_CONTAINS form, LIKE and JSON_SEARCH do not match the index expression."
+    concepts: [multi-valued-index]
+  - id: q3
+    question: "Which statement about VIRTUAL and STORED generated columns is correct?"
+    options:
+      - "Only STORED columns can be indexed"
+      - "Adding a VIRTUAL column is a metadata change, while adding a STORED column rebuilds the table"
+      - "VIRTUAL columns can be foreign keys"
+      - "STORED columns may use NOW() in their expression"
+    answer: 1
+    explanation: "VIRTUAL columns occupy no row space (ALGORITHM=INSTANT); STORED columns must be written into every row. VIRTUAL columns can have secondary indexes but not foreign keys (error 3733), and generated expressions must be deterministic (NOW() is rejected)."
+    concepts: [generated-columns, virtual-column, stored-column]
+  - id: q4
+    question: "How do you enforce 'at most one active subscription per customer' in MySQL, which has no partial indexes?"
+    options:
+      - "UNIQUE (customer_id, status)"
+      - "A generated column IF(status = 'active', customer_id, NULL) with a UNIQUE index"
+      - "A CHECK constraint with a subquery"
+      - "A trigger that sleeps"
+    answer: 1
+    explanation: "UNIQUE indexes allow many NULLs, so only active rows participate. UNIQUE (customer_id, status) would also forbid two cancelled rows; CHECK constraints cannot contain subqueries."
+    concepts: [partial-unique-index]
+  - id: q5
+    question: "A transaction inserts a help article and immediately searches for one of its words with MATCH … AGAINST before committing. What does it find?"
+    options:
+      - "The new article, ranked first"
+      - "Not the new article — InnoDB applies FULLTEXT index changes at commit"
+      - "An error"
+      - "The new article with a score of zero"
+    answer: 1
+    explanation: "FULLTEXT changes become visible to searches on commit, even for the inserting transaction; LIKE over the table would see the row."
+    concepts: [full-text-search, fulltext-index]
+  - id: q6
+    question: "Which change would make the two-letter code 'UI' searchable in an InnoDB FULLTEXT index?"
+    options:
+      - "Using boolean mode"
+      - "Setting innodb_ft_min_token_size = 2 in the server configuration, restarting and rebuilding the FULLTEXT index"
+      - "Adding WITH QUERY EXPANSION"
+      - "SET SESSION innodb_ft_min_token_size = 2"
+    answer: 1
+    explanation: "Tokens shorter than innodb_ft_min_token_size (default 3) are never indexed; the variable is read-only at runtime (the lab shows error 1238), and the index must be rebuilt. Query modes cannot find tokens that are not in the index."
+    concepts: [stopwords, fulltext-index]
+  - id: q7
+    question: "Why does `CREATE TABLE t (id INT PRIMARY KEY, g POINT NOT NULL, SPATIAL INDEX (g))` produce a warning?"
+    options:
+      - "SPATIAL indexes require MyISAM"
+      - "Without an SRID attribute the optimizer will never use the spatial index"
+      - "POINT columns cannot be NOT NULL"
+      - "SPATIAL indexes must be UNIQUE"
+    answer: 1
+    explanation: "An R-tree can only order values from one spatial reference system, so MySQL warns (3674) that an index on a column without SRID is unusable. InnoDB supports SPATIAL indexes, which require NOT NULL and are never unique."
+    concepts: [spatial-index, srid]
+  - id: q8
+    question: "Which anti-pattern makes it impossible to declare a foreign key?"
+    options:
+      - "FLOAT for money"
+      - "Polymorphic association (commentable_type, commentable_id)"
+      - "SELECT * in a view"
+      - "A God table"
+    answer: 1
+    explanation: "A foreign key references one table, but a polymorphic pair references a table chosen by a data value. The other anti-patterns cause wrong sums, frozen view columns and coupling, but do not prevent FK declarations."
+    concepts: [polymorphic-associations, anti-patterns]
+  - id: q9
+    question: "A list page shows 100 orders and, through ORM lazy loading, each order's customer. How many SELECTs are issued, and what fixes it?"
+    options:
+      - "1; nothing to fix"
+      - "101; a JOIN or one batched IN-list query"
+      - "100; an index on customers"
+      - "2; a bigger connection pool"
+    answer: 1
+    explanation: "N + 1 queries: one for the orders, one per order. Indexes cannot remove round-trips; a join (1 statement) or eager loading (2 statements) can."
+    concepts: [n-plus-one]
+  - id: q10
+    question: "A customer dimension uses SCD type 2 with half-open intervals [effective_from, effective_to). Which join attaches each fact to the version valid at the event time?"
+    options:
+      - "f.customer_id = d.customer_id AND d.is_current"
+      - "f.customer_id = d.customer_id AND f.ts >= d.effective_from AND f.ts < d.effective_to"
+      - "f.customer_id = d.customer_id AND f.ts BETWEEN d.effective_from AND d.effective_to"
+      - "f.customer_id = d.customer_id"
+    answer: 1
+    explanation: "The half-open predicate matches exactly one version. is_current gives today's attributes (type 1 semantics), BETWEEN matches two versions at a boundary instant (or none with inclusive day-before expiry dates and DATETIME events), and a natural-key join duplicates facts once there are several versions."
+    concepts: [slowly-changing-dimensions]
+  - id: q11
+    question: "Why must a pipeline's watermark be advanced in the same transaction as the load it covers, and why must the load be idempotent?"
+    options:
+      - "For performance only"
+      - "So that a crash never leaves data loaded without the watermark moved (or vice versa), and a retried batch does not duplicate rows"
+      - "Because MySQL requires it"
+      - "Because watermarks must be timestamps"
+    answer: 1
+    explanation: "Atomic watermark advance plus idempotent upserts make every run safe to retry. MySQL imposes neither; watermarks can be timestamps, ids or binlog positions."
+    concepts: [watermark, idempotency]
+  - id: q12
+    question: "A watermark-based extract uses `updated_at > last_ts`. A slow transaction stamped a row 10:00 but commits after the job advanced the watermark to 10:05. What happens and what prevents it?"
+    options:
+      - "The row is extracted next run; nothing to prevent"
+      - "The row is never extracted; re-read an overlap window with idempotent upserts, or use binlog CDC which follows commit order"
+      - "The commit fails"
+      - "MySQL rewrites updated_at to the commit time"
+    answer: 1
+    explanation: "Visibility depends on commit time, not on the stored timestamp, as the lesson's concurrency scenario demonstrated. A lookback window or log-based CDC avoids the silent loss."
+    concepts: [incremental-load, change-data-capture]
+  - id: q13
+    question: "A fact table is partitioned with RANGE COLUMNS (sale_date). Which predicate allows partition pruning?"
+    options:
+      - "YEAR(sale_date) = 2024 AND MONTH(sale_date) = 5"
+      - "sale_date >= '2024-05-01' AND sale_date < '2024-06-01'"
+      - "DATE_FORMAT(sale_date, '%Y-%m') = '2024-05'"
+      - "sale_date LIKE '2024-05%'"
+    answer: 1
+    explanation: "Pruning needs conditions on the bare partitioning column; functions and string patterns hide the range, so every partition is read."
+    concepts: [partition-pruning]
+  - id: q14
+    question: "Which values can be stored in a daily summary table and correctly re-aggregated to months? (Select all that apply.)"
+    type: multi
+    options: ["SUM(revenue)", "COUNT(*)", "AVG(revenue)", "COUNT(DISTINCT customer_id)"]
+    answer: [0, 1]
+    explanation: "SUM and COUNT are distributive. An average must be recomputed as SUM/COUNT; distinct counts are holistic and cannot be summed across days."
+    concepts: [summary-tables, pre-aggregation]
+  - id: q15
+    question: "Two relay workers claim outbox rows with `… ORDER BY event_id LIMIT 3 FOR UPDATE SKIP LOCKED`. Which statements are true? (Select all that apply.)"
+    type: multi
+    options:
+      - "They receive disjoint batches without waiting for each other"
+      - "Events of the same aggregate can end up in different workers' batches, so per-aggregate order is not guaranteed by SKIP LOCKED"
+      - "The second worker receives error 3572"
+      - "SKIP LOCKED makes delivery exactly-once end to end"
+    answer: [0, 1]
+    explanation: "SKIP LOCKED skips locked rows; the lesson's run split order 12's events across workers. NOWAIT, not SKIP LOCKED, raises 3572, and delivery remains at-least-once — consumers must be idempotent."
+    concepts: [skip-locked, event-ordering]
+  - id: q16
+    question: "In XA two-phase commit, what is the state of a branch after a successful `XA PREPARE`?"
+    options:
+      - "Committed"
+      - "Durable and holding its locks, waiting for XA COMMIT or XA ROLLBACK; with xa_detach_on_prepare = ON it is detached from the session"
+      - "Rolled back automatically after the session ends"
+      - "Visible to other transactions"
+    answer: 1
+    explanation: "Prepared branches survive crashes and keep locks (the lesson showed another session blocked); any session can finish a detached branch by xid. The prepared change is not visible until commit."
+    concepts: [two-phase-commit, xa-transactions]
+  - id: q17
+    question: "Which pairing of MVCC implementations is correct?"
+    options:
+      - "InnoDB appends new row versions to the table; PostgreSQL uses an undo log"
+      - "InnoDB updates rows in place and keeps old versions in undo (removed by purge); PostgreSQL writes new tuple versions to the heap (reclaimed by VACUUM)"
+      - "Both use undo logs"
+      - "Neither keeps old versions"
+    answer: 1
+    explanation: "The lab showed an InnoDB table's size unchanged after 150,000 updates; PostgreSQL's dead tuples remain until VACUUM."
+    concepts: [mvcc, mysql-vs-postgresql]
+  - id: q18
+    question: "In a database selection, 'all data must remain in the EU' should be handled as …"
+    options:
+      - "A criterion with a high weight"
+      - "A hard constraint that eliminates non-compliant options before scoring"
+      - "A tie-breaker"
+      - "Something to address after launch"
+    answer: 1
+    explanation: "Must-haves are filters: in an additive matrix a failed must-have could be compensated by high scores elsewhere."
+    concepts: [technology-selection, decision-matrix]
+challenges:
+  - id: c1
+    title: Revenue by product tag via JSON_TABLE
+    dataset: shop
+    difficulty: hard
+    setup: |
+      CREATE TABLE product_docs (product_id INT UNSIGNED PRIMARY KEY, doc JSON NOT NULL);
+      INSERT INTO product_docs (product_id, doc)
+      SELECT product_id,
+             JSON_OBJECT('sku', sku,
+               'tags', CASE product_id % 4 WHEN 0 THEN JSON_ARRAY('gift', 'sale') WHEN 1 THEN JSON_ARRAY('new')
+                                           WHEN 2 THEN JSON_ARRAY('eco', 'sale') ELSE JSON_ARRAY() END)
+      FROM products;
+    prompt: |
+      `product_docs(product_id, doc JSON)` stores each product's tags as a JSON array under `$.tags`.
+      Return, for every tag, the item revenue (Σ `quantity × unit_price` from `order_items`) of **delivered**
+      orders for products carrying that tag. Columns: `tag`, `revenue`. Order by `revenue` descending, then
+      `tag`. (A product with two tags contributes to both.)
+    hints:
+      - "JSON_TABLE(pd.doc, '$.tags[*]' COLUMNS (tag VARCHAR(20) PATH '$')) turns each tag into a row."
+      - "Join the tag rows to order_items on product_id and to orders for the status filter."
+      - "GROUP BY the tag."
+    solution: |
+      SELECT t.tag, SUM(oi.quantity * oi.unit_price) AS revenue
+      FROM product_docs pd
+      JOIN JSON_TABLE(pd.doc, '$.tags[*]' COLUMNS (tag VARCHAR(20) PATH '$')) AS t ON TRUE
+      JOIN order_items oi ON oi.product_id = pd.product_id
+      JOIN orders o       ON o.order_id = oi.order_id
+      WHERE o.status = 'delivered'
+      GROUP BY t.tag
+      ORDER BY revenue DESC, t.tag;
+    orderMatters: true
+    explanation: |
+      JSON_TABLE is joined laterally (it references pd.doc). Because a product can have two tags, the same line
+      item contributes to two tags — intended here, but summing the per-tag revenues would therefore exceed the
+      total revenue. Products with an empty tag array produce no rows and are correctly excluded.
+  - id: c2
+    title: As-was revenue by city with an SCD type 2 dimension
+    dataset: shop
+    difficulty: hard
+    setup: |
+      CREATE TABLE dim_customer (
+        customer_key INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, customer_id INT UNSIGNED NOT NULL,
+        city VARCHAR(60) NOT NULL, effective_from DATETIME NOT NULL,
+        effective_to DATETIME NOT NULL DEFAULT '9999-12-31 00:00:00', is_current BOOLEAN NOT NULL DEFAULT TRUE);
+      INSERT INTO dim_customer (customer_id, city, effective_from)
+      SELECT customer_id, city, '1900-01-01 00:00:00' FROM customers ORDER BY customer_id;
+      UPDATE dim_customer SET effective_to = '2024-07-01 00:00:00', is_current = FALSE WHERE customer_id IN (4, 7);
+      INSERT INTO dim_customer (customer_id, city, effective_from) VALUES
+        (4, 'Seattle', '2024-07-01 00:00:00'), (7, 'Austin', '2024-07-01 00:00:00');
+    prompt: |
+      Customers 4 and 7 moved on 2024-07-01 (see `dim_customer`, an SCD type 2 dimension with half-open
+      validity intervals). Return item revenue of **delivered** orders by the customer's city **at the time of
+      the order**. Columns: `city`, `revenue`. Order by `city`.
+    hints:
+      - "Join orders to dim_customer on customer_id AND order_date >= effective_from AND order_date < effective_to."
+      - "Do not use customers.city or is_current — they give the current city."
+    solution: |
+      SELECT d.city, SUM(oi.quantity * oi.unit_price) AS revenue
+      FROM orders o
+      JOIN dim_customer d ON d.customer_id = o.customer_id
+                         AND o.order_date >= d.effective_from AND o.order_date < d.effective_to
+      JOIN order_items oi ON oi.order_id = o.order_id
+      WHERE o.status = 'delivered'
+      GROUP BY d.city
+      ORDER BY d.city;
+    orderMatters: true
+    explanation: |
+      The point-in-time join attributes each order to the version valid at its order date. Joining on
+      customer_id alone would match two versions for customers 4 and 7 and double their revenue; joining with
+      is_current would re-attribute their spring orders to the new cities (type 1 semantics).
+  - id: c3
+    title: Next event to apply per aggregate
+    dataset: empty
+    difficulty: challenge
+    setup: |
+      CREATE TABLE outbox (event_id INT PRIMARY KEY, aggregate_id INT NOT NULL, aggregate_version INT NOT NULL,
+        event_type VARCHAR(20) NOT NULL, UNIQUE KEY (aggregate_id, aggregate_version));
+      INSERT INTO outbox VALUES
+        (1, 12, 1, 'OrderPlaced'), (2, 12, 2, 'OrderPaid'), (3, 40, 1, 'OrderPlaced'), (4, 12, 3, 'OrderShipped'),
+        (5, 81, 1, 'OrderPlaced'), (6, 40, 2, 'OrderPaid'), (7, 81, 2, 'OrderPaid'), (8, 99, 1, 'OrderPlaced');
+      CREATE TABLE projection (aggregate_id INT PRIMARY KEY, version INT NOT NULL);
+      INSERT INTO projection VALUES (12, 1), (40, 2), (81, 0);
+    prompt: |
+      A consumer keeps, in `projection`, the last applied `version` of each aggregate (aggregates missing from
+      `projection` have applied nothing, i.e. version 0). For every aggregate that has an event it can apply
+      **next** (its `aggregate_version` is exactly the applied version + 1), return that event. Columns:
+      `aggregate_id`, `event_id`, `event_type`. Order by `aggregate_id`.
+    hints:
+      - "LEFT JOIN outbox to projection and use COALESCE(p.version, 0) for missing aggregates."
+      - "The next event satisfies o.aggregate_version = COALESCE(p.version, 0) + 1."
+    solution: |
+      SELECT o.aggregate_id, o.event_id, o.event_type
+      FROM outbox o
+      LEFT JOIN projection p ON p.aggregate_id = o.aggregate_id
+      WHERE o.aggregate_version = COALESCE(p.version, 0) + 1
+      ORDER BY o.aggregate_id;
+    orderMatters: true
+    explanation: |
+      Aggregate 12 is at version 1, so OrderPaid (v2) is next — not OrderShipped (v3). Aggregate 40 has applied
+      everything; 81 and 99 start at version 1. Applying events by version this way gives both ordering and
+      idempotency: a re-delivered event never matches "applied + 1" again.
+  - id: c4
+    title: Migrate a comma-separated tag list
+    dataset: shop
+    difficulty: hard
+    setup: |
+      CREATE TABLE products_csv (product_id INT UNSIGNED PRIMARY KEY, tags VARCHAR(255) NOT NULL);
+      INSERT INTO products_csv
+      SELECT product_id, CASE product_id % 5 WHEN 0 THEN 'gift,sale' WHEN 1 THEN 'new' WHEN 2 THEN 'eco,sale'
+                                             WHEN 3 THEN 'resale' ELSE 'gift, eco' END
+      FROM products;
+      CREATE TABLE tags (tag_id SMALLINT UNSIGNED PRIMARY KEY, tag VARCHAR(30) NOT NULL UNIQUE);
+      INSERT INTO tags VALUES (1, 'gift'), (2, 'sale'), (3, 'new'), (4, 'eco'), (5, 'resale');
+    prompt: |
+      `products_csv.tags` holds comma-separated tag names, sometimes with spaces after commas. Return the
+      correct number of **active** products per tag (products.is_active), counting each tag only as a whole
+      list element (so *resale* is not *sale*). Columns: `tag`, `products`. Include only tags used by at least
+      one active product. Order by `tag`.
+    hints:
+      - "FIND_IN_SET(t.tag, REPLACE(pc.tags, ' ', '')) matches whole elements after removing spaces."
+      - "Join products to filter is_active."
+    solution: |
+      SELECT t.tag, COUNT(*) AS products
+      FROM products_csv pc
+      JOIN products p ON p.product_id = pc.product_id AND p.is_active
+      JOIN tags t     ON FIND_IN_SET(t.tag, REPLACE(pc.tags, ' ', ''))
+      GROUP BY t.tag
+      ORDER BY t.tag;
+    orderMatters: true
+    explanation: |
+      `LIKE '%sale%'` would also count *resale* products, and FIND_IN_SET without REPLACE misses ' eco'. The same
+      join, inserted into a `product_tags(product_id, tag_id)` junction table, is the migration that removes the
+      anti-pattern.
+interview:
+  - id: i1
+    question: "When would you store data in a MySQL JSON column, and when would you insist on regular columns?"
+    answer: |
+      Use JSON for genuinely variable or opaque data that is mostly read and written as a whole: per-category
+      product attributes, third-party webhook payloads stored for audit, user preferences, event payloads with a
+      schema version. Validate the shape with `CHECK (JSON_SCHEMA_VALID(…))`, update with `JSON_SET`/`JSON_REPLACE`
+      (partial updates), and index the few fields you filter on through typed generated columns, functional
+      indexes or multi-valued indexes, verified with EXPLAIN.
+
+      Insist on columns for anything that is filtered, joined, aggregated or constrained: identifiers, foreign
+      keys, money, status, timestamps, anything that must be unique. JSON gives up typing, foreign keys and
+      optimizer statistics; a field that becomes hot should be promoted to a column. And never use JSON arrays
+      for relationships — that is a child table.
+    concepts: [json, semi-structured-data]
+  - id: i2
+    question: "Explain how you would guarantee that an order and its 'OrderPlaced' event are never inconsistent, and what consumers must do."
+    answer: |
+      The dual-write problem — commit to the database, then publish to Kafka — has no safe ordering, because the
+      two systems share no transaction. I would use a **transactional outbox**: insert the event row into an
+      `outbox` table in the same InnoDB transaction as the order rows, so atomicity comes from the database.
+      A relay then publishes outbox rows — either a polling publisher using `SELECT … FOR UPDATE SKIP LOCKED`
+      batches, or Debezium reading the row-based binlog (with the Outbox Event Router), which also follows
+      commit order.
+
+      Delivery is at-least-once, so consumers must be **idempotent**: record the event id in a dedup table with a
+      primary key in the same transaction as the side effect, or apply state changes with a version check
+      (`UPDATE … WHERE version = new_version - 1`). Events are keyed by aggregate id so they are ordered per
+      aggregate; payloads carry a schema version and evolve additively with upcasters.
+    concepts: [transactional-outbox, idempotent-consumer]
+  - id: i3
+    question: "What is a slowly changing dimension, and how would you implement type 2 in MySQL?"
+    answer: |
+      Dimension attributes change over time (a customer moves, a product changes category). Type 1 overwrites —
+      history is restated with current values; type 2 keeps history by adding a new row version; type 3 keeps a
+      limited previous value in an extra column.
+
+      For type 2 in MySQL: surrogate key (`AUTO_INCREMENT`), natural key, tracked attributes,
+      `effective_from`, `effective_to` (far-future sentinel for the current row) and `is_current`. A change is one
+      transaction: `UPDATE … SET effective_to = change_ts, is_current = FALSE WHERE natural_key = ? AND is_current`
+      followed by `INSERT` of the new version from `change_ts`. Intervals are half-open; the first version starts
+      at a "beginning of time" sentinel so that early facts are not dropped. Facts get the surrogate key with a
+      point-in-time lookup (`ts >= effective_from AND ts < effective_to`) at load time. Reconcile fact row counts
+      against the source after each load.
+    concepts: [slowly-changing-dimensions, dimensional-modeling]
+  - id: i4
+    question: "Walk me through two-phase commit. Why is it called blocking, and how does MySQL XA expose that?"
+    answer: |
+      A coordinator runs a transaction across several participants. Phase 1: it asks each to prepare — the
+      participant makes the changes durable and promises to commit if asked (a yes vote), or votes no. Phase 2:
+      if all voted yes, the coordinator logs COMMIT and tells everyone to commit; otherwise it tells everyone to
+      roll back.
+
+      It is blocking because a prepared participant cannot decide alone: if the coordinator fails after phase 1,
+      the participant must keep its locks until it learns the outcome. In MySQL a branch goes `XA START` → `XA END`
+      → `XA PREPARE` → `XA COMMIT`/`XA ROLLBACK`. A prepared branch is durable across restarts and keeps its row
+      locks — other transactions on those rows wait. Since 8.0.29 it is detached from its session
+      (`xa_detach_on_prepare`), so a recovering coordinator can finish it by xid; `XA RECOVER` (privilege
+      `XA_RECOVER_ADMIN`) lists in-doubt branches. Distributed SQL systems mitigate blocking by making each
+      participant a consensus group; microservices often prefer sagas.
+    concepts: [two-phase-commit, xa-transactions]
+  - id: i5
+    question: "Compare MySQL/InnoDB and PostgreSQL in a way that would help a team choose between them."
+    answer: |
+      Storage: InnoDB is index-organized — rows live in the primary-key B+ tree and secondary indexes store the
+      PK, so PK lookups and range scans are cheap and random PKs hurt; PostgreSQL uses heap tables with secondary
+      indexes pointing to tuple ids. MVCC: InnoDB updates in place with undo logs and purge, PostgreSQL writes new
+      tuple versions and relies on VACUUM — both suffer from long transactions (undo growth vs bloat).
+      Isolation: MySQL defaults to REPEATABLE READ with current reads for locking statements; PostgreSQL defaults
+      to READ COMMITTED and its REPEATABLE READ aborts on write conflicts — ported read-modify-write code must be
+      re-checked.
+
+      SQL: PostgreSQL has FULL JOIN, RETURNING, MERGE, partial indexes, transactional DDL, FILTER, arrays and an
+      extension ecosystem (PostGIS, pgvector); MySQL has ON DUPLICATE KEY UPDATE, generated-column idioms for
+      partial uniqueness, CHECK enforced since 8.0.16, and is more permissive with implicit conversions in
+      SELECTs. Operations: both have mature managed services; MySQL's binlog replication and Group Replication vs
+      PostgreSQL's WAL streaming and logical replication. For typical OLTP both are excellent; decide on required
+      features/extensions, team skills and operational ecosystem, and benchmark only the patterns that differ.
+    concepts: [mysql-vs-postgresql, mvcc]
+  - id: i6
+    question: "How do you choose a database for a new service? Describe your process."
+    answer: |
+      Start from requirements with numbers: data model, access patterns, volumes and growth, peak throughput, p99
+      latency, consistency needs, RPO/RTO, regions and compliance, team skills and budget. Measure what exists
+      (row counts, sizes from information_schema, status counters, slow-query digests).
+
+      Apply hard constraints first and record why options were eliminated. Score the remaining options on
+      weighted criteria — data-model and workload fit, integrity, operational maturity, ecosystem, team skills,
+      scalability, total cost — and run a sensitivity analysis on the weights; if the result is not robust, run a
+      proof of concept on the riskiest assumption. Estimate capacity to a horizon (rows × bytes × growth ×
+      retention, peak TPS) to see whether distribution is actually needed. Prefer fewer, well-understood systems,
+      adding specialized stores (search, warehouse, cache, stream) only for requirements that demand them, fed
+      from the system of record by CDC. Write an ADR with context, options, decision, consequences and revisit
+      triggers.
+    concepts: [technology-selection, architecture-decision-records]

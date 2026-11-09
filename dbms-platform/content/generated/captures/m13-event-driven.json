@@ -1,0 +1,1020 @@
+{
+ "doc": "m13-event-driven",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:92b513a83948": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE outbox (\n  event_id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,\n  aggregate_type    VARCHAR(30)  NOT NULL,\n  aggregate_id      BIGINT UNSIGNED NOT NULL,\n  aggregate_version INT UNSIGNED NOT NULL,\n  event_type        VARCHAR(40)  NOT NULL,\n  schema_version    TINYINT UNSIGNED NOT NULL DEFAULT 1,\n  payload           JSON NOT NULL,\n  created_at        DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),\n  published_at      DATETIME(6) NULL,\n  KEY idx_outbox_unpublished (published_at, event_id),\n  UNIQUE KEY uq_outbox_aggregate_version (aggregate_type, aggregate_id, aggregate_version)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s2:6ad88b0e222b": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders (customer_id, order_date, status) VALUES (3, '2024-12-31 10:00:00', 'pending')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SET @order_id = LAST_INSERT_ID()",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (@order_id, 5, 2, 29.99)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO outbox (aggregate_type, aggregate_id, aggregate_version, event_type, payload)\nVALUES ('order', @order_id, 1, 'OrderPlaced',\n        JSON_OBJECT('order_id', @order_id, 'customer_id', 3, 'total', 59.98,\n                    'items', JSON_ARRAY(JSON_OBJECT('product_id', 5, 'qty', 2))))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT event_id, aggregate_id, aggregate_version, event_type, payload, published_at FROM outbox",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "aggregate_id",
+      "aggregate_version",
+      "event_type",
+      "payload",
+      "published_at"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       81,
+       1,
+       "OrderPlaced",
+       "{\"items\": [{\"qty\": 2, \"product_id\": 5}], \"total\": 59.98, \"order_id\": 81, \"customer_id\": 3}",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:36480762dd2a": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders (customer_id, order_date, status) VALUES (7, '2024-12-31 11:00:00', 'pending')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SET @order_id = LAST_INSERT_ID()",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO outbox (aggregate_type, aggregate_id, aggregate_version, event_type, payload)\nVALUES ('order', @order_id, 1, 'OrderPlaced', JSON_OBJECT('order_id', @order_id, 'customer_id', 7, 'total', 10.00))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM orders WHERE order_date = '2024-12-31 11:00:00') AS orders_left,\n       (SELECT COUNT(*) FROM outbox WHERE aggregate_id = @order_id)            AS events_left",
+     "status": "ok",
+     "columns": [
+      "orders_left",
+      "events_left"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:6dbfa0873223": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT event_id FROM outbox WHERE published_at IS NULL ORDER BY event_id LIMIT 100 FOR UPDATE SKIP LOCKED",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "outbox",
+       null,
+       "ref",
+       "idx_outbox_unpublished",
+       "idx_outbox_unpublished",
+       "9",
+       "const",
+       1,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `outbox`.`event_id` AS `event_id` from `outbox` where (`outbox`.`published_at` is null) order by `outbox`.`event_id` limit 100"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:353f14feddba": {
+   "statements": [
+    {
+     "sql": "INSERT INTO outbox (aggregate_type, aggregate_id, aggregate_version, event_type, payload) VALUES\n  ('order', 81, 2, 'OrderPaid',   JSON_OBJECT('order_id', 81, 'amount', 59.98, 'method', 'card')),\n  ('order', 12, 1, 'OrderPlaced', JSON_OBJECT('order_id', 12, 'customer_id', 18, 'total', 120.00)),\n  ('order', 12, 2, 'OrderPaid',   JSON_OBJECT('order_id', 12, 'amount', 120.00, 'method', 'paypal'))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT event_id, aggregate_id, aggregate_version, event_type\nFROM outbox WHERE published_at IS NULL ORDER BY event_id LIMIT 2 FOR UPDATE SKIP LOCKED",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "aggregate_id",
+      "aggregate_version",
+      "event_type"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       81,
+       1,
+       "OrderPlaced"
+      ],
+      [
+       3,
+       81,
+       2,
+       "OrderPaid"
+      ]
+     ]
+    },
+    {
+     "sql": "-- … the relay sends these two events to the broker here …\nUPDATE outbox SET published_at = '2024-12-31 12:00:00'\nWHERE published_at IS NULL ORDER BY event_id LIMIT 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Rows matched: 2  Changed: 2  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT event_id, aggregate_id, event_type, published_at FROM outbox ORDER BY event_id",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "aggregate_id",
+      "event_type",
+      "published_at"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       81,
+       "OrderPlaced",
+       "2024-12-31 12:00:00.000000"
+      ],
+      [
+       3,
+       81,
+       "OrderPaid",
+       "2024-12-31 12:00:00.000000"
+      ],
+      [
+       4,
+       12,
+       "OrderPlaced",
+       null
+      ],
+      [
+       5,
+       12,
+       "OrderPaid",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:10bbac5a815f": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE processed_events (\n  consumer     VARCHAR(30) NOT NULL,\n  event_id     BIGINT UNSIGNED NOT NULL,\n  processed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  PRIMARY KEY (consumer, event_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE loyalty_points (customer_id INT UNSIGNED PRIMARY KEY, points INT NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE PROCEDURE loyalty_on_order_placed(IN p_event_id BIGINT UNSIGNED)\nBEGIN\n  DECLARE v_customer INT UNSIGNED;\n  DECLARE v_total DECIMAL(10,2);\n  START TRANSACTION;\n  INSERT IGNORE INTO processed_events (consumer, event_id) VALUES ('loyalty', p_event_id);\n  IF ROW_COUNT() = 1 THEN\n    SELECT payload->>'$.customer_id', payload->>'$.total' INTO v_customer, v_total\n    FROM outbox WHERE event_id = p_event_id AND event_type = 'OrderPlaced';\n    INSERT INTO loyalty_points (customer_id, points) VALUES (v_customer, FLOOR(v_total)) AS new\n    ON DUPLICATE KEY UPDATE points = loyalty_points.points + new.points;\n  END IF;\n  COMMIT;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL loyalty_on_order_placed(1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL loyalty_on_order_placed(1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL loyalty_on_order_placed(1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT customer_id, points FROM loyalty_points",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "points"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3,
+       59
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT consumer, event_id FROM processed_events",
+     "status": "ok",
+     "columns": [
+      "consumer",
+      "event_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "loyalty",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:0e22c4333824": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE order_projection (order_id INT UNSIGNED PRIMARY KEY, status VARCHAR(12) NOT NULL, version INT UNSIGNED NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO order_projection VALUES (12, 'placed', 1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "-- OrderShipped (version 3) arrives BEFORE OrderPaid (version 2):\nUPDATE order_projection SET status = 'shipped', version = 3 WHERE order_id = 12 AND version = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT order_id, status, version FROM order_projection",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       12,
+       "placed",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:945b92d38ca6": {
+   "statements": [
+    {
+     "sql": "UPDATE order_projection SET status = 'paid',    version = 2 WHERE order_id = 12 AND version = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE order_projection SET status = 'shipped', version = 3 WHERE order_id = 12 AND version = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT order_id, status, version FROM order_projection",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       12,
+       "shipped",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:90b5b937b6ad": {
+   "statements": [
+    {
+     "sql": "INSERT INTO outbox (aggregate_type, aggregate_id, aggregate_version, event_type, schema_version, payload)\nVALUES ('order', 40, 1, 'OrderPlaced', 2,\n        JSON_OBJECT('order_id', 40, 'customer_id', 7, 'amount', JSON_OBJECT('value', 75.00, 'currency', 'EUR')))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CREATE VIEW v_order_placed_v2 AS\nSELECT event_id, aggregate_id AS order_id,\n       CAST(payload->>'$.customer_id' AS UNSIGNED) AS customer_id,\n       CASE schema_version\n         WHEN 1 THEN JSON_OBJECT('value', payload->'$.total', 'currency', 'USD')\n         ELSE payload->'$.amount'\n       END AS amount,\n       schema_version AS original_schema_version\nFROM outbox WHERE event_type = 'OrderPlaced'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT event_id, order_id, customer_id, amount, original_schema_version FROM v_order_placed_v2 ORDER BY event_id",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "order_id",
+      "customer_id",
+      "amount",
+      "original_schema_version"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       81,
+       3,
+       "{\"value\": 59.98, \"currency\": \"USD\"}",
+       1
+      ],
+      [
+       4,
+       12,
+       18,
+       "{\"value\": 120.00, \"currency\": \"USD\"}",
+       1
+      ],
+      [
+       6,
+       40,
+       7,
+       "{\"value\": 75.00, \"currency\": \"EUR\"}",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:fb06bd1e057d": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT event_id, aggregate_id, event_type FROM outbox WHERE published_at IS NULL ORDER BY event_id LIMIT 3 FOR UPDATE SKIP LOCKED",
+       "status": "ok",
+       "columns": [
+        "event_id",
+        "aggregate_id",
+        "event_type"
+       ],
+       "row_count": 3,
+       "rows": [
+        [
+         1,
+         81,
+         "OrderPlaced"
+        ],
+        [
+         2,
+         81,
+         "OrderPaid"
+        ],
+        [
+         3,
+         12,
+         "OrderPlaced"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT event_id, aggregate_id, event_type FROM outbox WHERE published_at IS NULL ORDER BY event_id LIMIT 3 FOR UPDATE SKIP LOCKED",
+       "status": "ok",
+       "columns": [
+        "event_id",
+        "aggregate_id",
+        "event_type"
+       ],
+       "row_count": 3,
+       "rows": [
+        [
+         4,
+         12,
+         "OrderPaid"
+        ],
+        [
+         5,
+         40,
+         "OrderPlaced"
+        ],
+        [
+         6,
+         40,
+         "OrderPaid"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "602888",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 6,
+        "rowsModified": 0,
+        "lockStructs": 3
+       },
+       {
+        "session": "B",
+        "trxId": "602893",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 6,
+        "rowsModified": 0,
+        "lockStructs": 3
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "outbox",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "outbox",
+        "index": "idx_unpub",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "NULL, 1"
+       },
+       {
+        "session": "A",
+        "table": "outbox",
+        "index": "idx_unpub",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "NULL, 2"
+       },
+       {
+        "session": "A",
+        "table": "outbox",
+        "index": "idx_unpub",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "NULL, 3"
+       },
+       {
+        "session": "A",
+        "table": "outbox",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "A",
+        "table": "outbox",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "2"
+       },
+       {
+        "session": "A",
+        "table": "outbox",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "3"
+       },
+       {
+        "session": "B",
+        "table": "outbox",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "outbox",
+        "index": "idx_unpub",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "NULL, 4"
+       },
+       {
+        "session": "B",
+        "table": "outbox",
+        "index": "idx_unpub",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "NULL, 5"
+       },
+       {
+        "session": "B",
+        "table": "outbox",
+        "index": "idx_unpub",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "NULL, 6"
+       },
+       {
+        "session": "B",
+        "table": "outbox",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "4"
+       },
+       {
+        "session": "B",
+        "table": "outbox",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "5"
+       },
+       {
+        "session": "B",
+        "table": "outbox",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "6"
+       }
+      ]
+     }
+    },
+    {
+     "step": 3,
+     "session": "C",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT event_id FROM outbox WHERE published_at IS NULL ORDER BY event_id LIMIT 3 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "event_id"
+       ],
+       "row_count": 0,
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 5,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE outbox SET published_at = '2024-12-31 12:00:00' WHERE event_id IN (1, 2, 3)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 3,
+       "info": "Rows matched: 3  Changed: 3  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE outbox SET published_at = '2024-12-31 12:00:01' WHERE event_id IN (4, 5, 6)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 3,
+       "info": "Rows matched: 3  Changed: 3  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT event_id, published_at FROM outbox ORDER BY event_id",
+       "status": "ok",
+       "columns": [
+        "event_id",
+        "published_at"
+       ],
+       "row_count": 6,
+       "rows": [
+        [
+         1,
+         "2024-12-31 12:00:00"
+        ],
+        [
+         2,
+         "2024-12-31 12:00:00"
+        ],
+        [
+         3,
+         "2024-12-31 12:00:00"
+        ],
+        [
+         4,
+         "2024-12-31 12:00:01"
+        ],
+        [
+         5,
+         "2024-12-31 12:00:01"
+        ],
+        [
+         6,
+         "2024-12-31 12:00:01"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s10:f2f756e0ff22": {
+   "statements": [
+    {
+     "sql": "SELECT event_id, aggregate_id, aggregate_version, event_type, schema_version,\n       IF(published_at IS NULL, 'pending', 'published') AS state\nFROM outbox ORDER BY event_id",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "aggregate_id",
+      "aggregate_version",
+      "event_type",
+      "schema_version",
+      "state"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       81,
+       1,
+       "OrderPlaced",
+       1,
+       "published"
+      ],
+      [
+       3,
+       81,
+       2,
+       "OrderPaid",
+       1,
+       "published"
+      ],
+      [
+       4,
+       12,
+       1,
+       "OrderPlaced",
+       1,
+       "pending"
+      ],
+      [
+       5,
+       12,
+       2,
+       "OrderPaid",
+       1,
+       "pending"
+      ],
+      [
+       6,
+       40,
+       1,
+       "OrderPlaced",
+       2,
+       "pending"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT 'loyalty points' AS what, COUNT(*) AS n FROM loyalty_points\nUNION ALL SELECT 'processed events', COUNT(*) FROM processed_events\nUNION ALL SELECT 'unpublished outbox rows', COUNT(*) FROM outbox WHERE published_at IS NULL",
+     "status": "ok",
+     "columns": [
+      "what",
+      "n"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "loyalty points",
+       1
+      ],
+      [
+       "processed events",
+       1
+      ],
+      [
+       "unpublished outbox rows",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:93c4bdf306b1": {
+   "statements": [
+    {
+     "sql": "INSERT INTO loyalty_points (customer_id, points) VALUES (3, 59) AS new\nON DUPLICATE KEY UPDATE points = loyalty_points.points + new.points",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "rows": []
+    },
+    {
+     "sql": "SELECT customer_id, points FROM loyalty_points",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "points"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3,
+       118
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c2:0de13912f58e": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT job_id FROM jobs WHERE job_id = 1 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "job_id"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "error",
+     "statements": [
+      {
+       "sql": "SELECT job_id FROM jobs WHERE job_id = 1 FOR UPDATE NOWAIT",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 3572,
+        "message": "Statement aborted because lock(s) could not be acquired immediately and NOWAIT is set."
+       }
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

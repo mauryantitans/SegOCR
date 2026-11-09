@@ -1,0 +1,681 @@
+{
+ "doc": "m13-mysql-vs-postgresql",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:d29ad373e726": {
+   "statements": [
+    {
+     "sql": "SELECT @@transaction_isolation AS isolation, @@autocommit AS autocommit,\n       @@default_storage_engine AS engine, @@collation_server AS collation, @@sql_mode AS sql_mode",
+     "status": "ok",
+     "columns": [
+      "isolation",
+      "autocommit",
+      "engine",
+      "collation",
+      "sql_mode"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "REPEATABLE-READ",
+       1,
+       "InnoDB",
+       "utf8mb4_0900_ai_ci",
+       "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:6f646180b7c0": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE people (id INT PRIMARY KEY, email VARCHAR(100) NOT NULL, city VARCHAR(30) NOT NULL, KEY idx_people_city (city))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO people SELECT customer_id, email, city FROM customers",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "info": "Records: 25  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE people",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "people",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT id FROM people WHERE city = 'Austin'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "people",
+       null,
+       "ref",
+       "idx_people_city",
+       "idx_people_city",
+       "122",
+       "const",
+       4,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `people`.`id` AS `id` from `people` where (`people`.`city` = 'Austin')"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT id, email FROM people WHERE city = 'Austin'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "people",
+       null,
+       "ref",
+       "idx_people_city",
+       "idx_people_city",
+       "122",
+       "const",
+       4,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `people`.`id` AS `id`,`people`.`email` AS `email` from `people` where (`people`.`city` = 'Austin')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:0f2d317836fe": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE mvcc_probe (id INT PRIMARY KEY, counter INT NOT NULL, pad CHAR(100) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 50000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO mvcc_probe\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 50000) SELECT n, 0, 'x' FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Records: 50000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE mvcc_probe",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "mvcc_probe",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT DATA_LENGTH AS bytes_before FROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'mvcc_probe'",
+     "status": "ok",
+     "columns": [
+      "bytes_before"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       7880704
+      ]
+     ]
+    },
+    {
+     "sql": "UPDATE mvcc_probe SET counter = counter + 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Rows matched: 50000  Changed: 50000  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE mvcc_probe SET counter = counter + 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Rows matched: 50000  Changed: 50000  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE mvcc_probe SET counter = counter + 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Rows matched: 50000  Changed: 50000  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE mvcc_probe",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "mvcc_probe",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT DATA_LENGTH AS bytes_after, SUM(counter) AS total_counter FROM information_schema.TABLES, mvcc_probe\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'mvcc_probe' GROUP BY DATA_LENGTH",
+     "status": "ok",
+     "columns": [
+      "bytes_after",
+      "total_counter"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       7880704,
+       "150000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:a495ad7c5c6b": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, o.order_id\nFROM customers c FULL OUTER JOIN orders o ON o.customer_id = c.customer_id",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FULL OUTER JOIN orders o ON o.customer_id = c.customer_id' at line 2"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s5:d7ff4e74032a": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, o.order_id\nFROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id\nWHERE c.customer_id IN (2, 4)\nUNION ALL\nSELECT c.customer_id, o.order_id\nFROM customers c RIGHT JOIN orders o ON o.customer_id = c.customer_id\nWHERE c.customer_id IS NULL\nORDER BY customer_id, order_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "order_id"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       2,
+       null
+      ],
+      [
+       4,
+       8
+      ],
+      [
+       4,
+       33
+      ],
+      [
+       4,
+       62
+      ],
+      [
+       4,
+       69
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:0c7ec9b053f6": {
+   "statements": [
+    {
+     "sql": "INSERT INTO categories (name) VALUES ('Garden') RETURNING category_id",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURNING category_id' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:c3942f5bcdef": {
+   "statements": [
+    {
+     "sql": "INSERT INTO categories (name) VALUES ('Garden')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT LAST_INSERT_ID() AS new_category_id",
+     "status": "ok",
+     "columns": [
+      "new_category_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       11
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT category_id, name FROM categories WHERE category_id = LAST_INSERT_ID()",
+     "status": "ok",
+     "columns": [
+      "category_id",
+      "name"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       11,
+       "Garden"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:074b814f699a": {
+   "statements": [
+    {
+     "sql": "SELECT 'abc' = 'ABC' AS case_insensitive_equal,\n       'abc' = 0     AS string_equals_zero,\n       '12abc' + 1   AS string_arithmetic,\n       1 / 0         AS division_by_zero",
+     "status": "ok",
+     "columns": [
+      "case_insensitive_equal",
+      "string_equals_zero",
+      "string_arithmetic",
+      "division_by_zero"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1,
+       13.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: 'abc'"
+      },
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect DOUBLE value: '12abc'"
+      },
+      {
+       "level": "Warning",
+       "code": 1365,
+       "message": "Division by 0"
+      }
+     ]
+    },
+    {
+     "sql": "SHOW WARNINGS",
+     "status": "ok",
+     "columns": [
+      "Level",
+      "Code",
+      "Message"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Warning",
+       1292,
+       "Truncated incorrect DOUBLE value: 'abc'"
+      ],
+      [
+       "Warning",
+       1292,
+       "Truncated incorrect DOUBLE value: '12abc'"
+      ],
+      [
+       "Warning",
+       1365,
+       "Division by 0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:4fea2825998a": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO categories (name) VALUES ('Outdoor')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE ddl_probe (id INT)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM categories WHERE name = 'Outdoor') AS outdoor_rows_after_rollback,\n       (SELECT COUNT(*) FROM information_schema.TABLES\n         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ddl_probe')  AS ddl_probe_exists",
+     "status": "ok",
+     "columns": [
+      "outdoor_rows_after_rollback",
+      "ddl_probe_exists"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:28aa9bc0c8f8": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE price_list (sku VARCHAR(20) PRIMARY KEY, price DECIMAL(10,2) NOT NULL, CONSTRAINT chk_price_positive CHECK (price > 0))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO price_list VALUES ('A', 10.00), ('B', -1.00)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_price_positive' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "c1:c6c522aed177": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT counter FROM counters WHERE id = 1",
+       "status": "ok",
+       "columns": [
+        "counter"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE counters SET counter = counter + 1 WHERE id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "UPDATE counters SET counter = counter + 1 WHERE id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "UPDATE counters SET counter = counter + 1 WHERE id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT counter FROM counters WHERE id = 1",
+       "status": "ok",
+       "columns": [
+        "counter"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT counter FROM counters WHERE id = 1 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "counter"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT counter FROM counters WHERE id = 1",
+       "status": "ok",
+       "columns": [
+        "counter"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         3
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s11:71cf80addb3a": {
+   "statements": [
+    {
+     "sql": "SELECT name FROM products ORDER BY product_id FETCH FIRST 3 ROWS ONLY",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FETCH FIRST 3 ROWS ONLY' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:861ea9a1fcb9": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS customers_named_grace FROM customers WHERE first_name = 'GRACE'",
+     "status": "ok",
+     "columns": [
+      "customers_named_grace"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

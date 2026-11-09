@@ -839,7 +839,7 @@
        null,
        null,
        null,
-       97568,
+       100064,
        100.0,
        "Using where"
       ]
@@ -1009,10 +1009,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=81.6 rows=1) (actual time=0.0867..0.0868 rows=1 loops=1)\n    -> Filter: (lines_virtual.line_total > 4400.00)  (cost=54.9 rows=267) (actual time=0.0154..0.0738 rows=267 loops=1)\n        -> Covering index range scan on lines_virtual using idx_total over (4400.00 < line_total)  (cost=54.9 rows=267) (actual time=0.014..0.0483 rows=267 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=81.6 rows=1) (actual time=0.0782..0.0783 rows=1 loops=1)\n    -> Filter: (lines_virtual.line_total > 4400.00)  (cost=54.9 rows=267) (actual time=0.0125..0.0666 rows=267 loops=1)\n        -> Covering index range scan on lines_virtual using idx_total over (4400.00 < line_total)  (cost=54.9 rows=267) (actual time=0.0112..0.0433 rows=267 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 1.08
+     "elapsed_ms": 1.0
     }
    ],
    "measured": true

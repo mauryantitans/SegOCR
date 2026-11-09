@@ -1,0 +1,1746 @@
+{
+ "doc": "p3-ecommerce",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:a91b894f45a9": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE customers (\n  customer_id INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  email       VARCHAR(255) NOT NULL,\n  full_name   VARCHAR(120) NOT NULL,\n  created_at  DATETIME     NOT NULL,\n  status      ENUM('active','blocked') NOT NULL DEFAULT 'active',\n  PRIMARY KEY (customer_id),\n  CONSTRAINT uq_customers_email UNIQUE (email)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE addresses (\n  address_id  INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  customer_id INT UNSIGNED NOT NULL,\n  label       VARCHAR(30)  NOT NULL,\n  line1       VARCHAR(120) NOT NULL,\n  city        VARCHAR(60)  NOT NULL,\n  postal_code VARCHAR(12)  NOT NULL,\n  country     CHAR(2)      NOT NULL,\n  PRIMARY KEY (address_id),\n  CONSTRAINT fk_addresses_customer FOREIGN KEY (customer_id) REFERENCES customers (customer_id) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE categories (\n  category_id SMALLINT UNSIGNED NOT NULL,\n  parent_id   SMALLINT UNSIGNED NULL,\n  name        VARCHAR(60) NOT NULL,\n  PRIMARY KEY (category_id),\n  CONSTRAINT uq_categories_sibling UNIQUE (parent_id, name),\n  CONSTRAINT fk_categories_parent FOREIGN KEY (parent_id) REFERENCES categories (category_id),\n  CONSTRAINT chk_categories_not_self CHECK (parent_id IS NULL OR parent_id <> category_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE products (\n  product_id  INT UNSIGNED      NOT NULL AUTO_INCREMENT,\n  sku         VARCHAR(20)       NOT NULL,\n  name        VARCHAR(150)      NOT NULL,\n  category_id SMALLINT UNSIGNED NOT NULL,\n  price       DECIMAL(10,2)     NOT NULL,\n  is_active   BOOLEAN           NOT NULL DEFAULT TRUE,\n  PRIMARY KEY (product_id),\n  CONSTRAINT uq_products_sku UNIQUE (sku),\n  CONSTRAINT fk_products_category FOREIGN KEY (category_id) REFERENCES categories (category_id),\n  CONSTRAINT chk_products_price CHECK (price >= 0)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE inventory (\n  product_id    INT UNSIGNED NOT NULL,\n  on_hand       INT          NOT NULL,\n  reorder_level INT          NOT NULL DEFAULT 0,\n  PRIMARY KEY (product_id),\n  CONSTRAINT fk_inventory_product FOREIGN KEY (product_id) REFERENCES products (product_id),\n  CONSTRAINT chk_inventory_on_hand CHECK (on_hand >= 0),\n  CONSTRAINT chk_inventory_reorder CHECK (reorder_level >= 0)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE orders (\n  order_id      BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n  customer_id   INT UNSIGNED    NOT NULL,\n  status        ENUM('pending','paid','shipped','delivered','cancelled') NOT NULL DEFAULT 'pending',\n  placed_at     DATETIME        NOT NULL,\n  ship_name     VARCHAR(120)    NOT NULL,\n  ship_line1    VARCHAR(120)    NOT NULL,\n  ship_city     VARCHAR(60)     NOT NULL,\n  ship_postal   VARCHAR(12)     NOT NULL,\n  ship_country  CHAR(2)         NOT NULL,\n  total_amount  DECIMAL(12,2)   NOT NULL DEFAULT 0.00,\n  PRIMARY KEY (order_id),\n  CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id) REFERENCES customers (customer_id),\n  CONSTRAINT chk_orders_total CHECK (total_amount >= 0)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE order_items (\n  order_id   BIGINT UNSIGNED   NOT NULL,\n  line_no    SMALLINT UNSIGNED NOT NULL,\n  product_id INT UNSIGNED      NOT NULL,\n  quantity   INT               NOT NULL,\n  unit_price DECIMAL(10,2)     NOT NULL,\n  PRIMARY KEY (order_id, line_no),\n  CONSTRAINT uq_order_items_product UNIQUE (order_id, product_id),\n  CONSTRAINT fk_order_items_order   FOREIGN KEY (order_id)   REFERENCES orders (order_id),\n  CONSTRAINT fk_order_items_product FOREIGN KEY (product_id) REFERENCES products (product_id),\n  CONSTRAINT chk_order_items_qty   CHECK (quantity > 0),\n  CONSTRAINT chk_order_items_price CHECK (unit_price >= 0)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE payments (\n  payment_id   BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n  order_id     BIGINT UNSIGNED NOT NULL,\n  amount       DECIMAL(12,2)   NOT NULL,\n  method       ENUM('card','wallet','bank_transfer') NOT NULL,\n  status       ENUM('authorized','captured','refunded','failed') NOT NULL,\n  provider_ref VARCHAR(64)     NOT NULL,\n  created_at   DATETIME        NOT NULL,\n  PRIMARY KEY (payment_id),\n  CONSTRAINT uq_payments_provider_ref UNIQUE (provider_ref),\n  CONSTRAINT fk_payments_order FOREIGN KEY (order_id) REFERENCES orders (order_id),\n  CONSTRAINT chk_payments_amount CHECK (amount > 0)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO customers (customer_id, email, full_name, created_at) VALUES\n  (1, 'olivia.nakamura@mail.example.com', 'Olivia Nakamura', '2025-06-01 09:12:00'),\n  (2, 'marcus.bennett@mail.example.com',  'Marcus Bennett',  '2025-07-15 18:40:00'),\n  (3, 'sara.kowalski@mail.example.com',   'Sara Kowalski',   '2025-08-02 11:05:00'),\n  (4, 'deepak.rao@mail.example.com',      'Deepak Rao',      '2025-09-21 20:30:00'),\n  (5, 'emily.clarke@mail.example.com',    'Emily Clarke',    '2025-10-10 07:55:00'),\n  (6, 'tomas.garcia@mail.example.com',    'Tomás García',    '2025-11-03 13:20:00'),\n  (7, 'aisha.mohammed@mail.example.com',  'Aisha Mohammed',  '2025-12-12 16:45:00'),\n  (8, 'liam.oconnor@mail.example.com',    'Liam O''Connor',  '2026-01-02 10:10:00'),\n  (9, 'nina.volkova@mail.example.com',    'Nina Volkova',    '2026-02-14 22:00:00'),\n  (10, 'kofi.asante@mail.example.com',    'Kofi Asante',     '2026-03-01 08:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 10,
+     "info": "Records: 10  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO addresses (address_id, customer_id, label, line1, city, postal_code, country) VALUES\n  (1, 1, 'home', '12 Alder Way',      'San Jose',  '95112', 'US'), (2, 1, 'work', '400 Market Plaza',   'San Jose',  '95113', 'US'),\n  (3, 2, 'home', '88 Birch Street',   'Oakland',   '94607', 'US'), (4, 3, 'home', '5 Cedar Court',      'Portland',  '97201', 'US'),\n  (5, 4, 'home', '230 Dogwood Ave',   'Austin',    '73301', 'US'), (6, 5, 'home', '17 Elm Row',         'Seattle',   '98101', 'US'),\n  (7, 6, 'home', '9 Fir Lane',        'Denver',    '80202', 'US'), (8, 7, 'home', '61 Gingko Blvd',     'Chicago',   '60601', 'US'),\n  (9, 8, 'home', '3 Hawthorn Close',  'Boston',    '02108', 'US'), (10, 9, 'home', '140 Ivy Terrace',   'San Diego', '92101', 'US')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 10,
+     "info": "Records: 10  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO categories (category_id, parent_id, name) VALUES\n  (1, NULL, 'Electronics'), (2, 1, 'Computers'), (3, 2, 'Laptops'), (4, 2, 'Accessories'), (5, 1, 'Audio'),\n  (6, NULL, 'Home & Kitchen'), (7, 6, 'Coffee'), (8, 6, 'Cookware'), (9, NULL, 'Books')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 9,
+     "info": "Records: 9  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO products (product_id, sku, name, category_id, price, is_active) VALUES\n  (1, 'LAP-14-PRO', 'Aero 14 Pro Laptop',            3, 1299.00, TRUE),\n  (2, 'LAP-13-AIR', 'Aero 13 Air Laptop',            3,  899.00, TRUE),\n  (3, 'ACC-MOUSE',  'Wireless Mouse',                4,   24.99, TRUE),\n  (4, 'ACC-KB',     'Mechanical Keyboard',           4,   89.50, TRUE),\n  (5, 'ACC-USBC',   'USB-C Hub',                     4,   45.00, TRUE),\n  (6, 'AUD-HP',     'Noise-Cancelling Headphones',   5,  199.00, TRUE),\n  (7, 'AUD-SPK',    'Bluetooth Speaker',             5,   59.90, TRUE),\n  (8, 'COF-GRIND',  'Burr Coffee Grinder',           7,  129.00, TRUE),\n  (9, 'COF-BEANS',  'Single-Origin Beans 1kg',       7,   24.50, TRUE),\n  (10, 'CKW-PAN',   'Cast Iron Skillet',             8,   39.95, TRUE),\n  (11, 'BK-DATA',   'Databases for Data Scientists', 9,   49.00, TRUE),\n  (12, 'ACC-STAND', 'Aluminium Laptop Stand',        4,   34.00, FALSE)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 12,
+     "info": "Records: 12  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO inventory (product_id, on_hand, reorder_level) VALUES\n  (1, 4, 5), (2, 10, 5), (3, 120, 30), (4, 35, 10), (5, 8, 10), (6, 15, 5),\n  (7, 1, 5), (8, 6, 5), (9, 200, 50), (10, 22, 10), (11, 0, 5), (12, 0, 0)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 12,
+     "info": "Records: 12  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders (order_id, customer_id, status, placed_at, ship_name, ship_line1, ship_city, ship_postal, ship_country, total_amount) VALUES\n  (1,  1, 'delivered', '2026-01-05 10:15:00', 'Olivia Nakamura', '12 Alder Way',     'San Jose', '95112', 'US',   78.99),\n  (2,  2, 'delivered', '2026-01-07 14:02:00', 'Marcus Bennett',  '88 Birch Street',  'Oakland',  '94607', 'US', 1299.00),\n  (3,  3, 'delivered', '2026-01-12 09:30:00', 'Sara Kowalski',   '5 Cedar Court',    'Portland', '97201', 'US',  258.90),\n  (4,  1, 'delivered', '2026-01-20 19:45:00', 'Olivia Nakamura', '400 Market Plaza', 'San Jose', '95113', 'US',  153.50),\n  (5,  4, 'cancelled', '2026-01-22 11:11:00', 'Deepak Rao',      '230 Dogwood Ave',  'Austin',   '73301', 'US',  899.00),\n  (6,  5, 'shipped',   '2026-02-02 08:05:00', 'Emily Clarke',    '17 Elm Row',       'Seattle',  '98101', 'US',  164.49),\n  (7,  2, 'delivered', '2026-02-10 16:40:00', 'Marcus Bennett',  '88 Birch Street',  'Oakland',  '94607', 'US',   79.90),\n  (8,  6, 'delivered', '2026-02-14 12:00:00', 'Tomás García',    '9 Fir Lane',       'Denver',   '80202', 'US',  147.00),\n  (9,  3, 'paid',      '2026-02-25 21:20:00', 'Sara Kowalski',   '5 Cedar Court',    'Portland', '97201', 'US',  928.99),\n  (10, 7, 'paid',      '2026-03-01 10:00:00', 'Aisha Mohammed',  '61 Gingko Blvd',   'Chicago',  '60601', 'US',  398.00),\n  (11, 1, 'pending',   '2026-03-03 13:13:00', 'Olivia Nakamura', '12 Alder Way',     'San Jose', '95112', 'US',   59.90),\n  (12, 5, 'delivered', '2026-03-04 15:30:00', 'Emily Clarke',    '17 Elm Row',       'Seattle',  '98101', 'US',   98.00),\n  (13, 8, 'shipped',   '2026-03-05 09:45:00', 'Liam O''Connor',  '3 Hawthorn Close', 'Boston',   '02108', 'US', 1344.00),\n  (14, 4, 'paid',      '2026-03-06 18:00:00', 'Deepak Rao',      '230 Dogwood Ave',  'Austin',   '73301', 'US',  129.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 14,
+     "info": "Records: 14  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO order_items (order_id, line_no, product_id, quantity, unit_price) VALUES\n  (1, 1, 3, 1, 29.99), (1, 2, 9, 2, 24.50), (2, 1, 1, 1, 1299.00), (3, 1, 6, 1, 199.00), (3, 2, 7, 1, 59.90),\n  (4, 1, 8, 1, 129.00), (4, 2, 9, 1, 24.50), (5, 1, 2, 1, 899.00), (6, 1, 4, 1, 89.50), (6, 2, 3, 1, 29.99),\n  (6, 3, 5, 1, 45.00), (7, 1, 10, 2, 39.95), (8, 1, 11, 3, 49.00), (9, 1, 2, 1, 899.00), (9, 2, 3, 1, 29.99),\n  (10, 1, 6, 2, 199.00), (11, 1, 7, 1, 59.90), (12, 1, 9, 4, 24.50), (13, 1, 1, 1, 1299.00), (13, 2, 5, 1, 45.00),\n  (14, 1, 8, 1, 129.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 21,
+     "info": "Records: 21  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO payments (order_id, amount, method, status, provider_ref, created_at) VALUES\n  (1, 78.99, 'card', 'captured', 'pay_8f2k1', '2026-01-05 10:15:20'),\n  (2, 1299.00, 'card', 'captured', 'pay_8f2k2', '2026-01-07 14:02:31'),\n  (3, 258.90, 'wallet', 'captured', 'pay_8f2k3', '2026-01-12 09:30:12'),\n  (4, 153.50, 'card', 'captured', 'pay_8f2k4', '2026-01-20 19:45:40'),\n  (5, 899.00, 'card', 'refunded', 'pay_8f2k5', '2026-01-22 11:11:09'),\n  (6, 164.49, 'card', 'captured', 'pay_8f2k6', '2026-02-02 08:05:44'),\n  (7, 79.90, 'bank_transfer', 'captured', 'pay_8f2k7', '2026-02-10 16:41:02'),\n  (8, 147.00, 'card', 'captured', 'pay_8f2k8', '2026-02-14 12:00:18'),\n  (9, 928.99, 'card', 'failed', 'pay_8f2k9', '2026-02-25 21:20:30'),\n  (9, 928.99, 'wallet', 'captured', 'pay_8f2kA', '2026-02-25 21:24:02'),\n  (10, 398.00, 'card', 'captured', 'pay_8f2kB', '2026-03-01 10:00:25'),\n  (12, 98.00, 'card', 'captured', 'pay_8f2kC', '2026-03-04 15:30:33'),\n  (13, 1344.00, 'card', 'captured', 'pay_8f2kD', '2026-03-05 09:45:10'),\n  (14, 129.00, 'wallet', 'captured', 'pay_8f2kE', '2026-03-06 18:00:41')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 14,
+     "info": "Records: 14  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM products) AS products,\n       (SELECT COUNT(*) FROM orders) AS orders, (SELECT COUNT(*) FROM order_items) AS order_lines,\n       (SELECT COUNT(*) FROM payments) AS payments",
+     "status": "ok",
+     "columns": [
+      "customers",
+      "products",
+      "orders",
+      "order_lines",
+      "payments"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10,
+       12,
+       14,
+       21,
+       14
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:5b1e516451e0": {
+   "statements": [
+    {
+     "sql": "SELECT o.order_id, o.placed_at, oi.unit_price AS paid_unit_price, p.price AS current_price\nFROM order_items oi\nJOIN orders o   ON o.order_id = oi.order_id\nJOIN products p ON p.product_id = oi.product_id\nWHERE p.sku = 'ACC-MOUSE'\nORDER BY o.placed_at",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "placed_at",
+      "paid_unit_price",
+      "current_price"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "2026-01-05 10:15:00",
+       "29.99",
+       "24.99"
+      ],
+      [
+       6,
+       "2026-02-02 08:05:00",
+       "29.99",
+       "24.99"
+      ],
+      [
+       9,
+       "2026-02-25 21:20:00",
+       "29.99",
+       "24.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:e562be78da05": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, CONSTRAINT_NAME, CONSTRAINT_TYPE\nFROM information_schema.TABLE_CONSTRAINTS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('categories', 'inventory', 'order_items')\nORDER BY TABLE_NAME, CONSTRAINT_TYPE, CONSTRAINT_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "CONSTRAINT_NAME",
+      "CONSTRAINT_TYPE"
+     ],
+     "row_count": 14,
+     "rows": [
+      [
+       "categories",
+       "chk_categories_not_self",
+       "CHECK"
+      ],
+      [
+       "categories",
+       "fk_categories_parent",
+       "FOREIGN KEY"
+      ],
+      [
+       "categories",
+       "PRIMARY",
+       "PRIMARY KEY"
+      ],
+      [
+       "categories",
+       "uq_categories_sibling",
+       "UNIQUE"
+      ],
+      [
+       "inventory",
+       "chk_inventory_on_hand",
+       "CHECK"
+      ],
+      [
+       "inventory",
+       "chk_inventory_reorder",
+       "CHECK"
+      ],
+      [
+       "inventory",
+       "fk_inventory_product",
+       "FOREIGN KEY"
+      ],
+      [
+       "inventory",
+       "PRIMARY",
+       "PRIMARY KEY"
+      ],
+      [
+       "order_items",
+       "chk_order_items_price",
+       "CHECK"
+      ],
+      [
+       "order_items",
+       "chk_order_items_qty",
+       "CHECK"
+      ],
+      [
+       "order_items",
+       "fk_order_items_order",
+       "FOREIGN KEY"
+      ],
+      [
+       "order_items",
+       "fk_order_items_product",
+       "FOREIGN KEY"
+      ],
+      [
+       "order_items",
+       "PRIMARY",
+       "PRIMARY KEY"
+      ],
+      [
+       "order_items",
+       "uq_order_items_product",
+       "UNIQUE"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:6407d00c9c0e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE inventory_movements (\n  movement_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n  product_id  INT UNSIGNED    NOT NULL,\n  qty_change  INT             NOT NULL,\n  reason      ENUM('receipt','sale','return','adjustment') NOT NULL,\n  order_id    BIGINT UNSIGNED NULL,\n  created_at  DATETIME        NOT NULL,\n  PRIMARY KEY (movement_id),\n  CONSTRAINT fk_movements_product FOREIGN KEY (product_id) REFERENCES products (product_id),\n  CONSTRAINT fk_movements_order   FOREIGN KEY (order_id)   REFERENCES orders (order_id),\n  CONSTRAINT chk_movements_nonzero CHECK (qty_change <> 0),\n  CONSTRAINT chk_movements_reason CHECK (\n       (reason = 'sale'    AND qty_change < 0 AND order_id IS NOT NULL)\n    OR (reason = 'return'  AND qty_change > 0 AND order_id IS NOT NULL)\n    OR (reason = 'receipt' AND qty_change > 0 AND order_id IS NULL)\n    OR (reason = 'adjustment'))\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT CONSTRAINT_NAME, CHECK_CLAUSE\nFROM information_schema.CHECK_CONSTRAINTS\nWHERE CONSTRAINT_SCHEMA = DATABASE() AND CONSTRAINT_NAME LIKE 'chk_movements%'\nORDER BY CONSTRAINT_NAME",
+     "status": "ok",
+     "columns": [
+      "CONSTRAINT_NAME",
+      "CHECK_CLAUSE"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "chk_movements_nonzero",
+       "(`qty_change` <> 0)"
+      ],
+      [
+       "chk_movements_reason",
+       "(((`reason` = _utf8mb4\\'sale\\') and (`qty_change` < 0) and (`order_id` is not null)) or ((`reason` = _utf8mb4\\'return\\') and (`qty_change` > 0) and (`order_id` is not null)) or ((`reason` = _utf8mb4\\'receipt\\') and (`qty_change` > 0) and (`order_id` is null)) or (`reason` = _utf8mb4\\'adjustment\\'))"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:7f4109fc8d2c": {
+   "statements": [
+    {
+     "sql": "-- Stock can never be negative (error 3819)\nUPDATE inventory SET on_hand = on_hand - 5 WHERE product_id = 7",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_inventory_on_hand' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:274bcc410c8c": {
+   "statements": [
+    {
+     "sql": "-- The same product twice in one order (error 1062 on uq_order_items_product)\nINSERT INTO order_items (order_id, line_no, product_id, quantity, unit_price) VALUES (1, 3, 3, 1, 24.99)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '1-3' for key 'order_items.uq_order_items_product'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:d49cb652836f": {
+   "statements": [
+    {
+     "sql": "-- A category cannot be its own parent (error 3819)\nUPDATE categories SET parent_id = 3 WHERE category_id = 3",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_categories_not_self' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:966bf333ed3a": {
+   "statements": [
+    {
+     "sql": "-- A payment provider reference is used once (error 1062)\nINSERT INTO payments (order_id, amount, method, status, provider_ref, created_at)\nVALUES (11, 59.90, 'card', 'captured', 'pay_8f2k1', '2026-03-03 13:14:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'pay_8f2k1' for key 'payments.uq_payments_provider_ref'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:ec765d7b64f8": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE tree AS (\n  SELECT category_id, parent_id, name, 0 AS depth, CAST(name AS CHAR(200)) AS path, category_id AS root_id\n  FROM categories WHERE parent_id IS NULL\n  UNION ALL\n  SELECT c.category_id, c.parent_id, c.name, t.depth + 1, CONCAT(t.path, ' > ', c.name), t.root_id\n  FROM categories c JOIN tree t ON c.parent_id = t.category_id\n)\nSELECT category_id, depth, path, root_id FROM tree ORDER BY path",
+     "status": "ok",
+     "columns": [
+      "category_id",
+      "depth",
+      "path",
+      "root_id"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       9,
+       0,
+       "Books",
+       9
+      ],
+      [
+       1,
+       0,
+       "Electronics",
+       1
+      ],
+      [
+       5,
+       1,
+       "Electronics > Audio",
+       1
+      ],
+      [
+       2,
+       1,
+       "Electronics > Computers",
+       1
+      ],
+      [
+       4,
+       2,
+       "Electronics > Computers > Accessories",
+       1
+      ],
+      [
+       3,
+       2,
+       "Electronics > Computers > Laptops",
+       1
+      ],
+      [
+       6,
+       0,
+       "Home & Kitchen",
+       6
+      ],
+      [
+       7,
+       1,
+       "Home & Kitchen > Coffee",
+       6
+      ],
+      [
+       8,
+       1,
+       "Home & Kitchen > Cookware",
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:c06fb40e14fd": {
+   "statements": [
+    {
+     "sql": "SELECT o.order_id, o.status, o.placed_at, o.ship_city, oi.line_no, p.sku, p.name, oi.quantity, oi.unit_price,\n       oi.quantity * oi.unit_price AS line_total\nFROM orders o\nJOIN order_items oi ON oi.order_id = o.order_id\nJOIN products p     ON p.product_id = oi.product_id\nWHERE o.order_id = 9\nORDER BY oi.line_no",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "placed_at",
+      "ship_city",
+      "line_no",
+      "sku",
+      "name",
+      "quantity",
+      "unit_price",
+      "line_total"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       9,
+       "paid",
+       "2026-02-25 21:20:00",
+       "Portland",
+       1,
+       "LAP-13-AIR",
+       "Aero 13 Air Laptop",
+       1,
+       "899.00",
+       "899.00"
+      ],
+      [
+       9,
+       "paid",
+       "2026-02-25 21:20:00",
+       "Portland",
+       2,
+       "ACC-MOUSE",
+       "Wireless Mouse",
+       1,
+       "29.99",
+       "29.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:44595b6819c3": {
+   "statements": [
+    {
+     "sql": "SELECT payment_id, amount, method, status, provider_ref, created_at\nFROM payments WHERE order_id = 9 ORDER BY created_at",
+     "status": "ok",
+     "columns": [
+      "payment_id",
+      "amount",
+      "method",
+      "status",
+      "provider_ref",
+      "created_at"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       9,
+       "928.99",
+       "card",
+       "failed",
+       "pay_8f2k9",
+       "2026-02-25 21:20:30"
+      ],
+      [
+       10,
+       "928.99",
+       "wallet",
+       "captured",
+       "pay_8f2kA",
+       "2026-02-25 21:24:02"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:d41d920d8793": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 150000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO customers (customer_id, email, full_name, created_at)\nWITH RECURSIVE seq(n) AS (SELECT 11 UNION ALL SELECT n + 1 FROM seq WHERE n < 5010)\nSELECT n, CONCAT('customer', n, '@mail.example.com'), CONCAT('Customer ', n),\n       TIMESTAMP('2023-06-01') + INTERVAL (n * 97) % 300 DAY\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5000,
+     "info": "Records: 5000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders (order_id, customer_id, status, placed_at, ship_name, ship_line1, ship_city, ship_postal, ship_country, total_amount)\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 150000)\nSELECT 1000 + n,\n       1 + (n * 7) % 5010,\n       ELT(1 + (n * 13) % 20, 'pending', 'paid', 'shipped', 'cancelled', 'delivered', 'delivered', 'delivered',\n           'delivered', 'delivered', 'delivered', 'delivered', 'delivered', 'delivered', 'delivered', 'delivered',\n           'delivered', 'delivered', 'delivered', 'delivered', 'delivered'),\n       TIMESTAMP('2024-01-01') + INTERVAL (n * 7919) % 1051200 MINUTE,\n       'Synthetic Customer', '1 Test Street', 'San Jose', '95112', 'US',\n       p.price * (1 + n % 3)\nFROM seq JOIN products p ON p.product_id = 1 + n % 11",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 150000,
+     "info": "Records: 150000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO order_items (order_id, line_no, product_id, quantity, unit_price)\nSELECT o.order_id, 1, p.product_id, 1 + (o.order_id - 1000) % 3, p.price\nFROM orders o JOIN products p ON p.product_id = 1 + (o.order_id - 1000) % 11\nWHERE o.order_id > 1000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 150000,
+     "info": "Records: 150000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE customers, orders, order_items",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "customers",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "orders",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "order_items",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS orders, MIN(placed_at) AS first_order, MAX(placed_at) AS last_order FROM orders",
+     "status": "ok",
+     "columns": [
+      "orders",
+      "first_order",
+      "last_order"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       150014,
+       "2024-01-01 00:05:00",
+       "2026-03-06 18:00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:96041b56e8bd": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT order_id, status, placed_at, total_amount\nFROM orders WHERE customer_id = 42 ORDER BY placed_at DESC LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "ref",
+       "fk_orders_customer",
+       "fk_orders_customer",
+       "4",
+       "const",
+       30,
+       100.0,
+       "Using filesort"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `orders`.`order_id` AS `order_id`,`orders`.`status` AS `status`,`orders`.`placed_at` AS `placed_at`,`orders`.`total_amount` AS `total_amount` from `orders` where (`orders`.`customer_id` = 42) order by `orders`.`placed_at` desc limit 10"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:b43674cb0cf9": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_orders_customer_placed ON orders (customer_id, placed_at)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "orders",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT order_id, status, placed_at, total_amount\nFROM orders WHERE customer_id = 42 ORDER BY placed_at DESC LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "ref",
+       "idx_orders_customer_placed",
+       "idx_orders_customer_placed",
+       "4",
+       "const",
+       30,
+       100.0,
+       "Backward index scan"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `orders`.`order_id` AS `order_id`,`orders`.`status` AS `status`,`orders`.`placed_at` AS `placed_at`,`orders`.`total_amount` AS `total_amount` from `orders` where (`orders`.`customer_id` = 42) order by `orders`.`placed_at` desc limit 10"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:52e4ed3a8654": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT order_id, status, placed_at, total_amount\nFROM orders IGNORE INDEX (idx_orders_customer_placed) WHERE customer_id = 42 ORDER BY placed_at DESC LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 10 row(s)  (cost=15157 rows=10) (actual time=37..37 rows=10 loops=1)\n    -> Sort: orders.placed_at DESC, limit input to 10 row(s) per chunk  (cost=15157 rows=149247) (actual time=37..37 rows=10 loops=1)\n        -> Filter: (orders.customer_id = 42)  (cost=15157 rows=149247) (actual time=0.647..37 rows=30 loops=1)\n            -> Table scan on orders  (cost=15157 rows=149247) (actual time=0.0408..30.5 rows=150014 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 38.1
+    }
+   ],
+   "measured": true
+  },
+  "s16:3922a636a130": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT order_id, status, placed_at, total_amount\nFROM orders WHERE customer_id = 42 ORDER BY placed_at DESC LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 10 row(s)  (cost=10.5 rows=10) (actual time=0.03..0.0448 rows=10 loops=1)\n    -> Index lookup on orders using idx_orders_customer_placed (customer_id=42) (reverse)  (cost=10.5 rows=30) (actual time=0.0294..0.0435 rows=10 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.29
+    }
+   ],
+   "measured": true
+  },
+  "s17:9a9bb082a45d": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_orders_status_placed ON orders (status, placed_at)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "orders",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT order_id, customer_id, placed_at, total_amount\nFROM orders WHERE status = 'pending' AND placed_at >= '2025-12-01' ORDER BY placed_at",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "range",
+       "idx_orders_status_placed",
+       "idx_orders_status_placed",
+       "6",
+       null,
+       310,
+       100.0,
+       "Using index condition"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `orders`.`order_id` AS `order_id`,`orders`.`customer_id` AS `customer_id`,`orders`.`placed_at` AS `placed_at`,`orders`.`total_amount` AS `total_amount` from `orders` where ((`orders`.`status` = 'pending') and (`orders`.`placed_at` >= TIMESTAMP'2025-12-01 00:00:00')) order by `orders`.`placed_at`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:eee4b876cf49": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE place_order(IN p_customer_id INT UNSIGNED, IN p_address_id INT UNSIGNED,\n                             IN p_items JSON, IN p_now DATETIME)\nBEGIN\n  DECLARE v_order_id BIGINT UNSIGNED;\n  DECLARE v_lines    INT;\n  DECLARE v_found    INT;\n  DECLARE v_short    INT;\n  DECLARE EXIT HANDLER FOR SQLEXCEPTION\n  BEGIN\n    ROLLBACK;\n    RESIGNAL;\n  END;\n\n  -- 0. Parse the cart (one row per product, quantities summed) into a session-private temporary table\n  DROP TEMPORARY TABLE IF EXISTS cart;\n  CREATE TEMPORARY TABLE cart (product_id INT UNSIGNED PRIMARY KEY, qty INT NOT NULL);\n  INSERT INTO cart (product_id, qty)\n  SELECT product_id, SUM(qty)\n  FROM JSON_TABLE(p_items, '$[*]' COLUMNS (product_id INT UNSIGNED PATH '$.product_id',\n                                          qty        INT          PATH '$.qty')) AS j\n  GROUP BY product_id;\n  SELECT COUNT(*) INTO v_lines FROM cart WHERE qty > 0;\n  IF v_lines = 0 OR v_lines <> (SELECT COUNT(*) FROM cart) THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cart is empty or has a non-positive quantity';\n  END IF;\n\n  START TRANSACTION;\n  -- 1. Lock the stock rows of every product in the cart (pessimistic), then check availability\n  SELECT COUNT(*), COALESCE(SUM(i.on_hand < c.qty), 0) INTO v_found, v_short\n  FROM cart c JOIN inventory i ON i.product_id = c.product_id\n  FOR UPDATE OF i;\n  IF v_found <> v_lines THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Unknown product in cart';\n  END IF;\n  IF v_short > 0 THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient stock';\n  END IF;\n\n  -- 2. Order header with a snapshot of the shipping address (the address must belong to the customer)\n  INSERT INTO orders (customer_id, status, placed_at, ship_name, ship_line1, ship_city, ship_postal, ship_country)\n  SELECT c.customer_id, 'pending', p_now, c.full_name, a.line1, a.city, a.postal_code, a.country\n  FROM customers c JOIN addresses a ON a.customer_id = c.customer_id\n  WHERE c.customer_id = p_customer_id AND a.address_id = p_address_id AND c.status = 'active';\n  IF ROW_COUNT() = 0 THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Unknown customer or address';\n  END IF;\n  SET v_order_id = LAST_INSERT_ID();\n\n  -- 3. Order lines with a snapshot of the current price; inactive products are refused\n  INSERT INTO order_items (order_id, line_no, product_id, quantity, unit_price)\n  SELECT v_order_id, ROW_NUMBER() OVER (ORDER BY c.product_id), c.product_id, c.qty, p.price\n  FROM cart c JOIN products p ON p.product_id = c.product_id\n  WHERE p.is_active;\n  IF ROW_COUNT() <> v_lines THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Product is not for sale';\n  END IF;\n\n  -- 4. Decrement stock, record the movements, store the total\n  UPDATE inventory i JOIN cart c ON c.product_id = i.product_id\n  SET i.on_hand = i.on_hand - c.qty;\n  INSERT INTO inventory_movements (product_id, qty_change, reason, order_id, created_at)\n  SELECT product_id, -qty, 'sale', v_order_id, p_now FROM cart;\n  UPDATE orders\n  SET total_amount = (SELECT SUM(quantity * unit_price) FROM order_items WHERE order_id = v_order_id)\n  WHERE order_id = v_order_id;\n  COMMIT;\n  SELECT order_id, status, total_amount FROM orders WHERE order_id = v_order_id;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s19:7f8982ba1536": {
+   "statements": [
+    {
+     "sql": "CALL place_order(1, 2, '[{\"product_id\": 3, \"qty\": 2}, {\"product_id\": 9, \"qty\": 1}]', '2026-03-07 09:30:00')",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "total_amount"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       151001,
+       "pending",
+       "74.48"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:1ae68677d301": {
+   "statements": [
+    {
+     "sql": "SELECT oi.line_no, p.sku, oi.quantity, oi.unit_price, i.on_hand AS stock_now\nFROM order_items oi JOIN products p ON p.product_id = oi.product_id JOIN inventory i ON i.product_id = oi.product_id\nWHERE oi.order_id = (SELECT MAX(order_id) FROM orders WHERE customer_id = 1)\nORDER BY oi.line_no",
+     "status": "ok",
+     "columns": [
+      "line_no",
+      "sku",
+      "quantity",
+      "unit_price",
+      "stock_now"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "ACC-MOUSE",
+       2,
+       "24.99",
+       118
+      ],
+      [
+       2,
+       "COF-BEANS",
+       1,
+       "24.50",
+       199
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:f16e766b2a4f": {
+   "statements": [
+    {
+     "sql": "CALL place_order(2, 3, '[{\"product_id\": 7, \"qty\": 2}, {\"product_id\": 3, \"qty\": 1}]', '2026-03-07 09:31:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Insufficient stock"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s22:2b31c5a1d9d6": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT on_hand FROM inventory WHERE product_id = 7) AS speakers,\n       (SELECT on_hand FROM inventory WHERE product_id = 3) AS mice,\n       (SELECT COUNT(*) FROM orders WHERE customer_id = 2 AND placed_at >= '2026-03-07') AS new_orders_for_marcus",
+     "status": "ok",
+     "columns": [
+      "speakers",
+      "mice",
+      "new_orders_for_marcus"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       118,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:f4d8acd81be0": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT on_hand FROM inventory WHERE product_id = 7",
+       "status": "ok",
+       "columns": [
+        "on_hand"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT on_hand FROM inventory WHERE product_id = 7",
+       "status": "ok",
+       "columns": [
+        "on_hand"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE inventory SET on_hand = 0 WHERE product_id = 7",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO order_lines VALUES ('A-1001', 7, 1)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE inventory SET on_hand = 0 WHERE product_id = 7",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Rows matched: 1  Changed: 0  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "INSERT INTO order_lines VALUES ('B-2001', 7, 1)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT (SELECT on_hand FROM inventory WHERE product_id = 7) AS on_hand, (SELECT SUM(qty) FROM order_lines WHERE product_id = 7) AS units_sold",
+       "status": "ok",
+       "columns": [
+        "on_hand",
+        "units_sold"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0,
+         "2"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:73dfa9ac7f03": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT on_hand FROM inventory WHERE product_id = 7 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "on_hand"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT on_hand FROM inventory WHERE product_id = 7 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "on_hand"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "585846",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "B",
+        "trxId": "585850",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "inventory",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "inventory",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "7"
+       },
+       {
+        "session": "B",
+        "table": "inventory",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "inventory",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "7"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE inventory SET on_hand = on_hand - 1 WHERE product_id = 7",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO order_lines VALUES ('A-1001', 7, 1)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT (SELECT on_hand FROM inventory WHERE product_id = 7) AS on_hand, (SELECT COUNT(*) FROM order_lines) AS orders",
+       "status": "ok",
+       "columns": [
+        "on_hand",
+        "orders"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0,
+         1
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c3:77d497e47d2f": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE inventory SET on_hand = on_hand - 1 WHERE product_id = 7 AND on_hand >= 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "SELECT ROW_COUNT() AS reserved",
+       "status": "ok",
+       "columns": [
+        "reserved"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE inventory SET on_hand = on_hand - 1 WHERE product_id = 7 AND on_hand >= 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 2,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "INSERT INTO order_lines VALUES ('A-1001', 7, 1)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT ROW_COUNT() AS reserved",
+       "status": "ok",
+       "columns": [
+        "reserved"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT (SELECT on_hand FROM inventory WHERE product_id = 7) AS on_hand, (SELECT COUNT(*) FROM order_lines) AS orders",
+       "status": "ok",
+       "columns": [
+        "on_hand",
+        "orders"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0,
+         1
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s23:76ba3b5f8a0e": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT DATE(placed_at) AS day, SUM(total_amount) AS revenue\nFROM orders\nWHERE status = 'delivered' AND placed_at >= '2025-10-01' AND placed_at < '2026-01-01'\nGROUP BY DATE(placed_at)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (actual time=48.1..48.1 rows=91 loops=1)\n    -> Aggregate using temporary table  (actual time=48.1..48.1 rows=91 loops=1)\n        -> Index range scan on orders using idx_orders_status_placed over (status = 'delivered' AND '2025-10-01 00:00:00' <= placed_at < '2026-01-01 00:00:00'), with index condition: ((orders.`status` = 'delivered') and (orders.placed_at >= TIMESTAMP'2025-10-01 00:00:00') and (orders.placed_at < TIMESTAMP'2026-01-01 00:00:00'))  (cost=12685 rows=28188) (actual time=0.35..44.1 rows=14957 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 49.48
+    }
+   ],
+   "measured": true
+  },
+  "s24:5a0009890119": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_orders_status_placed_total ON orders (status, placed_at, total_amount)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "orders",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s25:76ba3b5f8a0e": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT DATE(placed_at) AS day, SUM(total_amount) AS revenue\nFROM orders\nWHERE status = 'delivered' AND placed_at >= '2025-10-01' AND placed_at < '2026-01-01'\nGROUP BY DATE(placed_at)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (actual time=10.4..10.4 rows=91 loops=1)\n    -> Aggregate using temporary table  (actual time=10.4..10.4 rows=91 loops=1)\n        -> Filter: ((orders.`status` = 'delivered') and (orders.placed_at >= TIMESTAMP'2025-10-01 00:00:00') and (orders.placed_at < TIMESTAMP'2026-01-01 00:00:00'))  (cost=5945 rows=29364) (actual time=0.0369..6.67 rows=14957 loops=1)\n            -> Covering index range scan on orders using idx_orders_status_placed_total over (status = 'delivered' AND '2025-10-01 00:00:00' <= placed_at < '2026-01-01 00:00:00')  (cost=5945 rows=29364) (actual time=0.0341..3.42 rows=14957 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 11.86
+    }
+   ],
+   "measured": true
+  },
+  "s26:9d077354467a": {
+   "statements": [
+    {
+     "sql": "DROP INDEX idx_orders_status_placed ON orders",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT INDEX_NAME, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS columns\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders'\nGROUP BY INDEX_NAME ORDER BY INDEX_NAME",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "columns"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "idx_orders_customer_placed",
+       "customer_id,placed_at"
+      ],
+      [
+       "idx_orders_status_placed_total",
+       "status,placed_at,total_amount"
+      ],
+      [
+       "PRIMARY",
+       "order_id"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s27:468ee1477f70": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_orders_placed ON orders (placed_at)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "orders",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s28:ec3c070fdde7": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT order_id, customer_id, status, placed_at FROM orders\nORDER BY placed_at DESC, order_id DESC\nLIMIT 20 OFFSET 100000",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit/Offset: 20/100000 row(s)  (cost=15157 rows=20) (actual time=61.9..61.9 rows=20 loops=1)\n    -> Sort: orders.placed_at DESC, orders.order_id DESC, limit input to 100020 row(s) per chunk  (cost=15157 rows=149247) (actual time=54.6..59.1 rows=100020 loops=1)\n        -> Table scan on orders  (cost=15157 rows=149247) (actual time=0.918..26.5 rows=150015 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 63.17
+    }
+   ],
+   "measured": true
+  },
+  "s29:6c07f2fcfd08": {
+   "statements": [
+    {
+     "sql": "SELECT placed_at, order_id FROM orders ORDER BY placed_at DESC, order_id DESC LIMIT 1 OFFSET 99999",
+     "status": "ok",
+     "columns": [
+      "placed_at",
+      "order_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-08-31 09:46:00",
+       106974
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s30:4af260076b28": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT order_id, customer_id, status, placed_at FROM orders\nWHERE placed_at < '2024-08-31 09:46:00'\n   OR (placed_at = '2024-08-31 09:46:00' AND order_id < 106974)\nORDER BY placed_at DESC, order_id DESC\nLIMIT 20",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 20 row(s)  (cost=15157 rows=20) (actual time=15.6..15.6 rows=20 loops=1)\n    -> Index range scan on orders using idx_orders_placed over (placed_at < '2024-08-31 09:46:00') OR (placed_at = '2024-08-31 09:46:00' AND order_id < 106974) (reverse), with index condition: ((orders.placed_at < TIMESTAMP'2024-08-31 09:46:00') or ((orders.placed_at = TIMESTAMP'2024-08-31 09:46:00') and (orders.order_id < 106974)))  (cost=15157 rows=74624) (actual time=15.6..15.6 rows=20 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 16.95
+    }
+   ],
+   "measured": true
+  },
+  "s32:523acd4a110d": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW v_customer_lookup AS\nSELECT customer_id,\n       CONCAT(LEFT(email, 2), '***@', SUBSTRING_INDEX(email, '@', -1)) AS email_masked,\n       full_name,\n       status\nFROM customers",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM v_customer_lookup WHERE customer_id <= 3 ORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "email_masked",
+      "full_name",
+      "status"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "ol***@mail.example.com",
+       "Olivia Nakamura",
+       "active"
+      ],
+      [
+       2,
+       "ma***@mail.example.com",
+       "Marcus Bennett",
+       "active"
+      ],
+      [
+       3,
+       "sa***@mail.example.com",
+       "Sara Kowalski",
+       "active"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s33:8e89bafb564b": {
+   "statements": [
+    {
+     "sql": "UPDATE inventory SET on_hand = 3 WHERE product_id = 12",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s34:8663877422f0": {
+   "statements": [
+    {
+     "sql": "-- Inactive product: stock is available, but the product is not for sale\nCALL place_order(5, 6, '[{\"product_id\": 12, \"qty\": 1}]', '2026-03-07 10:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Product is not for sale"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s35:177490ff8a76": {
+   "statements": [
+    {
+     "sql": "-- Address belonging to another customer (address 3 is Marcus's)\nCALL place_order(1, 3, '[{\"product_id\": 3, \"qty\": 1}]', '2026-03-07 10:01:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Unknown customer or address"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s36:05a260073962": {
+   "statements": [
+    {
+     "sql": "-- Zero quantity\nCALL place_order(1, 1, '[{\"product_id\": 3, \"qty\": 0}]', '2026-03-07 10:02:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Cart is empty or has a non-positive quantity"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s37:ba71a6a29c9e": {
+   "statements": [
+    {
+     "sql": "SELECT 'order_without_lines' AS check_name, COUNT(*) AS failures\nFROM orders o WHERE NOT EXISTS (SELECT 1 FROM order_items oi WHERE oi.order_id = o.order_id)\nUNION ALL\nSELECT 'negative_stock', COUNT(*) FROM inventory WHERE on_hand < 0\nUNION ALL\nSELECT 'sale_movement_mismatch', COUNT(*)\nFROM (SELECT oi.order_id, oi.product_id\n      FROM order_items oi JOIN orders o ON o.order_id = oi.order_id\n      WHERE o.placed_at >= '2026-03-07'\n        AND NOT EXISTS (SELECT 1 FROM inventory_movements m\n                        WHERE m.order_id = oi.order_id AND m.product_id = oi.product_id\n                          AND m.reason = 'sale' AND m.qty_change = -oi.quantity)) AS x\nUNION ALL\nSELECT 'category_cycle', COUNT(*)\nFROM (WITH RECURSIVE walk AS (\n        SELECT category_id AS start_id, parent_id, 1 AS steps FROM categories WHERE parent_id IS NOT NULL\n        UNION ALL\n        SELECT w.start_id, c.parent_id, w.steps + 1\n        FROM walk w JOIN categories c ON c.category_id = w.parent_id\n        WHERE c.parent_id IS NOT NULL AND w.steps < 50)\n      SELECT DISTINCT start_id FROM walk WHERE parent_id = start_id) AS cycles",
+     "status": "ok",
+     "columns": [
+      "check_name",
+      "failures"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "order_without_lines",
+       0
+      ],
+      [
+       "negative_stock",
+       0
+      ],
+      [
+       "sale_movement_mismatch",
+       0
+      ],
+      [
+       "category_cycle",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

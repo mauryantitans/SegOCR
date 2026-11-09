@@ -773,10 +773,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Filter: (tickets.body like '%warranty%')  (cost=10591 rows=11019) (actual time=0.614..54.4 rows=100 loops=1)\n    -> Table scan on tickets  (cost=10591 rows=99180) (actual time=0.0608..22.7 rows=100000 loops=1)\n"
+       "-> Filter: (tickets.body like '%warranty%')  (cost=10694 rows=11133) (actual time=0.484..40.7 rows=100 loops=1)\n    -> Table scan on tickets  (cost=10694 rows=100206) (actual time=0.0414..15.9 rows=100000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 55.46
+     "elapsed_ms": 41.58
     },
     {
      "sql": "EXPLAIN ANALYZE SELECT ticket_id FROM tickets WHERE MATCH(body) AGAINST ('warranty')",
@@ -787,10 +787,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Filter: (match tickets.body against ('warranty'))  (cost=1.1 rows=1) (actual time=0.0393..0.92 rows=100 loops=1)\n    -> Full-text index search on tickets using ft_body (body='warranty')  (cost=1.1 rows=1) (actual time=0.0378..0.908 rows=100 loops=1)\n"
+       "-> Filter: (match tickets.body against ('warranty'))  (cost=1.1 rows=1) (actual time=0.0388..0.723 rows=100 loops=1)\n    -> Full-text index search on tickets using ft_body (body='warranty')  (cost=1.1 rows=1) (actual time=0.0374..0.713 rows=100 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 2.23
+     "elapsed_ms": 2.01
     }
    ],
    "measured": true
@@ -821,15 +821,15 @@
      "rows": [
       [
        1,
-       1.2787032574124169e-05
+       7.987468961800914e-07
       ],
       [
        2,
-       1.2787032574124169e-05
+       7.987468961800914e-07
       ],
       [
        3,
-       1.2787032574124169e-05
+       7.987468961800914e-07
       ]
      ]
     }
