@@ -1,0 +1,518 @@
+id: m05-assessment
+module: m05
+title: "Module 5 Assessment — Database Design & ER Modeling"
+passMark: 70
+description: >-
+  Covers all of Module 5: requirements gathering and business-rule classification, entities and the attribute
+  taxonomy, relationships with cardinality, participation and (min,max) notation, the standard relationship
+  patterns (1:1, 1:N, M:N, recursive, ternary), weak entities and EER specialization with the three inheritance
+  mappings, Chen / crow's foot / UML notations, the ER-to-relational mapping algorithm, and primary/foreign key
+  selection in InnoDB. The SQL challenges ask you to build and verify schemas (checked through
+  information_schema) and to query across relationships; the interview questions ask you to defend design
+  trade-offs.
+questions:
+  - id: q1
+    question: "A stakeholder says: *\"Each order is shipped to one address, but customers can save several addresses, and an old invoice must always show the address it was shipped to.\"* Which design follows?"
+    options:
+      - "A customer_addresses table for saved addresses, plus address snapshot columns (or an immutable address row) on orders"
+      - "One address column on customers"
+      - "A foreign key from orders to an editable customer_addresses row only"
+      - "A comma-separated list of addresses on customers"
+    answer: 0
+    explanation: "\"Several\" makes saved addresses multivalued (child table); \"must always show the address it was shipped to\" is a history requirement, so the order needs a snapshot or a reference to an immutable row. An editable FK target would change old invoices; one column or a list cannot hold several structured addresses."
+    concepts: [requirements-analysis, multivalued-attributes, business-rules]
+  - id: q2
+    question: "Which business rule can be enforced with a MySQL CHECK constraint?"
+    options:
+      - "A loan's due date is on or after its loan date (both columns of the same row)"
+      - "A member has at most five open loans"
+      - "A book can be lent only if it has a copy in good condition"
+      - "The loan date is not later than today"
+    answer: 0
+    explanation: "CHECK may compare columns of the row being written. Counting rows and looking at other tables need triggers or application logic; CURDATE()/NOW() are non-deterministic and not allowed in CHECK constraints."
+    concepts: [business-rules, check-constraints]
+  - id: q3
+    question: "Which column definition is rejected by MySQL?"
+    options:
+      - "age INT AS (TIMESTAMPDIFF(YEAR, birth_date, CURDATE())) VIRTUAL"
+      - "line_total DECIMAL(12,2) AS (quantity * unit_price) STORED"
+      - "email_domain VARCHAR(255) AS (SUBSTRING_INDEX(email, '@', -1))"
+      - "open_copy_id INT AS (IF(returned_at IS NULL, copy_id, NULL)) STORED"
+    answer: 0
+    explanation: "Generated columns allow only deterministic built-in functions over the same row; CURDATE() is non-deterministic (error 3763). The other three are deterministic same-row expressions."
+    concepts: [derived-attributes, generated-columns]
+  - id: q4
+    question: "A product may have several tags. Which implementation lets MySQL validate tag values against a list of allowed tags with a foreign key?"
+    options:
+      - "A product_tags (product_id, tag) table with FKs to products and to a tags lookup table"
+      - "A JSON array column with a multi-valued index"
+      - "A VARCHAR column with comma-separated tags"
+      - "Columns tag1, tag2, tag3"
+    answer: 0
+    explanation: "Only a child table row per (product, tag) can carry a foreign key per value. JSON arrays can be indexed (MEMBER OF) but not referenced by FKs; comma lists and repeating columns cannot be validated or indexed per value."
+    concepts: [multivalued-attributes, foreign-key]
+  - id: q5
+    question: "In (min,max) notation `Employee (1,1) —— WORKS_IN —— (0,N) Department`, what does (0,N) mean?"
+    options:
+      - "A department has between zero and many employees working in it"
+      - "An employee works in zero to many departments"
+      - "There are at most N departments"
+      - "Departments are optional for employees"
+    answer: 0
+    explanation: "(min,max) pairs describe the entity they are written next to (look here): each department participates in 0..N WORKS_IN instances. Each employee participates in exactly one (1,1). Chen ratios and crow's foot read the other way (across)."
+    concepts: [min-max-notation, participation]
+  - id: q6
+    question: "Which constraint makes a 1:N relationship's child side participate *totally*?"
+    options: ["NOT NULL on the foreign key column", "UNIQUE on the foreign key column", "ON DELETE CASCADE", "An index on the parent's primary key"]
+    answer: 0
+    explanation: "Total participation means every child references a parent: the FK column cannot be NULL. UNIQUE would make it 1:1; CASCADE is a delete policy; the parent's PK is always indexed."
+    concepts: [participation, foreign-key]
+  - id: q7
+    type: multi
+    question: "Which rules can MySQL 8.4 enforce declaratively? (Select all that apply.)"
+    options:
+      - "A passport belongs to at most one person and a person has at most one passport"
+      - "A student cannot enrol twice in the same section"
+      - "Every department has at least one employee"
+      - "A copy has at most one loan that is still open"
+    answer: [0, 1, 3]
+    explanation: "FK + UNIQUE gives 1:1; a composite PK on the junction table forbids duplicate pairs; a generated column non-NULL only for open loans plus UNIQUE gives \"at most one current\". Parent-side minimums need deferred constraints/assertions, which MySQL lacks."
+    concepts: [cardinality, one-to-one, many-to-many]
+  - id: q8
+    question: "A designer replaces the ternary relationship SUPPLIES(vendor, book, branch) by the three binary relationships vendor–book, book–branch, vendor–branch. What can go wrong?"
+    options:
+      - "Joining the binaries can produce triples that never happened (spurious tuples)"
+      - "Nothing — the binaries always reconstruct the ternary exactly"
+      - "MySQL cannot join three tables"
+      - "The binaries use more storage but are otherwise equivalent"
+    answer: 0
+    explanation: "Each pair of a spurious triple can be true while the triple is false; a ternary decomposes losslessly only if it satisfies the corresponding join dependency (5NF). Multi-way joins are fine in MySQL; the problem is lost information, not storage."
+    concepts: [ternary-relationships]
+  - id: q9
+    question: "`CREATE TABLE staff (… supervisor_id INT NULL, CHECK (supervisor_id <> staff_id), FOREIGN KEY (supervisor_id) REFERENCES staff (staff_id) ON DELETE SET NULL)` fails. Why?"
+    options:
+      - "MySQL forbids CHECK constraints on columns used in a foreign key's referential action (error 3823)"
+      - "Self-referencing foreign keys are not allowed"
+      - "SET NULL requires a NOT NULL column"
+      - "CHECK cannot compare two columns"
+    answer: 0
+    explanation: "It is a documented MySQL restriction. Self-referencing FKs are supported, SET NULL requires a NULL-able column (which it is), and CHECK may compare columns of the same row."
+    concepts: [recursive-relationships, check-constraints, referential-actions]
+  - id: q10
+    question: "What is the primary key of the relation for a weak entity ROOM (partial key room_no) owned by BUILDING (key building_code)?"
+    options: ["(building_code, room_no)", "(room_no)", "(building_code)", "A surrogate room_id only"]
+    answer: 0
+    explanation: "Owner key + partial key. room_no repeats across buildings and building_code repeats across rooms. A surrogate is an implementation alternative that must then be combined with UNIQUE (building_code, room_no)."
+    concepts: [weak-entities, partial-keys]
+  - id: q11
+    question: "A payment is a card payment, a bank transfer or a gift-card redemption — exactly one of them, always. Which mapping gets both constraints with nothing more than a NOT NULL ENUM discriminator?"
+    options: ["Single table (8C)", "Class table (8A)", "Concrete table (8B)", "Two boolean flags (8D)"]
+    answer: 0
+    explanation: "One NOT NULL discriminator value per row gives disjoint + total. Class tables need the composite-FK pattern for disjointness and cannot declare totality; concrete tables have no shared discriminator; boolean flags model overlapping specializations."
+    concepts: [specialization, inheritance-mapping]
+  - id: q12
+    type: multi
+    question: "In a class-table (8A) mapping of a disjoint specialization, which are true in MySQL? (Select all that apply.)"
+    options:
+      - "Each subtype table uses the supertype's primary key as its own primary key and foreign key"
+      - "Disjointness can be enforced with a constant stored generated discriminator in each subtype and a composite FK to UNIQUE (id, type) in the supertype"
+      - "Total specialization (every supertype row has a subtype row) is enforced automatically"
+      - "Queries over common attributes only need the supertype table"
+    answer: [0, 1, 3]
+    explanation: "Shared PKs, the composite-FK disjointness pattern and supertype-only queries are the strengths of 8A. Totality cannot be declared (no deferred constraints); it needs transactions plus audit queries."
+    concepts: [inheritance-mapping, disjointness]
+  - id: q13
+    question: "In crow's foot notation, `COURSES ||--o{ SECTIONS` means:"
+    options:
+      - "Each section belongs to exactly one course; a course has zero or many sections"
+      - "Each course belongs to exactly one section"
+      - "Sections are optional and courses are many"
+      - "Courses and sections are related many-to-many"
+    answer: 0
+    explanation: "Crow's foot reads across: || next to COURSES = exactly one course per section; o{ next to SECTIONS = zero or many sections per course. A solid line additionally marks the relationship as identifying in Mermaid and Workbench."
+    concepts: [crows-foot]
+  - id: q14
+    question: "A diagram reverse-engineered from MySQL shows `MEMBERS |o..o{ MEMBERS`. Which schema fact produced the `|o`?"
+    options:
+      - "The self-referencing FK column is NULL-able"
+      - "The FK column has a UNIQUE index"
+      - "The FK column is part of the primary key"
+      - "The table has a CHECK constraint"
+    answer: 0
+    explanation: "|o at the parent end = zero or one parent per child, i.e. a NULL-able FK. A UNIQUE FK changes the child end to o|; an FK in the PK makes the line solid (identifying); CHECK constraints do not affect the symbols."
+    concepts: [reverse-engineering, crows-foot]
+  - id: q15
+    question: "In the ER-to-relational mapping, where does the attribute `grade` of the M:N relationship ENROLLS (Student–Section) go?"
+    options:
+      - "Into the new relation enrollments(student_id, section_id, grade) with PK (student_id, section_id)"
+      - "Into students"
+      - "Into sections"
+      - "Into a separate grades table with only a grade column"
+    answer: 0
+    explanation: "Step 5 maps an M:N relationship to its own relation, and the relationship's attributes become its columns. On either entity table the attribute would be multivalued."
+    concepts: [er-to-relational-mapping, many-to-many, relationship-attributes]
+  - id: q16
+    question: "Why is a random (version 4) UUID a poor clustered primary key for a large, write-heavy InnoDB table?"
+    options:
+      - "Inserts land on random leaf pages, causing page splits and partially empty pages, and the 16-byte key is copied into every secondary index entry"
+      - "UUIDs cannot be stored in BINARY(16)"
+      - "InnoDB cannot index BINARY columns"
+      - "UUIDs are not unique"
+    answer: 0
+    explanation: "Random insert positions split pages (measured in this module: a much larger clustered index for the same rows) and the PK width inflates every secondary index. UUIDs fit BINARY(16), BINARY columns are indexable, and collisions are astronomically unlikely."
+    concepts: [uuid, clustered-index, primary-key]
+  - id: q17
+    question: "What does `UUID_TO_BIN(UUID(), 1)` change compared with `UUID_TO_BIN(UUID())`?"
+    options:
+      - "It moves the time-high and time-mid fields in front of time-low, so stored values increase with time"
+      - "It generates a random version-4 UUID"
+      - "It stores only 8 bytes"
+      - "It makes the value deterministic"
+    answer: 0
+    explanation: "The swap flag reorders the time fields of MySQL's version-1 UUID so byte order follows time, giving near-sequential inserts. Size stays 16 bytes, the version is unchanged, and UUID() remains non-deterministic."
+    concepts: [uuid]
+  - id: q18
+    question: "Which statement about foreign keys in InnoDB is FALSE?"
+    options:
+      - "ON DELETE SET DEFAULT is supported"
+      - "InnoDB creates an index on the child's FK columns if none exists"
+      - "RESTRICT and NO ACTION behave the same"
+      - "The referenced and referencing integer columns must have the same type and signedness"
+    answer: 0
+    explanation: "SET DEFAULT is parsed but rejected by InnoDB. The other statements are true: the child index is auto-created (and protected from being dropped), InnoDB checks immediately so RESTRICT = NO ACTION, and type mismatches fail with error 3780."
+    concepts: [foreign-key, referential-actions]
+  - id: q19
+    question: "A table uses surrogate key `customer_id`. Which additional constraint prevents the same real person being registered twice?"
+    options: ["UNIQUE on the natural key (e.g. email)", "A CHECK customer_id > 0", "ON UPDATE CASCADE", "An index on customer_id"]
+    answer: 0
+    explanation: "A surrogate cannot detect duplicate real-world entities; the natural candidate key must stay UNIQUE. The PK is already indexed and positive; surrogate keys do not change, so ON UPDATE CASCADE is irrelevant."
+    concepts: [surrogate-key, natural-key]
+challenges:
+  - id: c1
+    title: Map an ER fragment with a weak entity and an M:N relationship
+    dataset: empty
+    difficulty: hard
+    kind: dml
+    concepts: [er-to-relational-mapping, weak-entities, many-to-many, composite-key]
+    prompt: |
+      Map this conceptual model to MySQL (all IDs `INT UNSIGNED`, all columns NOT NULL):
+
+      - **CONFERENCE** (`conference_id` primary key, `name` `VARCHAR(100)` unique).
+      - **SESSION** — weak entity of CONFERENCE with partial key `session_no` (`SMALLINT UNSIGNED`) and attribute
+        `title` (`VARCHAR(150)`); sessions are deleted with their conference. Table `conference_sessions`.
+      - **SPEAKER** (`speaker_id` primary key, `email` `VARCHAR(255)` unique). Table `speakers`.
+      - **PRESENTS** — M:N between SPEAKER and SESSION with attribute `speaker_order` (`TINYINT UNSIGNED`).
+        Table `session_speakers` with columns `conference_id`, `session_no`, `speaker_id`, `speaker_order`.
+
+      Table names: `conferences`, `conference_sessions`, `speakers`, `session_speakers`. The checker lists every
+      primary-key column (in order) and every foreign-key column with its referenced table.
+    hints:
+      - "The weak entity's key is (conference_id, session_no); its FK to conferences cascades."
+      - "PRESENTS references the weak entity with the composite (conference_id, session_no)."
+      - "session_speakers' primary key is (conference_id, session_no, speaker_id)."
+    solution: |
+      CREATE TABLE conferences (
+        conference_id INT UNSIGNED NOT NULL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE
+      );
+      CREATE TABLE conference_sessions (
+        conference_id INT UNSIGNED NOT NULL,
+        session_no    SMALLINT UNSIGNED NOT NULL,
+        title         VARCHAR(150) NOT NULL,
+        PRIMARY KEY (conference_id, session_no),
+        FOREIGN KEY (conference_id) REFERENCES conferences (conference_id) ON DELETE CASCADE
+      );
+      CREATE TABLE speakers (
+        speaker_id INT UNSIGNED NOT NULL PRIMARY KEY,
+        email VARCHAR(255) NOT NULL UNIQUE
+      );
+      CREATE TABLE session_speakers (
+        conference_id INT UNSIGNED NOT NULL,
+        session_no    SMALLINT UNSIGNED NOT NULL,
+        speaker_id    INT UNSIGNED NOT NULL,
+        speaker_order TINYINT UNSIGNED NOT NULL,
+        PRIMARY KEY (conference_id, session_no, speaker_id),
+        KEY idx_session_speakers_speaker (speaker_id),
+        FOREIGN KEY (conference_id, session_no) REFERENCES conference_sessions (conference_id, session_no) ON DELETE CASCADE,
+        FOREIGN KEY (speaker_id) REFERENCES speakers (speaker_id)
+      );
+    check: |
+      SELECT TABLE_NAME, IF(CONSTRAINT_NAME = 'PRIMARY', 'pk', 'fk') AS kind, COLUMN_NAME,
+             COALESCE(REFERENCED_TABLE_NAME, '') AS referenced_table,
+             IF(CONSTRAINT_NAME = 'PRIMARY', ORDINAL_POSITION, 0) AS pk_position
+      FROM information_schema.KEY_COLUMN_USAGE
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND (CONSTRAINT_NAME = 'PRIMARY' OR REFERENCED_TABLE_NAME IS NOT NULL)
+      ORDER BY TABLE_NAME, kind, COLUMN_NAME;
+    explanation: |
+      Steps 1, 2 and 5 of the mapping algorithm. The relationship to a weak entity must carry the weak entity's
+      whole key, so `session_speakers` has a composite FK `(conference_id, session_no)`. Referencing
+      `session_no` alone is impossible (no index on it alone in the parent) and meaningless (session 1 exists in
+      every conference). The extra index on `speaker_id` supports "sessions of a speaker" and the FK.
+  - id: c2
+    title: Enforce a specialization and a 1:1 declaratively
+    dataset: empty
+    difficulty: challenge
+    kind: dml
+    concepts: [inheritance-mapping, disjointness, generated-columns, one-to-one]
+    setup: |
+      CREATE TABLE vehicles (
+        vehicle_id INT UNSIGNED NOT NULL PRIMARY KEY,
+        kind ENUM('car','truck') NOT NULL,
+        plate VARCHAR(10) NOT NULL UNIQUE,
+        UNIQUE KEY uq_vehicles_id_kind (vehicle_id, kind)
+      );
+      CREATE TABLE drivers (driver_id INT UNSIGNED NOT NULL PRIMARY KEY, name VARCHAR(80) NOT NULL);
+      INSERT INTO vehicles VALUES (1, 'truck', 'TRK-001'), (2, 'car', 'CAR-002');
+      INSERT INTO drivers VALUES (10, 'Ana'), (11, 'Ben');
+    prompt: |
+      `vehicles` is the supertype of a disjoint specialization (already with `UNIQUE (vehicle_id, kind)`).
+
+      1. Create the subtype table **`trucks`** with `vehicle_id` (`INT UNSIGNED`, primary key), `payload_kg`
+         (`INT UNSIGNED NOT NULL`) and a discriminator **`kind`** that is a constant **stored generated column**
+         `'truck'` (same ENUM type as the supertype), referencing `vehicles (vehicle_id, kind)` with a composite
+         foreign key that **cascades deletes**.
+      2. Each truck has **at most one assigned driver** and each driver drives **at most one truck**; a truck may
+         have no driver. Add column **`driver_id`** (`INT UNSIGNED NULL`) to `trucks`, referencing `drivers`, with
+         the constraint that makes this 1:1.
+      3. Insert truck details for vehicle 1: payload 12000, driver 10.
+
+      The checker shows the truck rows, the generation expression of `kind`, and which `trucks` columns have a
+      unique index.
+    hints:
+      - "kind ENUM('car','truck') AS ('truck') STORED"
+      - "FOREIGN KEY (vehicle_id, kind) REFERENCES vehicles (vehicle_id, kind) ON DELETE CASCADE"
+      - "driver_id INT UNSIGNED NULL UNIQUE with FOREIGN KEY (driver_id) REFERENCES drivers (driver_id)"
+    solution: |
+      CREATE TABLE trucks (
+        vehicle_id INT UNSIGNED NOT NULL PRIMARY KEY,
+        kind       ENUM('car','truck') AS ('truck') STORED,
+        payload_kg INT UNSIGNED NOT NULL,
+        driver_id  INT UNSIGNED NULL,
+        CONSTRAINT uq_trucks_driver UNIQUE (driver_id),
+        CONSTRAINT fk_trucks_vehicle FOREIGN KEY (vehicle_id, kind)
+          REFERENCES vehicles (vehicle_id, kind) ON DELETE CASCADE,
+        CONSTRAINT fk_trucks_driver FOREIGN KEY (driver_id) REFERENCES drivers (driver_id)
+      );
+      INSERT INTO trucks (vehicle_id, payload_kg, driver_id) VALUES (1, 12000, 10);
+    check: |
+      SELECT t.vehicle_id, t.kind, t.payload_kg, t.driver_id,
+             (SELECT GENERATION_EXPRESSION FROM information_schema.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'trucks' AND COLUMN_NAME = 'kind') AS gen_expr,
+             (SELECT GROUP_CONCAT(DISTINCT s.COLUMN_NAME ORDER BY s.COLUMN_NAME)
+              FROM information_schema.STATISTICS AS s
+              WHERE s.TABLE_SCHEMA = DATABASE() AND s.TABLE_NAME = 'trucks' AND s.NON_UNIQUE = 0) AS unique_columns
+      FROM trucks AS t
+      ORDER BY t.vehicle_id;
+    explanation: |
+      The constant generated discriminator means a truck row can only match a supertype row whose kind is
+      `'truck'`: truck details for vehicle 2 (a car) fail with error 1452. An ordinary `kind` column with
+      `CHECK (kind = 'truck')` plus `ON DELETE CASCADE` would fail with error 3823. The NULL-able `UNIQUE`
+      driver column is the partial 1:1 pattern — many trucks may have NULL, but no driver appears twice.
+  - id: c3
+    title: Measure the participation of every relationship
+    dataset: university
+    difficulty: hard
+    concepts: [min-max-notation, participation, cardinality]
+    prompt: |
+      For the relationships listed below, measure the observed **(min, max)** of the named entity's participation
+      in the current data. Return columns `entity`, `relationship`, `observed_min`, `observed_max`, in exactly
+      this row order:
+
+      1. `instructor` in `teaches` (sections per instructor, counting instructors with none)
+      2. `course` in `offered_as` (sections per course)
+      3. `student` in `enrolls` (enrollments per student)
+      4. `student` in `advised_by` (advisor rows per student)
+    hints:
+      - "For each row: a derived table with one count per entity using LEFT JOIN, then MIN and MAX of that count."
+      - "Combine four SELECTs with UNION ALL, each with a constant sort key k (1–4); wrap them in a derived table and ORDER BY k while selecting only the four requested columns."
+      - "COUNT(child.column), not COUNT(*), so entities without related rows get 0."
+    solution: |
+      SELECT entity, relationship, observed_min, observed_max
+      FROM (
+        SELECT 1 AS k, 'instructor' AS entity, 'teaches' AS relationship, MIN(n) AS observed_min, MAX(n) AS observed_max
+        FROM (SELECT i.instructor_id, COUNT(s.section_id) AS n
+              FROM instructors AS i LEFT JOIN sections AS s ON s.instructor_id = i.instructor_id
+              GROUP BY i.instructor_id) AS a
+        UNION ALL
+        SELECT 2, 'course', 'offered_as', MIN(n), MAX(n)
+        FROM (SELECT c.course_id, COUNT(s.section_id) AS n
+              FROM courses AS c LEFT JOIN sections AS s ON s.course_id = c.course_id
+              GROUP BY c.course_id) AS b
+        UNION ALL
+        SELECT 3, 'student', 'enrolls', MIN(n), MAX(n)
+        FROM (SELECT st.student_id, COUNT(e.section_id) AS n
+              FROM students AS st LEFT JOIN enrollments AS e ON e.student_id = st.student_id
+              GROUP BY st.student_id) AS c
+        UNION ALL
+        SELECT 4, 'student', 'advised_by', MIN(n), MAX(n)
+        FROM (SELECT st.student_id, COUNT(a.instructor_id) AS n
+              FROM students AS st LEFT JOIN advisors AS a ON a.student_id = st.student_id
+              GROUP BY st.student_id) AS d
+      ) AS x
+      ORDER BY k;
+    orderMatters: true
+    explanation: |
+      Every minimum is 0 — all four participations are partial in the data — while the maxima differ:
+      `advised_by` has max 1 because `advisors` is keyed by `student_id` (a structural guarantee), whereas the
+      others are "many". Observed bounds are evidence, not proof: the schema (NOT NULL, UNIQUE, PK) tells you
+      what is *guaranteed*; the data tells you what has happened. `COUNT(*)` instead of `COUNT(child.col)`
+      would wrongly report a minimum of 1.
+  - id: c4
+    title: Audit a schema for key-design defects
+    dataset: empty
+    difficulty: hard
+    concepts: [design-review, information-schema, foreign-key, primary-key]
+    setup: |
+      CREATE TABLE customers (customer_id INT UNSIGNED PRIMARY KEY, email VARCHAR(255) NOT NULL UNIQUE);
+      CREATE TABLE orders (order_id INT UNSIGNED PRIMARY KEY, customer_id INT UNSIGNED NOT NULL,
+        coupon_id INT UNSIGNED NULL,
+        FOREIGN KEY (customer_id) REFERENCES customers (customer_id));
+      CREATE TABLE order_notes (order_id INT UNSIGNED NOT NULL, note VARCHAR(200) NOT NULL);
+      CREATE TABLE payments (payment_id INT UNSIGNED PRIMARY KEY, order_id INT UNSIGNED NOT NULL,
+        amount DOUBLE NOT NULL,
+        CONSTRAINT fk_payments_order FOREIGN KEY (order_id) REFERENCES orders (order_id));
+    prompt: |
+      Write **one query** that lists the defects in this schema as rows `(table_name, column_name, problem)`,
+      where `problem` is one of:
+
+      - `'no primary key'` (with `column_name` = `''`) for base tables without a PRIMARY KEY;
+      - `'unnamed foreign key'` (with the FK column) for foreign keys whose name contains `_ibfk_`;
+      - `'id without foreign key'` for columns ending in `_id` that are neither part of a primary key nor of a
+        foreign key;
+      - `'money not decimal'` for columns named `amount` or `price` whose data type is not `decimal`.
+
+      Order by `table_name`, `column_name`, `problem`.
+    hints:
+      - "Build four SELECTs over information_schema (TABLES/TABLE_CONSTRAINTS, KEY_COLUMN_USAGE, COLUMNS) and UNION ALL them."
+      - "In LIKE patterns escape underscores: LIKE '%\\_ibfk\\_%' and LIKE '%\\_id'."
+      - "For 'id without foreign key' use NOT EXISTS against KEY_COLUMN_USAGE rows that are PRIMARY or have REFERENCED_TABLE_NAME."
+    solution: |
+      SELECT t.TABLE_NAME AS table_name, '' AS column_name, 'no primary key' AS problem
+      FROM information_schema.TABLES AS t
+      WHERE t.TABLE_SCHEMA = DATABASE() AND t.TABLE_TYPE = 'BASE TABLE'
+        AND NOT EXISTS (SELECT 1 FROM information_schema.TABLE_CONSTRAINTS AS tc
+                        WHERE tc.TABLE_SCHEMA = t.TABLE_SCHEMA AND tc.TABLE_NAME = t.TABLE_NAME
+                          AND tc.CONSTRAINT_TYPE = 'PRIMARY KEY')
+      UNION ALL
+      SELECT k.TABLE_NAME, k.COLUMN_NAME, 'unnamed foreign key'
+      FROM information_schema.KEY_COLUMN_USAGE AS k
+      WHERE k.TABLE_SCHEMA = DATABASE() AND k.REFERENCED_TABLE_NAME IS NOT NULL
+        AND k.CONSTRAINT_NAME LIKE '%\_ibfk\_%'
+      UNION ALL
+      SELECT c.TABLE_NAME, c.COLUMN_NAME, 'id without foreign key'
+      FROM information_schema.COLUMNS AS c
+      WHERE c.TABLE_SCHEMA = DATABASE() AND c.COLUMN_NAME LIKE '%\_id'
+        AND NOT EXISTS (SELECT 1 FROM information_schema.KEY_COLUMN_USAGE AS k
+                        WHERE k.TABLE_SCHEMA = c.TABLE_SCHEMA AND k.TABLE_NAME = c.TABLE_NAME
+                          AND k.COLUMN_NAME = c.COLUMN_NAME
+                          AND (k.CONSTRAINT_NAME = 'PRIMARY' OR k.REFERENCED_TABLE_NAME IS NOT NULL))
+      UNION ALL
+      SELECT c.TABLE_NAME, c.COLUMN_NAME, 'money not decimal'
+      FROM information_schema.COLUMNS AS c
+      WHERE c.TABLE_SCHEMA = DATABASE() AND c.COLUMN_NAME IN ('amount', 'price') AND c.DATA_TYPE <> 'decimal'
+      ORDER BY table_name, column_name, problem;
+    orderMatters: true
+    explanation: |
+      The audit finds: `order_notes` has no primary key (InnoDB uses a hidden row ID; duplicates possible) and its
+      `order_id` has no foreign key; `orders.coupon_id` references nothing; `orders.customer_id`'s FK has a
+      generated `_ibfk_` name; `payments.amount` is `DOUBLE` (inexact money). Queries like this run in CI as a
+      design-review gate. Remember that `_` is a LIKE wildcard — unescaped, `'%_id'` would also match a column
+      named `paid`.
+interview:
+  - id: i1
+    question: "Walk me through how you would go from a product manager's feature request to a production MySQL schema."
+    answer: |
+      1. **Requirements.** Interview stakeholders and collect artifacts (forms, reports, API payloads); build a
+         glossary; do a nouns-and-verbs pass to find entities, relationships and attributes; write business rules
+         as testable sentences with quantifiers; capture volumes, growth, retention and the top queries with
+         frequency and latency targets; list open questions and get them answered.
+      2. **Conceptual model.** Draw an ER/EER diagram (crow's foot for engineers, Chen/UML for stakeholders) with
+         (min,max) for every relationship, weak entities, specializations with disjoint/total constraints.
+      3. **Logical/physical mapping.** Apply the mapping algorithm: strong and weak entities, 1:1/1:N/M:N,
+         multivalued attributes, specializations; choose compact surrogate keys (keeping natural keys UNIQUE),
+         name every constraint, match FK types, choose referential actions from the business lifecycle, add
+         indexes for the top queries; normalize (Module 6) and denormalize only with evidence.
+      4. **Verification.** Load sample data, prove each declarable rule is enforced (failing inserts), write
+         audit queries for the non-declarable ones, check plans with EXPLAIN after ANALYZE TABLE, and run an
+         information_schema design-review checklist in CI.
+      5. **Delivery.** Migrations in version control with the diagram and the rule register; review with the team.
+    concepts: [database-design, requirements-analysis, er-to-relational-mapping]
+  - id: i2
+    question: "Natural key or surrogate key — how do you decide, and what do you always do regardless of the choice?"
+    answer: |
+      A primary key must be unique, non-null, **stable**, minimal and — in InnoDB — compact and ideally
+      monotonically increasing, because it orders the clustered index and is copied into every secondary index
+      and every referencing foreign key. Natural keys qualify when they are stable, short, public and genuinely
+      unique: ISO country/currency codes, course codes in a small reference table. They fail when they can
+      change (emails, SKUs after re-coding), are sensitive (national IDs), are wide/composite and widely
+      referenced, or are only *assumed* unique. Then a surrogate (`INT`/`BIGINT UNSIGNED AUTO_INCREMENT`, or an
+      ordered UUID/64-bit ID when generation must be decentralized) is better.
+      Regardless of the choice: declare every natural candidate key `UNIQUE` (with the right collation), match FK
+      types exactly, and never expose sequential IDs where enumeration is a risk (add a random public ID).
+    concepts: [natural-key, surrogate-key, primary-key]
+  - id: i3
+    question: "You need globally unique IDs generated by several services. Why not just use UUID() v4 as the InnoDB primary key, and what would you use instead?"
+    answer: |
+      InnoDB clusters rows by primary key. Random v4 UUIDs make every insert land on a random leaf page: pages
+      split in the middle and stay partly empty, the working set becomes the whole index instead of its right
+      edge, and buffer-pool misses and redo volume rise. The 16-byte key is also copied into every secondary
+      index entry (12 bytes more than INT). In the module's measurement, identical rows with random 16-byte keys
+      produced a far larger clustered index than with sequential 16-byte keys, and both had larger secondary
+      indexes than an INT key.
+      Alternatives: time-ordered IDs — UUID v7 generated by the application (stored as BINARY(16)), MySQL's
+      v1 `UUID()` stored with `UUID_TO_BIN(UUID(), 1)` (swap flag puts the time-high bits first), or a 64-bit
+      Snowflake-style ID (timestamp | node | sequence) that keeps keys at 8 bytes. Or keep a BIGINT
+      AUTO_INCREMENT internal key and add a random UUID as a UNIQUE public identifier. Always store UUIDs as
+      BINARY(16), never CHAR(36).
+    concepts: [uuid, clustered-index, primary-key]
+  - id: i4
+    question: "How do you implement an inheritance hierarchy (e.g. payments: card, bank transfer, gift card) in MySQL? Compare the options."
+    answer: |
+      Three classic mappings:
+      - **Single table** — one table with a NOT NULL discriminator ENUM and NULL-able subtype columns, plus
+        "iff" CHECK constraints (`(method='card') = (last4 IS NOT NULL)`). Total and disjoint for free, fastest
+        for cross-type queries, one FK target; costs sparse rows and CHECK discipline. Good when subtypes differ
+        by a few columns.
+      - **Class table** — supertype table plus one table per subtype sharing the primary key. Subtype columns
+        can be NOT NULL; other tables reference the supertype; common-attribute queries touch one table. Needs a
+        join for subtype details; disjointness via a constant stored generated discriminator and a composite FK
+        to `UNIQUE (id, type)`; totality cannot be declared (transaction + audit). Good for many specific
+        attributes or subtype relationships.
+      - **Concrete table** — one table per subtype with all columns. Fast single-subtype access, fully typed,
+        but no shared FK target, IDs not unique across tables, UNION ALL for cross-type queries. Good when
+        subtypes are never used together.
+      A JSON column for subtype attributes is a fourth option for highly variable subtypes, trading typing and
+      FKs for flexibility. I hide the choice behind a view or the data-access layer.
+    concepts: [inheritance-mapping, specialization]
+  - id: i5
+    question: "Which constraints from an ER diagram can MySQL not enforce declaratively, and how do you handle them?"
+    answer: |
+      Declarable: keys (PK/UNIQUE), existence (FK), total participation of the FK side (NOT NULL), max = 1 on
+      the FK side (UNIQUE), weak-entity identity (composite PK), same-row domain rules (CHECK), "at most one
+      current" (generated column + UNIQUE), some cross-table consistency via composite FKs sharing a column.
+      Not declarable in MySQL: parent-side minimums ("every order has at least one line" — no deferred
+      constraints or CREATE ASSERTION), numeric maxima other than 1 ("at most 30 students per section"),
+      totality of class-table specializations, rules depending on other tables' state ("only delivered orders
+      can be rated"), time-dependent rules (CHECK cannot use NOW()).
+      Handling: record each rule with an owner; enforce with transactions in a service or stored procedure as
+      the only write path, or with triggers that use locking reads (`SELECT … FOR UPDATE` on the parent) to
+      avoid check-then-act races; consider structural encodings (slot numbers with CHECK, counters with
+      conditional UPDATE); and run audit queries in scheduled data-quality jobs to detect violations.
+    concepts: [business-rules, participation, triggers]
+  - id: i6
+    question: "When would you use ON DELETE CASCADE, RESTRICT and SET NULL? Give an example of each from a real system."
+    answer: |
+      The referential action encodes the business lifecycle of the child:
+      - **CASCADE** for existence-dependent parts with no independent meaning: order lines of a draft cart,
+        a user's profile/settings row (shared PK 1:1), multivalued-attribute tables, weak entities. Beware
+        cascades through financial or legal records, and remember cascaded changes do not fire triggers.
+      - **RESTRICT / NO ACTION** (identical in InnoDB, the default) for children with independent meaning:
+        orders referencing customers, payments referencing orders, loans referencing copies. Deletion must be an
+        explicit, audited process — often soft deletion or anonymization rather than a physical delete.
+      - **SET NULL** for optional links that may disappear: an employee's supervisor leaving, a referral source
+        being removed. The column must be NULL-able, and MySQL forbids a CHECK on that column while the action
+        exists (error 3823).
+      ON UPDATE CASCADE is mostly a symptom of mutable keys; prefer immutable surrogate keys so it is never
+      needed.
+    concepts: [referential-actions, foreign-key]

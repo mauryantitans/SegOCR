@@ -1,0 +1,710 @@
+{
+ "doc": "m06-2nf",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:12787e2146b9": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE enrollment_report (\n  student_id      INT UNSIGNED     NOT NULL,\n  section_id      INT UNSIGNED     NOT NULL,\n  grade           CHAR(2)          NULL,\n  student_name    VARCHAR(80)      NOT NULL,\n  student_email   VARCHAR(255)     NOT NULL,\n  course_id       VARCHAR(10)      NOT NULL,\n  term            VARCHAR(6)       NOT NULL,\n  year            SMALLINT         NOT NULL,\n  course_title    VARCHAR(100)     NOT NULL,\n  credits         TINYINT UNSIGNED NOT NULL,\n  instructor_id   INT UNSIGNED     NULL,\n  instructor_name VARCHAR(80)      NULL,\n  PRIMARY KEY (student_id, section_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO enrollment_report\nSELECT e.student_id, e.section_id, e.grade, st.name, st.email,\n       s.course_id, s.term, s.year, c.title, c.credits, s.instructor_id, i.name\nFROM enrollments e\nJOIN students st    ON st.student_id = e.student_id\nJOIN sections s     ON s.section_id  = e.section_id\nJOIN courses c      ON c.course_id   = s.course_id\nLEFT JOIN instructors i ON i.instructor_id = s.instructor_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 146,
+     "info": "Records: 146  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS enrollment_rows FROM enrollment_report",
+     "status": "ok",
+     "columns": [
+      "enrollment_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       146
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:0fefb925e38c": {
+   "statements": [
+    {
+     "sql": "SELECT 'student_id -> name, email' AS fd,\n       (SELECT COUNT(*) FROM (SELECT 1 FROM enrollment_report GROUP BY student_id\n          HAVING COUNT(DISTINCT student_name, student_email) > 1) v) AS violations\nUNION ALL SELECT 'section_id -> course, term, year',\n       (SELECT COUNT(*) FROM (SELECT 1 FROM enrollment_report GROUP BY section_id\n          HAVING COUNT(DISTINCT course_id, term, year) > 1) v)\nUNION ALL SELECT 'course_id -> title, credits',\n       (SELECT COUNT(*) FROM (SELECT 1 FROM enrollment_report GROUP BY course_id\n          HAVING COUNT(DISTINCT course_title, credits) > 1) v)\nUNION ALL SELECT 'student_id -> grade (should FAIL)',\n       (SELECT COUNT(*) FROM (SELECT 1 FROM enrollment_report GROUP BY student_id\n          HAVING COUNT(DISTINCT grade) > 1) v)",
+     "status": "ok",
+     "columns": [
+      "fd",
+      "violations"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "student_id -> name, email",
+       0
+      ],
+      [
+       "section_id -> course, term, year",
+       0
+      ],
+      [
+       "course_id -> title, credits",
+       0
+      ],
+      [
+       "student_id -> grade (should FAIL)",
+       35
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:a3d9f8495812": {
+   "statements": [
+    {
+     "sql": "UPDATE enrollment_report SET student_email = 'samuel.o@alumni.example.edu'\nWHERE student_id = 20230002 AND section_id = (SELECT MIN(section_id) FROM (SELECT section_id FROM enrollment_report WHERE student_id = 20230002) AS t)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT student_email, COUNT(*) AS rows_with_value\nFROM enrollment_report WHERE student_id = 20230002\nGROUP BY student_email ORDER BY student_email",
+     "status": "ok",
+     "columns": [
+      "student_email",
+      "rows_with_value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "samuel.o@alumni.example.edu",
+       1
+      ],
+      [
+       "samuel.okafor@student.example.edu",
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:497e9a554b87": {
+   "statements": [
+    {
+     "sql": "INSERT INTO enrollment_report (student_id, section_id, grade, student_name, student_email,\n  course_id, term, year, course_title, credits, instructor_id, instructor_name)\nVALUES (NULL, 25, NULL, '', '', 'CS-157A', 'Spring', 2025, 'Introduction to Database Management Systems', 3, 1003, 'Omar Kim')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1048,
+      "message": "Column 'student_id' cannot be null"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s5:193b865700f7": {
+   "statements": [
+    {
+     "sql": "SELECT section_id, course_id, term, year, instructor_name, COUNT(*) AS students\nFROM enrollment_report WHERE section_id = 10\nGROUP BY section_id, course_id, term, year, instructor_name",
+     "status": "ok",
+     "columns": [
+      "section_id",
+      "course_id",
+      "term",
+      "year",
+      "instructor_name",
+      "students"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10,
+       "CS-046",
+       "Fall",
+       2023,
+       "Omar Kim",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:3965e494649b": {
+   "statements": [
+    {
+     "sql": "DELETE FROM enrollment_report WHERE section_id = 10",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_still_describing_section_10 FROM enrollment_report WHERE section_id = 10",
+     "status": "ok",
+     "columns": [
+      "rows_still_describing_section_10"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:4afdee69286c": {
+   "statements": [
+    {
+     "sql": "TRUNCATE TABLE enrollment_report",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO enrollment_report\nSELECT e.student_id, e.section_id, e.grade, st.name, st.email,\n       s.course_id, s.term, s.year, c.title, c.credits, s.instructor_id, i.name\nFROM enrollments e\nJOIN students st    ON st.student_id = e.student_id\nJOIN sections s     ON s.section_id  = e.section_id\nJOIN courses c      ON c.course_id   = s.course_id\nLEFT JOIN instructors i ON i.instructor_id = s.instructor_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 146,
+     "info": "Records: 146  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_restored FROM enrollment_report",
+     "status": "ok",
+     "columns": [
+      "rows_restored"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       146
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:43c0d5beadb7": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE students_2nf (\n  student_id    INT UNSIGNED NOT NULL PRIMARY KEY,\n  student_name  VARCHAR(80)  NOT NULL,\n  student_email VARCHAR(255) NOT NULL,\n  CONSTRAINT uq_students_2nf_email UNIQUE (student_email)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE sections_2nf (\n  section_id      INT UNSIGNED     NOT NULL PRIMARY KEY,\n  course_id       VARCHAR(10)      NOT NULL,\n  term            VARCHAR(6)       NOT NULL,\n  year            SMALLINT         NOT NULL,\n  course_title    VARCHAR(100)     NOT NULL,\n  credits         TINYINT UNSIGNED NOT NULL,\n  instructor_id   INT UNSIGNED     NULL,\n  instructor_name VARCHAR(80)      NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE enrollments_2nf (\n  student_id INT UNSIGNED NOT NULL,\n  section_id INT UNSIGNED NOT NULL,\n  grade      CHAR(2)      NULL,\n  PRIMARY KEY (student_id, section_id),\n  CONSTRAINT fk_enr2_student FOREIGN KEY (student_id) REFERENCES students_2nf (student_id),\n  CONSTRAINT fk_enr2_section FOREIGN KEY (section_id) REFERENCES sections_2nf (section_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO students_2nf\nSELECT DISTINCT student_id, student_name, student_email FROM enrollment_report",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 39,
+     "info": "Records: 39  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sections_2nf\nSELECT DISTINCT section_id, course_id, term, year, course_title, credits, instructor_id, instructor_name\nFROM enrollment_report",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 24,
+     "info": "Records: 24  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO enrollments_2nf\nSELECT student_id, section_id, grade FROM enrollment_report",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 146,
+     "info": "Records: 146  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM students_2nf)    AS students,\n       (SELECT COUNT(*) FROM sections_2nf)    AS sections,\n       (SELECT COUNT(*) FROM enrollments_2nf) AS enrollments",
+     "status": "ok",
+     "columns": [
+      "students",
+      "sections",
+      "enrollments"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       39,
+       24,
+       146
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:c3fa07f0a12b": {
+   "statements": [
+    {
+     "sql": "-- Insertion: schedule a section with no students\nINSERT INTO sections_2nf VALUES (25, 'CS-157A', 'Spring', 2025,\n  'Introduction to Database Management Systems', 3, 1003, 'Omar Kim')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "-- Update: one row per student\nUPDATE students_2nf SET student_email = 'samuel.o@alumni.example.edu' WHERE student_id = 20230002",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- Deletion: the two students of section 10 drop it; the section survives\nDELETE FROM enrollments_2nf WHERE section_id = 10",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "rows": []
+    },
+    {
+     "sql": "SELECT section_id, course_id, term, year, instructor_name FROM sections_2nf WHERE section_id IN (10, 25) ORDER BY section_id",
+     "status": "ok",
+     "columns": [
+      "section_id",
+      "course_id",
+      "term",
+      "year",
+      "instructor_name"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       10,
+       "CS-046",
+       "Fall",
+       2023,
+       "Omar Kim"
+      ],
+      [
+       25,
+       "CS-157A",
+       "Spring",
+       2025,
+       "Omar Kim"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:1adfd961d54c": {
+   "statements": [
+    {
+     "sql": "INSERT INTO enrollments_2nf VALUES (20239999, 1, NULL)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`enrollments_2nf`, CONSTRAINT `fk_enr2_student` FOREIGN KEY (`student_id`) REFERENCES `students_2nf` (`student_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:7be5263c2256": {
+   "statements": [
+    {
+     "sql": "DELETE FROM enrollments_2nf",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 144,
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM sections_2nf",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM students_2nf",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 39,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO students_2nf SELECT DISTINCT student_id, student_name, student_email FROM enrollment_report",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 39,
+     "info": "Records: 39  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sections_2nf SELECT DISTINCT section_id, course_id, term, year, course_title, credits, instructor_id, instructor_name FROM enrollment_report",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 24,
+     "info": "Records: 24  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO enrollments_2nf SELECT student_id, section_id, grade FROM enrollment_report",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 146,
+     "info": "Records: 146  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS enrollments FROM enrollments_2nf",
+     "status": "ok",
+     "columns": [
+      "enrollments"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       146
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:f130efcbe189": {
+   "statements": [
+    {
+     "sql": "SELECT e.student_id, e.section_id, e.grade, st.student_name, se.course_id, se.course_title, se.instructor_name\nFROM enrollments_2nf e\nJOIN students_2nf st ON st.student_id = e.student_id\nJOIN sections_2nf se ON se.section_id = e.section_id\nWHERE e.student_id = 20230002\nORDER BY e.section_id",
+     "status": "ok",
+     "columns": [
+      "student_id",
+      "section_id",
+      "grade",
+      "student_name",
+      "course_id",
+      "course_title",
+      "instructor_name"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       20230002,
+       6,
+       "A",
+       "Samuel Okafor",
+       "CS-157B",
+       "Database Management Systems II",
+       "Arjun Rossi"
+      ],
+      [
+       20230002,
+       7,
+       "A",
+       "Samuel Okafor",
+       "DATA-245",
+       "Machine Learning",
+       null
+      ],
+      [
+       20230002,
+       9,
+       "A-",
+       "Samuel Okafor",
+       "CS-146",
+       "Data Structures and Algorithms",
+       "Isabella Wang"
+      ],
+      [
+       20230002,
+       14,
+       "C+",
+       "Samuel Okafor",
+       "MATH-042",
+       "Discrete Mathematics",
+       "Fatima Kim"
+      ],
+      [
+       20230002,
+       16,
+       "B",
+       "Samuel Okafor",
+       "DATA-226",
+       "Data Warehousing",
+       "Elena Haddad"
+      ],
+      [
+       20230002,
+       24,
+       null,
+       "Samuel Okafor",
+       "PHYS-050",
+       "General Physics",
+       "Noah Wilson"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:d4a7de095ccf": {
+   "statements": [
+    {
+     "sql": "WITH rebuilt AS (\n  SELECT e.student_id, e.section_id, e.grade, st.student_name, st.student_email,\n         se.course_id, se.term, se.year, se.course_title, se.credits, se.instructor_id, se.instructor_name\n  FROM enrollments_2nf e\n  JOIN students_2nf st ON st.student_id = e.student_id\n  JOIN sections_2nf se ON se.section_id = e.section_id)\nSELECT (SELECT COUNT(*) FROM rebuilt) AS rebuilt_rows,\n       (SELECT COUNT(*) FROM enrollment_report) AS original_rows,\n       (SELECT COUNT(*) FROM (SELECT * FROM enrollment_report EXCEPT SELECT * FROM rebuilt) d) AS lost,\n       (SELECT COUNT(*) FROM (SELECT * FROM rebuilt EXCEPT SELECT * FROM enrollment_report) d) AS spurious",
+     "status": "ok",
+     "columns": [
+      "rebuilt_rows",
+      "original_rows",
+      "lost",
+      "spurious"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       146,
+       146,
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:2cfbc1d21e16": {
+   "statements": [
+    {
+     "sql": "SELECT 'student facts' AS facts, (SELECT COUNT(*) FROM enrollment_report) AS copies_before,\n       (SELECT COUNT(*) FROM students_2nf) AS copies_after\nUNION ALL\nSELECT 'section facts', (SELECT COUNT(*) FROM enrollment_report), (SELECT COUNT(*) FROM sections_2nf)",
+     "status": "ok",
+     "columns": [
+      "facts",
+      "copies_before",
+      "copies_after"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "student facts",
+       146,
+       39
+      ],
+      [
+       "section facts",
+       146,
+       24
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:f8badfc8912c": {
+   "statements": [
+    {
+     "sql": "SELECT course_id, course_title, credits, COUNT(*) AS sections_repeating_title\nFROM sections_2nf\nGROUP BY course_id, course_title, credits\nHAVING COUNT(*) > 1\nORDER BY sections_repeating_title DESC, course_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "course_id",
+      "course_title",
+      "credits",
+      "sections_repeating_title"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "DATA-225",
+       "Database Systems for Analytics",
+       3,
+       3
+      ],
+      [
+       "DATA-245",
+       "Machine Learning",
+       3,
+       3
+      ],
+      [
+       "MATH-161A",
+       "Applied Probability and Statistics",
+       3,
+       3
+      ],
+      [
+       "BUS-170",
+       "Business Analytics",
+       3,
+       2
+      ],
+      [
+       "CS-149",
+       "Operating Systems",
+       3,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:7812aeaa7cd2": {
+   "statements": [
+    {
+     "sql": "-- Same partial dependency, hidden behind a surrogate key\nCREATE TABLE enrollment_report_surrogate (\n  enrollment_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,\n  student_id    INT UNSIGNED NOT NULL,\n  section_id    INT UNSIGNED NOT NULL,\n  student_name  VARCHAR(80)  NOT NULL,\n  grade         CHAR(2)      NULL,\n  CONSTRAINT uq_ers_enrollment UNIQUE (student_id, section_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO enrollment_report_surrogate (student_id, section_id, student_name, grade)\nSELECT student_id, section_id, student_name, grade FROM enrollment_report",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 146,
+     "info": "Records: 146  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT student_id, COUNT(*) AS copies_of_student_name\nFROM enrollment_report_surrogate GROUP BY student_id ORDER BY copies_of_student_name DESC, student_id LIMIT 3",
+     "status": "ok",
+     "columns": [
+      "student_id",
+      "copies_of_student_name"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       20230002,
+       6
+      ],
+      [
+       20230020,
+       6
+      ],
+      [
+       20230028,
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:bc53d5559a30": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE students_2nf, sections_2nf, enrollments_2nf",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "students_2nf",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "sections_2nf",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "enrollments_2nf",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT e.student_id, e.section_id, e.grade, st.student_name, se.course_title\nFROM enrollments_2nf e\nJOIN students_2nf st ON st.student_id = e.student_id\nJOIN sections_2nf se ON se.section_id = e.section_id\nWHERE e.student_id = 20230002",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=2.95 rows=6)\n    -> Index lookup on e using PRIMARY (student_id=20230002)  (cost=0.851 rows=6)\n    -> Single-row index lookup on se using PRIMARY (section_id=e.section_id)  (cost=0.267 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:1656aa5de2c5": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE students_bad (student_id INT UNSIGNED PRIMARY KEY, student_name VARCHAR(80) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO students_bad SELECT student_id, student_name FROM enrollment_report",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '20230001' for key 'students_bad.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s15:8965c41c327d": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE enrollments_bad (\n  student_id INT NOT NULL,\n  section_id INT UNSIGNED NOT NULL,\n  PRIMARY KEY (student_id, section_id),\n  CONSTRAINT fk_bad_student FOREIGN KEY (student_id) REFERENCES students_2nf (student_id)\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3780,
+      "message": "Referencing column 'student_id' and referenced column 'student_id' in foreign key constraint 'fk_bad_student' are incompatible."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

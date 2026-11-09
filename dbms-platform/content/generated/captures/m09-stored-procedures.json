@@ -1,0 +1,953 @@
+{
+ "doc": "m09-stored-procedures",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s2:b6de2a8d404a": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE customer_position(\n  IN  p_customer INT,\n  OUT p_accounts INT,\n  OUT p_total    DECIMAL(14,2))\n  READS SQL DATA\n  COMMENT 'Number of open accounts and their total balance for one customer'\nBEGIN\n  SELECT COUNT(*), COALESCE(SUM(balance), 0)\n    INTO p_accounts, p_total\n  FROM accounts\n  WHERE customer_id = p_customer\n    AND status <> 'closed';\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL customer_position(4, @n, @total)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @n AS accounts, @total AS total_balance",
+     "status": "ok",
+     "columns": [
+      "accounts",
+      "total_balance"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2,
+       "18570.67"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:545e2d3b9d8c": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE account_statement(IN p_account INT, IN p_limit INT)\n  READS SQL DATA\nBEGIN\n  SELECT txn_id, txn_type, amount, balance_after, created_at\n  FROM transactions\n  WHERE account_id = p_account\n  ORDER BY created_at DESC, txn_id DESC\n  LIMIT p_limit;           -- a parameter is allowed in LIMIT inside a routine\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL account_statement(1, 5)",
+     "status": "ok",
+     "columns": [
+      "txn_id",
+      "txn_type",
+      "amount",
+      "balance_after",
+      "created_at"
+     ],
+     "row_count": 5,
+     "affected_rows": 0,
+     "rows": [
+      [
+       123,
+       "withdrawal",
+       "795.24",
+       "492.57",
+       "2023-08-17 11:45:00"
+      ],
+      [
+       119,
+       "fee",
+       "12.00",
+       "1287.81",
+       "2023-07-30 17:29:00"
+      ],
+      [
+       95,
+       "withdrawal",
+       "120.79",
+       "1299.81",
+       "2023-05-01 10:33:00"
+      ],
+      [
+       51,
+       "withdrawal",
+       "607.63",
+       "1420.60",
+       "2022-11-03 11:07:00"
+      ],
+      [
+       44,
+       "deposit",
+       "2028.23",
+       "2028.23",
+       "2022-10-13 09:03:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:c58cbc427751": {
+   "statements": [
+    {
+     "sql": "SELECT ROUTINE_NAME, ROUTINE_TYPE, SQL_DATA_ACCESS, SECURITY_TYPE, ROUTINE_COMMENT\nFROM information_schema.ROUTINES\nWHERE ROUTINE_SCHEMA = DATABASE()\nORDER BY ROUTINE_NAME",
+     "status": "ok",
+     "columns": [
+      "ROUTINE_NAME",
+      "ROUTINE_TYPE",
+      "SQL_DATA_ACCESS",
+      "SECURITY_TYPE",
+      "ROUTINE_COMMENT"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "account_statement",
+       "PROCEDURE",
+       "READS SQL DATA",
+       "DEFINER",
+       ""
+      ],
+      [
+       "customer_position",
+       "PROCEDURE",
+       "READS SQL DATA",
+       "DEFINER",
+       "Number of open accounts and their total balance for one customer"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:1dcd3fa205b4": {
+   "statements": [
+    {
+     "sql": "SELECT SPECIFIC_NAME, ORDINAL_POSITION, PARAMETER_MODE, PARAMETER_NAME, DTD_IDENTIFIER\nFROM information_schema.PARAMETERS\nWHERE SPECIFIC_SCHEMA = DATABASE() AND SPECIFIC_NAME = 'customer_position'\nORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "SPECIFIC_NAME",
+      "ORDINAL_POSITION",
+      "PARAMETER_MODE",
+      "PARAMETER_NAME",
+      "DTD_IDENTIFIER"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "customer_position",
+       1,
+       "IN",
+       "p_customer",
+       "int"
+      ],
+      [
+       "customer_position",
+       2,
+       "OUT",
+       "p_accounts",
+       "int"
+      ],
+      [
+       "customer_position",
+       3,
+       "OUT",
+       "p_total",
+       "decimal(14,2)"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:3a034405e559": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE apply_monthly_fee(INOUT p_balance DECIMAL(14,2), IN p_type VARCHAR(10))\n  NO SQL\nBEGIN\n  IF p_type = 'savings' THEN\n    SET p_balance = p_balance;                 -- savings accounts are free\n  ELSEIF p_balance < 1000 THEN\n    SET p_balance = p_balance - 5.00;          -- small checking balances pay a fee\n  ELSE\n    SET p_balance = p_balance - 1.00;\n  END IF;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @b1 = 492.57, @b2 = 15836.16, @b3 = 4428.20",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL apply_monthly_fee(@b1, 'checking')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL apply_monthly_fee(@b2, 'checking')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL apply_monthly_fee(@b3, 'savings')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @b1 AS small_checking, @b2 AS large_checking, @b3 AS savings",
+     "status": "ok",
+     "columns": [
+      "small_checking",
+      "large_checking",
+      "savings"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "487.57",
+       "15835.16",
+       "4428.20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:9c1e4c093922": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE account_tier(IN p_account INT, OUT p_tier VARCHAR(12))\n  READS SQL DATA\nBEGIN\n  DECLARE v_balance DECIMAL(14,2);\n  DECLARE v_status  VARCHAR(10);\n  SELECT balance, status INTO v_balance, v_status FROM accounts WHERE account_id = p_account;\n  CASE\n    WHEN v_status IS NULL       THEN SET p_tier = 'unknown';\n    WHEN v_status <> 'active'   THEN SET p_tier = v_status;\n    WHEN v_balance >= 10000     THEN SET p_tier = 'premium';\n    WHEN v_balance >= 1000      THEN SET p_tier = 'standard';\n    ELSE                             SET p_tier = 'basic';\n  END CASE;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL account_tier(6, @t6)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CALL account_tier(7, @t7)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CALL account_tier(1, @t1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CALL account_tier(999, @t999)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @t6 AS acct6, @t7 AS acct7, @t1 AS acct1, @t999 AS acct999",
+     "status": "ok",
+     "columns": [
+      "acct6",
+      "acct7",
+      "acct1",
+      "acct999"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "premium",
+       "frozen",
+       "basic",
+       "unknown"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:e2158f24a34a": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE months_to_target(\n  IN  p_start  DECIMAL(14,2),\n  IN  p_rate   DECIMAL(6,4),     -- monthly rate, e.g. 0.0100 = 1 %\n  IN  p_target DECIMAL(14,2),\n  OUT p_months INT)\n  NO SQL\nBEGIN\n  DECLARE v_balance DECIMAL(14,2) DEFAULT p_start;\n  SET p_months = 0;\n  grow: LOOP\n    IF v_balance >= p_target OR p_months >= 600 THEN\n      LEAVE grow;                           -- exit the loop (with a safety cap)\n    END IF;\n    SET p_months = p_months + 1;\n    IF v_balance < 100 THEN\n      SET v_balance = v_balance + 10;       -- small balances: only the monthly top-up\n      ITERATE grow;                         -- skip the interest step\n    END IF;\n    SET v_balance = ROUND(v_balance * (1 + p_rate), 2) + 10;\n  END LOOP grow;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL months_to_target(1000.00, 0.0100, 1500.00, @m1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL months_to_target(50.00,   0.0100,  200.00, @m2)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @m1 AS months_from_1000, @m2 AS months_from_50",
+     "status": "ok",
+     "columns": [
+      "months_from_1000",
+      "months_from_50"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       23,
+       14
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:89eb1c9bb2f3": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE calendar_days (d DATE PRIMARY KEY, is_weekend BOOLEAN NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE PROCEDURE fill_calendar(IN p_from DATE, IN p_to DATE)\n  MODIFIES SQL DATA\nBEGIN\n  DECLARE v_d DATE DEFAULT p_from;\n  WHILE v_d <= p_to DO\n    INSERT INTO calendar_days VALUES (v_d, DAYOFWEEK(v_d) IN (1, 7));\n    SET v_d = v_d + INTERVAL 1 DAY;\n  END WHILE;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL fill_calendar('2024-02-01', '2024-02-29')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS days, SUM(is_weekend) AS weekend_days, MIN(d) AS first_day, MAX(d) AS last_day\nFROM calendar_days",
+     "status": "ok",
+     "columns": [
+      "days",
+      "weekend_days",
+      "first_day",
+      "last_day"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       29,
+       "8",
+       "2024-02-01",
+       "2024-02-29"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:a3555e576b61": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE count_digits(IN p_n BIGINT, OUT p_digits INT)\n  NO SQL\nBEGIN\n  SET p_digits = 0;\n  REPEAT\n    SET p_digits = p_digits + 1;\n    SET p_n = p_n DIV 10;\n  UNTIL p_n = 0 END REPEAT;               -- runs at least once, so 0 has one digit\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL count_digits(0, @d0)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL count_digits(15836, @d1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @d0 AS digits_of_0, @d1 AS digits_of_15836",
+     "status": "ok",
+     "columns": [
+      "digits_of_0",
+      "digits_of_15836"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:da86899dac98": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE transfer_funds(\n  IN  p_from   INT UNSIGNED,\n  IN  p_to     INT UNSIGNED,\n  IN  p_amount DECIMAL(14,2),\n  IN  p_ref    VARCHAR(40),\n  OUT p_status VARCHAR(40))\n  MODIFIES SQL DATA\nbody: BEGIN\n  DECLARE v_from_balance DECIMAL(14,2);\n  DECLARE v_from_status  VARCHAR(10);\n  DECLARE v_to_status    VARCHAR(10);\n\n  -- on any SQL error: undo everything this call did, then re-raise the error\n  DECLARE EXIT HANDLER FOR SQLEXCEPTION\n  BEGIN\n    ROLLBACK;\n    RESIGNAL;\n  END;\n\n  IF p_amount IS NULL OR p_amount <= 0 THEN\n    SET p_status = 'rejected: amount must be positive';\n    LEAVE body;\n  END IF;\n  IF p_from = p_to THEN\n    SET p_status = 'rejected: same account';\n    LEAVE body;\n  END IF;\n\n  START TRANSACTION;\n  -- lock both rows in primary-key order so two opposite transfers cannot deadlock\n  SELECT status INTO @ignore FROM accounts WHERE account_id = LEAST(p_from, p_to) FOR UPDATE;\n  SELECT status INTO @ignore FROM accounts WHERE account_id = GREATEST(p_from, p_to) FOR UPDATE;\n\n  SELECT balance, status INTO v_from_balance, v_from_status FROM accounts WHERE account_id = p_from;\n  SELECT status INTO v_to_status FROM accounts WHERE account_id = p_to;\n\n  CASE\n    WHEN v_from_status IS NULL OR v_to_status IS NULL THEN\n      SET p_status = 'rejected: unknown account';\n    WHEN v_from_status <> 'active' OR v_to_status <> 'active' THEN\n      SET p_status = 'rejected: account not active';\n    WHEN v_from_balance < p_amount THEN\n      SET p_status = 'rejected: insufficient funds';\n    ELSE\n      SET p_status = 'ok';\n  END CASE;\n\n  IF p_status <> 'ok' THEN\n    ROLLBACK;                       -- release the locks; nothing was changed\n    LEAVE body;\n  END IF;\n\n  UPDATE accounts SET balance = balance - p_amount, version = version + 1 WHERE account_id = p_from;\n  UPDATE accounts SET balance = balance + p_amount, version = version + 1 WHERE account_id = p_to;\n  INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\n    SELECT account_id, 'transfer_out', p_amount, balance, p_ref, NOW() FROM accounts WHERE account_id = p_from;\n  INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\n    SELECT account_id, 'transfer_in',  p_amount, balance, p_ref, NOW() FROM accounts WHERE account_id = p_to;\n  COMMIT;\nEND body",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:1670205abaa2": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance, status, version FROM accounts WHERE account_id IN (1, 2, 7) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "status",
+      "version"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "492.57",
+       "active",
+       0
+      ],
+      [
+       2,
+       "4428.20",
+       "active",
+       0
+      ],
+      [
+       7,
+       "2734.51",
+       "frozen",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:7cea084efe96": {
+   "statements": [
+    {
+     "sql": "CALL transfer_funds(2, 1, 250.00, 'TRF-DEMO-1', @status)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @status AS status",
+     "status": "ok",
+     "columns": [
+      "status"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "ok"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:c33335d00b2b": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance, status, version FROM accounts WHERE account_id IN (1, 2) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "status",
+      "version"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "742.57",
+       "active",
+       1
+      ],
+      [
+       2,
+       "4178.20",
+       "active",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:ae4ac916c643": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, txn_type, amount, balance_after, reference\nFROM transactions WHERE reference = 'TRF-DEMO-1' ORDER BY txn_type DESC",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "txn_type",
+      "amount",
+      "balance_after",
+      "reference"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       2,
+       "transfer_out",
+       "250.00",
+       "4178.20",
+       "TRF-DEMO-1"
+      ],
+      [
+       1,
+       "transfer_in",
+       "250.00",
+       "742.57",
+       "TRF-DEMO-1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:3a7aa5b7df46": {
+   "statements": [
+    {
+     "sql": "CALL transfer_funds(1, 7, 100.00, 'TRF-DEMO-2', @status)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @status AS status,\n       (SELECT COUNT(*) FROM transactions WHERE reference = 'TRF-DEMO-2') AS ledger_rows,\n       (SELECT balance FROM accounts WHERE account_id = 1) AS acct1_balance",
+     "status": "ok",
+     "columns": [
+      "status",
+      "ledger_rows",
+      "acct1_balance"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "rejected: account not active",
+       0,
+       "742.57"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:6a41d1384802": {
+   "statements": [
+    {
+     "sql": "CALL transfer_funds(1, 2, 100000.00, 'TRF-DEMO-3', @s1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL transfer_funds(1, 2, -5.00, 'TRF-DEMO-4', @s2)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @s1 AS too_much, @s2 AS negative",
+     "status": "ok",
+     "columns": [
+      "too_much",
+      "negative"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "rejected: insufficient funds",
+       "rejected: amount must be positive"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:85954c7b3509": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS accounts_checked,\n       SUM(a.balance = t.balance_after) AS balances_matching_ledger\nFROM accounts a\nJOIN transactions t\n  ON t.txn_id = (SELECT MAX(t2.txn_id) FROM transactions t2 WHERE t2.account_id = a.account_id)",
+     "status": "ok",
+     "columns": [
+      "accounts_checked",
+      "balances_matching_ledger"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25,
+       "25"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:b7daf4afee40": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE calendar_days2 (d DATE PRIMARY KEY, is_weekend BOOLEAN NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO calendar_days2\nWITH RECURSIVE days(d) AS (\n  SELECT DATE '2024-02-01'\n  UNION ALL\n  SELECT d + INTERVAL 1 DAY FROM days WHERE d < '2024-02-29')\nSELECT d, DAYOFWEEK(d) IN (1, 7) FROM days",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 29,
+     "info": "Records: 29  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS days, SUM(is_weekend) AS weekend_days FROM calendar_days2",
+     "status": "ok",
+     "columns": [
+      "days",
+      "weekend_days"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       29,
+       "8"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:d63bddb9a93d": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE perf_rows (n INT PRIMARY KEY, sq BIGINT NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE PROCEDURE fill_rows(IN p_from INT, IN p_to INT)\n  MODIFIES SQL DATA\nBEGIN\n  DECLARE i INT DEFAULT p_from;\n  WHILE i <= p_to DO\n    INSERT INTO perf_rows VALUES (i, i * i);\n    SET i = i + 1;\n  END WHILE;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s15:e9bc02beda47": {
+   "statements": [
+    {
+     "sql": "CALL fill_rows(1, 2000)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": [],
+     "elapsed_ms": 1635.18
+    }
+   ],
+   "measured": true
+  },
+  "s16:20414357fb93": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 0.44
+    },
+    {
+     "sql": "CALL fill_rows(2001, 4000)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": [],
+     "elapsed_ms": 25.0
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 2.61
+    }
+   ],
+   "measured": true
+  },
+  "s17:4a223d683b30": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 10000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 0.64
+    },
+    {
+     "sql": "INSERT INTO perf_rows\nWITH RECURSIVE seq(n) AS (SELECT 4001 UNION ALL SELECT n + 1 FROM seq WHERE n < 6000)\nSELECT n, n * n FROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2000,
+     "info": "Records: 2000  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 11.33
+    }
+   ],
+   "measured": true
+  },
+  "s18:fd3487ba84f4": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS rows_inserted FROM perf_rows",
+     "status": "ok",
+     "columns": [
+      "rows_inserted"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       6000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:b4c9b8832eb5": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE describe_type(IN p_type VARCHAR(10), OUT p_label VARCHAR(20))\n  NO SQL\nBEGIN\n  CASE p_type\n    WHEN 'checking' THEN SET p_label = 'Current account';\n    WHEN 'savings'  THEN SET p_label = 'Savings account';\n  END CASE;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s20:99d54e027bcb": {
+   "statements": [
+    {
+     "sql": "CALL describe_type('brokerage', @label)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1339,
+      "message": "Case not found for CASE statement"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s21:f406cd0f8c9b": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE notes (id INT PRIMARY KEY, txt VARCHAR(40))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO notes VALUES (1, 'caller work, meant to be rolled back')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CALL transfer_funds(2, 1, 10.00, 'TRF-NESTED', @s)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM notes) AS caller_rows_still_there,\n       (SELECT COUNT(*) FROM transactions WHERE reference = 'TRF-NESTED') AS transfer_rows",
+     "status": "ok",
+     "columns": [
+      "caller_rows_still_there",
+      "transfer_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:c2081aacb048": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE countdown(IN p_n INT, INOUT p_trace VARCHAR(200))\n  NO SQL\nBEGIN\n  SET p_trace = CONCAT(p_trace, p_n, ' ');\n  IF p_n > 0 THEN\n    CALL countdown(p_n - 1, p_trace);\n  END IF;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @trace = ''",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s23:c0c1706c6b33": {
+   "statements": [
+    {
+     "sql": "CALL countdown(3, @trace)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1456,
+      "message": "Recursive limit 0 (as set by the max_sp_recursion_depth variable) was exceeded for routine countdown"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s24:25725d9f84a8": {
+   "statements": [
+    {
+     "sql": "SET SESSION max_sp_recursion_depth = 10",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @trace = ''",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL countdown(3, @trace)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @trace AS trace",
+     "status": "ok",
+     "columns": [
+      "trace"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "3 2 1 0 "
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION max_sp_recursion_depth = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s25:95f331c640d7": {
+   "statements": [
+    {
+     "sql": "CALL customer_position(4, 0, 0)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1414,
+      "message": "OUT or INOUT argument 2 for routine customer_position is not a variable or NEW pseudo-variable in BEFORE trigger"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

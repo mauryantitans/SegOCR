@@ -1,0 +1,707 @@
+{
+ "doc": "m09-variables",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:61c10d3cb9cb": {
+   "statements": [
+    {
+     "sql": "SET @min_price = 100",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS products_over_min FROM products WHERE price > @min_price",
+     "status": "ok",
+     "columns": [
+      "products_over_min"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       11
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:34f8be61f2e9": {
+   "statements": [
+    {
+     "sql": "SELECT AVG(price), MAX(price) INTO @avg_price, @max_price FROM products",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @avg_price AS avg_price, @max_price AS max_price, @never_set AS never_set",
+     "status": "ok",
+     "columns": [
+      "avg_price",
+      "max_price",
+      "never_set"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "240.045000000",
+       "1799.00",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:6e634ef00b42": {
+   "statements": [
+    {
+     "sql": "SELECT price INTO @p FROM products",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1172,
+      "message": "Result consisted of more than one row"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s4:2f6820bc942c": {
+   "statements": [
+    {
+     "sql": "SELECT @@SESSION.sort_buffer_size AS session_value,\n       @@GLOBAL.sort_buffer_size  AS global_value",
+     "status": "ok",
+     "columns": [
+      "session_value",
+      "global_value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       262144,
+       262144
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION sort_buffer_size = 1048576",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @@SESSION.sort_buffer_size AS session_value,\n       @@GLOBAL.sort_buffer_size  AS global_value",
+     "status": "ok",
+     "columns": [
+      "session_value",
+      "global_value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1048576,
+       262144
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:057f1d0390ae": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION VARIABLES LIKE 'sort_buffer_size'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "sort_buffer_size",
+       "1048576"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:de7a7ce231a8": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE price_band(IN p_product INT)\nBEGIN\n  DECLARE v_price DECIMAL(10,2);\n  DECLARE v_band  VARCHAR(10) DEFAULT 'unknown';\n  SELECT price INTO v_price FROM products WHERE product_id = p_product;\n  SET v_band = CASE WHEN v_price >= 500 THEN 'premium'\n                    WHEN v_price >= 100 THEN 'mid'\n                    ELSE 'budget' END;\n  SELECT p_product AS product_id, v_price AS price, v_band AS band;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL price_band(1)",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "price",
+      "band"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       1,
+       "1299.00",
+       "premium"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:ea60bee4456d": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE carts (cart_id INT AUTO_INCREMENT PRIMARY KEY, customer_id INT NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE cart_items (cart_id INT, product_id INT, qty INT, PRIMARY KEY (cart_id, product_id))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO carts (customer_id) VALUES (7)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SET @cart = LAST_INSERT_ID()",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO cart_items VALUES (@cart, 1, 1), (@cart, 9, 2)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT c.cart_id, c.customer_id, i.product_id, i.qty\nFROM carts c JOIN cart_items i USING (cart_id)\nORDER BY i.product_id",
+     "status": "ok",
+     "columns": [
+      "cart_id",
+      "customer_id",
+      "product_id",
+      "qty"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       7,
+       1,
+       1
+      ],
+      [
+       1,
+       7,
+       9,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:82fd538fe999": {
+   "statements": [
+    {
+     "sql": "SELECT AVG(price) * 1.5 INTO @expensive FROM products",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id, name, price FROM products WHERE price > @expensive ORDER BY price DESC, product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       3,
+       "Gaming Laptop 16",
+       "1799.00"
+      ],
+      [
+       1,
+       "Ultrabook 14 Pro",
+       "1299.00"
+      ],
+      [
+       2,
+       "Ultrabook 13 Air",
+       "999.00"
+      ],
+      [
+       14,
+       "Espresso Machine",
+       "499.00"
+      ],
+      [
+       8,
+       "27\" 4K Monitor",
+       "379.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:5a842d246915": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(DISTINCT oi.order_id) AS orders_with_expensive_items\nFROM order_items oi JOIN products p ON p.product_id = oi.product_id\nWHERE p.price > @expensive",
+     "status": "ok",
+     "columns": [
+      "orders_with_expensive_items"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       23
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:720860a01781": {
+   "statements": [
+    {
+     "sql": "SET SESSION group_concat_max_len = 100000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @@SESSION.group_concat_max_len AS session_len, @@GLOBAL.group_concat_max_len AS global_len",
+     "status": "ok",
+     "columns": [
+      "session_len",
+      "global_len"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       100000,
+       1024
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT CHAR_LENGTH(GROUP_CONCAT(name ORDER BY product_id SEPARATOR ', ')) AS list_length FROM products",
+     "status": "ok",
+     "columns": [
+      "list_length"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       580
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:709184a42fef": {
+   "statements": [
+    {
+     "sql": "SELECT @@SESSION.max_execution_time AS session_ms, @@GLOBAL.max_execution_time AS global_ms",
+     "status": "ok",
+     "columns": [
+      "session_ms",
+      "global_ms"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10000,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:bc5012e968b5": {
+   "statements": [
+    {
+     "sql": "SET SESSION max_connections = 10",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1229,
+      "message": "Variable 'max_connections' is a GLOBAL variable and should be set with SET GLOBAL"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:6476c054d4b3": {
+   "statements": [
+    {
+     "sql": "SET @@version = 'my own build'",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1238,
+      "message": "Variable 'version' is a read only variable"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "c1:d67a439f0d57": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET @cart_total = 99.50",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SET SESSION transaction_isolation = 'READ-COMMITTED'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT @cart_total AS cart_total, @@SESSION.transaction_isolation AS iso",
+       "status": "ok",
+       "columns": [
+        "cart_total",
+        "iso"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "99.50",
+         "READ-COMMITTED"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT @cart_total AS cart_total, @@SESSION.transaction_isolation AS iso",
+       "status": "ok",
+       "columns": [
+        "cart_total",
+        "iso"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         null,
+         "REPEATABLE-READ"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "w1.0:6e6bb055a7dd": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE scope_demo()\nBEGIN\n  DECLARE v_level VARCHAR(10) DEFAULT 'outer';\n  SET @trace = CONCAT('start:', v_level);\n  BEGIN\n    DECLARE v_level VARCHAR(10) DEFAULT 'inner';\n    SET @trace = CONCAT(@trace, ' > in block:', v_level);\n  END;\n  SET @trace = CONCAT(@trace, ' > after block:', v_level);\n  SELECT v_level AS final_local;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:f83c851cdfa8": {
+   "statements": [
+    {
+     "sql": "CALL scope_demo()",
+     "status": "ok",
+     "columns": [
+      "final_local"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       "outer"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:858cb3ce028e": {
+   "statements": [
+    {
+     "sql": "SELECT @trace AS trace",
+     "status": "ok",
+     "columns": [
+      "trace"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "start:outer > in block:inner > after block:outer"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:c54d905486e8": {
+   "statements": [
+    {
+     "sql": "SET @x = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @x = 10, @y = @x * 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @x AS x, @y AS y",
+     "status": "ok",
+     "columns": [
+      "x",
+      "y"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:a7a37e906fdc": {
+   "statements": [
+    {
+     "sql": "SET @rn = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @rn := @rn + 1 AS rn, name, price\nFROM products\nORDER BY price DESC, product_id\nLIMIT 3",
+     "status": "ok",
+     "columns": [
+      "rn",
+      "name",
+      "price"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "Gaming Laptop 16",
+       "1799.00"
+      ],
+      [
+       2,
+       "Ultrabook 14 Pro",
+       "1299.00"
+      ],
+      [
+       3,
+       "Ultrabook 13 Air",
+       "999.00"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "Setting user variables within expressions is deprecated and will be removed in a future release. Consider alternatives: 'SET variable=expression, ...', or 'SELECT expression(s) INTO variables(s)'."
+      }
+     ]
+    },
+    {
+     "sql": "SHOW WARNINGS",
+     "status": "ok",
+     "columns": [
+      "Level",
+      "Code",
+      "Message"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Warning",
+       1287,
+       "Setting user variables within expressions is deprecated and will be removed in a future release. Consider alternatives: 'SET variable=expression, ...', or 'SELECT expression(s) INTO variables(s)'."
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:14a2cac29a4e": {
+   "statements": [
+    {
+     "sql": "SELECT ROW_NUMBER() OVER (ORDER BY price DESC, product_id) AS rn, name, price\nFROM products\nORDER BY rn\nLIMIT 3",
+     "status": "ok",
+     "columns": [
+      "rn",
+      "name",
+      "price"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "Gaming Laptop 16",
+       "1799.00"
+      ],
+      [
+       2,
+       "Ultrabook 14 Pro",
+       "1299.00"
+      ],
+      [
+       3,
+       "Ultrabook 13 Air",
+       "999.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:e91dccffc518": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT product_id FROM products WHERE price > @expensive",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (products.price > <cache>((@expensive)))  (cost=1.25 rows=10)\n    -> Table scan on products  (cost=1.25 rows=30)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:d2c692840e77": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE count_over_100(OUT p_count INT)\nBEGIN\n  DECLARE price DECIMAL(10,2) DEFAULT 0;   -- intended as a scratch variable\n  SELECT COUNT(*) INTO p_count FROM products WHERE price > 100;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL count_over_100(@n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @n AS counted, (SELECT COUNT(*) FROM products WHERE price > 100) AS correct",
+     "status": "ok",
+     "columns": [
+      "counted",
+      "correct"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       11
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:a8a7c2c035b3": {
+   "statements": [
+    {
+     "sql": "SET @page_size = 5",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id, name FROM products ORDER BY product_id LIMIT @page_size",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@page_size' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

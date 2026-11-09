@@ -2,7 +2,7 @@
  "doc": "m05-er-notation",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:c17fd1517186": {
@@ -182,7 +182,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Nested loop inner join  (cost=36.4 rows=21.7)\n    -> Nested loop inner join  (cost=33.7 rows=21.7)\n        -> Nested loop inner join  (cost=4.91 rows=9.87)\n            -> Nested loop inner join  (cost=1.45 rows=1)\n                -> Index scan on cat using name  (cost=1.1 rows=1)\n                -> Single-row covering index lookup on sch using catalog_id (catalog_id=mysql.cat.id, name=database())  (cost=0.35 rows=1)\n            -> Invalidate materialized tables (row from tbl)  (cost=3.46 rows=9.87)\n                -> Index lookup on tbl using schema_id (schema_id=mysql.sch.id)  (cost=3.46 rows=9.87)\n        -> Table scan on constraints  (cost=2.91..4.29 rows=2.2)\n            -> Union all materialize (invalidate on row from tbl)  (cost=1.76..1.76 rows=2.2)\n                -> Zero rows (Impossible WHERE)  (cost=0..0 rows=0)\n                -> Nested loop inner join  (cost=1.54 rows=2.2)\n                    -> Index lookup on fk using table_id (table_id=mysql.tbl.id)  (cost=0.77 rows=2.2)\n                    -> Index lookup on fkcu using PRIMARY (foreign_key_id=mysql.fk.id)  (cost=0.295 rows=1)\n    -> Filter: ((0 <> can_access_column(mysql.sch.`name`,mysql.tbl.`name`,mysql.col.`name`)) and (0 <> is_visible_dd_object(mysql.tbl.hidden,((mysql.col.hidden not in ('Visible','User')) or (0 <> constraints.HIDDEN)),mysql.col.`options`)))  (cost=0.0304 rows=1)\n        -> Single-row index lookup on col using PRIMARY (id=constraints.column_id)  (cost=0.0304 rows=1)\n"
+       "-> Nested loop inner join  (cost=104 rows=49.8)\n    -> Nested loop inner join  (cost=98.8 rows=49.8)\n        -> Nested loop inner join  (cost=8.22 rows=33.4)\n            -> Nested loop inner join  (cost=0.7 rows=1)\n                -> Index scan on cat using name  (cost=0.35 rows=1)\n                -> Single-row covering index lookup on sch using catalog_id (catalog_id=mysql.cat.id, name=database())  (cost=0.35 rows=1)\n            -> Invalidate materialized tables (row from tbl)  (cost=7.52 rows=33.4)\n                -> Index lookup on tbl using schema_id (schema_id=mysql.sch.id)  (cost=7.52 rows=33.4)\n        -> Table scan on constraints  (cost=2.87..3.7 rows=1.49)\n            -> Union all materialize (invalidate on row from tbl)  (cost=1.19..1.19 rows=1.49)\n                -> Zero rows (Impossible WHERE)  (cost=0..0 rows=0)\n                -> Nested loop inner join  (cost=1.04 rows=1.49)\n                    -> Index lookup on fk using table_id (table_id=mysql.tbl.id)  (cost=0.519 rows=1.48)\n                    -> Index lookup on fkcu using PRIMARY (foreign_key_id=mysql.fk.id)  (cost=0.318 rows=1)\n    -> Filter: ((0 <> can_access_column(mysql.sch.`name`,mysql.tbl.`name`,mysql.col.`name`)) and (0 <> is_visible_dd_object(mysql.tbl.hidden,((mysql.col.hidden not in ('Visible','User')) or (0 <> constraints.HIDDEN)),mysql.col.`options`)))  (cost=0.00898 rows=1)\n        -> Single-row index lookup on col using PRIMARY (id=constraints.column_id)  (cost=0.00898 rows=1)\n"
       ]
      ],
      "warnings": [

@@ -1,0 +1,646 @@
+{
+ "doc": "m05-key-selection",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:3c240b9b40fd": {
+   "statements": [
+    {
+     "sql": "SELECT k.TABLE_NAME, GROUP_CONCAT(CONCAT(k.COLUMN_NAME, ' ', c.COLUMN_TYPE) ORDER BY k.ORDINAL_POSITION SEPARATOR ', ') AS primary_key,\n       MAX(c.EXTRA) AS extra\nFROM information_schema.KEY_COLUMN_USAGE AS k\nJOIN information_schema.COLUMNS AS c\n  ON c.TABLE_SCHEMA = k.TABLE_SCHEMA AND c.TABLE_NAME = k.TABLE_NAME AND c.COLUMN_NAME = k.COLUMN_NAME\nWHERE k.TABLE_SCHEMA = DATABASE() AND k.CONSTRAINT_NAME = 'PRIMARY'\nGROUP BY k.TABLE_NAME\nORDER BY k.TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "primary_key",
+      "extra"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "categories",
+       "category_id int unsigned",
+       "auto_increment"
+      ],
+      [
+       "customers",
+       "customer_id int unsigned",
+       "auto_increment"
+      ],
+      [
+       "order_items",
+       "order_id int unsigned, product_id int unsigned",
+       ""
+      ],
+      [
+       "orders",
+       "order_id int unsigned",
+       "auto_increment"
+      ],
+      [
+       "payments",
+       "payment_id int unsigned",
+       "auto_increment"
+      ],
+      [
+       "products",
+       "product_id int unsigned",
+       "auto_increment"
+      ],
+      [
+       "reviews",
+       "review_id int unsigned",
+       "auto_increment"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:c74182414a3d": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE tickets (\n  ticket_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  subject   VARCHAR(100) NOT NULL,\n  CONSTRAINT uq_tickets_subject UNIQUE (subject)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO tickets (subject) VALUES ('Login fails'), ('Refund request')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT LAST_INSERT_ID() AS first_id_of_last_insert, @@innodb_autoinc_lock_mode AS autoinc_lock_mode",
+     "status": "ok",
+     "columns": [
+      "first_id_of_last_insert",
+      "autoinc_lock_mode"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:803e13332763": {
+   "statements": [
+    {
+     "sql": "INSERT INTO tickets (subject) VALUES ('Login fails')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'Login fails' for key 'tickets.uq_tickets_subject'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s4:282e252d0ffb": {
+   "statements": [
+    {
+     "sql": "INSERT INTO tickets (subject) VALUES ('Password reset')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT ticket_id, subject FROM tickets ORDER BY ticket_id",
+     "status": "ok",
+     "columns": [
+      "ticket_id",
+      "subject"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "Login fails"
+      ],
+      [
+       2,
+       "Refund request"
+      ],
+      [
+       4,
+       "Password reset"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:80e4e38b3944": {
+   "volatile": true,
+   "statements": [
+    {
+     "sql": "SELECT UUID() AS uuid_text, HEX(UUID_TO_BIN(UUID(), 1)) AS swapped_hex",
+     "status": "ok"
+    }
+   ]
+  },
+  "s6:efdc6dc8b7f1": {
+   "statements": [
+    {
+     "sql": "SELECT LENGTH(UUID())              AS text_chars,\n       LENGTH(UUID_TO_BIN(UUID())) AS binary_bytes,\n       IS_UUID(UUID())             AS is_valid_uuid",
+     "status": "ok",
+     "columns": [
+      "text_chars",
+      "binary_bytes",
+      "is_valid_uuid"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       36,
+       16,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:ba8b96cb90f3": {
+   "statements": [
+    {
+     "sql": "SELECT HEX(UUID_TO_BIN('6ccd780c-baba-1026-9564-5b8c656024db'))     AS no_swap,\n       HEX(UUID_TO_BIN('6ccd780c-baba-1026-9564-5b8c656024db', 1))  AS swapped,\n       BIN_TO_UUID(UUID_TO_BIN('6ccd780c-baba-1026-9564-5b8c656024db', 1), 1) AS round_trip",
+     "status": "ok",
+     "columns": [
+      "no_swap",
+      "swapped",
+      "round_trip"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "6CCD780CBABA102695645B8C656024DB",
+       "1026BABA6CCD780C95645B8C656024DB",
+       "6ccd780c-baba-1026-9564-5b8c656024db"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:ab1c3eda63ad": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE products_nk (\n  sku   VARCHAR(20)  NOT NULL PRIMARY KEY,\n  name  VARCHAR(120) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE order_lines_nk (\n  order_id INT UNSIGNED NOT NULL,\n  sku      VARCHAR(20)  NOT NULL,\n  quantity INT UNSIGNED NOT NULL,\n  PRIMARY KEY (order_id, sku),\n  CONSTRAINT fk_lines_nk_sku FOREIGN KEY (sku) REFERENCES products_nk (sku) ON UPDATE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO products_nk SELECT sku, name FROM products",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 30,
+     "info": "Records: 30  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO order_lines_nk SELECT oi.order_id, p.sku, oi.quantity\nFROM order_items AS oi JOIN products AS p ON p.product_id = oi.product_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 182,
+     "info": "Records: 182  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT p.sku, COUNT(*) AS lines_referencing\nFROM order_lines_nk AS l JOIN products_nk AS p ON p.sku = l.sku\nGROUP BY p.sku ORDER BY lines_referencing DESC, p.sku LIMIT 1",
+     "status": "ok",
+     "columns": [
+      "sku",
+      "lines_referencing"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "SKU-1023",
+       15
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:12be130dcb2d": {
+   "statements": [
+    {
+     "sql": "SET @old_sku = (SELECT sku FROM order_lines_nk GROUP BY sku ORDER BY COUNT(*) DESC, sku LIMIT 1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE products_nk SET sku = CONCAT('NEW-', @old_sku) WHERE sku = @old_sku",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS parent_rows_updated,\n       (SELECT COUNT(*) FROM order_lines_nk WHERE sku = CONCAT('NEW-', @old_sku)) AS child_rows_rewritten",
+     "status": "ok",
+     "columns": [
+      "parent_rows_updated",
+      "child_rows_rewritten"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       15
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:c0a5b38136f8": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE uuid_demo (created_seq TINYINT PRIMARY KEY, u CHAR(36) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO uuid_demo VALUES\n  (1, 'fffffff0-0a1b-11ef-8000-00000000000a'),   -- earliest\n  (2, '00000010-0a1c-11ef-8000-00000000000a'),   -- later: time_low wrapped, time_mid advanced\n  (3, '80000000-0a1c-11ef-8000-00000000000a')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- latest\nSELECT created_seq, u,\n       RANK() OVER (ORDER BY UUID_TO_BIN(u))    AS position_unswapped,\n       RANK() OVER (ORDER BY UUID_TO_BIN(u, 1)) AS position_swapped\nFROM uuid_demo\nORDER BY created_seq",
+     "status": "ok",
+     "columns": [
+      "created_seq",
+      "u",
+      "position_unswapped",
+      "position_swapped"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "fffffff0-0a1b-11ef-8000-00000000000a",
+       3,
+       1
+      ],
+      [
+       2,
+       "00000010-0a1c-11ef-8000-00000000000a",
+       1,
+       2
+      ],
+      [
+       3,
+       "80000000-0a1c-11ef-8000-00000000000a",
+       2,
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:9dbf23ae6642": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE api_clients (\n  client_id   BINARY(16)   NOT NULL DEFAULT (UUID_TO_BIN(UUID(), 1)) PRIMARY KEY,\n  name        VARCHAR(80)  NOT NULL,\n  created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  CONSTRAINT uq_api_clients_name UNIQUE (name)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO api_clients (name) VALUES ('mobile-app'), ('partner-portal')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT name, LENGTH(client_id) AS key_bytes, IS_UUID(BIN_TO_UUID(client_id, 1)) AS decodes_to_uuid\nFROM api_clients ORDER BY name",
+     "status": "ok",
+     "columns": [
+      "name",
+      "key_bytes",
+      "decodes_to_uuid"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "mobile-app",
+       16,
+       1
+      ],
+      [
+       "partner-portal",
+       16,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:85fc5fffb295": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE k_int  (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, grp INT NOT NULL, payload CHAR(40) NOT NULL, KEY idx_grp (grp))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE k_seq  (id BINARY(16) PRIMARY KEY, grp INT NOT NULL, payload CHAR(40) NOT NULL, KEY idx_grp (grp))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE k_rand (id BINARY(16) PRIMARY KEY, grp INT NOT NULL, payload CHAR(40) NOT NULL, KEY idx_grp (grp))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:cc326b86f2ed": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 60000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO k_int (grp, payload)\n  WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 60000)\n  SELECT n % 100, SHA1(n) FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 60000,
+     "info": "Records: 60000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO k_seq\n  WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 60000)\n  SELECT UNHEX(LPAD(HEX(n), 32, '0')), n % 100, SHA1(n) FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 60000,
+     "info": "Records: 60000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO k_rand\n  WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 60000)\n  SELECT UNHEX(MD5(n)), n % 100, SHA1(n) FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 60000,
+     "info": "Records: 60000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM k_int) AS k_int, (SELECT COUNT(*) FROM k_seq) AS k_seq, (SELECT COUNT(*) FROM k_rand) AS k_rand",
+     "status": "ok",
+     "columns": [
+      "k_int",
+      "k_seq",
+      "k_rand"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       60000,
+       60000,
+       60000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:984a59e4f143": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE k_int, k_seq, k_rand",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "k_int",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "k_seq",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "k_rand",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SET SESSION information_schema_stats_expiry = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s12:70641a4f295d": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME,\n       ROUND(DATA_LENGTH  / 1024 / 1024, 2) AS clustered_mib,\n       ROUND(INDEX_LENGTH / 1024 / 1024, 2) AS secondary_mib\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('k_int', 'k_seq', 'k_rand')\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "clustered_mib",
+      "secondary_mib"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "k_int",
+       "4.52",
+       "1.52"
+      ],
+      [
+       "k_rand",
+       "8.52",
+       "2.52"
+      ],
+      [
+       "k_seq",
+       "5.52",
+       "2.52"
+      ]
+     ],
+     "elapsed_ms": 1.81
+    }
+   ],
+   "measured": true
+  },
+  "s13:322620aa75cf": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id FROM order_items WHERE product_id = 5",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Covering index lookup on order_items using idx_order_items_product (product_id=5)  (cost=0.952 rows=7)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:3493f2b1d494": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE ticket_comments (\n  comment_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  ticket_id  INT UNSIGNED NOT NULL,\n  body       VARCHAR(500) NOT NULL,\n  CONSTRAINT fk_comments_ticket FOREIGN KEY (ticket_id) REFERENCES tickets (ticket_id) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT INDEX_NAME, COLUMN_NAME, NON_UNIQUE\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ticket_comments'\nORDER BY INDEX_NAME, SEQ_IN_INDEX",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "COLUMN_NAME",
+      "NON_UNIQUE"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "fk_comments_ticket",
+       "ticket_id",
+       1
+      ],
+      [
+       "PRIMARY",
+       "comment_id",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:cf3e498aa8b1": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE ticket_comments DROP INDEX fk_comments_ticket",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1553,
+      "message": "Cannot drop index 'fk_comments_ticket': needed in a foreign key constraint"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s16:db529ca36e2a": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE tiny_counter (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, v CHAR(1)) AUTO_INCREMENT = 2147483646",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO tiny_counter (v) VALUES ('a')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT MAX(id) AS last_id FROM tiny_counter",
+     "status": "ok",
+     "columns": [
+      "last_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2147483646
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:5a86424d1973": {
+   "statements": [
+    {
+     "sql": "INSERT INTO tiny_counter (v) VALUES ('b'), ('c')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1467,
+      "message": "Failed to read auto-increment value from storage engine"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

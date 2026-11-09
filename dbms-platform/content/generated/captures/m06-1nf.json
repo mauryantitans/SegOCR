@@ -1,0 +1,919 @@
+{
+ "doc": "m06-1nf",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:b5c9b9e20e0c": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE catalog_flat (\n  book_id INT UNSIGNED PRIMARY KEY,\n  title   VARCHAR(200) NOT NULL,\n  authors VARCHAR(500) NOT NULL,\n  tags    VARCHAR(200) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO catalog_flat (book_id, title, authors, tags)\nSELECT b.book_id, b.title,\n       GROUP_CONCAT(a.name ORDER BY ba.author_order SEPARATOR ', '),\n       ELT(b.book_id, 'databases,storage-engines,internals', 'distributed-systems,databases,architecture',\n           'mysql,performance,databases', 'sql,anti-patterns,databases', 'databases,textbook,sql',\n           'databases,textbook', 'sql,relational-theory', 'science-fiction,classic', 'literary-fiction',\n           'literary-fiction,magical-realism', 'science-fiction', 'magical-realism')\nFROM books b\nJOIN book_authors ba ON ba.book_id = b.book_id\nJOIN authors a       ON a.author_id = ba.author_id\nGROUP BY b.book_id, b.title",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 12,
+     "info": "Records: 12  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT book_id, title, authors, tags FROM catalog_flat ORDER BY book_id LIMIT 7",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "title",
+      "authors",
+      "tags"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       1,
+       "Database Internals",
+       "Alex Petrov",
+       "databases,storage-engines,internals"
+      ],
+      [
+       2,
+       "Designing Data-Intensive Applications",
+       "Martin Kleppmann",
+       "distributed-systems,databases,architecture"
+      ],
+      [
+       3,
+       "High Performance MySQL, 3rd Edition",
+       "Baron Schwartz, Peter Zaitsev, Vadim Tkachenko",
+       "mysql,performance,databases"
+      ],
+      [
+       4,
+       "SQL Antipatterns, Volume 1",
+       "Bill Karwin",
+       "sql,anti-patterns,databases"
+      ],
+      [
+       5,
+       "Database System Concepts",
+       "Abraham Silberschatz, Henry F. Korth, S. Sudarshan",
+       "databases,textbook,sql"
+      ],
+      [
+       6,
+       "Fundamentals of Database Systems",
+       "Ramez Elmasri, Shamkant B. Navathe",
+       "databases,textbook"
+      ],
+      [
+       7,
+       "SQL and Relational Theory",
+       "C. J. Date",
+       "sql,relational-theory"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:b5db2fc2d1c8": {
+   "statements": [
+    {
+     "sql": "-- Substring search: wrong answer\nSELECT book_id, title, tags FROM catalog_flat WHERE tags LIKE '%sql%' ORDER BY book_id",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "title",
+      "tags"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       3,
+       "High Performance MySQL, 3rd Edition",
+       "mysql,performance,databases"
+      ],
+      [
+       4,
+       "SQL Antipatterns, Volume 1",
+       "sql,anti-patterns,databases"
+      ],
+      [
+       5,
+       "Database System Concepts",
+       "databases,textbook,sql"
+      ],
+      [
+       7,
+       "SQL and Relational Theory",
+       "sql,relational-theory"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:05beb7eb78de": {
+   "statements": [
+    {
+     "sql": "SELECT book_id, title, tags FROM catalog_flat WHERE FIND_IN_SET('sql', tags) > 0 ORDER BY book_id",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "title",
+      "tags"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       4,
+       "SQL Antipatterns, Volume 1",
+       "sql,anti-patterns,databases"
+      ],
+      [
+       5,
+       "Database System Concepts",
+       "databases,textbook,sql"
+      ],
+      [
+       7,
+       "SQL and Relational Theory",
+       "sql,relational-theory"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:d94e5bacdac5": {
+   "statements": [
+    {
+     "sql": "-- The authors list uses ', ' (comma + space): FIND_IN_SET silently misses everyone but the first author\nSELECT book_id, title FROM catalog_flat WHERE FIND_IN_SET('Henry F. Korth', authors) > 0",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "title"
+     ],
+     "row_count": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s5:c2d3abb008c3": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE catalog_cols (\n  book_id INT UNSIGNED PRIMARY KEY,\n  title   VARCHAR(200) NOT NULL,\n  author1 VARCHAR(100) NOT NULL,\n  author2 VARCHAR(100) NULL,\n  author3 VARCHAR(100) NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO catalog_cols\nSELECT book_id, title,\n       SUBSTRING_INDEX(authors, ', ', 1),\n       NULLIF(SUBSTRING_INDEX(SUBSTRING_INDEX(authors, ', ', 2), ', ', -1), SUBSTRING_INDEX(authors, ', ', 1)),\n       NULLIF(SUBSTRING_INDEX(SUBSTRING_INDEX(authors, ', ', 3), ', ', -1), SUBSTRING_INDEX(SUBSTRING_INDEX(authors, ', ', 2), ', ', -1))\nFROM catalog_flat",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 12,
+     "info": "Records: 12  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- \"Books by Peter Zaitsev\" must check every column\nSELECT book_id, title FROM catalog_cols\nWHERE 'Peter Zaitsev' IN (author1, author2, author3)",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "title"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3,
+       "High Performance MySQL, 3rd Edition"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:fe239202ced3": {
+   "statements": [
+    {
+     "sql": "SELECT f.book_id, j.author_order, j.author_name\nFROM catalog_flat AS f,\n     JSON_TABLE(CONCAT('[\"', REPLACE(f.authors, ', ', '\",\"'), '\"]'),\n                '$[*]' COLUMNS (author_order FOR ORDINALITY,\n                                author_name  VARCHAR(100) PATH '$')) AS j\nWHERE f.book_id IN (3, 5, 6)\nORDER BY f.book_id, j.author_order",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "author_order",
+      "author_name"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       3,
+       1,
+       "Baron Schwartz"
+      ],
+      [
+       3,
+       2,
+       "Peter Zaitsev"
+      ],
+      [
+       3,
+       3,
+       "Vadim Tkachenko"
+      ],
+      [
+       5,
+       1,
+       "Abraham Silberschatz"
+      ],
+      [
+       5,
+       2,
+       "Henry F. Korth"
+      ],
+      [
+       5,
+       3,
+       "S. Sudarshan"
+      ],
+      [
+       6,
+       1,
+       "Ramez Elmasri"
+      ],
+      [
+       6,
+       2,
+       "Shamkant B. Navathe"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:aa6a6418f27b": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE lib_author (\n  author_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,\n  author_name VARCHAR(100) NOT NULL,\n  CONSTRAINT uq_lib_author_name UNIQUE (author_name)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE lib_book_author (\n  book_id      INT UNSIGNED NOT NULL,\n  author_id    INT UNSIGNED NOT NULL,\n  author_order TINYINT UNSIGNED NOT NULL,\n  PRIMARY KEY (book_id, author_id),\n  CONSTRAINT uq_lib_book_author_order UNIQUE (book_id, author_order),\n  CONSTRAINT fk_lba_book   FOREIGN KEY (book_id)   REFERENCES catalog_flat (book_id),\n  CONSTRAINT fk_lba_author FOREIGN KEY (author_id) REFERENCES lib_author (author_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO lib_author (author_name)\nSELECT DISTINCT j.author_name\nFROM catalog_flat AS f,\n     JSON_TABLE(CONCAT('[\"', REPLACE(f.authors, ', ', '\",\"'), '\"]'),\n                '$[*]' COLUMNS (author_name VARCHAR(100) PATH '$')) AS j\nORDER BY j.author_name",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 15,
+     "info": "Records: 15  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO lib_book_author (book_id, author_id, author_order)\nSELECT f.book_id, a.author_id, j.author_order\nFROM catalog_flat AS f,\n     JSON_TABLE(CONCAT('[\"', REPLACE(f.authors, ', ', '\",\"'), '\"]'),\n                '$[*]' COLUMNS (author_order FOR ORDINALITY,\n                                author_name  VARCHAR(100) PATH '$')) AS j\nJOIN lib_author AS a ON a.author_name = j.author_name",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 17,
+     "info": "Records: 17  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM lib_author)      AS authors,\n       (SELECT COUNT(*) FROM lib_book_author) AS book_author_links",
+     "status": "ok",
+     "columns": [
+      "authors",
+      "book_author_links"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       15,
+       17
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:5340201d6130": {
+   "statements": [
+    {
+     "sql": "SELECT a.author_name, COUNT(*) AS books\nFROM lib_author a JOIN lib_book_author ba ON ba.author_id = a.author_id\nGROUP BY a.author_id, a.author_name\nHAVING COUNT(*) > 1\nORDER BY a.author_name",
+     "status": "ok",
+     "columns": [
+      "author_name",
+      "books"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Haruki Murakami",
+       2
+      ],
+      [
+       "Ursula K. Le Guin",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:8f678825d1f9": {
+   "statements": [
+    {
+     "sql": "-- Books by Henry F. Korth: an exact, indexable equality instead of string parsing\nSELECT f.book_id, f.title\nFROM lib_author a\nJOIN lib_book_author ba ON ba.author_id = a.author_id\nJOIN catalog_flat f     ON f.book_id = ba.book_id\nWHERE a.author_name = 'Henry F. Korth'",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "title"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       "Database System Concepts"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:3a6f058bd30e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE catalog_json (\n  book_id INT UNSIGNED PRIMARY KEY,\n  title   VARCHAR(200) NOT NULL,\n  tags    JSON NOT NULL,\n  INDEX idx_catalog_json_tags ((CAST(tags AS CHAR(40) ARRAY)))\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO catalog_json\nSELECT book_id, title, CAST(CONCAT('[\"', REPLACE(tags, ',', '\",\"'), '\"]') AS JSON)\nFROM catalog_flat",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 12,
+     "info": "Records: 12  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE catalog_json",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "catalog_json",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT book_id, title, tags FROM catalog_json WHERE 'sql' MEMBER OF (tags) ORDER BY book_id",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "title",
+      "tags"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       4,
+       "SQL Antipatterns, Volume 1",
+       "[\"sql\", \"anti-patterns\", \"databases\"]"
+      ],
+      [
+       5,
+       "Database System Concepts",
+       "[\"databases\", \"textbook\", \"sql\"]"
+      ],
+      [
+       7,
+       "SQL and Relational Theory",
+       "[\"sql\", \"relational-theory\"]"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:7b2de425fdfa": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT book_id, title FROM catalog_json WHERE 'sql' MEMBER OF (tags)",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "catalog_json",
+       null,
+       "ref",
+       "idx_catalog_json_tags",
+       "idx_catalog_json_tags",
+       "163",
+       "const",
+       3,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `catalog_json`.`book_id` AS `book_id`,`catalog_json`.`title` AS `title` from `catalog_json` where json'\"sql\"' member of (cast(`tags` as char(40) array))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:b51281643524": {
+   "statements": [
+    {
+     "sql": "SELECT jt.tag, COUNT(*) AS books\nFROM catalog_json AS c,\n     JSON_TABLE(c.tags, '$[*]' COLUMNS (tag VARCHAR(40) PATH '$')) AS jt\nGROUP BY jt.tag\nORDER BY books DESC, jt.tag\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "tag",
+      "books"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "databases",
+       6
+      ],
+      [
+       "sql",
+       3
+      ],
+      [
+       "literary-fiction",
+       2
+      ],
+      [
+       "magical-realism",
+       2
+      ],
+      [
+       "science-fiction",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:2598d30851b2": {
+   "statements": [
+    {
+     "sql": "UPDATE catalog_json SET tags = JSON_ARRAY_APPEND(tags, '$', 'Databases ') WHERE book_id = 6",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT book_id, tags FROM catalog_json WHERE book_id = 6",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "tags"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       6,
+       "[\"databases\", \"textbook\", \"Databases \"]"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:e6370db69bd7": {
+   "statements": [
+    {
+     "sql": "SELECT book_id, authors, CHAR_LENGTH(authors) AS chars FROM catalog_flat WHERE book_id = 5",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "authors",
+      "chars"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       "Abraham Silberschatz, Henry F. Korth, S. Sudarshan",
+       50
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:42d018b33c8e": {
+   "statements": [
+    {
+     "sql": "SELECT CONCAT('[\"', REPLACE(authors, ', ', '\",\"'), '\"]') AS as_json,\n       JSON_VALID(CONCAT('[\"', REPLACE(authors, ', ', '\",\"'), '\"]')) AS is_valid\nFROM catalog_flat WHERE book_id = 5",
+     "status": "ok",
+     "columns": [
+      "as_json",
+      "is_valid"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "[\"Abraham Silberschatz\",\"Henry F. Korth\",\"S. Sudarshan\"]",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:00d3da2d5b25": {
+   "statements": [
+    {
+     "sql": "SELECT j.author_order, j.author_name\nFROM catalog_flat f,\n     JSON_TABLE(CONCAT('[\"', REPLACE(f.authors, ', ', '\",\"'), '\"]'),\n                '$[*]' COLUMNS (author_order FOR ORDINALITY, author_name VARCHAR(100) PATH '$')) j\nWHERE f.book_id = 5 ORDER BY j.author_order",
+     "status": "ok",
+     "columns": [
+      "author_order",
+      "author_name"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "Abraham Silberschatz"
+      ],
+      [
+       2,
+       "Henry F. Korth"
+      ],
+      [
+       3,
+       "S. Sudarshan"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:66d3155c1df3": {
+   "statements": [
+    {
+     "sql": "SELECT ba.book_id, ba.author_order, a.author_id, a.author_name\nFROM lib_book_author ba JOIN lib_author a ON a.author_id = ba.author_id\nWHERE ba.book_id = 5 ORDER BY ba.author_order",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "author_order",
+      "author_id",
+      "author_name"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       5,
+       1,
+       1,
+       "Abraham Silberschatz"
+      ],
+      [
+       5,
+       2,
+       8,
+       "Henry F. Korth"
+      ],
+      [
+       5,
+       3,
+       12,
+       "S. Sudarshan"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:b5187b1eef88": {
+   "statements": [
+    {
+     "sql": "WITH rebuilt AS (\n  SELECT ba.book_id, GROUP_CONCAT(a.author_name ORDER BY ba.author_order SEPARATOR ', ') AS authors\n  FROM lib_book_author ba JOIN lib_author a ON a.author_id = ba.author_id\n  GROUP BY ba.book_id)\nSELECT (SELECT COUNT(*) FROM (SELECT book_id, authors FROM catalog_flat EXCEPT SELECT book_id, authors FROM rebuilt) d1) AS lost,\n       (SELECT COUNT(*) FROM (SELECT book_id, authors FROM rebuilt EXCEPT SELECT book_id, authors FROM catalog_flat) d2) AS invented",
+     "status": "ok",
+     "columns": [
+      "lost",
+      "invented"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:4c5093d05562": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS mismatched_links\nFROM (SELECT ba.book_id, a.author_id, ba.author_order\n      FROM lib_book_author lba\n      JOIN lib_author la ON la.author_id = lba.author_id\n      JOIN authors a     ON a.name = la.author_name\n      JOIN book_authors ba ON ba.book_id = lba.book_id AND ba.author_id = a.author_id AND ba.author_order = lba.author_order\n      ) AS matched\nRIGHT JOIN book_authors x ON x.book_id = matched.book_id AND x.author_id = matched.author_id\nWHERE matched.book_id IS NULL",
+     "status": "ok",
+     "columns": [
+      "mismatched_links"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:c8851569179b": {
+   "statements": [
+    {
+     "sql": "SELECT 'catalog_flat.authors (lists)' AS representation, COUNT(*) AS rows_stored,\n       SUM(CHAR_LENGTH(authors) - CHAR_LENGTH(REPLACE(authors, ',', '')) + 1) AS authorships\nFROM catalog_flat\nUNION ALL\nSELECT 'lib_book_author (1NF)', COUNT(*), COUNT(*) FROM lib_book_author",
+     "status": "ok",
+     "columns": [
+      "representation",
+      "rows_stored",
+      "authorships"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "catalog_flat.authors (lists)",
+       12,
+       "17"
+      ],
+      [
+       "lib_book_author (1NF)",
+       17,
+       "17"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:1670a844faf0": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE split AS (\n  SELECT book_id, 1 AS pos,\n         SUBSTRING_INDEX(tags, ',', 1) AS tag,\n         IF(LOCATE(',', tags) > 0, SUBSTRING(tags, LOCATE(',', tags) + 1), NULL) AS rest\n  FROM catalog_flat\n  UNION ALL\n  SELECT book_id, pos + 1,\n         SUBSTRING_INDEX(rest, ',', 1),\n         IF(LOCATE(',', rest) > 0, SUBSTRING(rest, LOCATE(',', rest) + 1), NULL)\n  FROM split\n  WHERE rest IS NOT NULL\n)\nSELECT book_id, pos, tag FROM split WHERE book_id IN (3, 4) ORDER BY book_id, pos",
+     "status": "ok",
+     "columns": [
+      "book_id",
+      "pos",
+      "tag"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       3,
+       1,
+       "mysql"
+      ],
+      [
+       3,
+       2,
+       "performance"
+      ],
+      [
+       3,
+       3,
+       "databases"
+      ],
+      [
+       4,
+       1,
+       "sql"
+      ],
+      [
+       4,
+       2,
+       "anti-patterns"
+      ],
+      [
+       4,
+       3,
+       "databases"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:603a6f3d9bbe": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_catalog_flat_tags ON catalog_flat (tags)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE catalog_flat",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "catalog_flat",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT book_id FROM catalog_flat WHERE FIND_IN_SET('sql', tags) > 0",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "catalog_flat",
+       null,
+       "index",
+       null,
+       "idx_catalog_flat_tags",
+       "802",
+       null,
+       12,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `catalog_flat`.`book_id` AS `book_id` from `catalog_flat` where (find_in_set('sql',`catalog_flat`.`tags`) > 0)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:a8ebe5282af4": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE lib_book_tag (\n  book_id INT UNSIGNED NOT NULL,\n  tag     VARCHAR(40)  NOT NULL,\n  PRIMARY KEY (book_id, tag),\n  INDEX idx_lib_book_tag_tag (tag, book_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO lib_book_tag (book_id, tag)\nSELECT f.book_id, jt.tag\nFROM catalog_flat f,\n     JSON_TABLE(CONCAT('[\"', REPLACE(f.tags, ',', '\",\"'), '\"]'), '$[*]' COLUMNS (tag VARCHAR(40) PATH '$')) jt",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 26,
+     "info": "Records: 26  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE lib_book_tag",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "lib_book_tag",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT book_id FROM lib_book_tag WHERE tag = 'sql'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "lib_book_tag",
+       null,
+       "ref",
+       "PRIMARY,idx_lib_book_tag_tag",
+       "idx_lib_book_tag_tag",
+       "162",
+       "const",
+       3,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `lib_book_tag`.`book_id` AS `book_id` from `lib_book_tag` where (`lib_book_tag`.`tag` = 'sql')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:f2de45ed33c1": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE author_bio (\n  author_name VARCHAR(500) NOT NULL,\n  bio TEXT,\n  CONSTRAINT fk_bio_author FOREIGN KEY (author_name) REFERENCES catalog_flat (authors)\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1822,
+      "message": "Failed to add the foreign key constraint. Missing index for constraint 'fk_bio_author' in the referenced table 'catalog_flat'"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

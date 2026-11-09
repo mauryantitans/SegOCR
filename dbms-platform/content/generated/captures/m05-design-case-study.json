@@ -1,0 +1,839 @@
+{
+ "doc": "m05-design-case-study",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:62e646cded58": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE customers (\n  customer_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  email       VARCHAR(255) NOT NULL,\n  full_name   VARCHAR(100) NOT NULL,\n  phone       VARCHAR(20)  NULL,\n  created_at  DATETIME     NOT NULL,\n  CONSTRAINT uq_customers_email UNIQUE (email)                         -- BR-1\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE restaurants (\n  restaurant_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  slug          VARCHAR(60)  NOT NULL,\n  name          VARCHAR(100) NOT NULL,\n  building      VARCHAR(60)  NOT NULL,\n  is_open       BOOLEAN      NOT NULL DEFAULT TRUE,\n  CONSTRAINT uq_restaurants_slug UNIQUE (slug)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE menu_items (\n  menu_item_id  INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  restaurant_id INT UNSIGNED NOT NULL,\n  name          VARCHAR(100) NOT NULL,\n  price         DECIMAL(6,2) NOT NULL,\n  is_available  BOOLEAN      NOT NULL DEFAULT TRUE,\n  CONSTRAINT uq_menu_items_restaurant_name UNIQUE (restaurant_id, name),\n  CONSTRAINT uq_menu_items_id_restaurant  UNIQUE (menu_item_id, restaurant_id),   -- FK target for BR-3\n  CONSTRAINT chk_menu_items_price CHECK (price > 0),\n  CONSTRAINT fk_menu_items_restaurant FOREIGN KEY (restaurant_id) REFERENCES restaurants (restaurant_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE couriers (\n  courier_id  INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  student_no  CHAR(9)      NOT NULL,\n  full_name   VARCHAR(100) NOT NULL,\n  vehicle     ENUM('foot','bike','scooter') NOT NULL,\n  CONSTRAINT uq_couriers_student_no UNIQUE (student_no)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE promo_codes (\n  code       VARCHAR(20)      NOT NULL PRIMARY KEY,                   -- natural key: public, stable\n  pct_off    TINYINT UNSIGNED NOT NULL,\n  valid_from DATE             NOT NULL,\n  valid_to   DATE             NOT NULL,\n  CONSTRAINT chk_promo_pct    CHECK (pct_off BETWEEN 5 AND 50),       -- BR-6\n  CONSTRAINT chk_promo_window CHECK (valid_to >= valid_from)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s2:ce466c5df42a": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE orders (\n  order_id        INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  customer_id     INT UNSIGNED NOT NULL,                              -- BR-2\n  restaurant_id   INT UNSIGNED NOT NULL,                              -- BR-2\n  status          ENUM('placed','accepted','picked_up','delivered','cancelled') NOT NULL DEFAULT 'placed',\n  placed_at       DATETIME     NOT NULL,\n  delivery_street VARCHAR(120) NOT NULL,                              -- BR-5 snapshot\n  delivery_note   VARCHAR(200) NULL,\n  tip             DECIMAL(6,2) NOT NULL DEFAULT 0.00,\n  promo_code      VARCHAR(20)  NULL,\n  CONSTRAINT uq_orders_id_restaurant UNIQUE (order_id, restaurant_id),           -- FK target for BR-3\n  CONSTRAINT uq_orders_customer_promo UNIQUE (customer_id, promo_code),          -- BR-9\n  KEY idx_orders_customer_placed (customer_id, placed_at),                       -- Q1\n  KEY idx_orders_restaurant_status (restaurant_id, status, placed_at),           -- Q2, Q3\n  CONSTRAINT chk_orders_tip CHECK (tip >= 0),\n  CONSTRAINT fk_orders_customer   FOREIGN KEY (customer_id)   REFERENCES customers (customer_id),\n  CONSTRAINT fk_orders_restaurant FOREIGN KEY (restaurant_id) REFERENCES restaurants (restaurant_id),\n  CONSTRAINT fk_orders_promo      FOREIGN KEY (promo_code)    REFERENCES promo_codes (code)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE order_lines (\n  order_id      INT UNSIGNED      NOT NULL,\n  line_no       SMALLINT UNSIGNED NOT NULL,\n  restaurant_id INT UNSIGNED      NOT NULL,                           -- carried for BR-3\n  menu_item_id  INT UNSIGNED      NOT NULL,\n  quantity      TINYINT UNSIGNED  NOT NULL,\n  unit_price    DECIMAL(6,2)      NOT NULL,                           -- BR-4\n  PRIMARY KEY (order_id, line_no),\n  KEY idx_order_lines_item (menu_item_id, restaurant_id),\n  CONSTRAINT chk_order_lines_qty CHECK (quantity BETWEEN 1 AND 20),  -- BR-6\n  CONSTRAINT fk_order_lines_order FOREIGN KEY (order_id, restaurant_id)\n    REFERENCES orders (order_id, restaurant_id) ON DELETE CASCADE,\n  CONSTRAINT fk_order_lines_item  FOREIGN KEY (menu_item_id, restaurant_id)\n    REFERENCES menu_items (menu_item_id, restaurant_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE deliveries (\n  order_id          INT UNSIGNED NOT NULL PRIMARY KEY,                -- BR-7: 1:1 with orders\n  courier_id        INT UNSIGNED NOT NULL,\n  assigned_at       DATETIME     NOT NULL,\n  picked_up_at      DATETIME     NULL,\n  delivered_at      DATETIME     NULL,\n  active_courier_id INT UNSIGNED AS (IF(delivered_at IS NULL, courier_id, NULL)) STORED,\n  CONSTRAINT uq_deliveries_one_active UNIQUE (active_courier_id),    -- BR-12\n  KEY idx_deliveries_courier (courier_id),\n  CONSTRAINT chk_deliveries_order CHECK (delivered_at IS NULL OR (picked_up_at IS NOT NULL AND delivered_at >= picked_up_at)),  -- BR-8\n  CONSTRAINT fk_deliveries_order   FOREIGN KEY (order_id)   REFERENCES orders (order_id),\n  CONSTRAINT fk_deliveries_courier FOREIGN KEY (courier_id) REFERENCES couriers (courier_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE ratings (\n  order_id      INT UNSIGNED     NOT NULL PRIMARY KEY,                -- BR-7\n  food_stars    TINYINT UNSIGNED NOT NULL,\n  courier_stars TINYINT UNSIGNED NULL,\n  comment       VARCHAR(500)     NULL,\n  rated_at      DATETIME         NOT NULL,\n  CONSTRAINT chk_ratings_food    CHECK (food_stars BETWEEN 1 AND 5),\n  CONSTRAINT chk_ratings_courier CHECK (courier_stars BETWEEN 1 AND 5),\n  CONSTRAINT fk_ratings_order FOREIGN KEY (order_id) REFERENCES orders (order_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s3:466d739e214b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO customers (email, full_name, phone, created_at) VALUES\n  ('maya@campus.edu', 'Maya Patel',   '+1-408-555-0101', '2024-08-20 09:00:00'),\n  ('leo@campus.edu',  'Leo Kim',      NULL,              '2024-08-22 12:30:00'),\n  ('sara@campus.edu', 'Sara Haddad',  '+1-408-555-0103', '2024-09-01 18:00:00'),\n  ('tom@campus.edu',  'Tom Becker',   NULL,              '2024-09-15 10:10:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO restaurants (slug, name, building) VALUES\n  ('spartan-pizza', 'Spartan Pizza', 'Student Union'),\n  ('pho-corner',    'Pho Corner',    'Engineering'),\n  ('green-bowl',    'Green Bowl',    'Library')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO menu_items (restaurant_id, name, price) VALUES\n  (1, 'Margherita', 11.50), (1, 'Pepperoni', 12.50), (1, 'Garlic knots', 5.00),\n  (2, 'Pho bo', 13.00), (2, 'Spring rolls', 6.50), (2, 'Iced coffee', 4.50),\n  (3, 'Quinoa bowl', 10.00), (3, 'Falafel wrap', 9.50), (3, 'Green smoothie', 6.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 9,
+     "info": "Records: 9  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO couriers (student_no, full_name, vehicle) VALUES\n  ('015000001', 'Ana Ruiz', 'bike'), ('015000002', 'Ben Cho', 'scooter'), ('015000003', 'Cara Diaz', 'foot')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO promo_codes VALUES ('WELCOME10', 10, '2024-09-01', '2024-12-31')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders (customer_id, restaurant_id, status, placed_at, delivery_street, tip, promo_code) VALUES\n  (1, 1, 'delivered', '2024-11-04 12:05:00', 'Joe West Hall 412',  2.00, 'WELCOME10'),\n  (2, 2, 'delivered', '2024-11-04 12:20:00', 'Campus Village B 210', 1.50, NULL),\n  (1, 3, 'delivered', '2024-11-05 18:40:00', 'Joe West Hall 412',  0.00, NULL),\n  (3, 1, 'delivered', '2024-11-05 19:10:00', 'MacQuarrie Hall 3rd floor', 3.00, 'WELCOME10'),\n  (4, 2, 'cancelled', '2024-11-06 11:55:00', 'Duncan Hall lobby',  0.00, NULL),\n  (2, 1, 'picked_up', '2024-11-06 12:15:00', 'Campus Village B 210', 2.50, 'WELCOME10'),\n  (3, 3, 'accepted',  '2024-11-06 12:25:00', 'Engineering 285',    1.00, NULL),\n  (1, 2, 'placed',    '2024-11-06 12:30:00', 'Joe West Hall 412',  2.00, NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 8,
+     "info": "Records: 8  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO order_lines (order_id, line_no, restaurant_id, menu_item_id, quantity, unit_price) VALUES\n  (1, 1, 1, 1, 1, 11.50), (1, 2, 1, 3, 2, 5.00),\n  (2, 1, 2, 4, 1, 13.00), (2, 2, 2, 6, 1, 4.50),\n  (3, 1, 3, 7, 1, 10.00),\n  (4, 1, 1, 2, 2, 12.00), (4, 2, 1, 3, 1, 5.00),\n  (5, 1, 2, 5, 2, 6.50),\n  (6, 1, 1, 1, 1, 11.50), (6, 2, 1, 2, 1, 12.50),\n  (7, 1, 3, 8, 1, 9.50), (7, 2, 3, 9, 1, 6.00),\n  (8, 1, 2, 4, 2, 13.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 13,
+     "info": "Records: 13  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO deliveries (order_id, courier_id, assigned_at, picked_up_at, delivered_at) VALUES\n  (1, 1, '2024-11-04 12:10:00', '2024-11-04 12:25:00', '2024-11-04 12:41:00'),\n  (2, 2, '2024-11-04 12:24:00', '2024-11-04 12:38:00', '2024-11-04 12:50:00'),\n  (3, 1, '2024-11-05 18:45:00', '2024-11-05 19:00:00', '2024-11-05 19:22:00'),\n  (4, 3, '2024-11-05 19:15:00', '2024-11-05 19:35:00', '2024-11-05 20:05:00'),\n  (6, 2, '2024-11-06 12:20:00', '2024-11-06 12:35:00', NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO ratings (order_id, food_stars, courier_stars, comment, rated_at) VALUES\n  (1, 5, 5, 'Hot and fast', '2024-11-04 13:00:00'),\n  (2, 4, NULL, NULL,         '2024-11-04 13:30:00'),\n  (4, 3, 2, 'Pizza was cold', '2024-11-05 20:30:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT 'customers' AS tbl, COUNT(*) AS n FROM customers\nUNION ALL SELECT 'orders', COUNT(*) FROM orders\nUNION ALL SELECT 'order_lines', COUNT(*) FROM order_lines\nUNION ALL SELECT 'deliveries', COUNT(*) FROM deliveries\nUNION ALL SELECT 'ratings', COUNT(*) FROM ratings",
+     "status": "ok",
+     "columns": [
+      "tbl",
+      "n"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "customers",
+       4
+      ],
+      [
+       "orders",
+       8
+      ],
+      [
+       "order_lines",
+       13
+      ],
+      [
+       "deliveries",
+       5
+      ],
+      [
+       "ratings",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:d6daf92d4b8f": {
+   "statements": [
+    {
+     "sql": "INSERT INTO order_lines (order_id, line_no, restaurant_id, menu_item_id, quantity, unit_price)\nVALUES (1, 3, 1, 4, 1, 13.00)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`order_lines`, CONSTRAINT `fk_order_lines_item` FOREIGN KEY (`menu_item_id`, `restaurant_id`) REFERENCES `menu_items` (`menu_item_id`, `restaurant_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s5:f9687d67ca97": {
+   "statements": [
+    {
+     "sql": "INSERT INTO order_lines (order_id, line_no, restaurant_id, menu_item_id, quantity, unit_price)\nVALUES (1, 3, 2, 4, 1, 13.00)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`order_lines`, CONSTRAINT `fk_order_lines_order` FOREIGN KEY (`order_id`, `restaurant_id`) REFERENCES `orders` (`order_id`, `restaurant_id`) ON DELETE CASCADE)"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:83b4fa84e683": {
+   "statements": [
+    {
+     "sql": "INSERT INTO orders (customer_id, restaurant_id, placed_at, delivery_street, promo_code)\nVALUES (1, 3, '2024-11-07 12:00:00', 'Joe West Hall 412', 'WELCOME10')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '1-WELCOME10' for key 'orders.uq_orders_customer_promo'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:0b6b57c71f8a": {
+   "statements": [
+    {
+     "sql": "INSERT INTO deliveries (order_id, courier_id, assigned_at) VALUES (7, 2, '2024-11-06 12:40:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '2' for key 'deliveries.uq_deliveries_one_active'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:05fc2fe8a15b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO ratings (order_id, food_stars, rated_at) VALUES (1, 1, '2024-11-05 09:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '1' for key 'ratings.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:8b8e9ea7aa06": {
+   "statements": [
+    {
+     "sql": "INSERT INTO ratings (order_id, food_stars, rated_at) VALUES (8, 1, '2024-11-06 12:31:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT r.order_id, o.status FROM ratings AS r JOIN orders AS o ON o.order_id = r.order_id\nWHERE o.status <> 'delivered'",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       8,
+       "placed"
+      ]
+     ]
+    },
+    {
+     "sql": "DELETE FROM ratings WHERE order_id = 8",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s10:1ff99ba45f42": {
+   "statements": [
+    {
+     "sql": "SELECT o.order_id, o.placed_at, r.name AS restaurant, o.status,\n       SUM(l.quantity * l.unit_price) AS items_total, o.tip\nFROM orders AS o\nJOIN restaurants AS r ON r.restaurant_id = o.restaurant_id\nJOIN order_lines AS l ON l.order_id = o.order_id\nWHERE o.customer_id = 1\nGROUP BY o.order_id, o.placed_at, r.name, o.status, o.tip\nORDER BY o.placed_at DESC",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "placed_at",
+      "restaurant",
+      "status",
+      "items_total",
+      "tip"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       8,
+       "2024-11-06 12:30:00",
+       "Pho Corner",
+       "placed",
+       "26.00",
+       "2.00"
+      ],
+      [
+       3,
+       "2024-11-05 18:40:00",
+       "Green Bowl",
+       "delivered",
+       "10.00",
+       "0.00"
+      ],
+      [
+       1,
+       "2024-11-04 12:05:00",
+       "Spartan Pizza",
+       "delivered",
+       "21.50",
+       "2.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:e150a7e78efc": {
+   "statements": [
+    {
+     "sql": "SELECT o.order_id, o.status, o.placed_at, d.courier_id\nFROM orders AS o\nLEFT JOIN deliveries AS d ON d.order_id = o.order_id\nWHERE o.restaurant_id = 3 AND o.status IN ('placed', 'accepted')\nORDER BY o.placed_at",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "placed_at",
+      "courier_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       7,
+       "accepted",
+       "2024-11-06 12:25:00",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:18473ff9d852": {
+   "statements": [
+    {
+     "sql": "SELECT r.name AS restaurant,\n       COUNT(DISTINCT o.order_id) AS delivered_orders,\n       SUM(l.quantity * l.unit_price) AS gross_items,\n       ROUND(SUM(l.quantity * l.unit_price * COALESCE(p.pct_off, 0) / 100), 2) AS promo_discount,\n       ROUND(SUM(l.quantity * l.unit_price * (1 - COALESCE(p.pct_off, 0) / 100)), 2) AS net_items\nFROM orders AS o\nJOIN restaurants AS r ON r.restaurant_id = o.restaurant_id\nJOIN order_lines AS l ON l.order_id = o.order_id\nLEFT JOIN promo_codes AS p ON p.code = o.promo_code\nWHERE o.status = 'delivered'\nGROUP BY r.restaurant_id, r.name\nORDER BY net_items DESC",
+     "status": "ok",
+     "columns": [
+      "restaurant",
+      "delivered_orders",
+      "gross_items",
+      "promo_discount",
+      "net_items"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Spartan Pizza",
+       2,
+       "50.50",
+       "5.05",
+       "45.45"
+      ],
+      [
+       "Pho Corner",
+       1,
+       "17.50",
+       "0.00",
+       "17.50"
+      ],
+      [
+       "Green Bowl",
+       1,
+       "10.00",
+       "0.00",
+       "10.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:bf700716c279": {
+   "statements": [
+    {
+     "sql": "WITH sales AS (\n  SELECT m.restaurant_id, m.name AS item, SUM(l.quantity) AS units\n  FROM order_lines AS l\n  JOIN orders AS o     ON o.order_id = l.order_id AND o.status <> 'cancelled'\n  JOIN menu_items AS m ON m.menu_item_id = l.menu_item_id\n  GROUP BY m.restaurant_id, m.menu_item_id, m.name\n)\nSELECT r.name AS restaurant, s.item, s.units\nFROM (SELECT sales.*, RANK() OVER (PARTITION BY restaurant_id ORDER BY units DESC) AS rnk FROM sales) AS s\nJOIN restaurants AS r ON r.restaurant_id = s.restaurant_id\nWHERE s.rnk = 1\nORDER BY r.name, s.item",
+     "status": "ok",
+     "columns": [
+      "restaurant",
+      "item",
+      "units"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "Green Bowl",
+       "Falafel wrap",
+       "1"
+      ],
+      [
+       "Green Bowl",
+       "Green smoothie",
+       "1"
+      ],
+      [
+       "Green Bowl",
+       "Quinoa bowl",
+       "1"
+      ],
+      [
+       "Pho Corner",
+       "Pho bo",
+       "3"
+      ],
+      [
+       "Spartan Pizza",
+       "Garlic knots",
+       "3"
+      ],
+      [
+       "Spartan Pizza",
+       "Pepperoni",
+       "3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:4186c1ea7239": {
+   "statements": [
+    {
+     "sql": "SELECT c.full_name, c.vehicle,\n       COUNT(d.delivered_at) AS completed,\n       ROUND(AVG(TIMESTAMPDIFF(MINUTE, d.picked_up_at, d.delivered_at)), 1) AS avg_minutes,\n       ROUND(AVG(r.courier_stars), 2) AS avg_courier_stars\nFROM couriers AS c\nLEFT JOIN deliveries AS d ON d.courier_id = c.courier_id\nLEFT JOIN ratings    AS r ON r.order_id = d.order_id\nGROUP BY c.courier_id, c.full_name, c.vehicle\nORDER BY c.courier_id",
+     "status": "ok",
+     "columns": [
+      "full_name",
+      "vehicle",
+      "completed",
+      "avg_minutes",
+      "avg_courier_stars"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Ana Ruiz",
+       "bike",
+       2,
+       "19.0",
+       "5.00"
+      ],
+      [
+       "Ben Cho",
+       "scooter",
+       1,
+       "12.0",
+       null
+      ],
+      [
+       "Cara Diaz",
+       "foot",
+       1,
+       "30.0",
+       "2.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:f3895199c902": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders (customer_id, restaurant_id, placed_at, delivery_street, tip)\nVALUES (2, 3, '2024-11-07 12:10:00', 'Campus Village B 210', 1.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SET @new_order = LAST_INSERT_ID()",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @new_order AS new_order_id",
+     "status": "ok",
+     "columns": [
+      "new_order_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:32f81d749414": {
+   "statements": [
+    {
+     "sql": "INSERT INTO order_lines (order_id, line_no, restaurant_id, menu_item_id, quantity, unit_price)\nSELECT @new_order, ROW_NUMBER() OVER (ORDER BY m.menu_item_id), m.restaurant_id, m.menu_item_id, 1, m.price\nFROM menu_items AS m\nWHERE m.restaurant_id = 3 AND m.name IN ('Quinoa bowl', 'Green smoothie')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT order_id, line_no, menu_item_id, quantity, unit_price FROM order_lines WHERE order_id = @new_order ORDER BY line_no",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "line_no",
+      "menu_item_id",
+      "quantity",
+      "unit_price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       10,
+       1,
+       7,
+       1,
+       "10.00"
+      ],
+      [
+       10,
+       2,
+       9,
+       1,
+       "6.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:d2c7fd605ea2": {
+   "statements": [
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT o.order_id, o.status, COUNT(l.line_no) AS line_count, SUM(l.quantity * l.unit_price) AS items_total\nFROM orders AS o JOIN order_lines AS l ON l.order_id = o.order_id\nWHERE o.order_id = @new_order\nGROUP BY o.order_id, o.status",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "line_count",
+      "items_total"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10,
+       "placed",
+       2,
+       "16.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:7fcc2bb9bf09": {
+   "statements": [
+    {
+     "sql": "UPDATE menu_items SET price = 11.00 WHERE restaurant_id = 3 AND name = 'Quinoa bowl'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT l.line_no, m.name, l.unit_price AS charged, m.price AS current_price\nFROM order_lines AS l JOIN menu_items AS m ON m.menu_item_id = l.menu_item_id\nWHERE l.order_id = @new_order ORDER BY l.line_no",
+     "status": "ok",
+     "columns": [
+      "line_no",
+      "name",
+      "charged",
+      "current_price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "Quinoa bowl",
+       "10.00",
+       "11.00"
+      ],
+      [
+       2,
+       "Green smoothie",
+       "6.00",
+       "6.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:da6d279ad5db": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE orders, order_lines, deliveries, menu_items, restaurants",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "orders",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "order_lines",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "deliveries",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "menu_items",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "restaurants",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id, placed_at, status FROM orders\nWHERE customer_id = 1\nORDER BY placed_at DESC",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Index lookup on orders using idx_orders_customer_placed (customer_id=1) (reverse)  (cost=0.8 rows=3)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:aec304c572e9": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT order_id, placed_at FROM orders\nWHERE restaurant_id = 3 AND status IN ('placed', 'accepted')\nORDER BY placed_at",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Sort: orders.placed_at  (cost=0.66 rows=2)\n    -> Filter: ((orders.restaurant_id = 3) and (orders.`status` in ('placed','accepted')))  (cost=0.66 rows=2)\n        -> Covering index range scan on orders using idx_orders_restaurant_status over (restaurant_id = 3 AND status = 'placed') OR (restaurant_id = 3 AND status = 'accepted')  (cost=0.66 rows=2)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:e0b622737b20": {
+   "statements": [
+    {
+     "sql": "SELECT t.TABLE_NAME AS table_without_pk\nFROM information_schema.TABLES AS t\nWHERE t.TABLE_SCHEMA = DATABASE() AND t.TABLE_TYPE = 'BASE TABLE'\n  AND NOT EXISTS (SELECT 1 FROM information_schema.TABLE_CONSTRAINTS AS tc\n                  WHERE tc.TABLE_SCHEMA = t.TABLE_SCHEMA AND tc.TABLE_NAME = t.TABLE_NAME\n                    AND tc.CONSTRAINT_TYPE = 'PRIMARY KEY')",
+     "status": "ok",
+     "columns": [
+      "table_without_pk"
+     ],
+     "row_count": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s18:1f46ff40db40": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, CONSTRAINT_NAME, CONSTRAINT_TYPE\nFROM information_schema.TABLE_CONSTRAINTS\nWHERE TABLE_SCHEMA = DATABASE()\n  AND (CONSTRAINT_NAME LIKE '%\\_ibfk\\_%' OR CONSTRAINT_NAME LIKE '%\\_chk\\_%')\nORDER BY TABLE_NAME, CONSTRAINT_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "CONSTRAINT_NAME",
+      "CONSTRAINT_TYPE"
+     ],
+     "row_count": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s19:5bff1777eaac": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE()\n  AND (COLUMN_NAME LIKE '%price%' OR COLUMN_NAME LIKE '%amount%' OR COLUMN_NAME IN ('tip', 'total'))\n  AND DATA_TYPE NOT IN ('decimal')\nORDER BY TABLE_NAME, COLUMN_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "COLUMN_NAME",
+      "COLUMN_TYPE"
+     ],
+     "row_count": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s20:f74ab0329ed2": {
+   "statements": [
+    {
+     "sql": "SELECT c.TABLE_NAME, c.COLUMN_NAME\nFROM information_schema.COLUMNS AS c\nWHERE c.TABLE_SCHEMA = DATABASE() AND c.COLUMN_NAME LIKE '%\\_id'\n  AND NOT EXISTS (SELECT 1 FROM information_schema.KEY_COLUMN_USAGE AS k\n                  WHERE k.TABLE_SCHEMA = c.TABLE_SCHEMA AND k.TABLE_NAME = c.TABLE_NAME\n                    AND k.COLUMN_NAME = c.COLUMN_NAME\n                    AND (k.REFERENCED_TABLE_NAME IS NOT NULL OR k.CONSTRAINT_NAME = 'PRIMARY'))\nORDER BY c.TABLE_NAME, c.COLUMN_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "COLUMN_NAME"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "deliveries",
+       "active_courier_id"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:fdf282084eba": {
+   "statements": [
+    {
+     "sql": "SELECT k.TABLE_NAME, k.COLUMN_NAME, k.REFERENCED_TABLE_NAME\nFROM information_schema.KEY_COLUMN_USAGE AS k\nJOIN information_schema.COLUMNS AS c\n  ON c.TABLE_SCHEMA = k.TABLE_SCHEMA AND c.TABLE_NAME = k.TABLE_NAME AND c.COLUMN_NAME = k.COLUMN_NAME\nWHERE k.TABLE_SCHEMA = DATABASE() AND k.REFERENCED_TABLE_NAME IS NOT NULL AND c.IS_NULLABLE = 'YES'\nORDER BY k.TABLE_NAME, k.COLUMN_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "COLUMN_NAME",
+      "REFERENCED_TABLE_NAME"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "orders",
+       "promo_code",
+       "promo_codes"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:8af6992cc379": {
+   "statements": [
+    {
+     "sql": "SELECT 'rating for undelivered order' AS violation, r.order_id\nFROM ratings AS r JOIN orders AS o ON o.order_id = r.order_id\nWHERE o.status <> 'delivered'\nUNION ALL\nSELECT 'order without lines', o.order_id\nFROM orders AS o\nWHERE NOT EXISTS (SELECT 1 FROM order_lines AS l WHERE l.order_id = o.order_id)",
+     "status": "ok",
+     "columns": [
+      "violation",
+      "order_id"
+     ],
+     "row_count": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s23:c26b638551cd": {
+   "statements": [
+    {
+     "sql": "INSERT INTO deliveries (order_id, courier_id, assigned_at, picked_up_at, delivered_at)\nVALUES (7, 3, '2024-11-06 12:40:00', '2024-11-06 12:50:00', '2024-11-06 12:45:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_deliveries_order' is violated."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

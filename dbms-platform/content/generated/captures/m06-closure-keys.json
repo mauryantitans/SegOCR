@@ -1,0 +1,872 @@
+{
+ "doc": "m06-closure-keys",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:e43fd7f297b6": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE fd_attr (\n  bit  TINYINT UNSIGNED PRIMARY KEY,\n  name VARCHAR(20) NOT NULL UNIQUE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE fd (\n  fd_set VARCHAR(10)  NOT NULL,\n  fd_id  INT          NOT NULL,\n  lhs    INT UNSIGNED NOT NULL,\n  rhs    INT UNSIGNED NOT NULL,\n  PRIMARY KEY (fd_set, fd_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO fd_attr VALUES\n  (0, 'course'), (1, 'section'), (2, 'term'), (3, 'instructor'), (4, 'room'), (5, 'slot'),\n  (6, 'product'), (7, 'category'), (8, 'tax_class')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 9,
+     "info": "Records: 9  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE FUNCTION mask_of(p_list VARCHAR(255)) RETURNS INT UNSIGNED READS SQL DATA\nBEGIN\n  RETURN (SELECT COALESCE(SUM(1 << bit), 0) FROM fd_attr\n          WHERE FIND_IN_SET(name, REPLACE(p_list, ' ', '')) > 0);\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE FUNCTION attr_names(p_mask INT UNSIGNED) RETURNS VARCHAR(255) READS SQL DATA\nBEGIN\n  RETURN (SELECT COALESCE(GROUP_CONCAT(name ORDER BY bit SEPARATOR ', '), '∅')\n          FROM fd_attr WHERE p_mask & (1 << bit));\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE FUNCTION closure_of(p_set VARCHAR(10), p_seed INT UNSIGNED, p_skip INT) RETURNS INT UNSIGNED READS SQL DATA\nBEGIN\n  DECLARE c   INT UNSIGNED DEFAULT p_seed;\n  DECLARE nxt INT UNSIGNED;\n  LOOP\n    SELECT c | COALESCE(BIT_OR(rhs), 0) INTO nxt\n    FROM fd WHERE fd_set = p_set AND fd_id <> p_skip AND (lhs & c) = lhs;\n    IF nxt = c THEN RETURN c; END IF;\n    SET c = nxt;\n  END LOOP;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT mask_of('course, term') AS mask, attr_names(mask_of('course, term')) AS attributes",
+     "status": "ok",
+     "columns": [
+      "mask",
+      "attributes"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       "course, term"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:c21f443177c2": {
+   "statements": [
+    {
+     "sql": "INSERT INTO fd VALUES\n  ('F', 1, mask_of('course,section,term'),  mask_of('instructor,room,slot')),\n  ('F', 2, mask_of('instructor,term,slot'), mask_of('course,section')),\n  ('F', 3, mask_of('room,term,slot'),       mask_of('course,section'))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT fd_id, attr_names(lhs) AS lhs, '→' AS arrow, attr_names(rhs) AS rhs\nFROM fd WHERE fd_set = 'F' ORDER BY fd_id",
+     "status": "ok",
+     "columns": [
+      "fd_id",
+      "lhs",
+      "arrow",
+      "rhs"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "course, section, term",
+       "→",
+       "instructor, room, slot"
+      ],
+      [
+       2,
+       "term, instructor, slot",
+       "→",
+       "course, section"
+      ],
+      [
+       3,
+       "term, room, slot",
+       "→",
+       "course, section"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:8e6ea9e1eff5": {
+   "statements": [
+    {
+     "sql": "SELECT attr_names(closure_of('F', mask_of('instructor,term,slot'), 0)) AS closure,\n       closure_of('F', mask_of('instructor,term,slot'), 0)\n         = mask_of('course,section,term,instructor,room,slot') AS is_superkey",
+     "status": "ok",
+     "columns": [
+      "closure",
+      "is_superkey"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "course, section, term, instructor, room, slot",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:64da66ce89dc": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE subset(x) AS (\n  SELECT 1 UNION ALL SELECT x + 1 FROM subset WHERE x < 63\n),\nsuperkey AS (\n  SELECT x FROM subset WHERE closure_of('F', x, 0) = 63\n)\nSELECT attr_names(s.x) AS candidate_key, BIT_COUNT(s.x) AS size\nFROM superkey s\nWHERE NOT EXISTS (SELECT 1 FROM superkey t WHERE t.x <> s.x AND (t.x & s.x) = t.x)\nORDER BY size, s.x",
+     "status": "ok",
+     "columns": [
+      "candidate_key",
+      "size"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "course, section, term",
+       3
+      ],
+      [
+       "term, instructor, slot",
+       3
+      ],
+      [
+       "term, room, slot",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:1b19a070ef2d": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE subset(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM subset WHERE x < 63),\nsuperkey AS (SELECT x FROM subset WHERE closure_of('F', x, 0) = 63)\nSELECT COUNT(*) AS superkeys FROM superkey",
+     "status": "ok",
+     "columns": [
+      "superkeys"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       17
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:7f506d14a06a": {
+   "statements": [
+    {
+     "sql": "SELECT a.name,\n       EXISTS (SELECT 1 FROM fd WHERE fd_set = 'F' AND lhs & (1 << a.bit)) AS on_left,\n       EXISTS (SELECT 1 FROM fd WHERE fd_set = 'F' AND rhs & (1 << a.bit)) AS on_right,\n       CASE\n         WHEN EXISTS (SELECT 1 FROM fd WHERE fd_set='F' AND lhs & (1 << a.bit))\n          AND EXISTS (SELECT 1 FROM fd WHERE fd_set='F' AND rhs & (1 << a.bit)) THEN 'B: search'\n         WHEN EXISTS (SELECT 1 FROM fd WHERE fd_set='F' AND lhs & (1 << a.bit)) THEN 'L: in every key'\n         WHEN EXISTS (SELECT 1 FROM fd WHERE fd_set='F' AND rhs & (1 << a.bit)) THEN 'R: in no key'\n         ELSE 'N: in every key'\n       END AS class\nFROM fd_attr a\nWHERE a.bit <= 5\nORDER BY a.bit",
+     "status": "ok",
+     "columns": [
+      "name",
+      "on_left",
+      "on_right",
+      "class"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "course",
+       1,
+       1,
+       "B: search"
+      ],
+      [
+       "section",
+       1,
+       1,
+       "B: search"
+      ],
+      [
+       "term",
+       1,
+       0,
+       "L: in every key"
+      ],
+      [
+       "instructor",
+       1,
+       1,
+       "B: search"
+      ],
+      [
+       "room",
+       1,
+       1,
+       "B: search"
+      ],
+      [
+       "slot",
+       1,
+       1,
+       "B: search"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:2e8f5bf8988f": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE subset(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM subset WHERE x < 63),\nsuperkey AS (SELECT x FROM subset WHERE closure_of('F', x, 0) = 63),\nckey AS (SELECT s.x FROM superkey s\n         WHERE NOT EXISTS (SELECT 1 FROM superkey t WHERE t.x <> s.x AND (t.x & s.x) = t.x))\nSELECT attr_names(BIT_OR(x))          AS prime_attributes,\n       attr_names(63 & ~BIT_OR(x))    AS non_prime_attributes\nFROM ckey",
+     "status": "ok",
+     "columns": [
+      "prime_attributes",
+      "non_prime_attributes"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "course, section, term, instructor, room, slot",
+       "∅"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:3ac8c03ed09b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO fd VALUES\n  ('G', 1, mask_of('product'),          mask_of('category,tax_class')),\n  ('G', 2, mask_of('category'),         mask_of('tax_class')),\n  ('G', 3, mask_of('product'),          mask_of('category')),\n  ('G', 4, mask_of('product,category'), mask_of('tax_class'))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT fd_id, attr_names(lhs) AS lhs, attr_names(rhs) AS rhs FROM fd WHERE fd_set = 'G' ORDER BY fd_id",
+     "status": "ok",
+     "columns": [
+      "fd_id",
+      "lhs",
+      "rhs"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "product",
+       "category, tax_class"
+      ],
+      [
+       2,
+       "category",
+       "tax_class"
+      ],
+      [
+       3,
+       "product",
+       "category"
+      ],
+      [
+       4,
+       "product, category",
+       "tax_class"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:71a665a20cbc": {
+   "statements": [
+    {
+     "sql": "SELECT fd_id, attr_names(lhs) AS lhs, attr_names(rhs) AS rhs,\n       (lhs & mask_of('room,term,slot')) = lhs AS fires,\n       attr_names(rhs & ~mask_of('room,term,slot')) AS would_add\nFROM fd WHERE fd_set = 'F' ORDER BY fd_id",
+     "status": "ok",
+     "columns": [
+      "fd_id",
+      "lhs",
+      "rhs",
+      "fires",
+      "would_add"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "course, section, term",
+       "instructor, room, slot",
+       0,
+       "instructor"
+      ],
+      [
+       2,
+       "term, instructor, slot",
+       "course, section",
+       0,
+       "course, section"
+      ],
+      [
+       3,
+       "term, room, slot",
+       "course, section",
+       1,
+       "course, section"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:dcf0e9381698": {
+   "statements": [
+    {
+     "sql": "SELECT fd_id, attr_names(lhs) AS lhs, attr_names(rhs) AS rhs,\n       (lhs & mask_of('course,section,room,term,slot')) = lhs AS fires,\n       attr_names(rhs & ~mask_of('course,section,room,term,slot')) AS would_add\nFROM fd WHERE fd_set = 'F' ORDER BY fd_id",
+     "status": "ok",
+     "columns": [
+      "fd_id",
+      "lhs",
+      "rhs",
+      "fires",
+      "would_add"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "course, section, term",
+       "instructor, room, slot",
+       1,
+       "instructor"
+      ],
+      [
+       2,
+       "term, instructor, slot",
+       "course, section",
+       0,
+       "∅"
+      ],
+      [
+       3,
+       "term, room, slot",
+       "course, section",
+       1,
+       "∅"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:18aa0515ecfa": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE trace(pass, c) AS (\n  SELECT 0, mask_of('room,term,slot')\n  UNION ALL\n  SELECT pass + 1, c | (SELECT COALESCE(BIT_OR(rhs), 0) FROM fd WHERE fd_set = 'F' AND (lhs & c) = lhs)\n  FROM trace\n  WHERE pass < 10\n    AND (c | (SELECT COALESCE(BIT_OR(rhs), 0) FROM fd WHERE fd_set = 'F' AND (lhs & c) = lhs)) <> c\n)\nSELECT pass, attr_names(c) AS result_after_pass FROM trace ORDER BY pass",
+     "status": "ok",
+     "columns": [
+      "pass",
+      "result_after_pass"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       0,
+       "term, room, slot"
+      ],
+      [
+       1,
+       "course, section, term, room, slot"
+      ],
+      [
+       2,
+       "course, section, term, instructor, room, slot"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:3580e8cacf58": {
+   "statements": [
+    {
+     "sql": "SELECT attr_names(m) AS subset, attr_names(closure_of('F', m, 0)) AS closure,\n       closure_of('F', m, 0) = 63 AS superkey\nFROM (SELECT mask_of('term,slot') AS m UNION ALL SELECT mask_of('room,slot') UNION ALL SELECT mask_of('room,term')) AS t",
+     "status": "ok",
+     "columns": [
+      "subset",
+      "closure",
+      "superkey"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "term, slot",
+       "term, slot",
+       0
+      ],
+      [
+       "room, slot",
+       "room, slot",
+       0
+      ],
+      [
+       "term, room",
+       "term, room",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w2.0:9ac72b0737ce": {
+   "statements": [
+    {
+     "sql": "INSERT INTO fd (fd_set, fd_id, lhs, rhs)\nSELECT 'G1', ROW_NUMBER() OVER (ORDER BY lhs, rhs), lhs, rhs\nFROM (SELECT DISTINCT f.lhs, 1 << a.bit AS rhs\n      FROM fd f JOIN fd_attr a ON f.rhs & (1 << a.bit)\n      WHERE f.fd_set = 'G') AS s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT fd_id, attr_names(lhs) AS lhs, attr_names(rhs) AS rhs FROM fd WHERE fd_set = 'G1' ORDER BY fd_id",
+     "status": "ok",
+     "columns": [
+      "fd_id",
+      "lhs",
+      "rhs"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "product",
+       "category"
+      ],
+      [
+       2,
+       "product",
+       "tax_class"
+      ],
+      [
+       3,
+       "category",
+       "tax_class"
+      ],
+      [
+       4,
+       "product, category",
+       "tax_class"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w2.1:044f854b5e81": {
+   "statements": [
+    {
+     "sql": "SELECT f.fd_id, attr_names(f.lhs) AS lhs, attr_names(f.rhs) AS rhs, a.name AS candidate,\n       (closure_of('G1', f.lhs & ~(1 << a.bit), 0) & f.rhs) = f.rhs AS extraneous\nFROM fd f JOIN fd_attr a ON f.lhs & (1 << a.bit)\nWHERE f.fd_set = 'G1' AND BIT_COUNT(f.lhs) > 1\nORDER BY f.fd_id, a.bit",
+     "status": "ok",
+     "columns": [
+      "fd_id",
+      "lhs",
+      "rhs",
+      "candidate",
+      "extraneous"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       4,
+       "product, category",
+       "tax_class",
+       "product",
+       1
+      ],
+      [
+       4,
+       "product, category",
+       "tax_class",
+       "category",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w2.2:d134b8b74e91": {
+   "statements": [
+    {
+     "sql": "UPDATE fd SET lhs = mask_of('category')\nWHERE fd_set = 'G1' AND lhs = mask_of('product,category') AND rhs = mask_of('tax_class')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "DELETE f1 FROM fd f1 JOIN fd f2\n  ON f2.fd_set = f1.fd_set AND f2.lhs = f1.lhs AND f2.rhs = f1.rhs AND f2.fd_id < f1.fd_id\nWHERE f1.fd_set = 'G1'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT fd_id, attr_names(lhs) AS lhs, attr_names(rhs) AS rhs FROM fd WHERE fd_set = 'G1' ORDER BY fd_id",
+     "status": "ok",
+     "columns": [
+      "fd_id",
+      "lhs",
+      "rhs"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "product",
+       "category"
+      ],
+      [
+       2,
+       "product",
+       "tax_class"
+      ],
+      [
+       3,
+       "category",
+       "tax_class"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w2.3:5a8e52fa823f": {
+   "statements": [
+    {
+     "sql": "SELECT fd_id, attr_names(lhs) AS lhs, attr_names(rhs) AS rhs,\n       (closure_of('G1', lhs, fd_id) & rhs) = rhs AS redundant\nFROM fd WHERE fd_set = 'G1' ORDER BY fd_id",
+     "status": "ok",
+     "columns": [
+      "fd_id",
+      "lhs",
+      "rhs",
+      "redundant"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "product",
+       "category",
+       0
+      ],
+      [
+       2,
+       "product",
+       "tax_class",
+       1
+      ],
+      [
+       3,
+       "category",
+       "tax_class",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w2.4:22a7596ef14f": {
+   "statements": [
+    {
+     "sql": "DELETE FROM fd WHERE fd_set = 'G1' AND lhs = mask_of('product') AND rhs = mask_of('tax_class')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT fd_id, attr_names(lhs) AS lhs, attr_names(rhs) AS rhs,\n       (closure_of('G1', lhs, fd_id) & rhs) = rhs AS redundant\nFROM fd WHERE fd_set = 'G1' ORDER BY fd_id",
+     "status": "ok",
+     "columns": [
+      "fd_id",
+      "lhs",
+      "rhs",
+      "redundant"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "product",
+       "category",
+       0
+      ],
+      [
+       3,
+       "category",
+       "tax_class",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w2.5:6a6e88d47824": {
+   "statements": [
+    {
+     "sql": "SELECT 'G implied by G1' AS direction, MIN((closure_of('G1', lhs, 0) & rhs) = rhs) AS all_implied\nFROM fd WHERE fd_set = 'G'\nUNION ALL\nSELECT 'G1 implied by G', MIN((closure_of('G', lhs, 0) & rhs) = rhs)\nFROM fd WHERE fd_set = 'G1'",
+     "status": "ok",
+     "columns": [
+      "direction",
+      "all_implied"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "G implied by G1",
+       1
+      ],
+      [
+       "G1 implied by G",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:82f0ceb1ed10": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE class_booking (\n  course     VARCHAR(10) NOT NULL,\n  section    TINYINT UNSIGNED NOT NULL,\n  term       VARCHAR(12) NOT NULL,\n  instructor INT UNSIGNED NOT NULL,\n  room       VARCHAR(20) NOT NULL,\n  slot       VARCHAR(12) NOT NULL,\n  PRIMARY KEY (course, section, term),\n  CONSTRAINT uq_booking_instructor UNIQUE (instructor, term, slot),\n  CONSTRAINT uq_booking_room       UNIQUE (room, term, slot)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO class_booking VALUES ('CS-157A', 1, 'Fall-2024', 1003, 'MH-339', 'MW-0900')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s10:e56b5e432638": {
+   "statements": [
+    {
+     "sql": "-- Same room, same term, same slot: the second candidate key rejects the double booking\nINSERT INTO class_booking VALUES ('CS-149', 1, 'Fall-2024', 1002, 'MH-339', 'MW-0900')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'MH-339-Fall-2024-MW-0900' for key 'class_booking.uq_booking_room'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:6180ab3fb361": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*)                                    AS sections,\n       COUNT(DISTINCT course_id, term, year)       AS distinct_course_term_year,\n       COUNT(DISTINCT course_id, term, year, room) AS distinct_offering_with_room,\n       COUNT(DISTINCT instructor_id, term, year)   AS distinct_instructor_term_year\nFROM sections",
+     "status": "ok",
+     "columns": [
+      "sections",
+      "distinct_course_term_year",
+      "distinct_offering_with_room",
+      "distinct_instructor_term_year"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       24,
+       24,
+       23,
+       22
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:00b8f6a8834f": {
+   "statements": [
+    {
+     "sql": "SELECT s.INDEX_NAME, s.NON_UNIQUE,\n       GROUP_CONCAT(s.COLUMN_NAME ORDER BY s.SEQ_IN_INDEX) AS columns,\n       GROUP_CONCAT(c.IS_NULLABLE ORDER BY s.SEQ_IN_INDEX) AS nullable\nFROM information_schema.STATISTICS s\nJOIN information_schema.COLUMNS c\n  ON c.TABLE_SCHEMA = s.TABLE_SCHEMA AND c.TABLE_NAME = s.TABLE_NAME AND c.COLUMN_NAME = s.COLUMN_NAME\nWHERE s.TABLE_SCHEMA = DATABASE() AND s.TABLE_NAME = 'sections'\nGROUP BY s.INDEX_NAME, s.NON_UNIQUE\nORDER BY s.INDEX_NAME",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "NON_UNIQUE",
+      "columns",
+      "nullable"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "fk_sections_instructor",
+       1,
+       "instructor_id",
+       "YES"
+      ],
+      [
+       "PRIMARY",
+       0,
+       "section_id",
+       "NO"
+      ],
+      [
+       "uq_sections_offering",
+       0,
+       "course_id,term,year,room",
+       "NO,NO,NO,YES"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:8c79e04361d5": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE class_booking_pk_only LIKE class_booking",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE class_booking_pk_only DROP INDEX uq_booking_room, DROP INDEX uq_booking_instructor",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO class_booking_pk_only VALUES\n  ('CS-157A', 1, 'Fall-2024', 1003, 'MH-339', 'MW-0900'),\n  ('CS-149',  1, 'Fall-2024', 1002, 'MH-339', 'MW-0900')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT room, term, slot, COUNT(*) AS classes_in_room_at_once\nFROM class_booking_pk_only GROUP BY room, term, slot",
+     "status": "ok",
+     "columns": [
+      "room",
+      "term",
+      "slot",
+      "classes_in_room_at_once"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "MH-339",
+       "Fall-2024",
+       "MW-0900",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:bcf27d8dff06": {
+   "statements": [
+    {
+     "sql": "SELECT closure_of('F', mask_of('course,section,term,room'), 0) = 63 AS is_superkey,\n       closure_of('F', mask_of('course,section,term'), 0) = 63      AS proper_subset_is_superkey",
+     "status": "ok",
+     "columns": [
+      "is_superkey",
+      "proper_subset_is_superkey"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:6e4bcbbd9279": {
+   "statements": [
+    {
+     "sql": "INSERT INTO sections (section_id, course_id, term, year, instructor_id, room, capacity)\nVALUES (101, 'CS-149', 'Fall', 2024, 1002, NULL, 30),\n       (102, 'CS-149', 'Fall', 2024, 1002, NULL, 30)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT section_id, course_id, term, year, room FROM sections\nWHERE course_id = 'CS-149' AND year = 2024 ORDER BY section_id",
+     "status": "ok",
+     "columns": [
+      "section_id",
+      "course_id",
+      "term",
+      "year",
+      "room"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       19,
+       "CS-149",
+       "Fall",
+       2024,
+       "BH-245"
+      ],
+      [
+       101,
+       "CS-149",
+       "Fall",
+       2024,
+       null
+      ],
+      [
+       102,
+       "CS-149",
+       "Fall",
+       2024,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

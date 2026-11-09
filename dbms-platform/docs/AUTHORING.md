@@ -241,6 +241,7 @@ search: 12               # optional: highlight a search path
 | `bufferpool` | `capacity` (pages), `accesses` (list of page ids), optional `oldPct` (default 37) | InnoDB midpoint-insertion LRU simulation (young/old sublists) |
 | `query-order` | none | Animated logical processing order of SELECT clauses |
 | `isolation` | none | Interactive matrix: isolation level × anomaly, with InnoDB-specific notes |
+| `er-builder` | none | Interactive ER modelling: entities, attributes, 1:1/1:N/M:N relationships → ER diagram + generated MySQL DDL |
 
 Execution plans need no special block: a `sql run` block containing `EXPLAIN FORMAT=JSON …` is rendered as an
 interactive plan tree, and `EXPLAIN FORMAT=TREE` / `EXPLAIN ANALYZE` as a formatted iterator tree.
