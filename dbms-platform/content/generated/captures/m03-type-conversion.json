@@ -2,7 +2,7 @@
  "doc": "m03-type-conversion",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:a82e0f6c797a": {
@@ -437,7 +437,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_0868b274f162bc9d6472.vcodes",
+       "vcodes",
        "analyze",
        "status",
        "OK"
@@ -497,7 +497,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_0868b274f162bc9d6472`.`vcodes`.`id` AS `id`,`lab_0868b274f162bc9d6472`.`vcodes`.`code` AS `code` from `lab_0868b274f162bc9d6472`.`vcodes` where (`lab_0868b274f162bc9d6472`.`vcodes`.`code` = 123)"
+       "message": "/* select#1 */ select `vcodes`.`id` AS `id`,`vcodes`.`code` AS `code` from `vcodes` where (`vcodes`.`code` = 123)"
       }
      ]
     }

@@ -574,7 +574,7 @@
      "affected_rows": 50000,
      "info": "Records: 50000  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 159.34
+     "elapsed_ms": 176.05
     }
    ],
    "measured": true
@@ -588,7 +588,7 @@
      "affected_rows": 50000,
      "info": "Records: 50000  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 656.27
+     "elapsed_ms": 728.89
     }
    ],
    "measured": true

@@ -2,7 +2,7 @@
  "doc": "m07-covering-prefix-functional",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:5c57b4925866": {
@@ -41,7 +41,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_ed917aa2524e8148fb38.orders_big",
+       "orders_big",
        "analyze",
        "status",
        "OK"
@@ -91,7 +91,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select sum(`lab_ed917aa2524e8148fb38`.`orders_big`.`amount`) AS `SUM(amount)` from `lab_ed917aa2524e8148fb38`.`orders_big` where (`lab_ed917aa2524e8148fb38`.`orders_big`.`customer_id` between 1 and 3000)"
+       "message": "/* select#1 */ select sum(`orders_big`.`amount`) AS `SUM(amount)` from `orders_big` where (`orders_big`.`customer_id` between 1 and 3000)"
       }
      ]
     }
@@ -146,7 +146,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select sum(`lab_ed917aa2524e8148fb38`.`orders_big`.`amount`) AS `SUM(amount)` from `lab_ed917aa2524e8148fb38`.`orders_big` where (`lab_ed917aa2524e8148fb38`.`orders_big`.`customer_id` between 1 and 3000)"
+       "message": "/* select#1 */ select sum(`orders_big`.`amount`) AS `SUM(amount)` from `orders_big` where (`orders_big`.`customer_id` between 1 and 3000)"
       }
      ]
     }
@@ -164,10 +164,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: sum(orders_big.amount)  (cost=25997 rows=1) (actual time=32.1..32.1 rows=1 loops=1)\n    -> Filter: (orders_big.customer_id between 1 and 3000)  (cost=20114 rows=58830) (actual time=0.213..30.1 rows=30004 loops=1)\n        -> Table scan on orders_big  (cost=20114 rows=199616) (actual time=0.186..21.9 rows=200000 loops=1)\n"
+       "-> Aggregate: sum(orders_big.amount)  (cost=25997 rows=1) (actual time=33.9..33.9 rows=1 loops=1)\n    -> Filter: (orders_big.customer_id between 1 and 3000)  (cost=20114 rows=58830) (actual time=0.197..31.9 rows=30004 loops=1)\n        -> Table scan on orders_big  (cost=20114 rows=199616) (actual time=0.193..23.4 rows=200000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 33.06
+     "elapsed_ms": 34.82
     },
     {
      "sql": "EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big WHERE customer_id BETWEEN 1 AND 3000",
@@ -178,10 +178,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: sum(orders_big.amount)  (cost=18607 rows=1) (actual time=7.35..7.35 rows=1 loops=1)\n    -> Filter: (orders_big.customer_id between 1 and 3000)  (cost=12445 rows=61620) (actual time=0.173..5.49 rows=30004 loops=1)\n        -> Covering index range scan on orders_big using idx_cust_date_amount over (1 <= customer_id <= 3000)  (cost=12445 rows=61620) (actual time=0.172..3.72 rows=30004 loops=1)\n"
+       "-> Aggregate: sum(orders_big.amount)  (cost=18607 rows=1) (actual time=8.44..8.44 rows=1 loops=1)\n    -> Filter: (orders_big.customer_id between 1 and 3000)  (cost=12445 rows=61620) (actual time=0.155..6.29 rows=30004 loops=1)\n        -> Covering index range scan on orders_big using idx_cust_date_amount over (1 <= customer_id <= 3000)  (cost=12445 rows=61620) (actual time=0.154..4.41 rows=30004 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 8.61
+     "elapsed_ms": 9.37
     }
    ],
    "measured": true
@@ -275,7 +275,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_ed917aa2524e8148fb38.customers_big",
+       "customers_big",
        "analyze",
        "status",
        "OK"
@@ -320,7 +320,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`customers_big`.`customer_id` AS `customer_id` from `lab_ed917aa2524e8148fb38`.`customers_big` where (`lab_ed917aa2524e8148fb38`.`customers_big`.`email` = 'ben.smith1@yahoo.com')"
+       "message": "/* select#1 */ select `customers_big`.`customer_id` AS `customer_id` from `customers_big` where (`customers_big`.`email` = 'ben.smith1@yahoo.com')"
       }
      ]
     },
@@ -353,7 +353,7 @@
        null,
        null,
        null,
-       99931,
+       99914,
        100.0,
        "Using filesort"
       ]
@@ -362,7 +362,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`customers_big`.`email` AS `email` from `lab_ed917aa2524e8148fb38`.`customers_big` order by `lab_ed917aa2524e8148fb38`.`customers_big`.`email` limit 5"
+       "message": "/* select#1 */ select `customers_big`.`email` AS `email` from `customers_big` order by `customers_big`.`email` limit 5"
       }
      ]
     }
@@ -409,7 +409,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_ed917aa2524e8148fb38`.`orders_big` where (year(`lab_ed917aa2524e8148fb38`.`orders_big`.`order_date`) = 2024)"
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `orders_big` where (year(`orders_big`.`order_date`) = 2024)"
       }
      ]
     }
@@ -438,7 +438,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_ed917aa2524e8148fb38.orders_big",
+       "orders_big",
        "analyze",
        "status",
        "OK"
@@ -474,7 +474,7 @@
        "idx_order_year",
        "5",
        "const",
-       99899,
+       99838,
        100.0,
        null
       ]
@@ -483,7 +483,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_ed917aa2524e8148fb38`.`orders_big` where (year(`order_date`) = 2024)"
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `orders_big` where (year(`order_date`) = 2024)"
       }
      ]
     },
@@ -538,7 +538,7 @@
        "idx_cust_date",
        "7",
        null,
-       199798,
+       199677,
        100.0,
        "Using where; Using index"
       ]
@@ -547,7 +547,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_ed917aa2524e8148fb38`.`orders_big` where ((year(`lab_ed917aa2524e8148fb38`.`orders_big`.`order_date`) + 0) = 2024)"
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `orders_big` where ((year(`orders_big`.`order_date`) + 0) = 2024)"
       }
      ]
     }
@@ -583,7 +583,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_ed917aa2524e8148fb38.products_json",
+       "products_json",
        "analyze",
        "status",
        "OK"
@@ -628,7 +628,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`products_json`.`product_id` AS `product_id` from `lab_ed917aa2524e8148fb38`.`products_json` where ((cast(json_unquote(json_extract(`attrs`,_utf8mb4'$.sku')) as char(20) charset utf8mb4) collate utf8mb4_bin) = 'SKU-004242')"
+       "message": "/* select#1 */ select `products_json`.`product_id` AS `product_id` from `products_json` where ((cast(json_unquote(json_extract(`attrs`,_utf8mb4'$.sku')) as char(20) charset utf8mb4) collate utf8mb4_bin) = 'SKU-004242')"
       }
      ]
     },
@@ -670,7 +670,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`products_json`.`product_id` AS `product_id` from `lab_ed917aa2524e8148fb38`.`products_json` where ((cast(json_unquote(json_extract(`attrs`,_utf8mb4'$.sku')) as char(20) charset utf8mb4) collate utf8mb4_bin) = 'SKU-004242')"
+       "message": "/* select#1 */ select `products_json`.`product_id` AS `product_id` from `products_json` where ((cast(json_unquote(json_extract(`attrs`,_utf8mb4'$.sku')) as char(20) charset utf8mb4) collate utf8mb4_bin) = 'SKU-004242')"
       }
      ]
     }
@@ -716,7 +716,7 @@
        "idx_country_amount",
        "13",
        null,
-       199798,
+       199677,
        100.0,
        "Using index; Using filesort"
       ]
@@ -725,7 +725,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`orders_big`.`order_id` AS `order_id`,`lab_ed917aa2524e8148fb38`.`orders_big`.`country` AS `country`,`lab_ed917aa2524e8148fb38`.`orders_big`.`amount` AS `amount` from `lab_ed917aa2524e8148fb38`.`orders_big` order by `lab_ed917aa2524e8148fb38`.`orders_big`.`country`,`lab_ed917aa2524e8148fb38`.`orders_big`.`amount` desc limit 10"
+       "message": "/* select#1 */ select `orders_big`.`order_id` AS `order_id`,`orders_big`.`country` AS `country`,`orders_big`.`amount` AS `amount` from `orders_big` order by `orders_big`.`country`,`orders_big`.`amount` desc limit 10"
       }
      ]
     }
@@ -780,7 +780,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`orders_big`.`order_id` AS `order_id`,`lab_ed917aa2524e8148fb38`.`orders_big`.`country` AS `country`,`lab_ed917aa2524e8148fb38`.`orders_big`.`amount` AS `amount` from `lab_ed917aa2524e8148fb38`.`orders_big` order by `lab_ed917aa2524e8148fb38`.`orders_big`.`country`,`lab_ed917aa2524e8148fb38`.`orders_big`.`amount` desc limit 10"
+       "message": "/* select#1 */ select `orders_big`.`order_id` AS `order_id`,`orders_big`.`country` AS `country`,`orders_big`.`amount` AS `amount` from `orders_big` order by `orders_big`.`country`,`orders_big`.`amount` desc limit 10"
       }
      ]
     }
@@ -818,7 +818,7 @@
        null,
        null,
        null,
-       29061,
+       30024,
        100.0,
        "Using where"
       ]
@@ -827,7 +827,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`products_json`.`product_id` AS `product_id` from `lab_ed917aa2524e8148fb38`.`products_json` where <cache>('gift') member of (json_extract(`lab_ed917aa2524e8148fb38`.`products_json`.`attrs`,'$.tags'))"
+       "message": "/* select#1 */ select `products_json`.`product_id` AS `product_id` from `products_json` where <cache>('gift') member of (json_extract(`products_json`.`attrs`,'$.tags'))"
       }
      ]
     }
@@ -856,7 +856,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_ed917aa2524e8148fb38.products_json",
+       "products_json",
        "analyze",
        "status",
        "OK"
@@ -901,7 +901,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`products_json`.`product_id` AS `product_id` from `lab_ed917aa2524e8148fb38`.`products_json` where json'\"gift\"' member of (cast(json_extract(`attrs`,_utf8mb4'$.tags') as char(20) array))"
+       "message": "/* select#1 */ select `products_json`.`product_id` AS `product_id` from `products_json` where json'\"gift\"' member of (cast(json_extract(`attrs`,_utf8mb4'$.tags') as char(20) array))"
       }
      ]
     },
@@ -943,7 +943,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`products_json`.`product_id` AS `product_id` from `lab_ed917aa2524e8148fb38`.`products_json` where json_overlaps(cast(json_extract(`attrs`,_utf8mb4'$.tags') as char(20) array),json'[\"eco\", \"kids\"]')"
+       "message": "/* select#1 */ select `products_json`.`product_id` AS `product_id` from `products_json` where json_overlaps(cast(json_extract(`attrs`,_utf8mb4'$.tags') as char(20) array),json'[\"eco\", \"kids\"]')"
       }
      ]
     },
@@ -985,7 +985,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`products_json`.`product_id` AS `product_id` from `lab_ed917aa2524e8148fb38`.`products_json` where json_contains(cast(json_extract(`attrs`,_utf8mb4'$.tags') as char(20) array),json'[\"eco\", \"xl\"]')"
+       "message": "/* select#1 */ select `products_json`.`product_id` AS `product_id` from `products_json` where json_contains(cast(json_extract(`attrs`,_utf8mb4'$.tags') as char(20) array),json'[\"eco\", \"xl\"]')"
       }
      ]
     },
@@ -1102,7 +1102,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: sum(orders_big.amount)  (cost=18607 rows=1) (actual time=7.2..7.2 rows=1 loops=1)\n    -> Filter: (orders_big.customer_id between 1 and 3000)  (cost=12445 rows=61620) (actual time=0.195..5.34 rows=30004 loops=1)\n        -> Covering index range scan on orders_big using idx_cust_date_amount over (1 <= customer_id <= 3000)  (cost=12445 rows=61620) (actual time=0.194..3.64 rows=30004 loops=1)\n"
+       "-> Aggregate: sum(orders_big.amount)  (cost=18607 rows=1) (actual time=7.51..7.51 rows=1 loops=1)\n    -> Filter: (orders_big.customer_id between 1 and 3000)  (cost=12445 rows=61620) (actual time=0.362..5.63 rows=30004 loops=1)\n        -> Covering index range scan on orders_big using idx_cust_date_amount over (1 <= customer_id <= 3000)  (cost=12445 rows=61620) (actual time=0.36..3.93 rows=30004 loops=1)\n"
       ]
      ]
     }
@@ -1172,7 +1172,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_ed917aa2524e8148fb38.products_json_nocoll",
+       "products_json_nocoll",
        "analyze",
        "status",
        "OK"
@@ -1208,7 +1208,7 @@
        null,
        null,
        null,
-       30015,
+       29988,
        100.0,
        "Using where"
       ]
@@ -1217,7 +1217,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`products_json_nocoll`.`product_id` AS `product_id` from `lab_ed917aa2524e8148fb38`.`products_json_nocoll` where (json_unquote(json_extract(`lab_ed917aa2524e8148fb38`.`products_json_nocoll`.`attrs`,'$.sku')) = 'SKU-004242')"
+       "message": "/* select#1 */ select `products_json_nocoll`.`product_id` AS `product_id` from `products_json_nocoll` where (json_unquote(json_extract(`products_json_nocoll`.`attrs`,'$.sku')) = 'SKU-004242')"
       }
      ]
     },
@@ -1259,7 +1259,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_ed917aa2524e8148fb38`.`products_json_nocoll`.`product_id` AS `product_id` from `lab_ed917aa2524e8148fb38`.`products_json_nocoll` where (cast(json_unquote(json_extract(`attrs`,_utf8mb4'$.sku')) as char(20) charset utf8mb4) = 'SKU-004242')"
+       "message": "/* select#1 */ select `products_json_nocoll`.`product_id` AS `product_id` from `products_json_nocoll` where (cast(json_unquote(json_extract(`attrs`,_utf8mb4'$.sku')) as char(20) charset utf8mb4) = 'SKU-004242')"
       }
      ]
     }

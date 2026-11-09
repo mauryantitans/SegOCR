@@ -2,7 +2,7 @@
  "doc": "m03-update-delete",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s2:a60f6ff9e4cb": {
@@ -110,6 +110,7 @@
      "sql": "UPDATE products SET is_active = TRUE WHERE category_id = 7",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "info": "Rows matched: 4  Changed: 0  Warnings: 0",
      "rows": []
     }
@@ -182,7 +183,7 @@
      "rows": [],
      "error": {
       "code": 1451,
-      "message": "Cannot delete or update a parent row: a foreign key constraint fails (`lab_f3b29aa0b34caa2756bd`.`orders`, CONSTRAINT `fk_orders_customer` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`customer_id`))"
+      "message": "Cannot delete or update a parent row: a foreign key constraint fails (`orders`, CONSTRAINT `fk_orders_customer` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`customer_id`))"
      }
     }
    ],
@@ -194,6 +195,7 @@
      "sql": "CREATE TABLE swap_demo (id INT PRIMARY KEY, a INT, b INT)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -282,6 +284,7 @@
      "sql": "ALTER TABLE products ADD COLUMN avg_rating DECIMAL(3,2) NULL",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": []
     }
@@ -431,6 +434,7 @@
      "sql": "CREATE TABLE playlist (\n  track_id INT PRIMARY KEY,\n  title    VARCHAR(40) NOT NULL,\n  position INT NOT NULL,\n  UNIQUE KEY uq_playlist_position (position)\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -522,6 +526,7 @@
      "sql": "CREATE TABLE audit_log (\n  log_id     INT PRIMARY KEY,\n  created_at DATETIME NOT NULL,\n  message    VARCHAR(40) NOT NULL,\n  KEY idx_audit_created (created_at)\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -657,6 +662,7 @@
      "sql": "START TRANSACTION",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -683,6 +689,7 @@
      "sql": "ROLLBACK",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -712,6 +719,7 @@
        "sql": "START TRANSACTION",
        "status": "ok",
        "columns": [],
+       "affected_rows": 0,
        "rows": []
       },
       {
@@ -732,7 +740,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "37756",
+        "trxId": "696048",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 5,
@@ -824,6 +832,7 @@
        "sql": "COMMIT",
        "status": "ok",
        "columns": [],
+       "affected_rows": 0,
        "rows": []
       }
      ]
@@ -880,6 +889,7 @@
        "sql": "START TRANSACTION",
        "status": "ok",
        "columns": [],
+       "affected_rows": 0,
        "rows": []
       },
       {
@@ -900,7 +910,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "37910",
+        "trxId": "696247",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 5,
@@ -990,6 +1000,7 @@
        "sql": "COMMIT",
        "status": "ok",
        "columns": [],
+       "affected_rows": 0,
        "rows": []
       }
      ]
@@ -1026,6 +1037,7 @@
      "sql": "CREATE TABLE app_users (\n  user_id    INT PRIMARY KEY,\n  email      VARCHAR(100) NOT NULL,\n  deleted_at DATETIME NULL,\n  active_email VARCHAR(100) AS (IF(deleted_at IS NULL, email, NULL)) STORED,\n  UNIQUE KEY uq_active_email (active_email)\n)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -1125,7 +1137,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "delete from `lab_f3b29aa0b34caa2756bd`.`orders` where (`lab_f3b29aa0b34caa2756bd`.`orders`.`order_date` < TIMESTAMP'2024-02-01 00:00:00')"
+       "message": "delete from `orders` where (`orders`.`order_date` < TIMESTAMP'2024-02-01 00:00:00')"
       }
      ]
     }
@@ -1172,7 +1184,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "update `lab_f3b29aa0b34caa2756bd`.`orders` set `lab_f3b29aa0b34caa2756bd`.`orders`.`status` = 'cancelled' where (`lab_f3b29aa0b34caa2756bd`.`orders`.`discount_code` = 'NOPE')"
+       "message": "update `orders` set `orders`.`status` = 'cancelled' where (`orders`.`discount_code` = 'NOPE')"
       }
      ]
     }
@@ -1185,6 +1197,7 @@
      "sql": "CREATE TABLE scratch (id INT AUTO_INCREMENT PRIMARY KEY, v INT)",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -1199,18 +1212,21 @@
      "sql": "START TRANSACTION",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
      "sql": "TRUNCATE TABLE scratch",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
      "sql": "ROLLBACK",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -1260,7 +1276,7 @@
      "rows": [],
      "error": {
       "code": 1701,
-      "message": "Cannot truncate a table referenced in a foreign key constraint (`lab_f3b29aa0b34caa2756bd`.`order_items`, CONSTRAINT `fk_items_order`)"
+      "message": "Cannot truncate a table referenced in a foreign key constraint (`order_items`, CONSTRAINT `fk_items_order`)"
      }
     }
    ],
@@ -1272,6 +1288,7 @@
      "sql": "SET SESSION sql_safe_updates = 1",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     },
     {
@@ -1324,6 +1341,7 @@
      "sql": "SET SESSION sql_safe_updates = 0",
      "status": "ok",
      "columns": [],
+     "affected_rows": 0,
      "rows": []
     }
    ],

@@ -2,7 +2,7 @@
  "doc": "m04-analytical-queries",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:38cfe3ec98f3": {
@@ -863,7 +863,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_514a674aaf3e1366390c.sales_big",
+       "sales_big",
        "analyze",
        "status",
        "OK"
@@ -939,10 +939,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Window aggregate: sum(sales_big.amount) OVER (PARTITION BY sales_big.store_id ORDER BY sales_big.sale_day,sales_big.id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)   (actual time=6.06..10.9 rows=20000 loops=1)\n    -> Sort: sales_big.store_id, sales_big.sale_day, sales_big.id  (cost=1997 rows=19731) (actual time=6.04..6.84 rows=20000 loops=1)\n        -> Table scan on sales_big  (cost=1997 rows=19731) (actual time=0.172..2.63 rows=20000 loops=1)\n"
+       "-> Window aggregate: sum(sales_big.amount) OVER (PARTITION BY sales_big.store_id ORDER BY sales_big.sale_day,sales_big.id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)   (actual time=5.54..10.1 rows=20000 loops=1)\n    -> Sort: sales_big.store_id, sales_big.sale_day, sales_big.id  (cost=1982 rows=19582) (actual time=5.53..6.26 rows=20000 loops=1)\n        -> Table scan on sales_big  (cost=1982 rows=19582) (actual time=0.183..2.47 rows=20000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 13.53
+     "elapsed_ms": 12.26
     }
    ],
    "measured": true
@@ -958,32 +958,32 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Covering index scan on s using idx_store_day  (cost=1997 rows=19731) (actual time=0.167..3.24 rows=20000 loops=1)\n-> Select #2 (subquery in projection; dependent)\n    -> Aggregate: sum(x.amount)  (cost=76.1 rows=1) (actual time=0.0882..0.0883 rows=1 loops=20000)\n        -> Index lookup on x using idx_store_day (store_id=s.store_id), with index condition: ((x.sale_day < s.sale_day) or ((x.sale_day = s.sale_day) and (x.id <= s.id)))  (cost=56.3 rows=197) (actual time=0.0758..0.0811 rows=100 loops=20000)\n"
+       "-> Covering index scan on s using idx_store_day  (cost=1982 rows=19582) (actual time=0.201..3.65 rows=20000 loops=1)\n-> Select #2 (subquery in projection; dependent)\n    -> Aggregate: sum(x.amount)  (cost=75.5 rows=1) (actual time=0.0921..0.0921 rows=1 loops=20000)\n        -> Index lookup on x using idx_store_day (store_id=s.store_id), with index condition: ((x.sale_day < s.sale_day) or ((x.sale_day = s.sale_day) and (x.id <= s.id)))  (cost=55.9 rows=196) (actual time=0.0777..0.0838 rows=100 loops=20000)\n"
       ]
      ],
      "warnings": [
       {
        "level": "Note",
        "code": 1276,
-       "message": "Field or reference 'lab_514a674aaf3e1366390c.s.store_id' of SELECT #2 was resolved in SELECT #1"
+       "message": "Field or reference 's.store_id' of SELECT #2 was resolved in SELECT #1"
       },
       {
        "level": "Note",
        "code": 1276,
-       "message": "Field or reference 'lab_514a674aaf3e1366390c.s.sale_day' of SELECT #2 was resolved in SELECT #1"
+       "message": "Field or reference 's.sale_day' of SELECT #2 was resolved in SELECT #1"
       },
       {
        "level": "Note",
        "code": 1276,
-       "message": "Field or reference 'lab_514a674aaf3e1366390c.s.sale_day' of SELECT #2 was resolved in SELECT #1"
+       "message": "Field or reference 's.sale_day' of SELECT #2 was resolved in SELECT #1"
       },
       {
        "level": "Note",
        "code": 1276,
-       "message": "Field or reference 'lab_514a674aaf3e1366390c.s.id' of SELECT #2 was resolved in SELECT #1"
+       "message": "Field or reference 's.id' of SELECT #2 was resolved in SELECT #1"
       }
      ],
-     "elapsed_ms": 1780.49
+     "elapsed_ms": 1860.27
     }
    ],
    "measured": true
@@ -999,10 +999,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=1370..1372 rows=20000 loops=1)\n    -> Aggregate using temporary table  (actual time=1370..1370 rows=20000 loops=1)\n        -> Nested loop inner join  (cost=398013 rows=1.38e+6) (actual time=0.289..913 rows=2.01e+6 loops=1)\n            -> Table scan on x  (cost=1997 rows=19731) (actual time=0.238..4.03 rows=20000 loops=1)\n            -> Filter: ((x.sale_day < s.sale_day) or ((s.sale_day = x.sale_day) and (x.id <= s.id)))  (cost=0.34 rows=70.1) (actual time=0.0275..0.0402 rows=100 loops=20000)\n                -> Covering index lookup on s using idx_store_day (store_id=x.store_id)  (cost=0.34 rows=197) (actual time=0.0156..0.0261 rows=200 loops=20000)\n"
+       "-> Table scan on <temporary>  (actual time=1619..1621 rows=20000 loops=1)\n    -> Aggregate using temporary table  (actual time=1619..1619 rows=20000 loops=1)\n        -> Nested loop inner join  (cost=392076 rows=1.36e+6) (actual time=0.238..1076 rows=2.01e+6 loops=1)\n            -> Table scan on x  (cost=1982 rows=19582) (actual time=0.206..4.69 rows=20000 loops=1)\n            -> Filter: ((x.sale_day < s.sale_day) or ((s.sale_day = x.sale_day) and (x.id <= s.id)))  (cost=0.339 rows=69.6) (actual time=0.0319..0.0476 rows=100 loops=20000)\n                -> Covering index lookup on s using idx_store_day (store_id=x.store_id)  (cost=0.339 rows=196) (actual time=0.018..0.0306 rows=200 loops=20000)\n"
       ]
      ],
-     "elapsed_ms": 1375.58
+     "elapsed_ms": 1625.35
     }
    ],
    "measured": true

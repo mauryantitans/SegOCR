@@ -2,7 +2,7 @@
  "doc": "m04-correlated-subqueries",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s2:18b50c9373ac": {
@@ -421,19 +421,19 @@
      "row_count": 3,
      "rows": [
       [
-       "lab_3709f0028604e631a435.employees",
+       "employees",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_3709f0028604e631a435.departments",
+       "departments",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_3709f0028604e631a435.salary_history",
+       "salary_history",
        "analyze",
        "status",
        "OK"
@@ -593,17 +593,17 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Filter: (e.salary > (select #2))  (cost=3.25 rows=30) (actual time=0.049..0.46 rows=11 loops=1)\n    -> Table scan on e  (cost=3.25 rows=30) (actual time=0.0139..0.0214 rows=30 loops=1)\n    -> Select #2 (subquery in condition; dependent)\n        -> Aggregate: avg(e2.salary)  (cost=1.61 rows=1) (actual time=0.0137..0.0138 rows=1 loops=30)\n            -> Index lookup on e2 using idx_employees_department (department_id=e.department_id)  (cost=1.18 rows=4.29) (actual time=0.00267..0.0129 rows=6.17 loops=30)\n"
+       "-> Filter: (e.salary > (select #2))  (cost=3.25 rows=30) (actual time=0.0472..0.231 rows=11 loops=1)\n    -> Table scan on e  (cost=3.25 rows=30) (actual time=0.0139..0.0207 rows=30 loops=1)\n    -> Select #2 (subquery in condition; dependent)\n        -> Aggregate: avg(e2.salary)  (cost=1.61 rows=1) (actual time=0.0062..0.00623 rows=1 loops=30)\n            -> Index lookup on e2 using idx_employees_department (department_id=e.department_id)  (cost=1.18 rows=4.29) (actual time=0.0026..0.00543 rows=6.17 loops=30)\n"
       ]
      ],
      "warnings": [
       {
        "level": "Note",
        "code": 1276,
-       "message": "Field or reference 'lab_3709f0028604e631a435.e.department_id' of SELECT #2 was resolved in SELECT #1"
+       "message": "Field or reference 'e.department_id' of SELECT #2 was resolved in SELECT #1"
       }
      ],
-     "elapsed_ms": 1.97
+     "elapsed_ms": 1.58
     }
    ],
    "measured": true
@@ -638,7 +638,7 @@
       {
        "level": "Note",
        "code": 1276,
-       "message": "Field or reference 'lab_3709f0028604e631a435.e.department_id' of SELECT #2 was resolved in SELECT #1"
+       "message": "Field or reference 'e.department_id' of SELECT #2 was resolved in SELECT #1"
       }
      ]
     }
@@ -681,7 +681,7 @@
       {
        "level": "Note",
        "code": 1276,
-       "message": "Field or reference 'lab_3709f0028604e631a435.e.employee_id' of SELECT #2 was resolved in SELECT #1"
+       "message": "Field or reference 'e.employee_id' of SELECT #2 was resolved in SELECT #1"
       }
      ]
     }

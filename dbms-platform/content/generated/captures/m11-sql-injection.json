@@ -216,6 +216,16 @@
      "affected_rows": 0,
      "rows": [
       [
+       4,
+       "app_users",
+       "is_admin"
+      ],
+      [
+       3,
+       "app_users",
+       "password_hash"
+      ],
+      [
        1,
        "app_users",
        "user_id"
@@ -224,16 +234,6 @@
        2,
        "app_users",
        "username"
-      ],
-      [
-       3,
-       "app_users",
-       "password_hash"
-      ],
-      [
-       4,
-       "app_users",
-       "is_admin"
       ]
      ]
     }
@@ -393,7 +393,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 502.46
+     "elapsed_ms": 504.08
     },
     {
      "sql": "CALL log_search_unsafe('x''), (IF(SUBSTRING((SELECT password_hash FROM app_users WHERE username = ''admin''), 1, 1) = ''8'', SLEEP(0.5), ''n'')) -- ')",
@@ -401,7 +401,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 2.42
+     "elapsed_ms": 6.38
     }
    ],
    "measured": true

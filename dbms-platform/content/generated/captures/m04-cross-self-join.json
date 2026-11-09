@@ -2,7 +2,7 @@
  "doc": "m04-cross-self-join",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s2:a348a323a533": {
@@ -923,19 +923,19 @@
      "row_count": 3,
      "rows": [
       [
-       "lab_6cc902c772ad1e769a52.employees",
+       "employees",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_6cc902c772ad1e769a52.colors",
+       "colors",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_6cc902c772ad1e769a52.sizes",
+       "sizes",
        "analyze",
        "status",
        "OK"

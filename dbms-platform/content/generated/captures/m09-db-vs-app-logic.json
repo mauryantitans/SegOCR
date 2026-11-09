@@ -443,7 +443,7 @@
       "transactions": [
        {
         "session": "B",
-        "trxId": "443638",
+        "trxId": "759623",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -452,7 +452,7 @@
        },
        {
         "session": "A",
-        "trxId": "443633",
+        "trxId": "759613",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -594,7 +594,7 @@
      "affected_rows": 5000,
      "info": "Records: 5000  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 49.49
+     "elapsed_ms": 50.34
     }
    ],
    "measured": true
@@ -608,7 +608,7 @@
      "affected_rows": 5000,
      "info": "Records: 5000  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 241.75
+     "elapsed_ms": 172.49
     }
    ],
    "measured": true

@@ -2,7 +2,7 @@
  "doc": "m07-clustered-secondary",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:07c37e0f82e4": {
@@ -41,7 +41,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_441f98a00946ccf6a56b.orders_big",
+       "orders_big",
        "analyze",
        "status",
        "OK"
@@ -91,7 +91,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select '16639' AS `order_id`,'4242' AS `customer_id`,'delivered' AS `status`,'2023-09-11' AS `order_date`,'428.31' AS `amount`,'JP' AS `country` from `lab_441f98a00946ccf6a56b`.`orders_big` where true"
+       "message": "/* select#1 */ select '16639' AS `order_id`,'4242' AS `customer_id`,'delivered' AS `status`,'2023-09-11' AS `order_date`,'428.31' AS `amount`,'JP' AS `country` from `orders_big` where true"
       }
      ]
     }
@@ -138,7 +138,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_441f98a00946ccf6a56b`.`orders_big`.`order_id` AS `order_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` AS `customer_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`status` AS `status`,`lab_441f98a00946ccf6a56b`.`orders_big`.`order_date` AS `order_date`,`lab_441f98a00946ccf6a56b`.`orders_big`.`amount` AS `amount`,`lab_441f98a00946ccf6a56b`.`orders_big`.`country` AS `country` from `lab_441f98a00946ccf6a56b`.`orders_big` where (`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` = 4242)"
+       "message": "/* select#1 */ select `orders_big`.`order_id` AS `order_id`,`orders_big`.`customer_id` AS `customer_id`,`orders_big`.`status` AS `status`,`orders_big`.`order_date` AS `order_date`,`orders_big`.`amount` AS `amount`,`orders_big`.`country` AS `country` from `orders_big` where (`orders_big`.`customer_id` = 4242)"
       }
      ]
     }
@@ -185,7 +185,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` AS `customer_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`order_id` AS `order_id` from `lab_441f98a00946ccf6a56b`.`orders_big` where (`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` = 4242)"
+       "message": "/* select#1 */ select `orders_big`.`customer_id` AS `customer_id`,`orders_big`.`order_id` AS `order_id` from `orders_big` where (`orders_big`.`customer_id` = 4242)"
       }
      ]
     }
@@ -203,10 +203,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Index lookup on orders_big using idx_customer (customer_id=4242)  (cost=3.5 rows=10) (actual time=0.0443..0.0472 rows=10 loops=1)\n"
+       "-> Index lookup on orders_big using idx_customer (customer_id=4242)  (cost=3.5 rows=10) (actual time=0.0407..0.0429 rows=10 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 0.76
+     "elapsed_ms": 0.72
     },
     {
      "sql": "EXPLAIN ANALYZE SELECT customer_id, order_id FROM orders_big WHERE customer_id = 4242",
@@ -217,10 +217,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Covering index lookup on orders_big using idx_customer (customer_id=4242)  (cost=1.25 rows=10) (actual time=0.00729..0.00938 rows=10 loops=1)\n"
+       "-> Covering index lookup on orders_big using idx_customer (customer_id=4242)  (cost=1.25 rows=10) (actual time=0.0112..0.0143 rows=10 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 0.46
+     "elapsed_ms": 0.8
     }
    ],
    "measured": true
@@ -265,7 +265,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_441f98a00946ccf6a56b`.`orders_big`.`order_id` AS `order_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` AS `customer_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`status` AS `status`,`lab_441f98a00946ccf6a56b`.`orders_big`.`order_date` AS `order_date`,`lab_441f98a00946ccf6a56b`.`orders_big`.`amount` AS `amount`,`lab_441f98a00946ccf6a56b`.`orders_big`.`country` AS `country` from `lab_441f98a00946ccf6a56b`.`orders_big` where (`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` between 1 and 200)"
+       "message": "/* select#1 */ select `orders_big`.`order_id` AS `order_id`,`orders_big`.`customer_id` AS `customer_id`,`orders_big`.`status` AS `status`,`orders_big`.`order_date` AS `order_date`,`orders_big`.`amount` AS `amount`,`orders_big`.`country` AS `country` from `orders_big` where (`orders_big`.`customer_id` between 1 and 200)"
       }
      ]
     },
@@ -298,8 +298,8 @@
        null,
        null,
        null,
-       199555,
-       29.74,
+       199767,
+       29.7,
        "Using where"
       ]
      ],
@@ -307,7 +307,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_441f98a00946ccf6a56b`.`orders_big`.`order_id` AS `order_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` AS `customer_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`status` AS `status`,`lab_441f98a00946ccf6a56b`.`orders_big`.`order_date` AS `order_date`,`lab_441f98a00946ccf6a56b`.`orders_big`.`amount` AS `amount`,`lab_441f98a00946ccf6a56b`.`orders_big`.`country` AS `country` from `lab_441f98a00946ccf6a56b`.`orders_big` where (`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` between 1 and 3000)"
+       "message": "/* select#1 */ select `orders_big`.`order_id` AS `order_id`,`orders_big`.`customer_id` AS `customer_id`,`orders_big`.`status` AS `status`,`orders_big`.`order_date` AS `order_date`,`orders_big`.`amount` AS `amount`,`orders_big`.`country` AS `country` from `orders_big` where (`orders_big`.`customer_id` between 1 and 3000)"
       }
      ]
     }
@@ -354,7 +354,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select count(0) AS `COUNT(*)`,min(`lab_441f98a00946ccf6a56b`.`orders_big`.`order_id`) AS `MIN(order_id)` from `lab_441f98a00946ccf6a56b`.`orders_big` where (`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` between 1 and 3000)"
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)`,min(`orders_big`.`order_id`) AS `MIN(order_id)` from `orders_big` where (`orders_big`.`customer_id` between 1 and 3000)"
       }
      ]
     }
@@ -390,7 +390,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_441f98a00946ccf6a56b.orders_by_customer",
+       "orders_by_customer",
        "analyze",
        "status",
        "OK"
@@ -435,7 +435,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_441f98a00946ccf6a56b`.`orders_by_customer`.`customer_id` AS `customer_id`,`lab_441f98a00946ccf6a56b`.`orders_by_customer`.`order_id` AS `order_id`,`lab_441f98a00946ccf6a56b`.`orders_by_customer`.`status` AS `status`,`lab_441f98a00946ccf6a56b`.`orders_by_customer`.`order_date` AS `order_date`,`lab_441f98a00946ccf6a56b`.`orders_by_customer`.`amount` AS `amount`,`lab_441f98a00946ccf6a56b`.`orders_by_customer`.`country` AS `country` from `lab_441f98a00946ccf6a56b`.`orders_by_customer` where (`lab_441f98a00946ccf6a56b`.`orders_by_customer`.`customer_id` between 1 and 3000)"
+       "message": "/* select#1 */ select `orders_by_customer`.`customer_id` AS `customer_id`,`orders_by_customer`.`order_id` AS `order_id`,`orders_by_customer`.`status` AS `status`,`orders_by_customer`.`order_date` AS `order_date`,`orders_by_customer`.`amount` AS `amount`,`orders_by_customer`.`country` AS `country` from `orders_by_customer` where (`orders_by_customer`.`customer_id` between 1 and 3000)"
       }
      ]
     }
@@ -486,13 +486,13 @@
      "row_count": 2,
      "rows": [
       [
-       "lab_441f98a00946ccf6a56b.pk_int",
+       "pk_int",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_441f98a00946ccf6a56b.pk_uuid",
+       "pk_uuid",
        "analyze",
        "status",
        "OK"
@@ -700,7 +700,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_441f98a00946ccf6a56b`.`orders_big`.`order_id` AS `order_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`amount` AS `amount` from `lab_441f98a00946ccf6a56b`.`orders_big` where (`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` = 777)"
+       "message": "/* select#1 */ select `orders_big`.`order_id` AS `order_id`,`orders_big`.`amount` AS `amount` from `orders_big` where (`orders_big`.`customer_id` = 777)"
       }
      ]
     }
@@ -867,7 +867,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_441f98a00946ccf6a56b`.`orders_big`.`order_id` AS `order_id`,`lab_441f98a00946ccf6a56b`.`orders_big`.`amount` AS `amount` from `lab_441f98a00946ccf6a56b`.`orders_big` where (`lab_441f98a00946ccf6a56b`.`orders_big`.`customer_id` = 777)"
+       "message": "/* select#1 */ select `orders_big`.`order_id` AS `order_id`,`orders_big`.`amount` AS `amount` from `orders_big` where (`orders_big`.`customer_id` = 777)"
       }
      ]
     }

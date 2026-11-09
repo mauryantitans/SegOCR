@@ -50,19 +50,19 @@
      "rows": [
       [
        "Innodb_buffer_pool_pages_dirty",
-       "1852"
+       "3017"
       ],
       [
        "Innodb_redo_log_checkpoint_lsn",
-       "8862773708"
+       "14941065530"
       ],
       [
        "Innodb_redo_log_current_lsn",
-       "8913863041"
+       "15025357569"
       ],
       [
        "Innodb_redo_log_logical_size",
-       "51089920"
+       "84292608"
       ]
      ]
     }
@@ -104,11 +104,11 @@
      "rows": [
       [
        "Innodb_buffer_pool_pages_dirty",
-       "3460"
+       "1671"
       ],
       [
        "Innodb_redo_log_logical_size",
-       "84260352"
+       "82139136"
       ]
      ]
     },
@@ -136,11 +136,11 @@
      "rows": [
       [
        "Innodb_buffer_pool_pages_dirty",
-       "1176"
+       "742"
       ],
       [
        "Innodb_redo_log_logical_size",
-       "25944576"
+       "16617984"
       ]
      ]
     }
@@ -247,7 +247,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 0.54
+     "elapsed_ms": 0.75
     },
     {
      "sql": "UPDATE ckpt_demo SET v = v + 1",
@@ -256,7 +256,7 @@
      "affected_rows": 150000,
      "info": "Rows matched: 150000  Changed: 150000  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 587.68
+     "elapsed_ms": 540.54
     },
     {
      "sql": "ROLLBACK",
@@ -264,7 +264,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 408.46
+     "elapsed_ms": 334.77
     },
     {
      "sql": "START TRANSACTION",
@@ -272,7 +272,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 0.55
+     "elapsed_ms": 0.61
     },
     {
      "sql": "UPDATE ckpt_demo SET v = v + 1",
@@ -281,7 +281,7 @@
      "affected_rows": 150000,
      "info": "Rows matched: 150000  Changed: 150000  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 417.71
+     "elapsed_ms": 587.08
     },
     {
      "sql": "COMMIT",
@@ -289,7 +289,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 9.51
+     "elapsed_ms": 10.48
     }
    ],
    "measured": true
@@ -361,11 +361,11 @@
      "rows": [
       [
        "Innodb_redo_log_checkpoint_lsn",
-       "8921189523"
+       "15042236209"
       ],
       [
        "Innodb_redo_log_current_lsn",
-       "8984114141"
+       "15096198844"
       ]
      ]
     }

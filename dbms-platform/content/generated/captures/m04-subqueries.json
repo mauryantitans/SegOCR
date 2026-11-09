@@ -2,7 +2,7 @@
  "doc": "m04-subqueries",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:6fe06a54bb17": {
@@ -456,25 +456,25 @@
      "row_count": 4,
      "rows": [
       [
-       "lab_a47b968370de1aaf6acb.customers",
+       "customers",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_a47b968370de1aaf6acb.orders",
+       "orders",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_a47b968370de1aaf6acb.products",
+       "products",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_a47b968370de1aaf6acb.categories",
+       "categories",
        "analyze",
        "status",
        "OK"
@@ -758,7 +758,7 @@
       {
        "level": "Note",
        "code": 1276,
-       "message": "Field or reference 'lab_a47b968370de1aaf6acb.c.customer_id' of SELECT #2 was resolved in SELECT #1"
+       "message": "Field or reference 'c.customer_id' of SELECT #2 was resolved in SELECT #1"
       }
      ]
     }

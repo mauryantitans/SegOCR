@@ -256,7 +256,7 @@
        "schema_id",
        "8",
        "mysql.sch.id",
-       191,
+       92,
        100.0,
        "Using where"
       ],
@@ -842,7 +842,7 @@
      "rows": [
       [
        "Bytes_sent",
-       "8672"
+       "8671"
       ],
       [
        "Handler_commit",

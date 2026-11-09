@@ -110,19 +110,19 @@
       ],
       [
        "Innodb_buffer_pool_pages_data",
-       "4570"
+       "6582"
       ],
       [
        "Innodb_buffer_pool_pages_dirty",
-       "21"
+       "3452"
       ],
       [
        "Innodb_buffer_pool_pages_free",
-       "3605"
+       "1587"
       ],
       [
        "Innodb_buffer_pool_pages_misc",
-       "17"
+       "23"
       ],
       [
        "Innodb_buffer_pool_pages_total",
@@ -160,11 +160,11 @@
      "rows": [
       [
        "Innodb_buffer_pool_pages_dirty",
-       "71"
+       "3462"
       ],
       [
        "Innodb_pages_created",
-       "209194"
+       "508444"
       ]
      ]
     },
@@ -187,11 +187,11 @@
      "rows": [
       [
        "Innodb_buffer_pool_pages_dirty",
-       "1763"
+       "2991"
       ],
       [
        "Innodb_pages_created",
-       "210944"
+       "510311"
       ]
      ]
     }
@@ -211,15 +211,15 @@
      "rows": [
       [
        "Innodb_buffer_pool_read_requests",
-       "179730453"
+       "557081376"
       ],
       [
        "Innodb_buffer_pool_reads",
-       "15011"
+       "37545"
       ],
       [
        "Innodb_rows_read",
-       "58131527"
+       "163117909"
       ]
      ]
     },
@@ -247,15 +247,15 @@
      "rows": [
       [
        "Innodb_buffer_pool_read_requests",
-       "179732762"
+       "557083685"
       ],
       [
        "Innodb_buffer_pool_reads",
-       "15011"
+       "37545"
       ],
       [
        "Innodb_rows_read",
-       "58331527"
+       "163317909"
       ]
      ]
     },
@@ -283,15 +283,15 @@
      "rows": [
       [
        "Innodb_buffer_pool_read_requests",
-       "179732766"
+       "557083689"
       ],
       [
        "Innodb_buffer_pool_reads",
-       "15011"
+       "37545"
       ],
       [
        "Innodb_rows_read",
-       "58331528"
+       "163317910"
       ]
      ]
     }
@@ -311,11 +311,11 @@
      "rows": [
       [
        "Innodb_buffer_pool_pages_dirty",
-       "1764"
+       "2993"
       ],
       [
        "Innodb_buffer_pool_pages_flushed",
-       "263551"
+       "650782"
       ]
      ]
     },
@@ -338,11 +338,11 @@
      "rows": [
       [
        "Innodb_buffer_pool_pages_dirty",
-       "2861"
+       "2002"
       ],
       [
        "Innodb_buffer_pool_pages_flushed",
-       "263551"
+       "651489"
       ]
      ]
     },
@@ -370,11 +370,11 @@
      "rows": [
       [
        "Innodb_buffer_pool_pages_dirty",
-       "1895"
+       "1293"
       ],
       [
        "Innodb_buffer_pool_pages_flushed",
-       "264517"
+       "652295"
       ]
      ]
     }
@@ -394,11 +394,11 @@
      "rows": [
       [
        "Innodb_buffer_pool_read_requests",
-       "180337861"
+       "557698449"
       ],
       [
        "Innodb_buffer_pool_reads",
-       "15011"
+       "37545"
       ]
      ]
     }
@@ -436,11 +436,11 @@
      "rows": [
       [
        "Innodb_buffer_pool_read_requests",
-       "180337868"
+       "557698456"
       ],
       [
        "Innodb_buffer_pool_reads",
-       "15011"
+       "37545"
       ]
      ]
     }

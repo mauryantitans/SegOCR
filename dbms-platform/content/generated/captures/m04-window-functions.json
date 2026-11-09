@@ -2,7 +2,7 @@
  "doc": "m04-window-functions",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s3:8d635f4ec4b2": {
@@ -1277,7 +1277,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_e2ac8b43aef5f379ca20`.`employees`.`employee_id` AS `employee_id`,sum(`lab_e2ac8b43aef5f379ca20`.`employees`.`salary`) OVER (PARTITION BY `lab_e2ac8b43aef5f379ca20`.`employees`.`department_id` ORDER BY `lab_e2ac8b43aef5f379ca20`.`employees`.`hire_date` ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)  AS `moving_sum` from `lab_e2ac8b43aef5f379ca20`.`employees`"
+       "message": "/* select#1 */ select `employees`.`employee_id` AS `employee_id`,sum(`employees`.`salary`) OVER (PARTITION BY `employees`.`department_id` ORDER BY `employees`.`hire_date` ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)  AS `moving_sum` from `employees`"
       }
      ]
     }
@@ -1320,7 +1320,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_e2ac8b43aef5f379ca20.win_big",
+       "win_big",
        "analyze",
        "status",
        "OK"
@@ -1348,7 +1348,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Window aggregate: sum(win_big.val) OVER (PARTITION BY win_big.grp ORDER BY win_big.val ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) \n    -> Sort: win_big.grp, win_big.val  (cost=5070 rows=50298)\n        -> Index scan on win_big using idx_grp_val  (cost=5070 rows=50298)\n"
+       "-> Window aggregate: sum(win_big.val) OVER (PARTITION BY win_big.grp ORDER BY win_big.val ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) \n    -> Sort: win_big.grp, win_big.val  (cost=4869 rows=48283)\n        -> Index scan on win_big using idx_grp_val  (cost=4869 rows=48283)\n"
       ]
      ]
     }
@@ -1366,10 +1366,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Window aggregate: sum(win_big.val) OVER (PARTITION BY win_big.grp ORDER BY win_big.val ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)   (actual time=15.8..25.6 rows=50000 loops=1)\n    -> Sort: win_big.grp, win_big.val  (cost=5070 rows=50298) (actual time=15.8..17.7 rows=50000 loops=1)\n        -> Index scan on win_big using idx_grp_val  (cost=5070 rows=50298) (actual time=0.384..8.65 rows=50000 loops=1)\n"
+       "-> Window aggregate: sum(win_big.val) OVER (PARTITION BY win_big.grp ORDER BY win_big.val ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)   (actual time=13.7..25 rows=50000 loops=1)\n    -> Sort: win_big.grp, win_big.val  (cost=4869 rows=48283) (actual time=13.7..15.7 rows=50000 loops=1)\n        -> Index scan on win_big using idx_grp_val  (cost=4869 rows=48283) (actual time=0.373..7.32 rows=50000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 31.28
+     "elapsed_ms": 30.95
     }
    ],
    "measured": true

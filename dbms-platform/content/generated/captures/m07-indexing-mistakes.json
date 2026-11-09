@@ -2,7 +2,7 @@
  "doc": "m07-indexing-mistakes",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:66833f95d51a": {
@@ -55,7 +55,7 @@
      "affected_rows": 100000,
      "info": "Records: 100000  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 420.64
+     "elapsed_ms": 490.79
     }
    ],
    "measured": true
@@ -69,7 +69,7 @@
      "affected_rows": 100000,
      "info": "Records: 100000  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 2053.85
+     "elapsed_ms": 2590.96
     }
    ],
    "measured": true
@@ -820,7 +820,7 @@
      "affected_rows": 100000,
      "info": "Records: 100000  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 1639.36
+     "elapsed_ms": 1526.34
     }
    ],
    "measured": true

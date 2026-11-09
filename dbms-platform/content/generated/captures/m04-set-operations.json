@@ -2,7 +2,7 @@
  "doc": "m04-set-operations",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s2:b084034578ca": {
@@ -775,7 +775,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_1299c9ebbfb7e642b487`.`customers`.`city` AS `city` from `lab_1299c9ebbfb7e642b487`.`customers` where (`lab_1299c9ebbfb7e642b487`.`customers`.`state` = 'CA') union /* select#2 */ select `lab_1299c9ebbfb7e642b487`.`customers`.`city` AS `city` from `lab_1299c9ebbfb7e642b487`.`customers` where (`lab_1299c9ebbfb7e642b487`.`customers`.`loyalty_tier` = 'gold')"
+       "message": "/* select#1 */ select `customers`.`city` AS `city` from `customers` where (`customers`.`state` = 'CA') union /* select#2 */ select `customers`.`city` AS `city` from `customers` where (`customers`.`loyalty_tier` = 'gold')"
       }
      ]
     }
@@ -950,13 +950,13 @@
      "row_count": 2,
      "rows": [
       [
-       "lab_1299c9ebbfb7e642b487.events_2023",
+       "events_2023",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_1299c9ebbfb7e642b487.events_2024",
+       "events_2024",
        "analyze",
        "status",
        "OK"
@@ -997,10 +997,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Append  (cost=12007 rows=119263) (actual time=0.168..29.7 rows=120000 loops=1)\n    -> Stream results  (cost=5928 rows=58875) (actual time=0.168..12 rows=60000 loops=1)\n        -> Table scan on events_2023  (cost=5928 rows=58875) (actual time=0.165..6.8 rows=60000 loops=1)\n    -> Stream results  (cost=6079 rows=60388) (actual time=0.17..11.8 rows=60000 loops=1)\n        -> Table scan on events_2024  (cost=6079 rows=60388) (actual time=0.167..6.72 rows=60000 loops=1)\n"
+       "-> Append  (cost=11826 rows=117452) (actual time=0.208..36.1 rows=120000 loops=1)\n    -> Stream results  (cost=5913 rows=58726) (actual time=0.207..14.8 rows=60000 loops=1)\n        -> Table scan on events_2023  (cost=5913 rows=58726) (actual time=0.204..8.47 rows=60000 loops=1)\n    -> Stream results  (cost=5913 rows=58726) (actual time=0.193..14.2 rows=60000 loops=1)\n        -> Table scan on events_2024  (cost=5913 rows=58726) (actual time=0.19..8 rows=60000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 36.83
+     "elapsed_ms": 44.38
     }
    ],
    "measured": true
@@ -1016,10 +1016,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <union temporary>  (cost=23933..25426 rows=119263) (actual time=38.3..39.8 rows=16000 loops=1)\n    -> Union materialize with deduplication  (cost=23933..23933 rows=119263) (actual time=38.3..38.3 rows=16000 loops=1)\n        -> Table scan on events_2023  (cost=5928 rows=58875) (actual time=0.171..6.76 rows=60000 loops=1)\n        -> Table scan on events_2024  (cost=6079 rows=60388) (actual time=0.157..6.78 rows=60000 loops=1)\n"
+       "-> Table scan on <union temporary>  (cost=23571..25042 rows=117452) (actual time=44.5..45.9 rows=16000 loops=1)\n    -> Union materialize with deduplication  (cost=23571..23571 rows=117452) (actual time=44.5..44.5 rows=16000 loops=1)\n        -> Table scan on events_2023  (cost=5913 rows=58726) (actual time=0.196..7.93 rows=60000 loops=1)\n        -> Table scan on events_2024  (cost=5913 rows=58726) (actual time=0.164..7.5 rows=60000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 42.45
+     "elapsed_ms": 48.47
     }
    ],
    "measured": true

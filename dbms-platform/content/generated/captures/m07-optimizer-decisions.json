@@ -2,7 +2,7 @@
  "doc": "m07-optimizer-decisions",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s2:20ed52eace5f": {
@@ -365,10 +365,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(shipments.weight_kg)  (cost=20480 rows=1) (actual time=157..157 rows=1 loops=1)\n    -> Index lookup on shipments using idx_status (status='delivered')  (cost=10492 rows=99876) (actual time=0.987..150 rows=180000 loops=1)\n"
+       "-> Aggregate: count(shipments.weight_kg)  (cost=20480 rows=1) (actual time=200..200 rows=1 loops=1)\n    -> Index lookup on shipments using idx_status (status='delivered')  (cost=10492 rows=99876) (actual time=1.15..191 rows=180000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 158.25
+     "elapsed_ms": 200.86
     }
    ],
    "measured": true
@@ -384,10 +384,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(shipments.weight_kg)  (cost=26802 rows=1) (actual time=50.4..50.4 rows=1 loops=1)\n    -> Filter: (shipments.`status` = 'delivered')  (cost=20143 rows=66584) (actual time=0.116..43.7 rows=180000 loops=1)\n        -> Table scan on shipments  (cost=20143 rows=199752) (actual time=0.111..24.1 rows=200000 loops=1)\n"
+       "-> Aggregate: count(shipments.weight_kg)  (cost=26802 rows=1) (actual time=63.3..63.3 rows=1 loops=1)\n    -> Filter: (shipments.`status` = 'delivered')  (cost=20143 rows=66584) (actual time=0.119..55.1 rows=180000 loops=1)\n        -> Table scan on shipments  (cost=20143 rows=199752) (actual time=0.115..30 rows=200000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 51.67
+     "elapsed_ms": 64.68
     }
    ],
    "measured": true
@@ -600,10 +600,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Filter: ((shipments.carrier = 'dhl') and (shipments.`status` = 'lost'))  (cost=452 rows=999) (actual time=14.5..14.5 rows=0 loops=1)\n    -> Intersect rows sorted by row ID  (cost=452 rows=1000) (actual time=14.5..14.5 rows=0 loops=1)\n        -> Index range scan on shipments using idx_status over (status = 'lost')  (cost=3.54 rows=2000) (actual time=0.0423..0.518 rows=2000 loops=1)\n        -> Index range scan on shipments using idx_carrier over (carrier = 'dhl')  (cost=140 rows=99876) (actual time=0.00977..11.9 rows=50000 loops=1)\n"
+       "-> Filter: ((shipments.carrier = 'dhl') and (shipments.`status` = 'lost'))  (cost=452 rows=999) (actual time=15.3..15.3 rows=0 loops=1)\n    -> Intersect rows sorted by row ID  (cost=452 rows=1000) (actual time=15.3..15.3 rows=0 loops=1)\n        -> Index range scan on shipments using idx_status over (status = 'lost')  (cost=3.54 rows=2000) (actual time=0.0358..0.553 rows=2000 loops=1)\n        -> Index range scan on shipments using idx_carrier over (carrier = 'dhl')  (cost=140 rows=99876) (actual time=0.00833..12.6 rows=50000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 15.54
+     "elapsed_ms": 16.61
     }
    ],
    "measured": true
@@ -619,10 +619,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Filter: (shipments.`status` = 'lost')  (cost=2724 rows=22195) (actual time=52.5..52.5 rows=0 loops=1)\n    -> Index lookup on shipments using idx_carrier (carrier='dhl')  (cost=2724 rows=66584) (actual time=0.969..50.3 rows=50000 loops=1)\n"
+       "-> Filter: (shipments.`status` = 'lost')  (cost=2724 rows=22195) (actual time=61.6..61.6 rows=0 loops=1)\n    -> Index lookup on shipments using idx_carrier (carrier='dhl')  (cost=2724 rows=66584) (actual time=1.34..58.8 rows=50000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 53.52
+     "elapsed_ms": 62.61
     }
    ],
    "measured": true
@@ -983,10 +983,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(shipments.weight_kg)  (cost=26232 rows=1) (actual time=34.3..34.3 rows=1 loops=1)\n    -> Filter: (shipments.shipped_at >= TIMESTAMP'2024-11-01 00:00:00')  (cost=20143 rows=60882) (actual time=27..33 rows=32153 loops=1)\n        -> Table scan on shipments  (cost=20143 rows=199752) (actual time=0.172..24.1 rows=200000 loops=1)\n"
+       "-> Aggregate: count(shipments.weight_kg)  (cost=26232 rows=1) (actual time=54.6..54.6 rows=1 loops=1)\n    -> Filter: (shipments.shipped_at >= TIMESTAMP'2024-11-01 00:00:00')  (cost=20143 rows=60882) (actual time=46.3..53.2 rows=32153 loops=1)\n        -> Table scan on shipments  (cost=20143 rows=199752) (actual time=0.137..37.2 rows=200000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 35.26
+     "elapsed_ms": 55.79
     }
    ],
    "measured": true
@@ -1002,10 +1002,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(shipments.weight_kg)  (cost=33485 rows=1) (actual time=36.1..36.1 rows=1 loops=1)\n    -> Index range scan on shipments using idx_shipped over ('2024-11-01 00:00:00' <= shipped_at), with index condition: (shipments.shipped_at >= TIMESTAMP'2024-11-01 00:00:00')  (cost=27397 rows=60882) (actual time=2.26..34.9 rows=32153 loops=1)\n"
+       "-> Aggregate: count(shipments.weight_kg)  (cost=33485 rows=1) (actual time=32.1..32.1 rows=1 loops=1)\n    -> Index range scan on shipments using idx_shipped over ('2024-11-01 00:00:00' <= shipped_at), with index condition: (shipments.shipped_at >= TIMESTAMP'2024-11-01 00:00:00')  (cost=27397 rows=60882) (actual time=1.93..30.7 rows=32153 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 37.21
+     "elapsed_ms": 33.23
     }
    ],
    "measured": true

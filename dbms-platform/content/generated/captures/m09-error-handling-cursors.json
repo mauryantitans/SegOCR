@@ -570,7 +570,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 0.65
+     "elapsed_ms": 0.45
     },
     {
      "sql": "CALL credit_cursor(0.00100)",
@@ -578,7 +578,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 347.42
+     "elapsed_ms": 360.07
     },
     {
      "sql": "COMMIT",
@@ -586,7 +586,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 21.54
+     "elapsed_ms": 16.93
     }
    ],
    "measured": true
@@ -600,7 +600,7 @@
      "affected_rows": 24986,
      "info": "Rows matched: 25000  Changed: 24986  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 108.61
+     "elapsed_ms": 104.58
     }
    ],
    "measured": true
@@ -658,7 +658,7 @@
        "PRIMARY",
        "4",
        null,
-       49035,
+       49545,
        100.0,
        "Using where"
       ]

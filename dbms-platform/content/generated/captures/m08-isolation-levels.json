@@ -2,7 +2,7 @@
  "doc": "m08-isolation-levels",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s2:7458b9d63aa2": {
@@ -101,7 +101,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "421279494828032",
+        "trxId": "422147675910952",
         "state": "RUNNING",
         "isolation": "READ COMMITTED",
         "rowsLocked": 0,
@@ -154,7 +154,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "421279494828032",
+        "trxId": "422147675910952",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 0,
@@ -265,7 +265,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "421279494828840",
+        "trxId": "422147675911760",
         "state": "RUNNING",
         "isolation": "SERIALIZABLE",
         "rowsLocked": 1,
@@ -577,7 +577,7 @@
       "transactions": [
        {
         "session": "B",
-        "trxId": "421279494829648",
+        "trxId": "422147675912568",
         "state": "RUNNING",
         "isolation": "SERIALIZABLE",
         "rowsLocked": 5,
@@ -586,7 +586,7 @@
        },
        {
         "session": "A",
-        "trxId": "421279494828840",
+        "trxId": "422147675911760",
         "state": "RUNNING",
         "isolation": "SERIALIZABLE",
         "rowsLocked": 5,
@@ -825,7 +825,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "206180",
+        "trxId": "745660",
         "state": "RUNNING",
         "isolation": "READ COMMITTED",
         "rowsLocked": 5,
@@ -988,7 +988,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "206286",
+        "trxId": "745766",
         "state": "RUNNING",
         "isolation": "READ COMMITTED",
         "rowsLocked": 1,

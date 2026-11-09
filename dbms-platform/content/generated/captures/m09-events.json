@@ -326,7 +326,7 @@
      "columns": [],
      "affected_rows": 1,
      "rows": [],
-     "elapsed_ms": 306.12
+     "elapsed_ms": 295.6
     }
    ],
    "measured": true
@@ -399,7 +399,7 @@
        "idx_session_log_created",
        "5",
        "const",
-       9965,
+       9209,
        100.0,
        "Using where"
       ]

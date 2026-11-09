@@ -2,7 +2,7 @@
  "doc": "m03-numeric-functions",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:751949491363": {
@@ -635,7 +635,7 @@
      "rows": [],
      "error": {
       "code": 1690,
-      "message": "BIGINT UNSIGNED value is out of range in '(`lab_135e9cadfa341b999e02`.`order_items`.`quantity` - 5)'"
+      "message": "BIGINT UNSIGNED value is out of range in '(`order_items`.`quantity` - 5)'"
      }
     }
    ],

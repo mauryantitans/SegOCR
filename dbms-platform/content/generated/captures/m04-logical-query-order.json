@@ -2,7 +2,7 @@
  "doc": "m04-logical-query-order",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s2:9d109dfd70a2": {
@@ -841,7 +841,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_6ad551448f1dd5f3ce3a`.`c`.`first_name` AS `first_name`,`lab_6ad551448f1dd5f3ce3a`.`o`.`order_id` AS `order_id` from `lab_6ad551448f1dd5f3ce3a`.`customers` `c` join `lab_6ad551448f1dd5f3ce3a`.`orders` `o` where ((`lab_6ad551448f1dd5f3ce3a`.`c`.`customer_id` = `lab_6ad551448f1dd5f3ce3a`.`o`.`customer_id`) and (`lab_6ad551448f1dd5f3ce3a`.`o`.`status` = 'delivered'))"
+       "message": "/* select#1 */ select `c`.`first_name` AS `first_name`,`o`.`order_id` AS `order_id` from `customers` `c` join `orders` `o` where ((`c`.`customer_id` = `o`.`customer_id`) and (`o`.`status` = 'delivered'))"
       }
      ]
     },
@@ -858,7 +858,7 @@
       [
        "Note",
        1003,
-       "/* select#1 */ select `lab_6ad551448f1dd5f3ce3a`.`c`.`first_name` AS `first_name`,`lab_6ad551448f1dd5f3ce3a`.`o`.`order_id` AS `order_id` from `lab_6ad551448f1dd5f3ce3a`.`customers` `c` join `lab_6ad551448f1dd5f3ce3a`.`orders` `o` where ((`lab_6ad551448f1dd5f3ce3a`.`c`.`customer_id` = `lab_6ad551448f1dd5f3ce3a`.`o`.`customer_id`) and (`lab_6ad551448f1dd5f3ce3a`.`o`.`status` = 'delivered'))"
+       "/* select#1 */ select `c`.`first_name` AS `first_name`,`o`.`order_id` AS `order_id` from `customers` `c` join `orders` `o` where ((`c`.`customer_id` = `o`.`customer_id`) and (`o`.`status` = 'delivered'))"
       ]
      ]
     }

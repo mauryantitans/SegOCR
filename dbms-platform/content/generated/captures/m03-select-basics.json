@@ -2,7 +2,7 @@
  "doc": "m03-select-basics",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s2:bf5d4905dd52": {
@@ -918,7 +918,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_ccb011cae666282e2d74`.`orders`.`order_id` AS `order_id`,`lab_ccb011cae666282e2d74`.`orders`.`customer_id` AS `customer_id` from `lab_ccb011cae666282e2d74`.`orders` where (`lab_ccb011cae666282e2d74`.`orders`.`customer_id` = 18)"
+       "message": "/* select#1 */ select `orders`.`order_id` AS `order_id`,`orders`.`customer_id` AS `customer_id` from `orders` where (`orders`.`customer_id` = 18)"
       }
      ]
     }
@@ -965,7 +965,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_ccb011cae666282e2d74`.`orders`.`order_id` AS `order_id`,`lab_ccb011cae666282e2d74`.`orders`.`customer_id` AS `customer_id`,`lab_ccb011cae666282e2d74`.`orders`.`order_date` AS `order_date`,`lab_ccb011cae666282e2d74`.`orders`.`status` AS `status`,`lab_ccb011cae666282e2d74`.`orders`.`shipped_at` AS `shipped_at`,`lab_ccb011cae666282e2d74`.`orders`.`discount_code` AS `discount_code` from `lab_ccb011cae666282e2d74`.`orders` where (`lab_ccb011cae666282e2d74`.`orders`.`customer_id` = 18)"
+       "message": "/* select#1 */ select `orders`.`order_id` AS `order_id`,`orders`.`customer_id` AS `customer_id`,`orders`.`order_date` AS `order_date`,`orders`.`status` AS `status`,`orders`.`shipped_at` AS `shipped_at`,`orders`.`discount_code` AS `discount_code` from `orders` where (`orders`.`customer_id` = 18)"
       }
      ]
     }
@@ -1003,7 +1003,7 @@
        "idx_orders_customer",
        "4",
        null,
-       2,
+       21,
        100.0,
        "Using index for group-by"
       ]
@@ -1012,7 +1012,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select distinct `lab_ccb011cae666282e2d74`.`orders`.`customer_id` AS `customer_id` from `lab_ccb011cae666282e2d74`.`orders`"
+       "message": "/* select#1 */ select distinct `orders`.`customer_id` AS `customer_id` from `orders`"
       }
      ]
     }
@@ -1059,7 +1059,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select distinct `lab_ccb011cae666282e2d74`.`customers`.`city` AS `city` from `lab_ccb011cae666282e2d74`.`customers`"
+       "message": "/* select#1 */ select distinct `customers`.`city` AS `city` from `customers`"
       }
      ]
     }

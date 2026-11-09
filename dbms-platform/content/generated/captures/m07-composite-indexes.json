@@ -2,7 +2,7 @@
  "doc": "m07-composite-indexes",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:bc167c04cb32": {
@@ -49,7 +49,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_d12fc1fe961319d54048.orders_big",
+       "orders_big",
        "analyze",
        "status",
        "OK"
@@ -99,7 +99,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` AS `customer_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`status` AS `status`,`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` AS `order_date`,`lab_d12fc1fe961319d54048`.`orders_big`.`amount` AS `amount`,`lab_d12fc1fe961319d54048`.`orders_big`.`country` AS `country` from `lab_d12fc1fe961319d54048`.`orders_big` where (`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` = 4242)"
+       "message": "/* select#1 */ select `orders_big`.`order_id` AS `order_id`,`orders_big`.`customer_id` AS `customer_id`,`orders_big`.`status` AS `status`,`orders_big`.`order_date` AS `order_date`,`orders_big`.`amount` AS `amount`,`orders_big`.`country` AS `country` from `orders_big` where (`orders_big`.`customer_id` = 4242)"
       }
      ]
     },
@@ -141,7 +141,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` AS `customer_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`status` AS `status`,`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` AS `order_date`,`lab_d12fc1fe961319d54048`.`orders_big`.`amount` AS `amount`,`lab_d12fc1fe961319d54048`.`orders_big`.`country` AS `country` from `lab_d12fc1fe961319d54048`.`orders_big` where ((`lab_d12fc1fe961319d54048`.`orders_big`.`status` = 'shipped') and (`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` = 4242))"
+       "message": "/* select#1 */ select `orders_big`.`order_id` AS `order_id`,`orders_big`.`customer_id` AS `customer_id`,`orders_big`.`status` AS `status`,`orders_big`.`order_date` AS `order_date`,`orders_big`.`amount` AS `amount`,`orders_big`.`country` AS `country` from `orders_big` where ((`orders_big`.`status` = 'shipped') and (`orders_big`.`customer_id` = 4242))"
       }
      ]
     },
@@ -183,7 +183,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` AS `customer_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`status` AS `status`,`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` AS `order_date`,`lab_d12fc1fe961319d54048`.`orders_big`.`amount` AS `amount`,`lab_d12fc1fe961319d54048`.`orders_big`.`country` AS `country` from `lab_d12fc1fe961319d54048`.`orders_big` where ((`lab_d12fc1fe961319d54048`.`orders_big`.`status` = 'shipped') and (`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` = 4242) and (`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` >= DATE'2024-01-01'))"
+       "message": "/* select#1 */ select `orders_big`.`order_id` AS `order_id`,`orders_big`.`customer_id` AS `customer_id`,`orders_big`.`status` AS `status`,`orders_big`.`order_date` AS `order_date`,`orders_big`.`amount` AS `amount`,`orders_big`.`country` AS `country` from `orders_big` where ((`orders_big`.`status` = 'shipped') and (`orders_big`.`customer_id` = 4242) and (`orders_big`.`order_date` >= DATE'2024-01-01'))"
       }
      ]
     }
@@ -230,7 +230,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` AS `customer_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`status` AS `status`,`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` AS `order_date`,`lab_d12fc1fe961319d54048`.`orders_big`.`amount` AS `amount`,`lab_d12fc1fe961319d54048`.`orders_big`.`country` AS `country` from `lab_d12fc1fe961319d54048`.`orders_big` where ((`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` = 4242) and (`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` >= DATE'2024-01-01'))"
+       "message": "/* select#1 */ select `orders_big`.`order_id` AS `order_id`,`orders_big`.`customer_id` AS `customer_id`,`orders_big`.`status` AS `status`,`orders_big`.`order_date` AS `order_date`,`orders_big`.`amount` AS `amount`,`orders_big`.`country` AS `country` from `orders_big` where ((`orders_big`.`customer_id` = 4242) and (`orders_big`.`order_date` >= DATE'2024-01-01'))"
       }
      ]
     }
@@ -268,7 +268,7 @@
        null,
        null,
        null,
-       199616,
+       199798,
        1.0,
        "Using where"
       ]
@@ -277,7 +277,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` AS `customer_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`status` AS `status`,`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` AS `order_date`,`lab_d12fc1fe961319d54048`.`orders_big`.`amount` AS `amount`,`lab_d12fc1fe961319d54048`.`orders_big`.`country` AS `country` from `lab_d12fc1fe961319d54048`.`orders_big` where ((`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` = DATE'2024-01-01') and (`lab_d12fc1fe961319d54048`.`orders_big`.`status` = 'shipped'))"
+       "message": "/* select#1 */ select `orders_big`.`order_id` AS `order_id`,`orders_big`.`customer_id` AS `customer_id`,`orders_big`.`status` AS `status`,`orders_big`.`order_date` AS `order_date`,`orders_big`.`amount` AS `amount`,`orders_big`.`country` AS `country` from `orders_big` where ((`orders_big`.`order_date` = DATE'2024-01-01') and (`orders_big`.`status` = 'shipped'))"
       }
      ]
     }
@@ -401,7 +401,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select '5' AS `rating` from `lab_d12fc1fe961319d54048`.`product_reviews` where true"
+       "message": "/* select#1 */ select '5' AS `rating` from `product_reviews` where true"
       }
      ]
     },
@@ -443,7 +443,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`product_reviews`.`customer_id` AS `customer_id` from `lab_d12fc1fe961319d54048`.`product_reviews` where (`lab_d12fc1fe961319d54048`.`product_reviews`.`product_id` = 1)"
+       "message": "/* select#1 */ select `product_reviews`.`customer_id` AS `customer_id` from `product_reviews` where (`product_reviews`.`product_id` = 1)"
       }
      ]
     }
@@ -472,7 +472,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_d12fc1fe961319d54048.orders_big",
+       "orders_big",
        "analyze",
        "status",
        "OK"
@@ -517,7 +517,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_d12fc1fe961319d54048`.`orders_big` FORCE INDEX (`idx_date_status`) where ((`lab_d12fc1fe961319d54048`.`orders_big`.`status` = 'cancelled') and (`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` between '2024-01-01' and '2024-03-31'))"
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `orders_big` FORCE INDEX (`idx_date_status`) where ((`orders_big`.`status` = 'cancelled') and (`orders_big`.`order_date` between '2024-01-01' and '2024-03-31'))"
       }
      ]
     },
@@ -559,7 +559,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `lab_d12fc1fe961319d54048`.`orders_big` FORCE INDEX (`idx_status_date`) where ((`lab_d12fc1fe961319d54048`.`orders_big`.`status` = 'cancelled') and (`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` between '2024-01-01' and '2024-03-31'))"
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `orders_big` FORCE INDEX (`idx_status_date`) where ((`orders_big`.`status` = 'cancelled') and (`orders_big`.`order_date` between '2024-01-01' and '2024-03-31'))"
       }
      ]
     }
@@ -577,10 +577,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=11316 rows=1) (actual time=4.56..4.56 rows=1 loops=1)\n    -> Filter: ((orders_big.`status` = 'cancelled') and (orders_big.order_date between '2024-01-01' and '2024-03-31'))  (cost=9740 rows=15762) (actual time=0.221..4.51 rows=1244 loops=1)\n        -> Covering index range scan on orders_big using idx_date_status over ('2024-01-01' <= order_date <= '2024-03-31' AND status = 'cancelled')  (cost=9740 rows=47286) (actual time=0.216..3.08 rows=24640 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=11316 rows=1) (actual time=5.77..5.77 rows=1 loops=1)\n    -> Filter: ((orders_big.`status` = 'cancelled') and (orders_big.order_date between '2024-01-01' and '2024-03-31'))  (cost=9740 rows=15762) (actual time=0.282..5.71 rows=1244 loops=1)\n        -> Covering index range scan on orders_big using idx_date_status over ('2024-01-01' <= order_date <= '2024-03-31' AND status = 'cancelled')  (cost=9740 rows=47286) (actual time=0.278..3.92 rows=24640 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 6.69
+     "elapsed_ms": 6.73
     },
     {
      "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM orders_big FORCE INDEX (idx_status_date)\nWHERE status = 'cancelled' AND order_date BETWEEN '2024-01-01' AND '2024-03-31'",
@@ -591,10 +591,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=382 rows=1) (actual time=0.609..0.609 rows=1 loops=1)\n    -> Filter: ((orders_big.`status` = 'cancelled') and (orders_big.order_date between '2024-01-01' and '2024-03-31'))  (cost=257 rows=1244) (actual time=0.0289..0.563 rows=1244 loops=1)\n        -> Covering index range scan on orders_big using idx_status_date over (status = 'cancelled' AND '2024-01-01' <= order_date <= '2024-03-31')  (cost=257 rows=1244) (actual time=0.0266..0.271 rows=1244 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=382 rows=1) (actual time=0.777..0.777 rows=1 loops=1)\n    -> Filter: ((orders_big.`status` = 'cancelled') and (orders_big.order_date between '2024-01-01' and '2024-03-31'))  (cost=257 rows=1244) (actual time=0.0402..0.68 rows=1244 loops=1)\n        -> Covering index range scan on orders_big using idx_status_date over (status = 'cancelled' AND '2024-01-01' <= order_date <= '2024-03-31')  (cost=257 rows=1244) (actual time=0.0375..0.29 rows=1244 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 1.33
+     "elapsed_ms": 1.76
     }
    ],
    "measured": true
@@ -621,7 +621,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_d12fc1fe961319d54048.orders_big",
+       "orders_big",
        "analyze",
        "status",
        "OK"
@@ -666,7 +666,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` AS `customer_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`status` AS `status`,`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` AS `order_date`,`lab_d12fc1fe961319d54048`.`orders_big`.`amount` AS `amount`,`lab_d12fc1fe961319d54048`.`orders_big`.`country` AS `country` from `lab_d12fc1fe961319d54048`.`orders_big` where ((`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` = 42) or (`lab_d12fc1fe961319d54048`.`orders_big`.`status` = 'cancelled'))"
+       "message": "/* select#1 */ select `orders_big`.`order_id` AS `order_id`,`orders_big`.`customer_id` AS `customer_id`,`orders_big`.`status` AS `status`,`orders_big`.`order_date` AS `order_date`,`orders_big`.`amount` AS `amount`,`orders_big`.`country` AS `country` from `orders_big` where ((`orders_big`.`customer_id` = 42) or (`orders_big`.`status` = 'cancelled'))"
       }
      ]
     },
@@ -699,8 +699,8 @@
        "idx_status,idx_country",
        "42,8",
        null,
-       4996,
-       99.99,
+       5001,
+       99.98,
        "Using intersect(idx_status,idx_country); Using where; Using index"
       ]
      ],
@@ -708,7 +708,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id` from `lab_d12fc1fe961319d54048`.`orders_big` where ((`lab_d12fc1fe961319d54048`.`orders_big`.`status` = 'cancelled') and (`lab_d12fc1fe961319d54048`.`orders_big`.`country` = 'JP'))"
+       "message": "/* select#1 */ select `orders_big`.`order_id` AS `order_id` from `orders_big` where ((`orders_big`.`status` = 'cancelled') and (`orders_big`.`country` = 'JP'))"
       }
      ]
     }
@@ -763,7 +763,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` AS `customer_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`status` AS `status`,`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` AS `order_date`,`lab_d12fc1fe961319d54048`.`orders_big`.`amount` AS `amount`,`lab_d12fc1fe961319d54048`.`orders_big`.`country` AS `country` from `lab_d12fc1fe961319d54048`.`orders_big` where (`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` = 4242)"
+       "message": "/* select#1 */ select `orders_big`.`order_id` AS `order_id`,`orders_big`.`customer_id` AS `customer_id`,`orders_big`.`status` AS `status`,`orders_big`.`order_date` AS `order_date`,`orders_big`.`amount` AS `amount`,`orders_big`.`country` AS `country` from `orders_big` where (`orders_big`.`customer_id` = 4242)"
       }
      ]
     },
@@ -852,7 +852,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_d12fc1fe961319d54048`.`orders_big`.`order_id` AS `order_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` AS `customer_id`,`lab_d12fc1fe961319d54048`.`orders_big`.`status` AS `status`,`lab_d12fc1fe961319d54048`.`orders_big`.`order_date` AS `order_date`,`lab_d12fc1fe961319d54048`.`orders_big`.`amount` AS `amount`,`lab_d12fc1fe961319d54048`.`orders_big`.`country` AS `country` from `lab_d12fc1fe961319d54048`.`orders_big` where (`lab_d12fc1fe961319d54048`.`orders_big`.`customer_id` = 4242)"
+       "message": "/* select#1 */ select `orders_big`.`order_id` AS `order_id`,`orders_big`.`customer_id` AS `customer_id`,`orders_big`.`status` AS `status`,`orders_big`.`order_date` AS `order_date`,`orders_big`.`amount` AS `amount`,`orders_big`.`country` AS `country` from `orders_big` where (`orders_big`.`customer_id` = 4242)"
       }
      ]
     },

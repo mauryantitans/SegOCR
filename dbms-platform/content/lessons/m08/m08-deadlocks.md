@@ -327,16 +327,15 @@ steps:
     sql: START TRANSACTION;
   - session: C
     sql: INSERT INTO coupons VALUES (1);
-    expect: error
-    errorCode: 1213
-    note: C also waits with an S request. When A rolls back, both B and C get S, both need X to insert — cycle.
+    expect: blocks
+    note: C also waits with an S request. When A rolls back, both B and C get S, both need X to insert — cycle. InnoDB rolls one of the two back with error 1213; which one varies from run to run.
   - session: A
     sql: ROLLBACK;
   - session: B
     sql: COMMIT; SELECT * FROM coupons;
 ```
 
-This is the example from the MySQL manual's deadlock chapter. While A's row existed (uncommitted), B and C each found a duplicate and queued an **S** lock request on it — a duplicate-key check takes a shared lock so that the duplicate cannot disappear under it. When A rolled back, the row vanished and both shared requests were granted; each then needed an exclusive (insert-intention) lock that conflicted with the other's S lock. InnoDB rolled back C, and B's insert succeeded, so the table ends with one coupon. Nothing in B's or C's code was "wrong" — this deadlock can only be handled by retrying.
+This is the example from the MySQL manual's deadlock chapter. While A's row existed (uncommitted), B and C each found a duplicate and queued an **S** lock request on it — a duplicate-key check takes a shared lock so that the duplicate cannot disappear under it. When A rolled back, the row vanished and both shared requests were granted; each then needed an exclusive (insert-intention) lock that conflicted with the other's S lock. InnoDB rolled back one of the two waiters with error 1213 and the other's insert succeeded, so the table ends with one coupon. Which waiter becomes the victim is not deterministic here — both transactions have done the same amount of work — so the capture above shows the choice InnoDB made on that run, and your live run may pick the other session. Nothing in B's or C's code was "wrong" — this deadlock can only be handled by retrying.
 
 ### 6. Prevention: lock in a consistent order
 

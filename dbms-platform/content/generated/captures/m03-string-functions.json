@@ -2,7 +2,7 @@
  "doc": "m03-string-functions",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:91024ef1c37b": {
@@ -706,7 +706,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_75759a2d86d442b14f87.customers_fx",
+       "customers_fx",
        "analyze",
        "status",
        "OK"

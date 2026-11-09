@@ -2,7 +2,7 @@
  "doc": "m04-value-functions",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s2:c1ead231b8ec": {
@@ -1472,7 +1472,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_8341415c8c075fbf04c1`.`products`.`category_id` AS `category_id`,`lab_8341415c8c075fbf04c1`.`products`.`name` AS `name`,last_value(`lab_8341415c8c075fbf04c1`.`products`.`name`) OVER (PARTITION BY `lab_8341415c8c075fbf04c1`.`products`.`category_id` ORDER BY `lab_8341415c8c075fbf04c1`.`products`.`price` ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)  AS `priciest` from `lab_8341415c8c075fbf04c1`.`products`"
+       "message": "/* select#1 */ select `products`.`category_id` AS `category_id`,`products`.`name` AS `name`,last_value(`products`.`name`) OVER (PARTITION BY `products`.`category_id` ORDER BY `products`.`price` ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)  AS `priciest` from `products`"
       }
      ]
     }

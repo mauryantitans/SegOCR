@@ -2,7 +2,7 @@
  "doc": "m04-inner-join",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s2:79e2a51d774c": {
@@ -788,25 +788,25 @@
      "row_count": 4,
      "rows": [
       [
-       "lab_2753e02500b457798312.j_customers",
+       "j_customers",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_2753e02500b457798312.j_orders",
+       "j_orders",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_2753e02500b457798312.customers",
+       "customers",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_2753e02500b457798312.orders",
+       "orders",
        "analyze",
        "status",
        "OK"
@@ -1039,10 +1039,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=0.0855..0.0861 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=0.0848..0.0848 rows=5 loops=1)\n        -> Nested loop inner join  (cost=36.2 rows=80) (actual time=0.0226..0.0625 rows=80 loops=1)\n            -> Covering index scan on o using idx_orders_customer  (cost=8.25 rows=80) (actual time=0.015..0.0239 rows=80 loops=1)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.251 rows=1) (actual time=317e-6..339e-6 rows=1 loops=80)\n"
+       "-> Table scan on <temporary>  (actual time=0.0936..0.0943 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=0.0927..0.0927 rows=5 loops=1)\n        -> Nested loop inner join  (cost=36.2 rows=80) (actual time=0.0254..0.0691 rows=80 loops=1)\n            -> Covering index scan on o using idx_orders_customer  (cost=8.25 rows=80) (actual time=0.0175..0.028 rows=80 loops=1)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.251 rows=1) (actual time=321e-6..348e-6 rows=1 loops=80)\n"
       ]
      ],
-     "elapsed_ms": 1.02
+     "elapsed_ms": 1.3
     }
    ],
    "measured": true

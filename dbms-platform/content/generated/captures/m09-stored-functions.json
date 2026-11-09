@@ -701,10 +701,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), sum(big_orders.amount)  (cost=20107 rows=1) (actual time=579..579 rows=1 loops=1)\n    -> Filter: (tier_of(big_orders.customer_id) = 'gold')  (cost=10082 rows=100256) (actual time=1.02..575 rows=25000 loops=1)\n        -> Table scan on big_orders  (cost=10082 rows=100256) (actual time=0.901..16.8 rows=100000 loops=1)\n"
+       "-> Aggregate: count(0), sum(big_orders.amount)  (cost=20107 rows=1) (actual time=557..557 rows=1 loops=1)\n    -> Filter: (tier_of(big_orders.customer_id) = 'gold')  (cost=10082 rows=100256) (actual time=1.27..554 rows=25000 loops=1)\n        -> Table scan on big_orders  (cost=10082 rows=100256) (actual time=1.11..15.9 rows=100000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 581.26
+     "elapsed_ms": 558.99
     }
    ],
    "measured": true
@@ -720,10 +720,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), sum(o.amount)  (cost=4749 rows=1) (actual time=51.1..51.1 rows=1 loops=1)\n    -> Nested loop inner join  (cost=3739 rows=10106) (actual time=0.208..49.1 rows=25000 loops=1)\n        -> Filter: (t.tier = 'gold')  (cost=202 rows=200) (actual time=0.0398..0.667 rows=500 loops=1)\n            -> Table scan on t  (cost=202 rows=2000) (actual time=0.0374..0.445 rows=2000 loops=1)\n        -> Index lookup on o using idx_big_orders_customer (customer_id=t.customer_id)  (cost=12.7 rows=50.5) (actual time=0.0842..0.0905 rows=50 loops=500)\n"
+       "-> Aggregate: count(0), sum(o.amount)  (cost=4749 rows=1) (actual time=33.3..33.3 rows=1 loops=1)\n    -> Nested loop inner join  (cost=3739 rows=10106) (actual time=0.201..31.5 rows=25000 loops=1)\n        -> Filter: (t.tier = 'gold')  (cost=202 rows=200) (actual time=0.033..0.546 rows=500 loops=1)\n            -> Table scan on t  (cost=202 rows=2000) (actual time=0.0305..0.371 rows=2000 loops=1)\n        -> Index lookup on o using idx_big_orders_customer (customer_id=t.customer_id)  (cost=12.7 rows=50.5) (actual time=0.0563..0.0592 rows=50 loops=500)\n"
       ]
      ],
-     "elapsed_ms": 52.63
+     "elapsed_ms": 34.57
     }
    ],
    "measured": true

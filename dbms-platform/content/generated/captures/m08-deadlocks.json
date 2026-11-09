@@ -2,7 +2,7 @@
  "doc": "m08-deadlocks",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:97e8647e3cff": {
@@ -131,22 +131,22 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "B",
-        "trxId": "209367",
-        "state": "RUNNING",
-        "isolation": "REPEATABLE READ",
-        "rowsLocked": 1,
-        "rowsModified": 1,
-        "lockStructs": 2
-       },
-       {
         "session": "A",
-        "trxId": "209362",
+        "trxId": "763255",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 2,
         "rowsModified": 1,
         "lockStructs": 3
+       },
+       {
+        "session": "B",
+        "trxId": "763270",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
+        "lockStructs": 2
        }
       ],
       "locks": [
@@ -598,7 +598,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "214324",
+        "trxId": "765997",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 2,
@@ -607,7 +607,7 @@
        },
        {
         "session": "B",
-        "trxId": "214327",
+        "trxId": "766025",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -714,7 +714,7 @@
     }
    ]
   },
-  "c5:0011cb0482c5": {
+  "c5:4a1c7d616ba7": {
    "steps": [
     {
      "step": 0,

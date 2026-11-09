@@ -2,7 +2,7 @@
  "doc": "m07-btree-bplustree",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:c4f5f4d2f8b1": {
@@ -131,7 +131,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_3bd3873fc06fa5c1737e.seq_keys",
+       "seq_keys",
        "analyze",
        "status",
        "OK"
@@ -152,10 +152,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), min(seq_keys.payload)  (cost=1091 rows=1) (actual time=0.573..0.573 rows=1 loops=1)\n    -> Filter: (seq_keys.id between 50001 and 52000)  (cost=728 rows=3634) (actual time=0.0483..0.393 rows=2000 loops=1)\n        -> Index range scan on seq_keys using PRIMARY over (50001 <= id <= 52000)  (cost=728 rows=3634) (actual time=0.0467..0.278 rows=2000 loops=1)\n"
+       "-> Aggregate: count(0), min(seq_keys.payload)  (cost=1091 rows=1) (actual time=0.608..0.608 rows=1 loops=1)\n    -> Filter: (seq_keys.id between 50001 and 52000)  (cost=728 rows=3634) (actual time=0.0444..0.393 rows=2000 loops=1)\n        -> Index range scan on seq_keys using PRIMARY over (50001 <= id <= 52000)  (cost=728 rows=3634) (actual time=0.0426..0.276 rows=2000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 1.63
+     "elapsed_ms": 1.97
     }
    ],
    "measured": true
@@ -243,7 +243,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_3bd3873fc06fa5c1737e.rnd_keys",
+       "rnd_keys",
        "analyze",
        "status",
        "OK"
@@ -263,13 +263,13 @@
      "rows": [
       [
        "rnd_keys",
-       194402,
+       165246,
        "1891.0000",
        "106"
       ],
       [
        "seq_keys",
-       199100,
+       194095,
        "1121.0000",
        "178"
       ]
@@ -292,13 +292,13 @@
      "row_count": 2,
      "rows": [
       [
-       "lab_3bd3873fc06fa5c1737e.rnd_keys",
+       "rnd_keys",
        "optimize",
        "note",
        "Table does not support optimize, doing recreate + analyze instead"
       ],
       [
-       "lab_3bd3873fc06fa5c1737e.rnd_keys",
+       "rnd_keys",
        "optimize",
        "status",
        "OK"
@@ -317,7 +317,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_3bd3873fc06fa5c1737e.rnd_keys",
+       "rnd_keys",
        "analyze",
        "status",
        "OK"
@@ -361,7 +361,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_3bd3873fc06fa5c1737e.seq_keys",
+       "seq_keys",
        "analyze",
        "status",
        "OK"
@@ -411,13 +411,13 @@
      "row_count": 2,
      "rows": [
       [
-       "lab_3bd3873fc06fa5c1737e.seq_keys",
+       "seq_keys",
        "optimize",
        "note",
        "Table does not support optimize, doing recreate + analyze instead"
       ],
       [
-       "lab_3bd3873fc06fa5c1737e.seq_keys",
+       "seq_keys",
        "optimize",
        "status",
        "OK"
@@ -436,7 +436,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_3bd3873fc06fa5c1737e.seq_keys",
+       "seq_keys",
        "analyze",
        "status",
        "OK"
@@ -542,7 +542,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Filter: (rnd_keys.id between 1000 and 1004)  (cost=2.01 rows=5) (actual time=0.012..0.0139 rows=5 loops=1)\n    -> Index range scan on rnd_keys using PRIMARY over (1000 <= id <= 1004)  (cost=2.01 rows=5) (actual time=0.0103..0.0119 rows=5 loops=1)\n"
+       "-> Filter: (rnd_keys.id between 1000 and 1004)  (cost=2.01 rows=5) (actual time=0.012..0.0139 rows=5 loops=1)\n    -> Index range scan on rnd_keys using PRIMARY over (1000 <= id <= 1004)  (cost=2.01 rows=5) (actual time=0.0106..0.0121 rows=5 loops=1)\n"
       ]
      ]
     }

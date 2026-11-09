@@ -2,7 +2,7 @@
  "doc": "m08-transaction-lifecycle",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:b19490349644": {
@@ -844,7 +844,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "202137",
+        "trxId": "741697",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 2,
@@ -1232,21 +1232,21 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "A",
-        "trxId": "202474",
-        "state": "RUNNING",
-        "isolation": "REPEATABLE READ",
-        "rowsLocked": 1,
-        "rowsModified": 1,
-        "lockStructs": 2
-       },
-       {
         "session": "B",
-        "trxId": "202480",
+        "trxId": "742035",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
         "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "A",
+        "trxId": "742030",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
         "lockStructs": 2
        }
       ],

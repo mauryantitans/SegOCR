@@ -2,7 +2,7 @@
  "doc": "m04-exists-in",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s2:5b290090e27c": {
@@ -627,43 +627,43 @@
      "row_count": 7,
      "rows": [
       [
-       "lab_b965bd9274e39235e562.customers",
+       "customers",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_b965bd9274e39235e562.orders",
+       "orders",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_b965bd9274e39235e562.order_items",
+       "order_items",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_b965bd9274e39235e562.products",
+       "products",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_b965bd9274e39235e562.categories",
+       "categories",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_b965bd9274e39235e562.reviews",
+       "reviews",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_b965bd9274e39235e562.promo_codes",
+       "promo_codes",
        "analyze",
        "status",
        "OK"
@@ -691,7 +691,7 @@
       {
        "level": "Note",
        "code": 1276,
-       "message": "Field or reference 'lab_b965bd9274e39235e562.c.category_id' of SELECT #2 was resolved in SELECT #1"
+       "message": "Field or reference 'c.category_id' of SELECT #2 was resolved in SELECT #1"
       }
      ]
     }
@@ -796,7 +796,7 @@
        "<auto_distinct_key>",
        "<auto_distinct_key>",
        "4",
-       "lab_b965bd9274e39235e562.p.product_id",
+       "p.product_id",
        1,
        100.0,
        null
@@ -820,7 +820,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_b965bd9274e39235e562`.`p`.`product_id` AS `product_id`,`lab_b965bd9274e39235e562`.`p`.`name` AS `name` from `lab_b965bd9274e39235e562`.`products` `p` semi join (`lab_b965bd9274e39235e562`.`order_items` `i`) where ((`<subquery2>`.`product_id` = `lab_b965bd9274e39235e562`.`p`.`product_id`) and (`lab_b965bd9274e39235e562`.`i`.`quantity` >= 3))"
+       "message": "/* select#1 */ select `p`.`product_id` AS `product_id`,`p`.`name` AS `name` from `products` `p` semi join (`order_items` `i`) where ((`<subquery2>`.`product_id` = `p`.`product_id`) and (`i`.`quantity` >= 3))"
       }
      ]
     }
@@ -925,7 +925,7 @@
        "PRIMARY",
        "PRIMARY",
        "4",
-       "lab_b965bd9274e39235e562.i.product_id",
+       "i.product_id",
        1,
        100.0,
        "Using index"
@@ -935,7 +935,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select /*+ SEMIJOIN(@`sq` LOOSESCAN) */ `lab_b965bd9274e39235e562`.`p`.`product_id` AS `product_id` from `lab_b965bd9274e39235e562`.`products` `p` semi join (`lab_b965bd9274e39235e562`.`order_items` `i`) where (`lab_b965bd9274e39235e562`.`p`.`product_id` = `lab_b965bd9274e39235e562`.`i`.`product_id`)"
+       "message": "/* select#1 */ select /*+ SEMIJOIN(@`sq` LOOSESCAN) */ `p`.`product_id` AS `product_id` from `products` `p` semi join (`order_items` `i`) where (`p`.`product_id` = `i`.`product_id`)"
       }
      ]
     }
@@ -996,7 +996,7 @@
       {
        "level": "Note",
        "code": 1276,
-       "message": "Field or reference 'lab_b965bd9274e39235e562.c.customer_id' of SELECT #2 was resolved in SELECT #1"
+       "message": "Field or reference 'c.customer_id' of SELECT #2 was resolved in SELECT #1"
       }
      ]
     }

@@ -2,7 +2,7 @@
  "doc": "m07-sargable-queries",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:f4a3fb79f48d": {
@@ -1104,10 +1104,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Filter: (cast(orders_big.created_at as date) = '2024-03-15')  (cost=20131 rows=199465) (actual time=0.273..40.9 rows=550 loops=1)\n    -> Table scan on orders_big  (cost=20131 rows=199465) (actual time=0.202..26.4 rows=200001 loops=1)\n"
+       "-> Filter: (cast(orders_big.created_at as date) = '2024-03-15')  (cost=20131 rows=199465) (actual time=0.242..37.8 rows=550 loops=1)\n    -> Table scan on orders_big  (cost=20131 rows=199465) (actual time=0.176..28 rows=200001 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 41.9
+     "elapsed_ms": 38.94
     }
    ],
    "measured": true
@@ -1123,10 +1123,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Index range scan on orders_big using idx_created over ('2024-03-15 00:00:00' <= created_at < '2024-03-16 00:00:00'), with index condition: ((orders_big.created_at >= TIMESTAMP'2024-03-15 00:00:00') and (orders_big.created_at < TIMESTAMP'2024-03-16 00:00:00'))  (cost=248 rows=550) (actual time=0.301..0.93 rows=550 loops=1)\n"
+       "-> Index range scan on orders_big using idx_created over ('2024-03-15 00:00:00' <= created_at < '2024-03-16 00:00:00'), with index condition: ((orders_big.created_at >= TIMESTAMP'2024-03-15 00:00:00') and (orders_big.created_at < TIMESTAMP'2024-03-16 00:00:00'))  (cost=248 rows=550) (actual time=0.174..0.766 rows=550 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 2.0
+     "elapsed_ms": 1.58
     }
    ],
    "measured": true

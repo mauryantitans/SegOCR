@@ -2,7 +2,7 @@
  "doc": "m07-optimizing-subqueries",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:50703590bd87": {
@@ -121,7 +121,7 @@
        null,
        null,
        null,
-       19930,
+       19722,
        10.0,
        "Using where"
       ],
@@ -135,7 +135,7 @@
        "idx_customer",
        "4",
        "c.customer_id",
-       9,
+       10,
        33.33,
        "Using where; FirstMatch(c)"
       ]
@@ -182,7 +182,7 @@
        null,
        null,
        null,
-       19930,
+       19722,
        10.0,
        "Using where"
       ],
@@ -196,7 +196,7 @@
        "idx_customer",
        "4",
        "c.customer_id",
-       9,
+       10,
        33.33,
        "Using where; Start temporary; End temporary"
       ]
@@ -243,7 +243,7 @@
        null,
        null,
        null,
-       19930,
+       19722,
        10.0,
        "Using where"
       ],
@@ -257,7 +257,7 @@
        null,
        null,
        null,
-       190326,
+       200200,
        33.33,
        "Using where"
       ]
@@ -528,7 +528,7 @@
        null,
        null,
        null,
-       19930,
+       19722,
        10.0,
        "Using where"
       ],
@@ -542,7 +542,7 @@
        "idx_customer",
        "4",
        "c.customer_id",
-       9,
+       10,
        100.0,
        "Using index"
       ]
@@ -589,7 +589,7 @@
        "PRIMARY",
        "4",
        null,
-       19930,
+       19722,
        100.0,
        "Using index"
       ],
@@ -617,7 +617,7 @@
        null,
        null,
        null,
-       195172,
+       200200,
        100.0,
        "Using where"
       ]
@@ -682,7 +682,7 @@
        null,
        null,
        null,
-       19930,
+       19722,
        10.0,
        "Using where"
       ],
@@ -696,7 +696,7 @@
        "idx_customer",
        "4",
        "c.customer_id",
-       9,
+       10,
        33.33,
        "Using where"
       ]
@@ -743,7 +743,7 @@
        null,
        null,
        null,
-       19930,
+       19722,
        10.0,
        "Using where"
       ],
@@ -771,7 +771,7 @@
        null,
        null,
        null,
-       195172,
+       200200,
        33.33,
        "Using where"
       ]
@@ -847,7 +847,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Filter: (d.customer_id between 100 and 120)  (cost=41147..21959 rows=21684)\n    -> Table scan on d  (cost=41148..41399 rows=19929)\n        -> Materialize  (cost=41148..41148 rows=19929)\n            -> Group aggregate: count(0), sum(orders.amount)  (cost=39155 rows=19929)\n                -> Index scan on orders using idx_customer  (cost=19637 rows=195172)\n"
+       "-> Filter: (d.customer_id between 100 and 120)  (cost=42151..22525 rows=22242)\n    -> Table scan on d  (cost=42152..42403 rows=19916)\n        -> Materialize  (cost=42152..42152 rows=19916)\n            -> Group aggregate: count(0), sum(orders.amount)  (cost=40160 rows=19916)\n                -> Index scan on orders using idx_customer  (cost=20140 rows=200200)\n"
       ]
      ]
     }
@@ -887,7 +887,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 0.55
+     "elapsed_ms": 0.51
     },
     {
      "sql": "EXPLAIN ANALYZE\nSELECT * FROM (SELECT customer_id, COUNT(*) AS n, SUM(amount) AS revenue\n               FROM orders GROUP BY customer_id) AS d\nWHERE d.customer_id BETWEEN 100 AND 120",
@@ -898,10 +898,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Filter: (d.customer_id between 100 and 120)  (cost=41147..21959 rows=21684) (actual time=259..261 rows=21 loops=1)\n    -> Table scan on d  (cost=41148..41399 rows=19929) (actual time=259..260 rows=20000 loops=1)\n        -> Materialize  (cost=41148..41148 rows=19929) (actual time=259..259 rows=20000 loops=1)\n            -> Group aggregate: count(0), sum(orders.amount)  (cost=39155 rows=19929) (actual time=12.1..257 rows=20000 loops=1)\n                -> Index scan on orders using idx_customer  (cost=19637 rows=195172) (actual time=12.1..241 rows=200000 loops=1)\n"
+       "-> Filter: (d.customer_id between 100 and 120)  (cost=42151..22525 rows=22242) (actual time=331..333 rows=21 loops=1)\n    -> Table scan on d  (cost=42152..42403 rows=19916) (actual time=331..332 rows=20000 loops=1)\n        -> Materialize  (cost=42152..42152 rows=19916) (actual time=331..331 rows=20000 loops=1)\n            -> Group aggregate: count(0), sum(orders.amount)  (cost=40160 rows=19916) (actual time=10.6..326 rows=20000 loops=1)\n                -> Index scan on orders using idx_customer  (cost=20140 rows=200200) (actual time=10.6..303 rows=200000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 262.21
+     "elapsed_ms": 334.39
     },
     {
      "sql": "SET SESSION optimizer_switch = 'default'",
@@ -909,7 +909,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 0.55
+     "elapsed_ms": 0.68
     }
    ],
    "measured": true
@@ -925,10 +925,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on d  (cost=137..142 rows=210) (actual time=0.379..0.381 rows=21 loops=1)\n    -> Materialize  (cost=137..137 rows=210) (actual time=0.377..0.377 rows=21 loops=1)\n        -> Group aggregate: count(0), sum(orders.amount)  (cost=116 rows=210) (actual time=0.336..0.363 rows=21 loops=1)\n            -> Index range scan on orders using idx_customer over (100 <= customer_id <= 120), with index condition: (orders.customer_id between 100 and 120)  (cost=94.8 rows=210) (actual time=0.329..0.342 rows=210 loops=1)\n"
+       "-> Table scan on d  (cost=137..142 rows=210) (actual time=0.385..0.387 rows=21 loops=1)\n    -> Materialize  (cost=137..137 rows=210) (actual time=0.383..0.383 rows=21 loops=1)\n        -> Group aggregate: count(0), sum(orders.amount)  (cost=116 rows=210) (actual time=0.342..0.37 rows=21 loops=1)\n            -> Index range scan on orders using idx_customer over (100 <= customer_id <= 120), with index condition: (orders.customer_id between 100 and 120)  (cost=94.8 rows=210) (actual time=0.337..0.35 rows=210 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 1.54
+     "elapsed_ms": 1.59
     }
    ],
    "measured": true
@@ -944,7 +944,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=39155 rows=1) (actual time=2474..2474 rows=1 loops=1)\n    -> Filter: (o.amount > (select #2))  (cost=19637 rows=195172) (actual time=13.8..2470 rows=80000 loops=1)\n        -> Table scan on o  (cost=19637 rows=195172) (actual time=0.494..33.8 rows=200000 loops=1)\n        -> Select #2 (subquery in condition; dependent)\n            -> Aggregate: avg(o2.amount)  (cost=4.41 rows=1) (actual time=0.0117..0.0118 rows=1 loops=200000)\n                -> Index lookup on o2 using idx_customer (customer_id=o.customer_id)  (cost=3.43 rows=9.79) (actual time=0.0101..0.0108 rows=10 loops=200000)\n"
+       "-> Aggregate: count(0)  (cost=40160 rows=1) (actual time=2722..2722 rows=1 loops=1)\n    -> Filter: (o.amount > (select #2))  (cost=20140 rows=200200) (actual time=13.9..2718 rows=80000 loops=1)\n        -> Table scan on o  (cost=20140 rows=200200) (actual time=0.541..35.8 rows=200000 loops=1)\n        -> Select #2 (subquery in condition; dependent)\n            -> Aggregate: avg(o2.amount)  (cost=4.52 rows=1) (actual time=0.0129..0.0129 rows=1 loops=200000)\n                -> Index lookup on o2 using idx_customer (customer_id=o.customer_id)  (cost=3.52 rows=10.1) (actual time=0.0109..0.0118 rows=10 loops=200000)\n"
       ]
      ],
      "warnings": [
@@ -954,7 +954,7 @@
        "message": "Field or reference 'o.customer_id' of SELECT #2 was resolved in SELECT #1"
       }
      ],
-     "elapsed_ms": 2476.15
+     "elapsed_ms": 2724.33
     }
    ],
    "measured": true
@@ -970,10 +970,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=545269 rows=1) (actual time=495..495 rows=1 loops=1)\n    -> Nested loop inner join  (cost=538764 rows=65051) (actual time=222..492 rows=80000 loops=1)\n        -> Table scan on av  (cost=41148..41399 rows=19929) (actual time=221..224 rows=20000 loops=1)\n            -> Materialize  (cost=41148..41148 rows=19929) (actual time=221..221 rows=20000 loops=1)\n                -> Group aggregate: avg(orders.amount)  (cost=39155 rows=19929) (actual time=9.01..219 rows=20000 loops=1)\n                    -> Index scan on orders using idx_customer  (cost=19637 rows=195172) (actual time=8.99..203 rows=200000 loops=1)\n        -> Filter: (o.amount > av.avg_amount)  (cost=2.45 rows=3.26) (actual time=0.0116..0.0131 rows=4 loops=20000)\n            -> Index lookup on o using idx_customer (customer_id=av.customer_id)  (cost=2.45 rows=9.79) (actual time=0.0112..0.012 rows=10 loops=20000)\n"
+       "-> Aggregate: count(0)  (cost=572210 rows=1) (actual time=579..579 rows=1 loops=1)\n    -> Nested loop inner join  (cost=565537 rows=66727) (actual time=275..575 rows=80000 loops=1)\n        -> Table scan on av  (cost=42152..42403 rows=19916) (actual time=275..277 rows=20000 loops=1)\n            -> Materialize  (cost=42152..42152 rows=19916) (actual time=275..275 rows=20000 loops=1)\n                -> Group aggregate: avg(orders.amount)  (cost=40160 rows=19916) (actual time=14.2..272 rows=20000 loops=1)\n                    -> Index scan on orders using idx_customer  (cost=20140 rows=200200) (actual time=14.2..254 rows=200000 loops=1)\n        -> Filter: (o.amount > av.avg_amount)  (cost=2.51 rows=3.35) (actual time=0.0128..0.0145 rows=4 loops=20000)\n            -> Index lookup on o using idx_customer (customer_id=av.customer_id)  (cost=2.51 rows=10.1) (actual time=0.0124..0.0133 rows=10 loops=20000)\n"
       ]
      ],
-     "elapsed_ms": 496.94
+     "elapsed_ms": 580.41
     }
    ],
    "measured": true
@@ -989,10 +989,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=28464..28464 rows=1) (actual time=237..237 rows=1 loops=1)\n    -> Filter: (w.amount > w.avg_amount)  (cost=0.338..21959 rows=65051) (actual time=202..234 rows=80000 loops=1)\n        -> Table scan on w  (cost=2.5..2.5 rows=0) (actual time=202..218 rows=200000 loops=1)\n            -> Materialize  (cost=0..0 rows=0) (actual time=202..202 rows=200000 loops=1)\n                -> Window aggregate with buffering: avg(orders.amount) OVER (PARTITION BY orders.customer_id )   (actual time=58.2..188 rows=200000 loops=1)\n                    -> Sort: orders.customer_id  (cost=19637 rows=195172) (actual time=58.1..65.4 rows=200000 loops=1)\n                        -> Table scan on orders  (cost=19637 rows=195172) (actual time=0.631..23.7 rows=200000 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=29198..29198 rows=1) (actual time=284..284 rows=1 loops=1)\n    -> Filter: (w.amount > w.avg_amount)  (cost=0.338..22525 rows=66727) (actual time=243..281 rows=80000 loops=1)\n        -> Table scan on w  (cost=2.5..2.5 rows=0) (actual time=243..261 rows=200000 loops=1)\n            -> Materialize  (cost=0..0 rows=0) (actual time=243..243 rows=200000 loops=1)\n                -> Window aggregate with buffering: avg(orders.amount) OVER (PARTITION BY orders.customer_id )   (actual time=68.1..226 rows=200000 loops=1)\n                    -> Sort: orders.customer_id  (cost=20140 rows=200200) (actual time=68..77.1 rows=200000 loops=1)\n                        -> Table scan on orders  (cost=20140 rows=200200) (actual time=0.743..30 rows=200000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 238.93
+     "elapsed_ms": 286.91
     }
    ],
    "measured": true
@@ -1015,7 +1015,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=754653 rows=1)\n    -> Nested loop inner join  (cost=690946 rows=637067)\n        -> Filter: (derived_1_2.customer_id is not null)  (cost=41147..21959 rows=195172)\n            -> Table scan on derived_1_2  (cost=41148..41399 rows=19929)\n                -> Materialize  (cost=41148..41148 rows=19929)\n                    -> Group aggregate: avg(o2.amount)  (cost=39155 rows=19929)\n                        -> Index scan on o2 using idx_customer  (cost=19637 rows=195172)\n        -> Filter: (o.amount > derived_1_2.`AVG(o2.amount)`)  (cost=2.45 rows=3.26)\n            -> Index lookup on o using idx_customer (customer_id=derived_1_2.customer_id)  (cost=2.45 rows=9.79)\n"
+       "-> Aggregate: count(0)  (cost=793959 rows=1)\n    -> Nested loop inner join  (cost=726884 rows=670751)\n        -> Filter: (derived_1_2.customer_id is not null)  (cost=42152..22525 rows=200200)\n            -> Table scan on derived_1_2  (cost=42152..42403 rows=19916)\n                -> Materialize  (cost=42152..42152 rows=19916)\n                    -> Group aggregate: avg(o2.amount)  (cost=40160 rows=19916)\n                        -> Index scan on o2 using idx_customer  (cost=20140 rows=200200)\n        -> Filter: (o.amount > derived_1_2.`AVG(o2.amount)`)  (cost=2.51 rows=3.35)\n            -> Index lookup on o using idx_customer (customer_id=derived_1_2.customer_id)  (cost=2.51 rows=10.1)\n"
       ]
      ],
      "warnings": [
@@ -1047,7 +1047,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2017 rows=199) (actual time=0.161..4.45 rows=833 loops=1)\n    -> Table scan on c  (cost=2017 rows=19930) (actual time=0.153..2.9 rows=20000 loops=1)\n-> Select #2 (subquery in projection; dependent)\n    -> Aggregate: max(o.order_date)  (cost=4.41 rows=1) (actual time=0.0191..0.0191 rows=1 loops=833)\n        -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=3.43 rows=9.79) (actual time=0.0175..0.0183 rows=10 loops=833)\n"
+       "-> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=1996 rows=197) (actual time=0.235..5.36 rows=833 loops=1)\n    -> Table scan on c  (cost=1996 rows=19722) (actual time=0.225..3.48 rows=20000 loops=1)\n-> Select #2 (subquery in projection; dependent)\n    -> Aggregate: max(o.order_date)  (cost=4.52 rows=1) (actual time=0.0199..0.0199 rows=1 loops=833)\n        -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=3.52 rows=10.1) (actual time=0.0181..0.0189 rows=10 loops=833)\n"
       ]
      ],
      "warnings": [
@@ -1057,7 +1057,7 @@
        "message": "Field or reference 'c.customer_id' of SELECT #2 was resolved in SELECT #1"
       }
      ],
-     "elapsed_ms": 21.97
+     "elapsed_ms": 24.14
     }
    ],
    "measured": true

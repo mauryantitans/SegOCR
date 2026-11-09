@@ -2,7 +2,7 @@
  "doc": "m07-optimizing-joins",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:37877dceabba": {
@@ -189,7 +189,7 @@
        null,
        null,
        null,
-       19896,
+       20409,
        1.0,
        "Using where"
       ],
@@ -248,7 +248,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), sum(o.amount)  (cost=2906 rows=1)\n    -> Nested loop inner join  (cost=2708 rows=1983)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2014 rows=199)\n            -> Table scan on c  (cost=2014 rows=19896)\n        -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.5 rows=9.97)\n"
+       "-> Aggregate: count(0), sum(o.amount)  (cost=2981 rows=1)\n    -> Nested loop inner join  (cost=2778 rows=2036)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204)\n            -> Table scan on c  (cost=2065 rows=20409)\n        -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.5 rows=9.98)\n"
       ]
      ]
     }
@@ -286,7 +286,7 @@
        null,
        null,
        null,
-       19896,
+       20409,
        1.0,
        "Using where"
       ],
@@ -327,7 +327,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), sum(o.amount)  (cost=3.99e+6 rows=1)\n    -> Inner hash join (o.customer_id = c.customer_id)  (cost=3.99e+6 rows=1983)\n        -> Table scan on o  (cost=0.649 rows=200200)\n        -> Hash\n            -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2014 rows=199)\n                -> Table scan on c  (cost=2014 rows=19896)\n"
+       "-> Aggregate: count(0), sum(o.amount)  (cost=4.09e+6 rows=1)\n    -> Inner hash join (o.customer_id = c.customer_id)  (cost=4.09e+6 rows=2036)\n        -> Table scan on o  (cost=0.634 rows=200200)\n        -> Hash\n            -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204)\n                -> Table scan on c  (cost=2065 rows=20409)\n"
       ]
      ]
     }
@@ -345,7 +345,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), sum(o.amount)  (cost=4.01e+6 rows=1)\n    -> Nested loop inner join  (cost=4.01e+6 rows=1983)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2014 rows=199)\n            -> Table scan on c  (cost=2014 rows=19896)\n        -> Filter: (o.customer_id = c.customer_id)  (cost=120 rows=9.97)\n            -> Table scan on o  (cost=120 rows=200200)\n"
+       "-> Aggregate: count(0), sum(o.amount)  (cost=4.11e+6 rows=1)\n    -> Nested loop inner join  (cost=4.11e+6 rows=2036)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204)\n            -> Table scan on c  (cost=2065 rows=20409)\n        -> Filter: (o.customer_id = c.customer_id)  (cost=120 rows=9.98)\n            -> Table scan on o  (cost=120 rows=200200)\n"
       ]
      ]
     }
@@ -383,7 +383,7 @@
        null,
        null,
        null,
-       19896,
+       20409,
        1.0,
        "Using where"
       ],
@@ -419,7 +419,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), sum(o.amount)  (cost=0 rows=1)\n    -> Batched key access inner join\n        -> Batch input rows\n            -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2014 rows=199)\n                -> Table scan on c  (cost=2014 rows=19896)\n        -> Multi-range index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.5 rows=9.97)\n"
+       "-> Aggregate: count(0), sum(o.amount)  (cost=0 rows=1)\n    -> Batched key access inner join\n        -> Batch input rows\n            -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204)\n                -> Table scan on c  (cost=2065 rows=20409)\n        -> Multi-range index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.5 rows=9.98)\n"
       ]
      ]
     }
@@ -457,7 +457,7 @@
        "idx_customer_ref",
        "42",
        null,
-       100164,
+       97644,
        100.0,
        "Using index"
       ],
@@ -545,7 +545,7 @@
        null,
        null,
        null,
-       19896,
+       20409,
        1.0,
        "Using where"
       ],
@@ -559,7 +559,7 @@
        "idx_customer_ref",
        "42",
        "func",
-       5,
+       4,
        100.0,
        "Using where; Using index"
       ]
@@ -656,10 +656,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), sum(o.amount)  (cost=2906 rows=1) (actual time=22.1..22.1 rows=1 loops=1)\n    -> Nested loop inner join  (cost=2708 rows=1983) (actual time=0.27..21.5 rows=8330 loops=1)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2014 rows=199) (actual time=0.193..5.41 rows=833 loops=1)\n            -> Table scan on c  (cost=2014 rows=19896) (actual time=0.185..3.85 rows=20000 loops=1)\n        -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.5 rows=9.97) (actual time=0.0177..0.0186 rows=10 loops=833)\n"
+       "-> Aggregate: count(0), sum(o.amount)  (cost=2981 rows=1) (actual time=19..19 rows=1 loops=1)\n    -> Nested loop inner join  (cost=2778 rows=2036) (actual time=0.182..18.4 rows=8330 loops=1)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204) (actual time=0.135..4.82 rows=833 loops=1)\n            -> Table scan on c  (cost=2065 rows=20409) (actual time=0.128..3.37 rows=20000 loops=1)\n        -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.5 rows=9.98) (actual time=0.0151..0.0158 rows=10 loops=833)\n"
       ]
      ],
-     "elapsed_ms": 23.45
+     "elapsed_ms": 20.22
     }
    ],
    "measured": true
@@ -675,10 +675,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), sum(o.amount)  (cost=3.99e+6 rows=1) (actual time=39.9..39.9 rows=1 loops=1)\n    -> Inner hash join (o.customer_id = c.customer_id)  (cost=3.99e+6 rows=1983) (actual time=5.66..39.3 rows=8330 loops=1)\n        -> Table scan on o  (cost=0.649 rows=200200) (actual time=0.452..22.7 rows=200000 loops=1)\n        -> Hash\n            -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2014 rows=199) (actual time=0.152..5.08 rows=833 loops=1)\n                -> Table scan on c  (cost=2014 rows=19896) (actual time=0.146..3.13 rows=20000 loops=1)\n"
+       "-> Aggregate: count(0), sum(o.amount)  (cost=4.09e+6 rows=1) (actual time=44.2..44.2 rows=1 loops=1)\n    -> Inner hash join (o.customer_id = c.customer_id)  (cost=4.09e+6 rows=2036) (actual time=6.06..43.4 rows=8330 loops=1)\n        -> Table scan on o  (cost=0.634 rows=200200) (actual time=0.826..25.4 rows=200000 loops=1)\n        -> Hash\n            -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=2065 rows=204) (actual time=0.174..5.07 rows=833 loops=1)\n                -> Table scan on c  (cost=2065 rows=20409) (actual time=0.168..3.28 rows=20000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 41.15
+     "elapsed_ms": 45.53
     }
    ],
    "measured": true
@@ -694,10 +694,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), sum(o.amount)  (cost=91211 rows=1) (actual time=232..232 rows=1 loops=1)\n    -> Nested loop inner join  (cost=90210 rows=10010) (actual time=0.478..232 rows=8330 loops=1)\n        -> Table scan on o  (cost=20140 rows=200200) (actual time=0.459..35 rows=200000 loops=1)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=0.25 rows=0.05) (actual time=886e-6..889e-6 rows=0.0416 loops=200000)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.25 rows=1) (actual time=656e-6..683e-6 rows=1 loops=200000)\n"
+       "-> Aggregate: count(0), sum(o.amount)  (cost=91211 rows=1) (actual time=254..254 rows=1 loops=1)\n    -> Nested loop inner join  (cost=90210 rows=10010) (actual time=0.545..253 rows=8330 loops=1)\n        -> Table scan on o  (cost=20140 rows=200200) (actual time=0.529..37.5 rows=200000 loops=1)\n        -> Filter: ((c.segment = 'enterprise') and (c.region = 'islands'))  (cost=0.25 rows=0.05) (actual time=963e-6..966e-6 rows=0.0416 loops=200000)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.25 rows=1) (actual time=708e-6..734e-6 rows=1 loops=200000)\n"
       ]
      ],
-     "elapsed_ms": 233.91
+     "elapsed_ms": 255.13
     }
    ],
    "measured": true

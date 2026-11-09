@@ -2,7 +2,7 @@
  "doc": "m04-ctes",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s4:fcdacfc637c2": {
@@ -779,7 +779,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "with `monthly` as (/* select#2 */ select month(`lab_f93d5995c6085b43f52e`.`o`.`order_date`) AS `m`,sum((`lab_f93d5995c6085b43f52e`.`oi`.`quantity` * `lab_f93d5995c6085b43f52e`.`oi`.`unit_price`)) AS `revenue` from `lab_f93d5995c6085b43f52e`.`orders` `o` join `lab_f93d5995c6085b43f52e`.`order_items` `oi` where (`lab_f93d5995c6085b43f52e`.`oi`.`order_id` = `lab_f93d5995c6085b43f52e`.`o`.`order_id`) group by month(`lab_f93d5995c6085b43f52e`.`o`.`order_date`)) /* select#1 */ select `cur`.`m` AS `m`,`cur`.`revenue` AS `revenue`,`prev`.`revenue` AS `revenue` from `monthly` `cur` left join `monthly` `prev` on((`prev`.`m` = (`cur`.`m` - 1))) where true"
+       "message": "with `monthly` as (/* select#2 */ select month(`o`.`order_date`) AS `m`,sum((`oi`.`quantity` * `oi`.`unit_price`)) AS `revenue` from `orders` `o` join `order_items` `oi` where (`oi`.`order_id` = `o`.`order_id`) group by month(`o`.`order_date`)) /* select#1 */ select `cur`.`m` AS `m`,`cur`.`revenue` AS `revenue`,`prev`.`revenue` AS `revenue` from `monthly` `cur` left join `monthly` `prev` on((`prev`.`m` = (`cur`.`m` - 1))) where true"
       }
      ]
     }

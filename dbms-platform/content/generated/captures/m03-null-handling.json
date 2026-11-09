@@ -2,7 +2,7 @@
  "doc": "m03-null-handling",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:61e5c38bbfef": {
@@ -685,7 +685,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_8fc41f473e046847d4b5`.`products`.`product_id` AS `product_id`,`lab_8fc41f473e046847d4b5`.`products`.`name` AS `name` from `lab_8fc41f473e046847d4b5`.`products` where ((`lab_8fc41f473e046847d4b5`.`products`.`category_id` = 3) or (`lab_8fc41f473e046847d4b5`.`products`.`category_id` is null))"
+       "message": "/* select#1 */ select `products`.`product_id` AS `product_id`,`products`.`name` AS `name` from `products` where ((`products`.`category_id` = 3) or (`products`.`category_id` is null))"
       }
      ]
     }
@@ -728,7 +728,7 @@
       {
        "level": "Note",
        "code": 1276,
-       "message": "Field or reference 'lab_8fc41f473e046847d4b5.c.category_id' of SELECT #2 was resolved in SELECT #1"
+       "message": "Field or reference 'c.category_id' of SELECT #2 was resolved in SELECT #1"
       }
      ]
     }

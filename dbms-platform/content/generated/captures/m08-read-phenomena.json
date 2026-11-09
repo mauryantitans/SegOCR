@@ -2,7 +2,7 @@
  "doc": "m08-read-phenomena",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s2:6847f45becca": {
@@ -596,20 +596,20 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "B",
-        "trxId": "204806",
-        "state": "RUNNING",
+        "session": "C",
+        "trxId": "744351",
+        "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
-        "rowsLocked": 6,
+        "rowsLocked": 1,
         "rowsModified": 0,
         "lockStructs": 2
        },
        {
-        "session": "C",
-        "trxId": "204809",
-        "state": "LOCK WAIT",
+        "session": "B",
+        "trxId": "744349",
+        "state": "RUNNING",
         "isolation": "REPEATABLE READ",
-        "rowsLocked": 1,
+        "rowsLocked": 6,
         "rowsModified": 0,
         "lockStructs": 2
        }

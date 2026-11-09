@@ -2,7 +2,7 @@
  "doc": "m07-explain-analyze",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:21d7fc9994e6": {
@@ -56,13 +56,13 @@
      "row_count": 2,
      "rows": [
       [
-       "lab_8a717c869bb00d6bdbd5.customers_big",
+       "customers_big",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_8a717c869bb00d6bdbd5.orders_big",
+       "orders_big",
        "analyze",
        "status",
        "OK"
@@ -83,10 +83,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Index lookup on orders_big using idx_customer (customer_id=4242)  (cost=3.5 rows=10) (actual time=0.125..0.127 rows=10 loops=1)\n"
+       "-> Index lookup on orders_big using idx_customer (customer_id=4242)  (cost=3.5 rows=10) (actual time=0.0511..0.0535 rows=10 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 1.06
+     "elapsed_ms": 1.02
     }
    ],
    "measured": true
@@ -102,10 +102,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Group aggregate: count(0)  (cost=26786 rows=3) (actual time=11.3..214 rows=4 loops=1)\n    -> Filter: (orders_big.order_date >= DATE'2024-07-01')  (cost=20132 rows=66540) (actual time=2.54..210 rows=50342 loops=1)\n        -> Index scan on orders_big using idx_status  (cost=20132 rows=199640) (actual time=2.53..200 rows=200000 loops=1)\n"
+       "-> Group aggregate: count(0)  (cost=26786 rows=3) (actual time=10.2..159 rows=4 loops=1)\n    -> Filter: (orders_big.order_date >= DATE'2024-07-01')  (cost=20132 rows=66540) (actual time=2.27..155 rows=50342 loops=1)\n        -> Index scan on orders_big using idx_status  (cost=20132 rows=199640) (actual time=2.26..146 rows=200000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 215.74
+     "elapsed_ms": 160.52
     }
    ],
    "measured": true
@@ -138,10 +138,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=78..78 rows=3 loops=1)\n    -> Aggregate using temporary table  (actual time=78..78 rows=3 loops=1)\n        -> Nested loop inner join  (cost=26011 rows=6841) (actual time=0.446..77.5 rows=334 loops=1)\n            -> Filter: (c.signup >= DATE'2023-06-01')  (cost=2067 rows=6807) (actual time=0.379..4.81 rows=3289 loops=1)\n                -> Table scan on c  (cost=2067 rows=20424) (actual time=0.195..3.79 rows=19997 loops=1)\n            -> Filter: (o.`channel` = 'phone')  (cost=2.51 rows=1) (actual time=0.0219..0.022 rows=0.102 loops=3289)\n                -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.51 rows=10) (actual time=0.0204..0.0213 rows=10 loops=3289)\n"
+       "-> Table scan on <temporary>  (actual time=55.3..55.3 rows=3 loops=1)\n    -> Aggregate using temporary table  (actual time=55.3..55.3 rows=3 loops=1)\n        -> Nested loop inner join  (cost=25980 rows=6832) (actual time=0.351..54.9 rows=334 loops=1)\n            -> Filter: (c.signup >= DATE'2023-06-01')  (cost=2067 rows=6807) (actual time=0.302..4.6 rows=3289 loops=1)\n                -> Table scan on c  (cost=2067 rows=20424) (actual time=0.16..3.52 rows=19997 loops=1)\n            -> Filter: (o.`channel` = 'phone')  (cost=2.51 rows=1) (actual time=0.015..0.0151 rows=0.102 loops=3289)\n                -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.51 rows=10) (actual time=0.0132..0.0144 rows=10 loops=3289)\n"
       ]
      ],
-     "elapsed_ms": 79.8
+     "elapsed_ms": 57.1
     }
    ],
    "measured": true
@@ -160,7 +160,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_8a717c869bb00d6bdbd5.orders_big",
+       "orders_big",
        "histogram",
        "status",
        "Histogram statistics created for column 'channel'."
@@ -179,7 +179,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_8a717c869bb00d6bdbd5.customers_big",
+       "customers_big",
        "histogram",
        "status",
        "Histogram statistics created for column 'signup'."
@@ -200,10 +200,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=55.5..55.5 rows=3 loops=1)\n    -> Aggregate using temporary table  (actual time=55.5..55.5 rows=3 loops=1)\n        -> Nested loop inner join  (cost=13840 rows=333) (actual time=0.389..55.2 rows=334 loops=1)\n            -> Filter: (c.signup >= DATE'2023-06-01')  (cost=2067 rows=3347) (actual time=0.318..4.38 rows=3289 loops=1)\n                -> Table scan on c  (cost=2067 rows=20424) (actual time=0.169..3.35 rows=19997 loops=1)\n            -> Filter: (o.`channel` = 'phone')  (cost=2.51 rows=0.0996) (actual time=0.0152..0.0153 rows=0.102 loops=3289)\n                -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.51 rows=10) (actual time=0.0139..0.0147 rows=10 loops=3289)\n"
+       "-> Table scan on <temporary>  (actual time=67.8..67.8 rows=3 loops=1)\n    -> Aggregate using temporary table  (actual time=67.8..67.8 rows=3 loops=1)\n        -> Nested loop inner join  (cost=13825 rows=336) (actual time=0.538..67.4 rows=334 loops=1)\n            -> Filter: (c.signup >= DATE'2023-06-01')  (cost=2067 rows=3347) (actual time=0.456..5.19 rows=3289 loops=1)\n                -> Table scan on c  (cost=2067 rows=20424) (actual time=0.28..4.04 rows=19997 loops=1)\n            -> Filter: (o.`channel` = 'phone')  (cost=2.51 rows=0.1) (actual time=0.0186..0.0187 rows=0.102 loops=3289)\n                -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.51 rows=10) (actual time=0.017..0.018 rows=10 loops=3289)\n"
       ]
      ],
-     "elapsed_ms": 57.94
+     "elapsed_ms": 70.21
     }
    ],
    "measured": true
@@ -219,10 +219,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Limit: 5 row(s)  (cost=0.00423 rows=5) (actual time=0.0206..0.0221 rows=5 loops=1)\n    -> Covering index scan on orders_big using idx_customer  (cost=0.00423 rows=5) (actual time=0.0197..0.0209 rows=5 loops=1)\n"
+       "-> Limit: 5 row(s)  (cost=0.00423 rows=5) (actual time=0.0196..0.0209 rows=5 loops=1)\n    -> Covering index scan on orders_big using idx_customer  (cost=0.00423 rows=5) (actual time=0.019..0.02 rows=5 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 0.96
+     "elapsed_ms": 1.44
     }
    ],
    "measured": true
@@ -238,10 +238,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Nested loop inner join  (cost=0.7 rows=1) (actual time=0.0105..0.0105 rows=0 loops=1)\n    -> Index lookup on o using idx_status (status='refunded')  (cost=0.35 rows=1) (actual time=0.00914..0.00914 rows=0 loops=1)\n    -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.35 rows=1) (never executed)\n"
+       "-> Nested loop inner join  (cost=0.7 rows=1) (actual time=0.0104..0.0104 rows=0 loops=1)\n    -> Index lookup on o using idx_status (status='refunded')  (cost=0.35 rows=1) (actual time=0.00948..0.00948 rows=0 loops=1)\n    -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.35 rows=1) (never executed)\n"
       ]
      ],
-     "elapsed_ms": 1.31
+     "elapsed_ms": 1.32
     }
    ],
    "measured": true
@@ -257,10 +257,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: sum(orders_big.amount)  (cost=20469 rows=1) (actual time=117..117 rows=1 loops=1)\n    -> Index lookup on orders_big using idx_status (status='shipped')  (cost=10487 rows=99820) (actual time=1.35..109 rows=130000 loops=1)\n"
+       "-> Aggregate: sum(orders_big.amount)  (cost=20469 rows=1) (actual time=120..120 rows=1 loops=1)\n    -> Index lookup on orders_big using idx_status (status='shipped')  (cost=10487 rows=99820) (actual time=1.26..112 rows=130000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 118.4
+     "elapsed_ms": 121.16
     },
     {
      "sql": "EXPLAIN ANALYZE SELECT SUM(amount) FROM orders_big IGNORE INDEX (idx_status) WHERE status = 'shipped'",
@@ -271,10 +271,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: sum(orders_big.amount)  (cost=26787 rows=1) (actual time=46.7..46.7 rows=1 loops=1)\n    -> Filter: (orders_big.`status` = 'shipped')  (cost=20132 rows=66547) (actual time=0.174..38.5 rows=130000 loops=1)\n        -> Table scan on orders_big  (cost=20132 rows=199640) (actual time=0.171..22.8 rows=200000 loops=1)\n"
+       "-> Aggregate: sum(orders_big.amount)  (cost=26787 rows=1) (actual time=47.7..47.7 rows=1 loops=1)\n    -> Filter: (orders_big.`status` = 'shipped')  (cost=20132 rows=66547) (actual time=0.177..39.3 rows=130000 loops=1)\n        -> Table scan on orders_big  (cost=20132 rows=199640) (actual time=0.173..23.7 rows=200000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 48.04
+     "elapsed_ms": 48.89
     }
    ],
    "measured": true
@@ -290,7 +290,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Nested loop inner join  (cost=13840 rows=333)\n            -> Filter: (c.signup >= DATE'2023-06-01')  (cost=2067 rows=3347)\n                -> Table scan on c  (cost=2067 rows=20424)\n            -> Filter: (o.`channel` = 'phone')  (cost=2.51 rows=0.0996)\n                -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.51 rows=10)\n"
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Nested loop inner join  (cost=13825 rows=336)\n            -> Filter: (c.signup >= DATE'2023-06-01')  (cost=2067 rows=3347)\n                -> Table scan on c  (cost=2067 rows=20424)\n            -> Filter: (o.`channel` = 'phone')  (cost=2.51 rows=0.1)\n                -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.51 rows=10)\n"
       ]
      ]
     }
@@ -348,7 +348,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=53.2..53.2 rows=3 loops=1)\n    -> Aggregate using temporary table  (actual time=53.2..53.2 rows=3 loops=1)\n        -> Nested loop inner join  (cost=13840 rows=333) (actual time=0.369..52.9 rows=334 loops=1)\n            -> Filter: (c.signup >= DATE'2023-06-01')  (cost=2067 rows=3347) (actual time=0.311..4.24 rows=3289 loops=1)\n                -> Table scan on c  (cost=2067 rows=20424) (actual time=0.165..3.28 rows=19997 loops=1)\n            -> Filter: (o.`channel` = 'phone')  (cost=2.51 rows=0.0996) (actual time=0.0146..0.0147 rows=0.102 loops=3289)\n                -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.51 rows=10) (actual time=0.0133..0.0141 rows=10 loops=3289)\n"
+       "-> Table scan on <temporary>  (actual time=59.2..59.2 rows=3 loops=1)\n    -> Aggregate using temporary table  (actual time=59.2..59.2 rows=3 loops=1)\n        -> Nested loop inner join  (cost=13825 rows=336) (actual time=0.477..58.7 rows=334 loops=1)\n            -> Filter: (c.signup >= DATE'2023-06-01')  (cost=2067 rows=3347) (actual time=0.413..5.09 rows=3289 loops=1)\n                -> Table scan on c  (cost=2067 rows=20424) (actual time=0.228..3.77 rows=19997 loops=1)\n            -> Filter: (o.`channel` = 'phone')  (cost=2.51 rows=0.1) (actual time=0.016..0.0161 rows=0.102 loops=3289)\n                -> Index lookup on o using idx_customer (customer_id=c.customer_id)  (cost=2.51 rows=10) (actual time=0.0143..0.0154 rows=10 loops=3289)\n"
       ]
      ]
     }
@@ -414,10 +414,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), avg(orders_big.amount)  (cost=22350 rows=1) (actual time=68.6..68.6 rows=1 loops=1)\n    -> Filter: (orders_big.order_date between '2023-01-01' and '2023-12-31')  (cost=20132 rows=22180) (actual time=0.204..60.8 rows=99862 loops=1)\n        -> Table scan on orders_big  (cost=20132 rows=199640) (actual time=0.198..26.1 rows=200000 loops=1)\n"
+       "-> Aggregate: count(0), avg(orders_big.amount)  (cost=22350 rows=1) (actual time=75.2..75.2 rows=1 loops=1)\n    -> Filter: (orders_big.order_date between '2023-01-01' and '2023-12-31')  (cost=20132 rows=22180) (actual time=0.197..67.8 rows=99862 loops=1)\n        -> Table scan on orders_big  (cost=20132 rows=199640) (actual time=0.192..25.1 rows=200000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 69.78
+     "elapsed_ms": 76.25
     },
     {
      "sql": "EXPLAIN ANALYZE SELECT COUNT(*), AVG(amount) FROM orders_big WHERE order_date BETWEEN '2023-01-01' AND '2023-12-31'",
@@ -428,10 +428,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0), avg(orders_big.amount)  (cost=22350 rows=1) (actual time=70.4..70.4 rows=1 loops=1)\n    -> Filter: (orders_big.order_date between '2023-01-01' and '2023-12-31')  (cost=20132 rows=22180) (actual time=0.173..63.8 rows=99862 loops=1)\n        -> Table scan on orders_big  (cost=20132 rows=199640) (actual time=0.17..24.7 rows=200000 loops=1)\n"
+       "-> Aggregate: count(0), avg(orders_big.amount)  (cost=22350 rows=1) (actual time=57.3..57.3 rows=1 loops=1)\n    -> Filter: (orders_big.order_date between '2023-01-01' and '2023-12-31')  (cost=20132 rows=22180) (actual time=0.175..51 rows=99862 loops=1)\n        -> Table scan on orders_big  (cost=20132 rows=199640) (actual time=0.172..21.4 rows=200000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 71.86
+     "elapsed_ms": 58.42
     }
    ],
    "measured": true

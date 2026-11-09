@@ -2,7 +2,7 @@
  "doc": "m03-where-filtering",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s2:c81d87b3695b": {
@@ -783,7 +783,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_95955c983b430cedc485`.`orders`.`order_id` AS `order_id` from `lab_95955c983b430cedc485`.`orders` where ((year(`lab_95955c983b430cedc485`.`orders`.`order_date`) = 2024) and (month(`lab_95955c983b430cedc485`.`orders`.`order_date`) = 12))"
+       "message": "/* select#1 */ select `orders`.`order_id` AS `order_id` from `orders` where ((year(`orders`.`order_date`) = 2024) and (month(`orders`.`order_date`) = 12))"
       }
      ]
     }
@@ -830,7 +830,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_95955c983b430cedc485`.`orders`.`order_id` AS `order_id` from `lab_95955c983b430cedc485`.`orders` where ((`lab_95955c983b430cedc485`.`orders`.`order_date` >= TIMESTAMP'2024-12-01 00:00:00') and (`lab_95955c983b430cedc485`.`orders`.`order_date` < TIMESTAMP'2025-01-01 00:00:00'))"
+       "message": "/* select#1 */ select `orders`.`order_id` AS `order_id` from `orders` where ((`orders`.`order_date` >= TIMESTAMP'2024-12-01 00:00:00') and (`orders`.`order_date` < TIMESTAMP'2025-01-01 00:00:00'))"
       }
      ]
     }

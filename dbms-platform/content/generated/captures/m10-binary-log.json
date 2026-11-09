@@ -252,11 +252,11 @@
      "rows": [
       [
        "Binlog_cache_disk_use",
-       "333"
+       "1057"
       ],
       [
        "Binlog_cache_use",
-       "51775"
+       "108078"
       ]
      ]
     },
@@ -279,11 +279,11 @@
      "rows": [
       [
        "Binlog_cache_disk_use",
-       "334"
+       "1058"
       ],
       [
        "Binlog_cache_use",
-       "51776"
+       "108079"
       ]
      ]
     }

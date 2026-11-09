@@ -2,7 +2,7 @@
  "doc": "m04-ranking-functions",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s3:cc9383c14197": {
@@ -1340,22 +1340,22 @@
       {
        "level": "Note",
        "code": 1276,
-       "message": "Field or reference 'lab_bcbb7e1961b5c8951d94.e.department_id' of SELECT #2 was resolved in SELECT #1"
+       "message": "Field or reference 'e.department_id' of SELECT #2 was resolved in SELECT #1"
       },
       {
        "level": "Note",
        "code": 1276,
-       "message": "Field or reference 'lab_bcbb7e1961b5c8951d94.e.salary' of SELECT #2 was resolved in SELECT #1"
+       "message": "Field or reference 'e.salary' of SELECT #2 was resolved in SELECT #1"
       },
       {
        "level": "Note",
        "code": 1276,
-       "message": "Field or reference 'lab_bcbb7e1961b5c8951d94.e.salary' of SELECT #2 was resolved in SELECT #1"
+       "message": "Field or reference 'e.salary' of SELECT #2 was resolved in SELECT #1"
       },
       {
        "level": "Note",
        "code": 1276,
-       "message": "Field or reference 'lab_bcbb7e1961b5c8951d94.e.employee_id' of SELECT #2 was resolved in SELECT #1"
+       "message": "Field or reference 'e.employee_id' of SELECT #2 was resolved in SELECT #1"
       }
      ]
     }
@@ -1380,7 +1380,7 @@
       {
        "level": "Note",
        "code": 1276,
-       "message": "Field or reference 'lab_bcbb7e1961b5c8951d94.d.department_id' of SELECT #2 was resolved in SELECT #1"
+       "message": "Field or reference 'd.department_id' of SELECT #2 was resolved in SELECT #1"
       }
      ]
     }

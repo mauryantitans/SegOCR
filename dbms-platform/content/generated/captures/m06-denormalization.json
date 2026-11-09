@@ -142,7 +142,7 @@
        "116850.00"
       ]
      ],
-     "elapsed_ms": 298.64
+     "elapsed_ms": 262.09
     }
    ],
    "measured": true
@@ -231,7 +231,7 @@
        "116850.00"
       ]
      ],
-     "elapsed_ms": 0.97
+     "elapsed_ms": 1.21
     }
    ],
    "measured": true
@@ -369,7 +369,7 @@
        62756
       ]
      ],
-     "elapsed_ms": 74.65
+     "elapsed_ms": 89.82
     }
    ],
    "measured": true
@@ -388,7 +388,7 @@
        62756
       ]
      ],
-     "elapsed_ms": 7.49
+     "elapsed_ms": 8.38
     }
    ],
    "measured": true
@@ -404,10 +404,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=14995 rows=1) (actual time=12.8..12.8 rows=1 loops=1)\n    -> Filter: (big_order.order_total > 1500.00)  (cost=10017 rows=49777) (actual time=0.253..10.6 rows=62756 loops=1)\n        -> Covering index range scan on big_order using idx_big_order_total over (1500.00 < order_total)  (cost=10017 rows=49777) (actual time=0.251..5.92 rows=62756 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=14975 rows=1) (actual time=15.7..15.7 rows=1 loops=1)\n    -> Filter: (big_order.order_total > 1500.00)  (cost=10004 rows=49710) (actual time=0.295..12.9 rows=62756 loops=1)\n        -> Covering index range scan on big_order using idx_big_order_total over (1500.00 < order_total)  (cost=10004 rows=49710) (actual time=0.293..7.05 rows=62756 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 13.87
+     "elapsed_ms": 16.81
     }
    ],
    "measured": true
@@ -421,7 +421,7 @@
      "affected_rows": 30000,
      "info": "Records: 30000  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 907.72
+     "elapsed_ms": 794.08
     }
    ],
    "measured": true
@@ -447,7 +447,7 @@
      "affected_rows": 30000,
      "info": "Records: 30000  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 177.07
+     "elapsed_ms": 170.02
     }
    ],
    "measured": true
@@ -692,7 +692,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "432995",
+        "trxId": "735969",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 2,
@@ -701,7 +701,7 @@
        },
        {
         "session": "B",
-        "trxId": "433006",
+        "trxId": "735980",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -870,7 +870,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Limit: 5 row(s)\n    -> Sort: revenue DESC, o.customer_id, limit input to 5 row(s) per chunk\n        -> Stream results  (cost=100329 rows=1984)\n            -> Group aggregate: sum((i.quantity * i.unit_price))  (cost=100329 rows=1984)\n                -> Nested loop inner join  (cost=67740 rows=325893)\n                    -> Index scan on o using idx_big_order_customer  (cost=10080 rows=99913)\n                    -> Index lookup on i using PRIMARY (order_id=o.order_id)  (cost=0.251 rows=3.26)\n"
+       "-> Limit: 5 row(s)\n    -> Sort: revenue DESC, o.customer_id, limit input to 5 row(s) per chunk\n        -> Stream results  (cost=99533 rows=2003)\n            -> Group aggregate: sum((i.quantity * i.unit_price))  (cost=99533 rows=2003)\n                -> Nested loop inner join  (cost=67342 rows=321914)\n                    -> Index scan on o using idx_big_order_customer  (cost=10080 rows=99913)\n                    -> Index lookup on i using PRIMARY (order_id=o.order_id)  (cost=0.251 rows=3.22)\n"
       ]
      ]
     }

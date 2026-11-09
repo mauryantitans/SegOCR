@@ -76,7 +76,7 @@
      "rows": [
       [
        "Aborted_clients",
-       "36"
+       "50"
       ],
       [
        "Aborted_connects",
@@ -84,23 +84,23 @@
       ],
       [
        "Connections",
-       "2235"
+       "6386"
       ],
       [
        "Max_used_connections",
-       "9"
+       "10"
       ],
       [
        "Threads_cached",
-       "7"
-      ],
-      [
-       "Threads_connected",
        "2"
       ],
       [
+       "Threads_connected",
+       "7"
+      ],
+      [
        "Threads_created",
-       "9"
+       "10"
       ],
       [
        "Threads_running",
@@ -283,7 +283,7 @@
      "rows": [
       [
        "Bytes_sent",
-       "2093"
+       "2095"
       ]
      ]
     },
@@ -311,7 +311,7 @@
      "rows": [
       [
        "Bytes_sent",
-       "2423"
+       "2425"
       ]
      ]
     },
@@ -742,7 +742,7 @@
      "rows": [
       [
        "Bytes_sent",
-       "7957"
+       "7959"
       ]
      ]
     }
@@ -920,21 +920,21 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "B",
-        "trxId": "463272",
-        "state": "RUNNING",
-        "isolation": "REPEATABLE READ",
-        "rowsLocked": 1,
-        "rowsModified": 1,
-        "lockStructs": 2
-       },
-       {
         "session": "C",
-        "trxId": "463283",
+        "trxId": "761113",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
         "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "B",
+        "trxId": "761100",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
         "lockStructs": 2
        }
       ],

@@ -2,7 +2,7 @@
  "doc": "m04-recursive-ctes",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s3:7d851218e1d1": {
@@ -921,7 +921,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_0655e8e76d72f4a8da71.big_tree",
+       "big_tree",
        "analyze",
        "status",
        "OK"
@@ -942,10 +942,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=12319..12319 rows=1) (actual time=143..143 rows=1 loops=1)\n    -> Table scan on sub  (cost=11177..11306 rows=10123) (actual time=140..142 rows=32767 loops=1)\n        -> Materialize recursive CTE sub  (cost=11177..11177 rows=10123) (actual time=140..140 rows=32767 loops=1)\n            -> Rows fetched before execution  (cost=0..0 rows=1) (actual time=63e-6..113e-6 rows=1 loops=1)\n            -> Repeat until convergence\n                -> Inner hash join (t.parent_id = s.id)  (cost=10165 rows=10122) (actual time=2.26..9.19 rows=2184 loops=15)\n                    -> Table scan on t  (cost=273 rows=50610) (actual time=0.292..5.43 rows=50000 loops=15)\n                    -> Hash\n                        -> Scan new records on s  (cost=2.73 rows=2) (actual time=0.00111..0.0694 rows=2184 loops=15)\n"
+       "-> Aggregate: count(0)  (cost=12319..12319 rows=1) (actual time=132..132 rows=1 loops=1)\n    -> Table scan on sub  (cost=11177..11306 rows=10123) (actual time=128..131 rows=32767 loops=1)\n        -> Materialize recursive CTE sub  (cost=11177..11177 rows=10123) (actual time=128..128 rows=32767 loops=1)\n            -> Rows fetched before execution  (cost=0..0 rows=1) (actual time=54e-6..102e-6 rows=1 loops=1)\n            -> Repeat until convergence\n                -> Inner hash join (t.parent_id = s.id)  (cost=10165 rows=10122) (actual time=2.09..8.44 rows=2184 loops=15)\n                    -> Table scan on t  (cost=273 rows=50610) (actual time=0.298..5.04 rows=50000 loops=15)\n                    -> Hash\n                        -> Scan new records on s  (cost=2.73 rows=2) (actual time=0.0012..0.0641 rows=2184 loops=15)\n"
       ]
      ],
-     "elapsed_ms": 144.92
+     "elapsed_ms": 133.27
     }
    ],
    "measured": true
@@ -972,7 +972,7 @@
      "row_count": 1,
      "rows": [
       [
-       "lab_0655e8e76d72f4a8da71.big_tree",
+       "big_tree",
        "analyze",
        "status",
        "OK"
@@ -1000,10 +1000,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=8.72..8.72 rows=1) (actual time=50.4..50.4 rows=1 loops=1)\n    -> Table scan on sub  (cost=6.15..8.21 rows=5.1) (actual time=46.7..49.2 rows=32767 loops=1)\n        -> Materialize recursive CTE sub  (cost=5.65..5.65 rows=5.1) (actual time=46.7..46.7 rows=32767 loops=1)\n            -> Rows fetched before execution  (cost=0..0 rows=1) (actual time=67e-6..118e-6 rows=1 loops=1)\n            -> Repeat until convergence\n                -> Nested loop inner join  (cost=5.14 rows=4.1) (actual time=0.00639..22.4 rows=16383 loops=2)\n                    -> Filter: (s.id is not null)  (cost=2.73 rows=2) (actual time=0.00182..2.17 rows=16384 loops=2)\n                        -> Scan new records on s  (cost=2.73 rows=2) (actual time=0.0013..0.592 rows=16384 loops=2)\n                    -> Covering index lookup on t using idx_big_tree_parent (parent_id=s.id)  (cost=1.1 rows=2.05) (actual time=929e-6..0.00108 rows=1 loops=32767)\n"
+       "-> Aggregate: count(0)  (cost=8.7..8.7 rows=1) (actual time=56.7..56.7 rows=1 loops=1)\n    -> Table scan on sub  (cost=6.14..8.19 rows=5.02) (actual time=52.3..55.3 rows=32767 loops=1)\n        -> Materialize recursive CTE sub  (cost=5.63..5.63 rows=5.02) (actual time=52.3..52.3 rows=32767 loops=1)\n            -> Rows fetched before execution  (cost=0..0 rows=1) (actual time=71e-6..133e-6 rows=1 loops=1)\n            -> Repeat until convergence\n                -> Nested loop inner join  (cost=5.13 rows=4.02) (actual time=0.00673..25.1 rows=16383 loops=2)\n                    -> Filter: (s.id is not null)  (cost=2.73 rows=2) (actual time=0.00149..1.82 rows=16384 loops=2)\n                        -> Scan new records on s  (cost=2.73 rows=2) (actual time=0.00102..0.713 rows=16384 loops=2)\n                    -> Covering index lookup on t using idx_big_tree_parent (parent_id=s.id)  (cost=1.1 rows=2.01) (actual time=0.00106..0.00123 rows=1 loops=32767)\n"
       ]
      ],
-     "elapsed_ms": 52.05
+     "elapsed_ms": 58.54
     }
    ],
    "measured": true

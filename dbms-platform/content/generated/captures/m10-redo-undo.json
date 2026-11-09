@@ -50,11 +50,11 @@
       ],
       [
        "Innodb_redo_log_checkpoint_lsn",
-       "8989857676"
+       "14678479154"
       ],
       [
        "Innodb_redo_log_current_lsn",
-       "9047225588"
+       "14750608165"
       ],
       [
        "Innodb_redo_log_enabled",
@@ -62,15 +62,15 @@
       ],
       [
        "Innodb_redo_log_flushed_to_disk_lsn",
-       "9047225588"
+       "14750608165"
       ],
       [
        "Innodb_redo_log_logical_size",
-       "57368576"
+       "72129536"
       ],
       [
        "Innodb_redo_log_physical_size",
-       "58982400"
+       "75366400"
       ],
       [
        "Innodb_redo_log_resize_status",
@@ -188,14 +188,14 @@
      "rows": [
       [
        "Innodb_os_log_fsyncs",
-       "433572"
+       "1089364"
       ],
       [
        "Innodb_redo_log_current_lsn",
-       "9082825408"
+       "14786208782"
       ]
      ],
-     "elapsed_ms": 1.17
+     "elapsed_ms": 1.06
     },
     {
      "sql": "CALL small_updates(1000)",
@@ -203,7 +203,7 @@
      "columns": [],
      "affected_rows": 1,
      "rows": [],
-     "elapsed_ms": 857.01
+     "elapsed_ms": 948.69
     },
     {
      "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN ('Innodb_redo_log_current_lsn', 'Innodb_os_log_fsyncs')",
@@ -216,14 +216,14 @@
      "rows": [
       [
        "Innodb_os_log_fsyncs",
-       "434708"
+       "1090585"
       ],
       [
        "Innodb_redo_log_current_lsn",
-       "9083312582"
+       "14786928367"
       ]
      ],
-     "elapsed_ms": 1.63
+     "elapsed_ms": 1.25
     },
     {
      "sql": "START TRANSACTION",
@@ -231,7 +231,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 0.58
+     "elapsed_ms": 0.44
     },
     {
      "sql": "CALL small_updates(1000)",
@@ -239,7 +239,7 @@
      "columns": [],
      "affected_rows": 1,
      "rows": [],
-     "elapsed_ms": 15.55
+     "elapsed_ms": 20.18
     },
     {
      "sql": "COMMIT",
@@ -247,7 +247,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 2.34
+     "elapsed_ms": 2.88
     },
     {
      "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN ('Innodb_redo_log_current_lsn', 'Innodb_os_log_fsyncs')",
@@ -260,14 +260,14 @@
      "rows": [
       [
        "Innodb_os_log_fsyncs",
-       "434727"
+       "1090606"
       ],
       [
        "Innodb_redo_log_current_lsn",
-       "9083406671"
+       "14787025768"
       ]
      ],
-     "elapsed_ms": 1.02
+     "elapsed_ms": 1.48
     }
    ],
    "measured": true
@@ -285,11 +285,11 @@
      "rows": [
       [
        "Innodb_os_log_written",
-       "5021365248"
+       "11181657088"
       ],
       [
        "Innodb_redo_log_current_lsn",
-       "9083406671"
+       "14787025768"
       ]
      ]
     },
@@ -312,11 +312,11 @@
      "rows": [
       [
        "Innodb_os_log_written",
-       "5080295936"
+       "11240582144"
       ],
       [
        "Innodb_redo_log_current_lsn",
-       "9141606973"
+       "14845211461"
       ]
      ]
     }
@@ -336,15 +336,15 @@
      "rows": [
       [
        "Innodb_redo_log_checkpoint_lsn",
-       "9058539401"
+       "14759096912"
       ],
       [
        "Innodb_redo_log_current_lsn",
-       "9141606973"
+       "14845211461"
       ],
       [
        "Innodb_redo_log_logical_size",
-       "83068416"
+       "86114816"
       ]
      ]
     }
@@ -359,7 +359,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 0.38
+     "elapsed_ms": 0.36
     },
     {
      "sql": "UPDATE ledger SET amount = amount + 5",
@@ -368,7 +368,7 @@
      "affected_rows": 200000,
      "info": "Rows matched: 200000  Changed: 200000  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 1002.3
+     "elapsed_ms": 1014.67
     },
     {
      "sql": "ROLLBACK",
@@ -376,7 +376,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 761.49
+     "elapsed_ms": 740.02
     },
     {
      "sql": "START TRANSACTION",
@@ -384,7 +384,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 0.46
+     "elapsed_ms": 0.75
     },
     {
      "sql": "UPDATE ledger SET amount = amount + 5",
@@ -393,7 +393,7 @@
      "affected_rows": 200000,
      "info": "Rows matched: 200000  Changed: 200000  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 879.51
+     "elapsed_ms": 877.64
     },
     {
      "sql": "COMMIT",
@@ -401,7 +401,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 30.77
+     "elapsed_ms": 28.38
     }
    ],
    "measured": true

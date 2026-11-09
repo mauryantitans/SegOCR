@@ -2,7 +2,7 @@
  "doc": "m04-multi-table-joins",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s2:1433a1215228": {
@@ -466,43 +466,43 @@
      "row_count": 7,
      "rows": [
       [
-       "lab_b318b274fd4fe640bb01.customers",
+       "customers",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_b318b274fd4fe640bb01.orders",
+       "orders",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_b318b274fd4fe640bb01.order_items",
+       "order_items",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_b318b274fd4fe640bb01.products",
+       "products",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_b318b274fd4fe640bb01.categories",
+       "categories",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_b318b274fd4fe640bb01.payments",
+       "payments",
        "analyze",
        "status",
        "OK"
       ],
       [
-       "lab_b318b274fd4fe640bb01.price_bands",
+       "price_bands",
        "analyze",
        "status",
        "OK"
@@ -570,7 +570,7 @@
        "PRIMARY,idx_order_items_product",
        "idx_order_items_product",
        "4",
-       "lab_b318b274fd4fe640bb01.p.product_id",
+       "p.product_id",
        6,
        100.0,
        null
@@ -584,7 +584,7 @@
        "PRIMARY,idx_orders_customer",
        "PRIMARY",
        "4",
-       "lab_b318b274fd4fe640bb01.oi.order_id",
+       "oi.order_id",
        1,
        100.0,
        null
@@ -598,7 +598,7 @@
        "PRIMARY",
        "PRIMARY",
        "4",
-       "lab_b318b274fd4fe640bb01.o.customer_id",
+       "o.customer_id",
        1,
        100.0,
        null
@@ -608,7 +608,7 @@
       {
        "level": "Note",
        "code": 1003,
-       "message": "/* select#1 */ select `lab_b318b274fd4fe640bb01`.`c`.`state` AS `state`,sum((`lab_b318b274fd4fe640bb01`.`oi`.`quantity` * `lab_b318b274fd4fe640bb01`.`oi`.`unit_price`)) AS `revenue` from `lab_b318b274fd4fe640bb01`.`customers` `c` join `lab_b318b274fd4fe640bb01`.`orders` `o` join `lab_b318b274fd4fe640bb01`.`order_items` `oi` join `lab_b318b274fd4fe640bb01`.`products` `p` join `lab_b318b274fd4fe640bb01`.`categories` `ca` where ((`lab_b318b274fd4fe640bb01`.`c`.`customer_id` = `lab_b318b274fd4fe640bb01`.`o`.`customer_id`) and (`lab_b318b274fd4fe640bb01`.`o`.`order_id` = `lab_b318b274fd4fe640bb01`.`oi`.`order_id`) and (`lab_b318b274fd4fe640bb01`.`oi`.`product_id` = `lab_b318b274fd4fe640bb01`.`p`.`product_id`) and (`lab_b318b274fd4fe640bb01`.`p`.`category_id` = '7')) group by `lab_b318b274fd4fe640bb01`.`c`.`state`"
+       "message": "/* select#1 */ select `c`.`state` AS `state`,sum((`oi`.`quantity` * `oi`.`unit_price`)) AS `revenue` from `customers` `c` join `orders` `o` join `order_items` `oi` join `products` `p` join `categories` `ca` where ((`c`.`customer_id` = `o`.`customer_id`) and (`o`.`order_id` = `oi`.`order_id`) and (`oi`.`product_id` = `p`.`product_id`) and (`p`.`category_id` = '7')) group by `c`.`state`"
       }
      ]
     }
