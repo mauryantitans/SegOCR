@@ -1,0 +1,1399 @@
+{
+ "doc": "m12-performance-troubleshooting",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:b3d4f1bfadf0": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 200000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE orders (\n  order_id     INT UNSIGNED NOT NULL PRIMARY KEY,\n  customer_id  INT UNSIGNED NOT NULL,\n  status       VARCHAR(10)  NOT NULL,\n  created_at   DATETIME     NOT NULL,\n  total        DECIMAL(10,2) NOT NULL,\n  external_ref CHAR(12)     NOT NULL,\n  KEY idx_orders_created (created_at)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 200000)\nSELECT n, (n * 7919) % 20000 + 1, ELT(1 + n % 4, 'paid', 'shipped', 'delivered', 'refunded'),\n       '2023-01-01' + INTERVAL (n * 4) MINUTE, ROUND(5 + (n * 37) % 20000 / 100, 2),\n       CONCAT('EXT', LPAD(n, 9, '0'))\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "orders",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS orders, COUNT(DISTINCT customer_id) AS customers FROM orders",
+     "status": "ok",
+     "columns": [
+      "orders",
+      "customers"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       200000,
+       20000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:92684c3c055e": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT order_id, created_at, total FROM orders\nWHERE customer_id = 4217 ORDER BY created_at DESC LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "index",
+       null,
+       "idx_orders_created",
+       "5",
+       null,
+       10,
+       10.0,
+       "Using where; Backward index scan"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `orders`.`order_id` AS `order_id`,`orders`.`created_at` AS `created_at`,`orders`.`total` AS `total` from `orders` where (`orders`.`customer_id` = 4217) order by `orders`.`created_at` desc limit 10"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:570ae631808c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT order_id, created_at, total FROM orders\nWHERE customer_id = 4217 ORDER BY created_at DESC LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 10 row(s)  (cost=0.91 rows=1) (actual time=4.62..188 rows=10 loops=1)\n    -> Filter: (orders.customer_id = 4217)  (cost=0.91 rows=1) (actual time=4.62..188 rows=10 loops=1)\n        -> Index scan on orders using idx_orders_created (reverse)  (cost=0.91 rows=10) (actual time=0.0387..176 rows=185337 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 189.0
+    }
+   ],
+   "measured": true
+  },
+  "s4:993f68e755ab": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Handler_read_key', 'Handler_read_next', 'Handler_read_prev', 'Handler_read_rnd_next')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Handler_read_key",
+       "52"
+      ],
+      [
+       "Handler_read_next",
+       "20"
+      ],
+      [
+       "Handler_read_prev",
+       "185336"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "600002"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT order_id, created_at, total FROM orders WHERE customer_id = 4217 ORDER BY created_at DESC LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "created_at",
+      "total"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       194664,
+       "2024-06-24 17:36:00",
+       "30.68"
+      ],
+      [
+       174664,
+       "2024-04-30 04:16:00",
+       "30.68"
+      ],
+      [
+       154664,
+       "2024-03-05 14:56:00",
+       "30.68"
+      ],
+      [
+       134664,
+       "2024-01-10 01:36:00",
+       "30.68"
+      ],
+      [
+       114664,
+       "2023-11-15 12:16:00",
+       "30.68"
+      ],
+      [
+       94664,
+       "2023-09-20 22:56:00",
+       "30.68"
+      ],
+      [
+       74664,
+       "2023-07-27 09:36:00",
+       "30.68"
+      ],
+      [
+       54664,
+       "2023-06-01 20:16:00",
+       "30.68"
+      ],
+      [
+       34664,
+       "2023-04-07 06:56:00",
+       "30.68"
+      ],
+      [
+       14664,
+       "2023-02-10 17:36:00",
+       "30.68"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Handler_read_key', 'Handler_read_next', 'Handler_read_prev', 'Handler_read_rnd_next')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Handler_read_key",
+       "53"
+      ],
+      [
+       "Handler_read_next",
+       "20"
+      ],
+      [
+       "Handler_read_prev",
+       "370672"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "600002"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:6f22b64495c3": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE orders ADD INDEX idx_orders_customer_created (customer_id, created_at), ALGORITHM=INPLACE, LOCK=NONE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE orders",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "orders",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:570ae631808c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT order_id, created_at, total FROM orders\nWHERE customer_id = 4217 ORDER BY created_at DESC LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 10 row(s)  (cost=3.5 rows=10) (actual time=0.0781..0.0801 rows=10 loops=1)\n    -> Index lookup on orders using idx_orders_customer_created (customer_id=4217) (reverse)  (cost=3.5 rows=10) (actual time=0.0773..0.0787 rows=10 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.17
+    }
+   ],
+   "measured": true
+  },
+  "s7:993f68e755ab": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Handler_read_key', 'Handler_read_next', 'Handler_read_prev', 'Handler_read_rnd_next')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Handler_read_key",
+       "105"
+      ],
+      [
+       "Handler_read_next",
+       "73"
+      ],
+      [
+       "Handler_read_prev",
+       "370681"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "600002"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT order_id, created_at, total FROM orders WHERE customer_id = 4217 ORDER BY created_at DESC LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "created_at",
+      "total"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       194664,
+       "2024-06-24 17:36:00",
+       "30.68"
+      ],
+      [
+       174664,
+       "2024-04-30 04:16:00",
+       "30.68"
+      ],
+      [
+       154664,
+       "2024-03-05 14:56:00",
+       "30.68"
+      ],
+      [
+       134664,
+       "2024-01-10 01:36:00",
+       "30.68"
+      ],
+      [
+       114664,
+       "2023-11-15 12:16:00",
+       "30.68"
+      ],
+      [
+       94664,
+       "2023-09-20 22:56:00",
+       "30.68"
+      ],
+      [
+       74664,
+       "2023-07-27 09:36:00",
+       "30.68"
+      ],
+      [
+       54664,
+       "2023-06-01 20:16:00",
+       "30.68"
+      ],
+      [
+       34664,
+       "2023-04-07 06:56:00",
+       "30.68"
+      ],
+      [
+       14664,
+       "2023-02-10 17:36:00",
+       "30.68"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Handler_read_key', 'Handler_read_next', 'Handler_read_prev', 'Handler_read_rnd_next')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Handler_read_key",
+       "106"
+      ],
+      [
+       "Handler_read_next",
+       "73"
+      ],
+      [
+       "Handler_read_prev",
+       "370690"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "600002"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:4eb188e9944d": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE query_log (id INT AUTO_INCREMENT PRIMARY KEY, digest VARCHAR(80) NOT NULL, duration_ms DECIMAL(10,3) NOT NULL, rows_examined INT NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO query_log (digest, duration_ms, rows_examined)\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 3000)\nSELECT CASE WHEN n % 100 = 0 THEN 'SELECT … FROM orders WHERE created_at BETWEEN ? AND ? (report)'\n            WHEN n % 3 = 0  THEN 'SELECT … FROM orders WHERE customer_id = ? ORDER BY created_at DESC LIMIT ?'\n            WHEN n % 3 = 1  THEN 'SELECT … FROM products WHERE product_id = ?'\n            ELSE                 'UPDATE carts SET … WHERE cart_id = ?' END,\n       CASE WHEN n % 100 = 0 THEN 1800 + (n % 7) * 100\n            WHEN n % 3 = 0  THEN 60 + (n % 11) * 4 + IF(n % 37 = 0, 400, 0)\n            WHEN n % 3 = 1  THEN 0.300 + (n % 5) * 0.05\n            ELSE                 1.2 + (n % 9) * 0.3 END,\n       CASE WHEN n % 100 = 0 THEN 190000 WHEN n % 3 = 0 THEN 200000 WHEN n % 3 = 1 THEN 1 ELSE 1 END\nFROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3000,
+     "info": "Records: 3000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT digest, COUNT(*) AS calls,\n       ROUND(SUM(duration_ms) / 1000, 2) AS total_s,\n       ROUND(100 * SUM(duration_ms) / SUM(SUM(duration_ms)) OVER (), 1) AS pct_of_total,\n       ROUND(AVG(duration_ms), 2) AS avg_ms,\n       MAX(duration_ms) AS max_ms,\n       ROUND(AVG(rows_examined)) AS rows_examined_per_call\nFROM query_log GROUP BY digest ORDER BY total_s DESC",
+     "status": "ok",
+     "columns": [
+      "digest",
+      "calls",
+      "total_s",
+      "pct_of_total",
+      "avg_ms",
+      "max_ms",
+      "rows_examined_per_call"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "SELECT … FROM orders WHERE customer_id = ? ORDER BY created_at DESC LIMIT ?",
+       990,
+       "90.00",
+       "57.7",
+       "90.91",
+       "500.000",
+       "200000"
+      ],
+      [
+       "SELECT … FROM orders WHERE created_at BETWEEN ? AND ? (report)",
+       30,
+       "63.00",
+       "40.4",
+       "2100.00",
+       "2400.000",
+       "190000"
+      ],
+      [
+       "UPDATE carts SET … WHERE cart_id = ?",
+       990,
+       "2.67",
+       "1.7",
+       "2.70",
+       "3.600",
+       "1"
+      ],
+      [
+       "SELECT … FROM products WHERE product_id = ?",
+       990,
+       "0.40",
+       "0.3",
+       "0.40",
+       "0.500",
+       "1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:916a32c6eabf": {
+   "statements": [
+    {
+     "sql": "SELECT digest, COUNT(*) AS calls,\n       ROUND(AVG(duration_ms), 2) AS avg_ms,\n       MAX(CASE WHEN pr <= 0.50 THEN duration_ms END) AS p50_ms,\n       MAX(CASE WHEN pr <= 0.95 THEN duration_ms END) AS p95_ms,\n       MAX(CASE WHEN pr <= 0.99 THEN duration_ms END) AS p99_ms\nFROM (SELECT digest, duration_ms,\n             PERCENT_RANK() OVER (PARTITION BY digest ORDER BY duration_ms) AS pr\n      FROM query_log) t\nGROUP BY digest ORDER BY p99_ms DESC",
+     "status": "ok",
+     "columns": [
+      "digest",
+      "calls",
+      "avg_ms",
+      "p50_ms",
+      "p95_ms",
+      "p99_ms"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "SELECT … FROM orders WHERE created_at BETWEEN ? AND ? (report)",
+       30,
+       "2100.00",
+       "2100.000",
+       "2400.000",
+       "2400.000"
+      ],
+      [
+       "SELECT … FROM orders WHERE customer_id = ? ORDER BY created_at DESC LIMIT ?",
+       990,
+       "90.91",
+       "80.000",
+       "100.000",
+       "480.000"
+      ],
+      [
+       "UPDATE carts SET … WHERE cart_id = ?",
+       990,
+       "2.70",
+       "2.700",
+       "3.600",
+       "3.600"
+      ],
+      [
+       "SELECT … FROM products WHERE product_id = ?",
+       990,
+       "0.40",
+       "0.400",
+       "0.500",
+       "0.500"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:a3f2dcb06deb": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO checkout_orders (customer_id, total) VALUES (1, 50.00)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE daily_stats SET orders = orders + 1, revenue = revenue + 50.00 WHERE day = '2024-12-01'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO checkout_orders (customer_id, total) VALUES (2, 30.00)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE daily_stats SET orders = orders + 1, revenue = revenue + 30.00 WHERE day = '2024-12-01'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "B",
+        "trxId": "554184",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
+        "lockStructs": 3
+       },
+       {
+        "session": "A",
+        "trxId": "554181",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 2,
+        "lockStructs": 3
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "checkout_orders",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "daily_stats",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "daily_stats",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1036673"
+       },
+       {
+        "session": "B",
+        "table": "checkout_orders",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "daily_stats",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "daily_stats",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "1036673"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT * FROM daily_stats",
+       "status": "ok",
+       "columns": [
+        "day",
+        "orders",
+        "revenue"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "2024-12-01",
+         2,
+         "80.00"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:0c32cbdfe07d": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO checkout_orders (customer_id, total) VALUES (1, 50.00)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE daily_stats_slots SET orders = orders + 1, revenue = revenue + 50.00 WHERE day = '2024-12-01' AND slot = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO checkout_orders (customer_id, total) VALUES (2, 30.00)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE daily_stats_slots SET orders = orders + 1, revenue = revenue + 30.00 WHERE day = '2024-12-01' AND slot = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "B",
+        "trxId": "554248",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 2,
+        "lockStructs": 3
+       },
+       {
+        "session": "A",
+        "trxId": "554245",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 2,
+        "lockStructs": 3
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "checkout_orders",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "daily_stats_slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "daily_stats_slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1036673, 1"
+       },
+       {
+        "session": "B",
+        "table": "checkout_orders",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "daily_stats_slots",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "daily_stats_slots",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1036673, 2"
+       }
+      ]
+     }
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT day, SUM(orders) AS orders, SUM(revenue) AS revenue FROM daily_stats_slots GROUP BY day",
+       "status": "ok",
+       "columns": [
+        "day",
+        "orders",
+        "revenue"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "2024-12-01",
+         "2",
+         "80.00"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s11:9839b188a05b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN UPDATE orders SET status = 'refunded' WHERE external_ref = 'EXT000123456'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "UPDATE",
+       "orders",
+       null,
+       "index",
+       null,
+       "PRIMARY",
+       "4",
+       null,
+       199617,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "update `orders` set `orders`.`status` = 'refunded' where (`orders`.`external_ref` = 'EXT000123456')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c3:ea03c49c8bae": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE small_orders SET status = 'refunded' WHERE external_ref = 'EXT000000002'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "554296",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 6,
+        "rowsModified": 1,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "small_orders",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "small_orders",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "A",
+        "table": "small_orders",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "2"
+       },
+       {
+        "session": "A",
+        "table": "small_orders",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "3"
+       },
+       {
+        "session": "A",
+        "table": "small_orders",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "4"
+       },
+       {
+        "session": "A",
+        "table": "small_orders",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "5"
+       },
+       {
+        "session": "A",
+        "table": "small_orders",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "supremum pseudo-record"
+       }
+      ]
+     }
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE small_orders SET status = 'shipped' WHERE order_id = 5",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ALTER TABLE small_orders ADD INDEX idx_ext (external_ref)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Records: 0  Duplicates: 0  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE small_orders SET status = 'paid' WHERE external_ref = 'EXT000000003'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Rows matched: 1  Changed: 0  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "554314",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 3,
+        "rowsModified": 0,
+        "lockStructs": 4
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "small_orders",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "small_orders",
+        "index": "idx_ext",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "'EXT000000003', 3"
+       },
+       {
+        "session": "A",
+        "table": "small_orders",
+        "index": "idx_ext",
+        "lockType": "RECORD",
+        "lockMode": "X,GAP",
+        "status": "GRANTED",
+        "lockData": "'EXT000000004', 4"
+       },
+       {
+        "session": "A",
+        "table": "small_orders",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "3"
+       }
+      ]
+     }
+    },
+    {
+     "step": 7,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE small_orders SET status = 'delivered' WHERE order_id = 4",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 8,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT order_id, status FROM small_orders ORDER BY order_id",
+       "status": "ok",
+       "columns": [
+        "order_id",
+        "status"
+       ],
+       "row_count": 5,
+       "rows": [
+        [
+         1,
+         "paid"
+        ],
+        [
+         2,
+         "refunded"
+        ],
+        [
+         3,
+         "paid"
+        ],
+        [
+         4,
+         "delivered"
+        ],
+        [
+         5,
+         "shipped"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "w1.0:ce479a82c954": {
+   "statements": [
+    {
+     "sql": "SELECT digest, COUNT(*) AS calls, ROUND(SUM(duration_ms) / 1000, 2) AS total_s, ROUND(AVG(rows_examined)) AS rows_examined_per_call\nFROM query_log WHERE digest LIKE '%customer_id = ?%' GROUP BY digest",
+     "status": "ok",
+     "columns": [
+      "digest",
+      "calls",
+      "total_s",
+      "rows_examined_per_call"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "SELECT … FROM orders WHERE customer_id = ? ORDER BY created_at DESC LIMIT ?",
+       990,
+       "90.00",
+       "200000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:3385ef09afd5": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT order_id, created_at, total FROM orders WHERE customer_id = 4217 ORDER BY created_at DESC LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "ref",
+       "idx_orders_customer_created",
+       "idx_orders_customer_created",
+       "4",
+       "const",
+       10,
+       100.0,
+       "Backward index scan"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `orders`.`order_id` AS `order_id`,`orders`.`created_at` AS `created_at`,`orders`.`total` AS `total` from `orders` where (`orders`.`customer_id` = 4217) order by `orders`.`created_at` desc limit 10"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:b9bb4846425e": {
+   "statements": [
+    {
+     "sql": "SELECT INDEX_NAME, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS columns\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders'\nGROUP BY INDEX_NAME ORDER BY INDEX_NAME",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "columns"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "idx_orders_created",
+       "created_at"
+      ],
+      [
+       "idx_orders_customer_created",
+       "customer_id,created_at"
+      ],
+      [
+       "PRIMARY",
+       "order_id"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:fb9f3bed5745": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE UPDATE orders SET total = total WHERE order_id = 1",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "<not executable by iterator executor>\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

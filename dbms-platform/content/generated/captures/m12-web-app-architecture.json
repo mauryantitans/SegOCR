@@ -926,18 +926,18 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "B",
-        "trxId": "447923",
-        "state": "LOCK WAIT",
+        "session": "A",
+        "trxId": "544428",
+        "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
         "rowsModified": 0,
         "lockStructs": 2
        },
        {
-        "session": "A",
-        "trxId": "447920",
-        "state": "RUNNING",
+        "session": "B",
+        "trxId": "544432",
+        "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
         "rowsModified": 0,

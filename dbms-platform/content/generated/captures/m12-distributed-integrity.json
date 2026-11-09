@@ -1,0 +1,968 @@
+{
+ "doc": "m12-distributed-integrity",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:aa14211cc48d": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE idempotency_keys (\n  idem_key      CHAR(36)     NOT NULL PRIMARY KEY,\n  request_hash  CHAR(64)     NOT NULL,\n  status        ENUM('in_progress', 'completed') NOT NULL,\n  response_code SMALLINT     NULL,\n  response_body JSON         NULL,\n  created_at    DATETIME     NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE payments (\n  payment_id  INT AUTO_INCREMENT PRIMARY KEY,\n  order_ref   VARCHAR(20)   NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  idem_key    CHAR(36)      NOT NULL UNIQUE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- First request: record the key, perform the effect, store the response — one transaction\nSTART TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO idempotency_keys VALUES ('7f1c2a9e-0d2b-4c55-9a41-2b6f0b1d9c01', SHA2('order=A-1001&amount=59.90', 256),\n                                     'in_progress', NULL, NULL, '2024-12-01 10:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO payments (order_ref, amount, idem_key) VALUES ('A-1001', 59.90, '7f1c2a9e-0d2b-4c55-9a41-2b6f0b1d9c01')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE idempotency_keys\n   SET status = 'completed', response_code = 201,\n       response_body = JSON_OBJECT('payment_id', LAST_INSERT_ID(), 'status', 'succeeded')\n WHERE idem_key = '7f1c2a9e-0d2b-4c55-9a41-2b6f0b1d9c01'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT idem_key, status, response_code, response_body FROM idempotency_keys",
+     "status": "ok",
+     "columns": [
+      "idem_key",
+      "status",
+      "response_code",
+      "response_body"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "7f1c2a9e-0d2b-4c55-9a41-2b6f0b1d9c01",
+       "completed",
+       201,
+       "{\"status\": \"succeeded\", \"payment_id\": 1}"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:d0a265b01a06": {
+   "statements": [
+    {
+     "sql": "INSERT INTO idempotency_keys VALUES ('7f1c2a9e-0d2b-4c55-9a41-2b6f0b1d9c01', SHA2('order=A-1001&amount=59.90', 256),\n                                     'in_progress', NULL, NULL, '2024-12-01 10:00:07')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '7f1c2a9e-0d2b-4c55-9a41-2b6f0b1d9c01' for key 'idempotency_keys.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s3:34e68ce092f0": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE pay(IN p_key CHAR(36), IN p_order VARCHAR(20), IN p_amount DECIMAL(10,2), IN p_now DATETIME)\nBEGIN\n  DECLARE duplicate BOOLEAN DEFAULT FALSE;\n  DECLARE CONTINUE HANDLER FOR 1062 SET duplicate = TRUE;\n  START TRANSACTION;\n  INSERT INTO idempotency_keys VALUES (p_key, SHA2(CONCAT('order=', p_order, '&amount=', p_amount), 256),\n                                       'in_progress', NULL, NULL, p_now);\n  IF duplicate THEN\n    ROLLBACK;\n    SELECT IF(request_hash = SHA2(CONCAT('order=', p_order, '&amount=', p_amount), 256),\n              'replayed stored response', 'rejected: key reused with a different request (HTTP 422)') AS outcome,\n           response_code, response_body\n    FROM idempotency_keys WHERE idem_key = p_key;\n  ELSE\n    INSERT INTO payments (order_ref, amount, idem_key) VALUES (p_order, p_amount, p_key);\n    UPDATE idempotency_keys SET status = 'completed', response_code = 201,\n           response_body = JSON_OBJECT('payment_id', LAST_INSERT_ID(), 'status', 'succeeded')\n     WHERE idem_key = p_key;\n    COMMIT;\n    SELECT 'executed' AS outcome, response_code, response_body FROM idempotency_keys WHERE idem_key = p_key;\n  END IF;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s4:581f68bdda20": {
+   "statements": [
+    {
+     "sql": "CALL pay('7f1c2a9e-0d2b-4c55-9a41-2b6f0b1d9c01', 'A-1001', 59.90, '2024-12-01 10:00:07')",
+     "status": "ok",
+     "columns": [
+      "outcome",
+      "response_code",
+      "response_body"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       "replayed stored response",
+       201,
+       "{\"status\": \"succeeded\", \"payment_id\": 1}"
+      ]
+     ]
+    },
+    {
+     "sql": "CALL pay('7f1c2a9e-0d2b-4c55-9a41-2b6f0b1d9c01', 'A-1001', 99.00, '2024-12-01 10:00:09')",
+     "status": "ok",
+     "columns": [
+      "outcome",
+      "response_code",
+      "response_body"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       "rejected: key reused with a different request (HTTP 422)",
+       201,
+       "{\"status\": \"succeeded\", \"payment_id\": 1}"
+      ]
+     ]
+    },
+    {
+     "sql": "CALL pay('3b8e7c41-5a6f-4e2d-8c19-0f2a7d6e5b42', 'A-1002', 15.00, '2024-12-01 10:01:00')",
+     "status": "ok",
+     "columns": [
+      "outcome",
+      "response_code",
+      "response_body"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       "executed",
+       201,
+       "{\"status\": \"succeeded\", \"payment_id\": 2}"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT payment_id, order_ref, amount FROM payments ORDER BY payment_id",
+     "status": "ok",
+     "columns": [
+      "payment_id",
+      "order_ref",
+      "amount"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "A-1001",
+       "59.90"
+      ],
+      [
+       2,
+       "A-1002",
+       "15.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:bca945e354c8": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE orders (order_id INT AUTO_INCREMENT PRIMARY KEY, customer_id INT NOT NULL, total DECIMAL(10,2) NOT NULL, status VARCHAR(12) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE outbox (\n  event_id       BIGINT AUTO_INCREMENT PRIMARY KEY,\n  aggregate_type VARCHAR(20) NOT NULL,\n  aggregate_id   VARCHAR(20) NOT NULL,\n  event_type     VARCHAR(30) NOT NULL,\n  payload        JSON        NOT NULL,\n  created_at     DATETIME    NOT NULL,\n  published_at   DATETIME    NULL,\n  KEY idx_outbox_unpublished (published_at, event_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- A committed order: state change and event together\nSTART TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders (customer_id, total, status) VALUES (42, 120.00, 'placed')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO outbox (aggregate_type, aggregate_id, event_type, payload, created_at)\nVALUES ('order', LAST_INSERT_ID(), 'OrderPlaced', JSON_OBJECT('order_id', LAST_INSERT_ID(), 'customer_id', 42, 'total', 120.00), '2024-12-01 10:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- A failed order: the transaction rolls back, and so does its event\nSTART TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders (customer_id, total, status) VALUES (43, 80.00, 'placed')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO outbox (aggregate_type, aggregate_id, event_type, payload, created_at)\nVALUES ('order', LAST_INSERT_ID(), 'OrderPlaced', JSON_OBJECT('order_id', LAST_INSERT_ID(), 'customer_id', 43, 'total', 80.00), '2024-12-01 10:00:05')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders (customer_id, total, status) VALUES (44, 35.50, 'placed')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO outbox (aggregate_type, aggregate_id, event_type, payload, created_at)\nVALUES ('order', LAST_INSERT_ID(), 'OrderPlaced', JSON_OBJECT('order_id', LAST_INSERT_ID(), 'customer_id', 44, 'total', 35.50), '2024-12-01 10:00:09')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT o.order_id, o.customer_id, e.event_id, e.event_type\nFROM orders o LEFT JOIN outbox e ON e.aggregate_id = o.order_id ORDER BY o.order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "event_id",
+      "event_type"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       42,
+       1,
+       "OrderPlaced"
+      ],
+      [
+       3,
+       44,
+       3,
+       "OrderPlaced"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT event_id, aggregate_id, event_type, published_at FROM outbox ORDER BY event_id",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "aggregate_id",
+      "event_type",
+      "published_at"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "1",
+       "OrderPlaced",
+       null
+      ],
+      [
+       3,
+       "3",
+       "OrderPlaced",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:f01f7f501720": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT event_id, event_type, payload FROM outbox\nWHERE published_at IS NULL ORDER BY event_id LIMIT 10 FOR UPDATE SKIP LOCKED",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "event_type",
+      "payload"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "OrderPlaced",
+       "{\"total\": 120.00, \"order_id\": 1, \"customer_id\": 42}"
+      ],
+      [
+       3,
+       "OrderPlaced",
+       "{\"total\": 35.50, \"order_id\": 3, \"customer_id\": 44}"
+      ]
+     ]
+    },
+    {
+     "sql": "-- … the relay publishes these events to Kafka and waits for the broker's acknowledgement …\nUPDATE outbox SET published_at = '2024-12-01 10:00:15' WHERE published_at IS NULL AND event_id IN (1, 3)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Rows matched: 2  Changed: 2  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT event_id, aggregate_id, published_at FROM outbox ORDER BY event_id",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "aggregate_id",
+      "published_at"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "1",
+       "2024-12-01 10:00:15"
+      ],
+      [
+       3,
+       "3",
+       "2024-12-01 10:00:15"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:49fca81247c9": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE processed_events (consumer VARCHAR(20) NOT NULL, event_id BIGINT NOT NULL, processed_at DATETIME NOT NULL,\n                               PRIMARY KEY (consumer, event_id))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE shipments (shipment_id INT AUTO_INCREMENT PRIMARY KEY, order_id INT NOT NULL, created_at DATETIME NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- Delivery of event 1\nSTART TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO processed_events VALUES ('warehouse', 1, '2024-12-01 10:00:20')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO shipments (order_id, created_at) VALUES (1, '2024-12-01 10:00:20')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- Redelivery of event 1 (the relay crashed after publishing): the dedup insert affects 0 rows\nINSERT INTO processed_events VALUES ('warehouse', 1, '2024-12-01 10:00:31') AS new\n  ON DUPLICATE KEY UPDATE processed_at = processed_events.processed_at",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS newly_recorded",
+     "status": "ok",
+     "columns": [
+      "newly_recorded"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT order_id, COUNT(*) AS shipments FROM shipments GROUP BY order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "shipments"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:48da98807220": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE inventory (sku VARCHAR(10) PRIMARY KEY, available INT NOT NULL, reserved INT NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO inventory VALUES ('SKU-1', 5, 0)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE saga_steps (saga_id INT NOT NULL, step_no INT NOT NULL, action VARCHAR(30) NOT NULL,\n                         state ENUM('done', 'failed', 'compensated') NOT NULL, at DATETIME NOT NULL,\n                         PRIMARY KEY (saga_id, step_no))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- Step 1 (inventory service): reserve 2 units — a conditional, idempotent-by-state transition\nUPDATE inventory SET available = available - 2, reserved = reserved + 2 WHERE sku = 'SKU-1' AND available >= 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO saga_steps VALUES (501, 1, 'reserve SKU-1 x2', IF(ROW_COUNT() = 1, 'done', 'failed'), '2024-12-01 11:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "-- Step 2 (payment service): the provider declines the card\nINSERT INTO saga_steps VALUES (501, 2, 'charge 99.80', 'failed', '2024-12-01 11:00:02')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "-- Compensation of step 1, only if step 1 is done and not yet compensated (safe to retry)\nUPDATE inventory i JOIN saga_steps s ON s.saga_id = 501 AND s.step_no = 1 AND s.state = 'done'\n   SET i.available = i.available + 2, i.reserved = i.reserved - 2\n WHERE i.sku = 'SKU-1'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE saga_steps SET state = 'compensated', at = '2024-12-01 11:00:03' WHERE saga_id = 501 AND step_no = 1 AND state = 'done'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- A retried compensation (the orchestrator restarted) changes nothing\nUPDATE inventory i JOIN saga_steps s ON s.saga_id = 501 AND s.step_no = 1 AND s.state = 'done'\n   SET i.available = i.available + 2, i.reserved = i.reserved - 2\n WHERE i.sku = 'SKU-1'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS rows_changed_by_retry",
+     "status": "ok",
+     "columns": [
+      "rows_changed_by_retry"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT * FROM inventory",
+     "status": "ok",
+     "columns": [
+      "sku",
+      "available",
+      "reserved"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "SKU-1",
+       5,
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT step_no, action, state FROM saga_steps WHERE saga_id = 501 ORDER BY step_no",
+     "status": "ok",
+     "columns": [
+      "step_no",
+      "action",
+      "state"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "reserve SKU-1 x2",
+       "compensated"
+      ],
+      [
+       2,
+       "charge 99.80",
+       "failed"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:482e09f2ef20": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO idempotency_keys VALUES ('c0ffee00-0000-4000-8000-000000000001', 'in_progress', NULL)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO payments (order_ref, amount) VALUES ('A-2001', 42.00)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "INSERT INTO idempotency_keys VALUES ('c0ffee00-0000-4000-8000-000000000001', 'in_progress', NULL)",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1062,
+        "message": "Duplicate entry 'c0ffee00-0000-4000-8000-000000000001' for key 'idempotency_keys.PRIMARY'"
+       }
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "error"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "554613",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 2,
+        "lockStructs": 3
+       },
+       {
+        "session": "B",
+        "trxId": "554618",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "idempotency_keys",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "idempotency_keys",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "'c0ffee00-0000-4000-8000-000000000001'",
+        "reportedByThreadOf": "B"
+       },
+       {
+        "session": "A",
+        "table": "payments",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "idempotency_keys",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "idempotency_keys",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "'c0ffee00-0000-4000-8000-000000000001'"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE idempotency_keys SET status = 'completed', response_body = JSON_OBJECT('payment_id', 1) WHERE idem_key = 'c0ffee00-0000-4000-8000-000000000001'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT status, response_body FROM idempotency_keys WHERE idem_key = 'c0ffee00-0000-4000-8000-000000000001'",
+       "status": "ok",
+       "columns": [
+        "status",
+        "response_body"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "completed",
+         "{\"payment_id\": 1}"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS payments FROM payments",
+       "status": "ok",
+       "columns": [
+        "payments"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s9:5e6c7d30cefc": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE our_payments (order_ref VARCHAR(20) PRIMARY KEY, amount DECIMAL(10,2) NOT NULL, status VARCHAR(12) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE provider_settlements (provider_ref VARCHAR(20) PRIMARY KEY, order_ref VARCHAR(20) NOT NULL, amount DECIMAL(10,2) NOT NULL, settled_on DATE NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO our_payments VALUES ('A-3001', 20.00, 'paid'), ('A-3002', 45.00, 'paid'), ('A-3003', 12.50, 'paid'), ('A-3004', 99.00, 'failed')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO provider_settlements VALUES ('ch_1', 'A-3001', 20.00, '2024-12-02'), ('ch_2', 'A-3002', 54.00, '2024-12-02'),\n                                        ('ch_3', 'A-3004', 99.00, '2024-12-02'), ('ch_4', 'A-3005', 15.00, '2024-12-02')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT order_ref, our_status, our_amount, provider_amount,\n       CASE WHEN our_amount IS NULL THEN 'charged by provider, unknown to us'\n            WHEN provider_amount IS NULL AND our_status = 'paid' THEN 'marked paid, never settled'\n            WHEN our_status <> 'paid' THEN 'provider charged a payment we consider failed'\n            WHEN our_amount <> provider_amount THEN 'amount mismatch'\n       END AS discrepancy\nFROM (\n  SELECT o.order_ref, o.status AS our_status, o.amount AS our_amount, p.amount AS provider_amount\n  FROM our_payments o LEFT JOIN provider_settlements p ON p.order_ref = o.order_ref\n  UNION ALL\n  SELECT p.order_ref, NULL, NULL, p.amount\n  FROM provider_settlements p LEFT JOIN our_payments o ON o.order_ref = p.order_ref\n  WHERE o.order_ref IS NULL\n) AS r\nWHERE our_amount IS NULL OR provider_amount IS NULL OR our_status <> 'paid' OR our_amount <> provider_amount\nORDER BY order_ref",
+     "status": "ok",
+     "columns": [
+      "order_ref",
+      "our_status",
+      "our_amount",
+      "provider_amount",
+      "discrepancy"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "A-3002",
+       "paid",
+       "45.00",
+       "54.00",
+       "amount mismatch"
+      ],
+      [
+       "A-3003",
+       "paid",
+       "12.50",
+       null,
+       "marked paid, never settled"
+      ],
+      [
+       "A-3004",
+       "failed",
+       "99.00",
+       "99.00",
+       "provider charged a payment we consider failed"
+      ],
+      [
+       "A-3005",
+       null,
+       null,
+       "15.00",
+       "charged by provider, unknown to us"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:249b8df24e20": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE dedup_demo (event_id INT PRIMARY KEY, note VARCHAR(5) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT IGNORE INTO dedup_demo VALUES (1, 'first'), (1, 'again'), (2, 'this note is far too long')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 3  Duplicates: 1  Warnings: 2",
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1062,
+       "message": "Duplicate entry '1' for key 'dedup_demo.PRIMARY'"
+      },
+      {
+       "level": "Warning",
+       "code": 1265,
+       "message": "Data truncated for column 'note' at row 3"
+      }
+     ]
+    },
+    {
+     "sql": "SHOW WARNINGS",
+     "status": "ok",
+     "columns": [
+      "Level",
+      "Code",
+      "Message"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Warning",
+       1062,
+       "Duplicate entry '1' for key 'dedup_demo.PRIMARY'"
+      ],
+      [
+       "Warning",
+       1265,
+       "Data truncated for column 'note' at row 3"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT * FROM dedup_demo ORDER BY event_id",
+     "status": "ok",
+     "columns": [
+      "event_id",
+      "note"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "first"
+      ],
+      [
+       2,
+       "this "
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

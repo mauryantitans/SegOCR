@@ -1,0 +1,1444 @@
+{
+ "doc": "m13-anti-patterns",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:2cf56f0fcb43": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE product_eav (\n  product_id INT UNSIGNED NOT NULL,\n  attr       VARCHAR(40)  NOT NULL,\n  val        VARCHAR(255) NOT NULL,\n  PRIMARY KEY (product_id, attr)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO product_eav VALUES\n  (1, 'ram_gb', '16'), (1, 'screen_in', '14'),   (1, 'color',  'silver'),\n  (2, 'ram_gb', '8'),  (2, 'screen_in', '13.3'),\n  (3, 'ram_gb', '32'), (3, 'screen_in', '16'),   (3, 'colour', 'black'),\n  (4, 'ram_gb', 'sixteen'), (4, 'screen_in', '11.6')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 10,
+     "info": "Records: 10  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id, attr, val FROM product_eav ORDER BY product_id, attr",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "attr",
+      "val"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       1,
+       "color",
+       "silver"
+      ],
+      [
+       1,
+       "ram_gb",
+       "16"
+      ],
+      [
+       1,
+       "screen_in",
+       "14"
+      ],
+      [
+       2,
+       "ram_gb",
+       "8"
+      ],
+      [
+       2,
+       "screen_in",
+       "13.3"
+      ],
+      [
+       3,
+       "colour",
+       "black"
+      ],
+      [
+       3,
+       "ram_gb",
+       "32"
+      ],
+      [
+       3,
+       "screen_in",
+       "16"
+      ],
+      [
+       4,
+       "ram_gb",
+       "sixteen"
+      ],
+      [
+       4,
+       "screen_in",
+       "11.6"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:a536296e65be": {
+   "statements": [
+    {
+     "sql": "SELECT product_id FROM product_eav WHERE attr = 'ram_gb' AND val >= '16' ORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1
+      ],
+      [
+       2
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:22a4d0aaae14": {
+   "statements": [
+    {
+     "sql": "SELECT product_id FROM product_eav WHERE attr = 'ram_gb' AND CAST(val AS UNSIGNED) >= 16 ORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1
+      ],
+      [
+       3
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1292,
+       "message": "Truncated incorrect INTEGER value: 'sixteen'"
+      }
+     ]
+    },
+    {
+     "sql": "SHOW WARNINGS",
+     "status": "ok",
+     "columns": [
+      "Level",
+      "Code",
+      "Message"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Warning",
+       1292,
+       "Truncated incorrect INTEGER value: 'sixteen'"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:85769f2d121b": {
+   "statements": [
+    {
+     "sql": "SELECT product_id,\n       MAX(CASE WHEN attr = 'ram_gb'    THEN val END) AS ram_gb,\n       MAX(CASE WHEN attr = 'screen_in' THEN val END) AS screen_in,\n       MAX(CASE WHEN attr = 'color'     THEN val END) AS color\nFROM product_eav GROUP BY product_id ORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "ram_gb",
+      "screen_in",
+      "color"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "16",
+       "14",
+       "silver"
+      ],
+      [
+       2,
+       "8",
+       "13.3",
+       null
+      ],
+      [
+       3,
+       "32",
+       "16",
+       null
+      ],
+      [
+       4,
+       "sixteen",
+       "11.6",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:3caf165549e7": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE laptop_specs (\n  product_id INT UNSIGNED PRIMARY KEY,\n  ram_gb     SMALLINT UNSIGNED NOT NULL,\n  screen_in  DECIMAL(3,1)      NOT NULL,\n  color      VARCHAR(20)       NULL,\n  CONSTRAINT fk_laptop_specs_product FOREIGN KEY (product_id) REFERENCES products (product_id),\n  CONSTRAINT chk_laptop_ram CHECK (ram_gb BETWEEN 1 AND 512)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO laptop_specs VALUES (1, 16, 14.0, 'silver'), (2, 8, 13.3, NULL), (3, 32, 16.0, 'black')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id FROM laptop_specs WHERE ram_gb >= 16 ORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1
+      ],
+      [
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:10245023891e": {
+   "statements": [
+    {
+     "sql": "INSERT INTO laptop_specs VALUES (4, 'sixteen', 11.6, NULL)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1366,
+      "message": "Incorrect integer value: 'sixteen' for column 'ram_gb' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:a1b6448db2ca": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE comments_poly (\n  comment_id       INT PRIMARY KEY,\n  commentable_type VARCHAR(20)  NOT NULL,\n  commentable_id   INT UNSIGNED NOT NULL,\n  body             VARCHAR(200) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO comments_poly VALUES\n  (1, 'product', 3,   'Great laptop'),\n  (2, 'order',   12,  'Delivery was late'),\n  (3, 'product', 999, 'Comment on a product that does not exist'),\n  (4, 'prodcut', 5,   'Typo in the type')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT cp.comment_id, cp.commentable_type, cp.commentable_id,\n       COALESCE(p.name, CONCAT('order #', o.order_id), '-- orphan --') AS parent\nFROM comments_poly cp\nLEFT JOIN products p ON cp.commentable_type = 'product' AND p.product_id = cp.commentable_id\nLEFT JOIN orders   o ON cp.commentable_type = 'order'   AND o.order_id   = cp.commentable_id\nORDER BY cp.comment_id",
+     "status": "ok",
+     "columns": [
+      "comment_id",
+      "commentable_type",
+      "commentable_id",
+      "parent"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "product",
+       3,
+       "Gaming Laptop 16"
+      ],
+      [
+       2,
+       "order",
+       12,
+       "order #12"
+      ],
+      [
+       3,
+       "product",
+       999,
+       "-- orphan --"
+      ],
+      [
+       4,
+       "prodcut",
+       5,
+       "-- orphan --"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:75376222eaf5": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE comments_arc (\n  comment_id INT PRIMARY KEY,\n  product_id INT UNSIGNED NULL,\n  order_id   INT UNSIGNED NULL,\n  body       VARCHAR(200) NOT NULL,\n  CONSTRAINT fk_comments_arc_product FOREIGN KEY (product_id) REFERENCES products (product_id),\n  CONSTRAINT fk_comments_arc_order   FOREIGN KEY (order_id)   REFERENCES orders (order_id),\n  CONSTRAINT chk_comments_arc_one_parent CHECK ((product_id IS NOT NULL) + (order_id IS NOT NULL) = 1)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO comments_arc VALUES (1, 3, NULL, 'Great laptop'), (2, NULL, 12, 'Delivery was late')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT comment_id, product_id, order_id, body FROM comments_arc ORDER BY comment_id",
+     "status": "ok",
+     "columns": [
+      "comment_id",
+      "product_id",
+      "order_id",
+      "body"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       3,
+       null,
+       "Great laptop"
+      ],
+      [
+       2,
+       null,
+       12,
+       "Delivery was late"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:dbb8ef5d25ec": {
+   "statements": [
+    {
+     "sql": "INSERT INTO comments_arc VALUES (3, 999, NULL, 'Comment on a product that does not exist')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`comments_arc`, CONSTRAINT `fk_comments_arc_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`product_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s10:08811dba80b7": {
+   "statements": [
+    {
+     "sql": "INSERT INTO comments_arc VALUES (4, 3, 12, 'Attached to two parents')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_comments_arc_one_parent' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:a905be055aec": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE products_csv (\n  product_id INT UNSIGNED PRIMARY KEY,\n  name       VARCHAR(120) NOT NULL,\n  tags       VARCHAR(255) NOT NULL DEFAULT ''\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO products_csv\nSELECT product_id, name,\n       CASE product_id % 5 WHEN 0 THEN 'gift,sale' WHEN 1 THEN 'new' WHEN 2 THEN 'eco,sale'\n                           WHEN 3 THEN 'resale' ELSE 'gift, eco' END\nFROM products",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 30,
+     "info": "Records: 30  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT 'LIKE %sale%'          AS method, COUNT(*) AS products FROM products_csv WHERE tags LIKE '%sale%'\nUNION ALL\nSELECT 'FIND_IN_SET(sale)',   COUNT(*) FROM products_csv WHERE FIND_IN_SET('sale', tags)\nUNION ALL\nSELECT 'FIND_IN_SET(eco)',    COUNT(*) FROM products_csv WHERE FIND_IN_SET('eco', tags)",
+     "status": "ok",
+     "columns": [
+      "method",
+      "products"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "LIKE %sale%",
+       18
+      ],
+      [
+       "FIND_IN_SET(sale)",
+       12
+      ],
+      [
+       "FIND_IN_SET(eco)",
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:94a896ab934a": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, tags, FIND_IN_SET('eco', tags) AS position FROM products_csv WHERE product_id IN (2, 4) ORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "tags",
+      "position"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       2,
+       "eco,sale",
+       1
+      ],
+      [
+       4,
+       "gift, eco",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:54bd3c8eafd1": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE products_csv ADD INDEX idx_products_csv_tags (tags)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT product_id FROM products_csv WHERE FIND_IN_SET('sale', tags)",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "products_csv",
+       null,
+       "index",
+       null,
+       "idx_products_csv_tags",
+       "1022",
+       null,
+       30,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `products_csv`.`product_id` AS `product_id` from `products_csv` where (0 <> find_in_set('sale',`products_csv`.`tags`))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:4db3436765ea": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE tags (tag_id SMALLINT UNSIGNED PRIMARY KEY, tag VARCHAR(30) NOT NULL UNIQUE)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO tags VALUES (1, 'gift'), (2, 'sale'), (3, 'new'), (4, 'eco'), (5, 'resale')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE product_tags (\n  product_id INT UNSIGNED NOT NULL,\n  tag_id     SMALLINT UNSIGNED NOT NULL,\n  PRIMARY KEY (product_id, tag_id),\n  KEY idx_product_tags_tag (tag_id, product_id),\n  CONSTRAINT fk_pt_product FOREIGN KEY (product_id) REFERENCES products (product_id),\n  CONSTRAINT fk_pt_tag     FOREIGN KEY (tag_id)     REFERENCES tags (tag_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO product_tags (product_id, tag_id)\nSELECT pc.product_id, t.tag_id\nFROM products_csv pc\nJOIN tags t ON FIND_IN_SET(t.tag, REPLACE(pc.tags, ' ', ''))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 48,
+     "info": "Records: 48  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE product_tags",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "product_tags",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT t.tag, COUNT(*) AS products FROM product_tags pt JOIN tags t USING (tag_id) GROUP BY t.tag ORDER BY t.tag",
+     "status": "ok",
+     "columns": [
+      "tag",
+      "products"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "eco",
+       12
+      ],
+      [
+       "gift",
+       12
+      ],
+      [
+       "new",
+       6
+      ],
+      [
+       "resale",
+       6
+      ],
+      [
+       "sale",
+       12
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT product_id FROM product_tags WHERE tag_id = 2",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "product_tags",
+       null,
+       "ref",
+       "PRIMARY,idx_product_tags_tag",
+       "idx_product_tags_tag",
+       "2",
+       "const",
+       12,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `product_tags`.`product_id` AS `product_id` from `product_tags` where (`product_tags`.`tag_id` = 2)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:33e2e0e85d01": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE prices_float (id INT PRIMARY KEY, price_f FLOAT NOT NULL, price_d DECIMAL(10,2) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO prices_float VALUES (1, 19.99, 19.99), (2, 0.10, 0.10)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM prices_float WHERE price_f = 19.99) AS float_matches,\n       (SELECT COUNT(*) FROM prices_float WHERE price_d = 19.99) AS decimal_matches",
+     "status": "ok",
+     "columns": [
+      "float_matches",
+      "decimal_matches"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT id, price_f, CAST(price_f AS DECIMAL(20,10)) AS float_actually_stores, price_d FROM prices_float ORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "price_f",
+      "float_actually_stores",
+      "price_d"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       19.99,
+       "19.9899997711",
+       "19.99"
+      ],
+      [
+       2,
+       0.1,
+       "0.1000000015",
+       "0.10"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:59c37dd4617e": {
+   "statements": [
+    {
+     "sql": "SELECT SUM(CAST(unit_price AS FLOAT) * quantity) AS revenue_float,\n       SUM(unit_price * quantity)                AS revenue_decimal\nFROM order_items",
+     "status": "ok",
+     "columns": [
+      "revenue_float",
+      "revenue_decimal"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       68697.85014915466,
+       "68697.85"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:4e4032370d9e": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT order_id, order_date FROM orders WHERE order_date >= '2024-06-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "range",
+       "idx_orders_date",
+       "idx_orders_date",
+       "5",
+       null,
+       49,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `orders`.`order_id` AS `order_id`,`orders`.`order_date` AS `order_date` from `orders` where (`orders`.`order_date` >= TIMESTAMP'2024-06-01 00:00:00')"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM orders WHERE order_date >= '2024-06-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "ALL",
+       "idx_orders_date",
+       null,
+       null,
+       null,
+       80,
+       61.25,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `orders`.`order_id` AS `order_id`,`orders`.`customer_id` AS `customer_id`,`orders`.`order_date` AS `order_date`,`orders`.`status` AS `status`,`orders`.`shipped_at` AS `shipped_at`,`orders`.`discount_code` AS `discount_code` from `orders` where (`orders`.`order_date` >= TIMESTAMP'2024-06-01 00:00:00')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:b5a805b7e551": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE orders_archive LIKE orders",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders_archive SELECT * FROM orders WHERE order_id <= 3",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE orders ADD COLUMN channel VARCHAR(10) NOT NULL DEFAULT 'web'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s19:dcf77392d34f": {
+   "statements": [
+    {
+     "sql": "INSERT INTO orders_archive SELECT * FROM orders WHERE order_id BETWEEN 4 AND 6",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1136,
+      "message": "Column count doesn't match value count at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s20:445d1f45b51e": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW v_customers_all AS SELECT * FROM customers",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE customers ADD COLUMN marketing_opt_in BOOLEAN NOT NULL DEFAULT FALSE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM information_schema.COLUMNS\n        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers')       AS table_columns,\n       (SELECT COUNT(*) FROM information_schema.COLUMNS\n        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'v_customers_all') AS view_columns",
+     "status": "ok",
+     "columns": [
+      "table_columns",
+      "view_columns"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10,
+       9
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:00fee056c3b1": {
+   "statements": [
+    {
+     "sql": "INSERT INTO orders_archive (order_id, customer_id, order_date, status, shipped_at, discount_code)\nSELECT order_id, customer_id, order_date, status, shipped_at, discount_code\nFROM orders WHERE order_id BETWEEN 4 AND 6",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS archived FROM orders_archive",
+     "status": "ok",
+     "columns": [
+      "archived"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:1f5784f31763": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE customer_everything (\n  customer_id INT PRIMARY KEY,\n  c01 VARCHAR(255), c02 VARCHAR(255), c03 VARCHAR(255), c04 VARCHAR(255), c05 VARCHAR(255),\n  c06 VARCHAR(255), c07 VARCHAR(255), c08 VARCHAR(255), c09 VARCHAR(255), c10 VARCHAR(255),\n  c11 VARCHAR(255), c12 VARCHAR(255), c13 VARCHAR(255), c14 VARCHAR(255), c15 VARCHAR(255),\n  c16 VARCHAR(255), c17 VARCHAR(255), c18 VARCHAR(255), c19 VARCHAR(255), c20 VARCHAR(255),\n  c21 VARCHAR(255), c22 VARCHAR(255), c23 VARCHAR(255), c24 VARCHAR(255), c25 VARCHAR(255),\n  c26 VARCHAR(255), c27 VARCHAR(255), c28 VARCHAR(255), c29 VARCHAR(255), c30 VARCHAR(255),\n  c31 VARCHAR(255), c32 VARCHAR(255), c33 VARCHAR(255), c34 VARCHAR(255), c35 VARCHAR(255),\n  c36 VARCHAR(255), c37 VARCHAR(255), c38 VARCHAR(255), c39 VARCHAR(255), c40 VARCHAR(255),\n  c41 VARCHAR(255), c42 VARCHAR(255), c43 VARCHAR(255), c44 VARCHAR(255), c45 VARCHAR(255),\n  c46 VARCHAR(255), c47 VARCHAR(255), c48 VARCHAR(255), c49 VARCHAR(255), c50 VARCHAR(255),\n  c51 VARCHAR(255), c52 VARCHAR(255), c53 VARCHAR(255), c54 VARCHAR(255), c55 VARCHAR(255),\n  c56 VARCHAR(255), c57 VARCHAR(255), c58 VARCHAR(255), c59 VARCHAR(255), c60 VARCHAR(255),\n  c61 VARCHAR(255), c62 VARCHAR(255), c63 VARCHAR(255), c64 VARCHAR(255), c65 VARCHAR(255)\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1118,
+      "message": "Row size too large. The maximum row size for the used table type, not counting BLOBs, is 65535. This includes storage overhead, check the manual. You have to change some columns to TEXT or BLOBs"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s23:e5b2c03ff38f": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE customer_billing (\n  customer_id INT UNSIGNED PRIMARY KEY,\n  billing_line1 VARCHAR(120) NOT NULL, billing_city VARCHAR(60) NOT NULL, billing_postcode VARCHAR(12) NOT NULL,\n  CONSTRAINT fk_billing_customer FOREIGN KEY (customer_id) REFERENCES customers (customer_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE customer_marketing (\n  customer_id INT UNSIGNED PRIMARY KEY,\n  email_opt_in BOOLEAN NOT NULL DEFAULT FALSE, sms_opt_in BOOLEAN NOT NULL DEFAULT FALSE,\n  segment VARCHAR(30) NULL, consent_updated_at DATETIME NULL,\n  CONSTRAINT fk_marketing_customer FOREIGN KEY (customer_id) REFERENCES customers (customer_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO customer_marketing (customer_id, email_opt_in, segment)\nSELECT customer_id, loyalty_tier IS NOT NULL, loyalty_tier FROM customers",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "info": "Records: 25  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS marketing_rows, SUM(email_opt_in) AS opted_in FROM customer_marketing",
+     "status": "ok",
+     "columns": [
+      "marketing_rows",
+      "opted_in"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25,
+       "21"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:7cd7e229eeb4": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Com_select'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Com_select",
+       "20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:4db3b48993f9": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, customer_id FROM orders WHERE status = 'shipped' ORDER BY order_id LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       8,
+       4
+      ],
+      [
+       13,
+       22
+      ],
+      [
+       14,
+       18
+      ],
+      [
+       15,
+       10
+      ],
+      [
+       17,
+       7
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:df0f327a53ef": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, first_name, last_name FROM customers WHERE customer_id = 4",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "last_name"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4,
+       "Diego",
+       "Lopez"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT customer_id, first_name, last_name FROM customers WHERE customer_id = 22",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "last_name"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       22,
+       "Tomas",
+       "Martin"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT customer_id, first_name, last_name FROM customers WHERE customer_id = 18",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "last_name"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       18,
+       "Leila",
+       "Martin"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT customer_id, first_name, last_name FROM customers WHERE customer_id = 10",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "last_name"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       10,
+       "Lucas",
+       "Lin"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT customer_id, first_name, last_name FROM customers WHERE customer_id = 7",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "last_name"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       7,
+       "Nina",
+       "Kim"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:7cd7e229eeb4": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Com_select'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Com_select",
+       "26"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:0695b5629782": {
+   "statements": [
+    {
+     "sql": "SELECT o.order_id, c.customer_id, c.first_name, c.last_name\nFROM orders o JOIN customers c ON c.customer_id = o.customer_id\nWHERE o.status = 'shipped'\nORDER BY o.order_id LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "first_name",
+      "last_name"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       8,
+       4,
+       "Diego",
+       "Lopez"
+      ],
+      [
+       13,
+       22,
+       "Tomas",
+       "Martin"
+      ],
+      [
+       14,
+       18,
+       "Leila",
+       "Martin"
+      ],
+      [
+       15,
+       10,
+       "Lucas",
+       "Lin"
+      ],
+      [
+       17,
+       7,
+       "Nina",
+       "Kim"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT o.order_id, c.first_name FROM orders o JOIN customers c ON c.customer_id = o.customer_id\nWHERE o.status = 'shipped' ORDER BY o.order_id LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "o",
+       null,
+       "index",
+       "idx_orders_customer",
+       "PRIMARY",
+       "4",
+       null,
+       5,
+       16.67,
+       "Using where"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "eq_ref",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "o.customer_id",
+       1,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `o`.`order_id` AS `order_id`,`c`.`first_name` AS `first_name` from `orders` `o` join `customers` `c` where ((`c`.`customer_id` = `o`.`customer_id`) and (`o`.`status` = 'shipped')) order by `o`.`order_id` limit 5"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:2ae0ce78cca3": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, first_name, last_name FROM customers WHERE customer_id IN (4, 22, 18, 10, 7) ORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "last_name"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       4,
+       "Diego",
+       "Lopez"
+      ],
+      [
+       7,
+       "Nina",
+       "Kim"
+      ],
+      [
+       10,
+       "Lucas",
+       "Lin"
+      ],
+      [
+       18,
+       "Leila",
+       "Martin"
+      ],
+      [
+       22,
+       "Tomas",
+       "Martin"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.6:7cd7e229eeb4": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Com_select'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Com_select",
+       "29"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s24:887554bb933c": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE big_products_csv (product_id INT PRIMARY KEY, tags VARCHAR(100) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE big_product_tags (product_id INT NOT NULL, tag_id INT NOT NULL, PRIMARY KEY (product_id, tag_id), KEY idx_tag (tag_id, product_id))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 50000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO big_products_csv\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 50000)\nSELECT n, CONCAT_WS(',', n % 50, (n * 7) % 50 + 50, (n * 13) % 50 + 100) FROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Records: 50000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO big_product_tags\nSELECT product_id, CAST(SUBSTRING_INDEX(tags, ',', 1) AS UNSIGNED) FROM big_products_csv\nUNION ALL SELECT product_id, CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(tags, ',', 2), ',', -1) AS UNSIGNED) FROM big_products_csv\nUNION ALL SELECT product_id, CAST(SUBSTRING_INDEX(tags, ',', -1) AS UNSIGNED) FROM big_products_csv",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 150000,
+     "info": "Records: 150000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE big_products_csv, big_product_tags",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "big_products_csv",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "big_product_tags",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s25:5faa8c54993f": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM big_products_csv WHERE FIND_IN_SET('7', tags)",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=10098 rows=1) (actual time=10.5..10.5 rows=1 loops=1)\n    -> Filter: (0 <> find_in_set('7',big_products_csv.tags))  (cost=5069 rows=50290) (actual time=0.0782..10.5 rows=1000 loops=1)\n        -> Table scan on big_products_csv  (cost=5069 rows=50290) (actual time=0.0744..5.6 rows=50000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 11.49
+    },
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM big_product_tags WHERE tag_id = 7",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=201 rows=1) (actual time=0.152..0.152 rows=1 loops=1)\n    -> Covering index lookup on big_product_tags using idx_tag (tag_id=7)  (cost=101 rows=1000) (actual time=0.03..0.108 rows=1000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.03
+    }
+   ],
+   "measured": true
+  },
+  "s26:3282b03c182b": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE comments_no_check (\n  comment_id INT PRIMARY KEY, product_id INT UNSIGNED NULL, order_id INT UNSIGNED NULL,\n  CONSTRAINT fk_cnc_product FOREIGN KEY (product_id) REFERENCES products (product_id),\n  CONSTRAINT fk_cnc_order   FOREIGN KEY (order_id)   REFERENCES orders (order_id))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO comments_no_check VALUES (1, NULL, NULL), (2, 3, 12)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT comment_id, product_id, order_id FROM comments_no_check ORDER BY comment_id",
+     "status": "ok",
+     "columns": [
+      "comment_id",
+      "product_id",
+      "order_id"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       null,
+       null
+      ],
+      [
+       2,
+       3,
+       12
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

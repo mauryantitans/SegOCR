@@ -1,0 +1,712 @@
+{
+ "doc": "m13-analytical-optimization",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:9dea73f66901": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE sales_fact (\n  sale_id    INT UNSIGNED      NOT NULL,\n  sale_date  DATE              NOT NULL,\n  product_id INT UNSIGNED      NOT NULL,\n  store_id   TINYINT UNSIGNED  NOT NULL,\n  quantity   SMALLINT UNSIGNED NOT NULL,\n  revenue    DECIMAL(10,2)     NOT NULL,\n  PRIMARY KEY (sale_id, sale_date),\n  KEY idx_sf_product_date (product_id, sale_date)\n)\nPARTITION BY RANGE COLUMNS (sale_date) (\n  PARTITION p2024q1 VALUES LESS THAN ('2024-04-01'),\n  PARTITION p2024q2 VALUES LESS THAN ('2024-07-01'),\n  PARTITION p2024q3 VALUES LESS THAN ('2024-10-01'),\n  PARTITION p2024q4 VALUES LESS THAN ('2025-01-01'),\n  PARTITION pmax    VALUES LESS THAN (MAXVALUE)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 300000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sales_fact\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 300000)\nSELECT n,\n       DATE '2024-01-01' + INTERVAL (n % 366) DAY,\n       1 + (n * 7) % 30,\n       1 + n % 8,\n       1 + n % 5,\n       (1 + n % 5) * ((n * 13) % 200 + 9.99)\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 300000,
+     "info": "Records: 300000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE sales_fact",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "sales_fact",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT PARTITION_NAME, TABLE_ROWS\nFROM information_schema.PARTITIONS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sales_fact'\nORDER BY PARTITION_ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "PARTITION_NAME",
+      "TABLE_ROWS"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "p2024q1",
+       74925
+      ],
+      [
+       "p2024q2",
+       74925
+      ],
+      [
+       "p2024q3",
+       75735
+      ],
+      [
+       "p2024q4",
+       75735
+      ],
+      [
+       "pmax",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:cf9d59a6e85f": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT c.name AS category, SUM(f.revenue) AS revenue\nFROM sales_fact f\nJOIN products p   ON p.product_id = f.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE f.sale_date >= '2024-04-01' AND f.sale_date < '2024-07-01'\nGROUP BY c.name",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (actual time=182..182 rows=9 loops=1)\n    -> Aggregate using temporary table  (actual time=182..182 rows=9 loops=1)\n        -> Nested loop inner join  (cost=13375 rows=8323) (actual time=0.722..149 rows=72160 loops=1)\n            -> Nested loop inner join  (cost=10462 rows=8323) (actual time=0.717..99.8 rows=72160 loops=1)\n                -> Filter: ((f.sale_date >= DATE'2024-04-01') and (f.sale_date < DATE'2024-07-01'))  (cost=7549 rows=8323) (actual time=0.705..27.5 rows=74620 loops=1)\n                    -> Table scan on f  (cost=7549 rows=74925) (actual time=0.702..18.9 rows=74620 loops=1)\n                -> Filter: (p.category_id is not null)  (cost=0.25 rows=1) (actual time=737e-6..811e-6 rows=0.967 loops=74620)\n                    -> Single-row index lookup on p using PRIMARY (product_id=f.product_id)  (cost=0.25 rows=1) (actual time=616e-6..640e-6 rows=1 loops=74620)\n            -> Single-row index lookup on c using PRIMARY (category_id=p.category_id)  (cost=0.25 rows=1) (actual time=513e-6..537e-6 rows=1 loops=72160)\n"
+      ]
+     ],
+     "elapsed_ms": 186.73
+    }
+   ],
+   "measured": true
+  },
+  "s3:2cd573012414": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT SUM(revenue) FROM sales_fact\nWHERE sale_date >= '2024-05-01' AND sale_date < '2024-06-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "sales_fact",
+       "p2024q2",
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       74925,
+       11.11,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select sum(`sales_fact`.`revenue`) AS `SUM(revenue)` from `sales_fact` where ((`sales_fact`.`sale_date` >= DATE'2024-05-01') and (`sales_fact`.`sale_date` < DATE'2024-06-01'))"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT SUM(revenue) FROM sales_fact\nWHERE YEAR(sale_date) = 2024 AND MONTH(sale_date) = 5",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "sales_fact",
+       "p2024q1,p2024q2,p2024q3,p2024q4,pmax",
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       301320,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select sum(`sales_fact`.`revenue`) AS `SUM(revenue)` from `sales_fact` where ((year(`sales_fact`.`sale_date`) = 2024) and (month(`sales_fact`.`sale_date`) = 5))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:fae2b9dcb0d3": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE sales_fact ADD INDEX idx_sf_cover (sale_date, product_id, revenue)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE sales_fact",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "sales_fact",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:cf9d59a6e85f": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT c.name AS category, SUM(f.revenue) AS revenue\nFROM sales_fact f\nJOIN products p   ON p.product_id = f.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE f.sale_date >= '2024-04-01' AND f.sale_date < '2024-07-01'\nGROUP BY c.name",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Group aggregate: sum(f.revenue)  (cost=31285 rows=10) (actual time=25.3..113 rows=9 loops=1)\n    -> Nested loop inner join  (cost=22547 rows=87387) (actual time=0.691..102 rows=72160 loops=1)\n        -> Nested loop inner join  (cost=6.76 rows=30) (actual time=0.0175..0.14 rows=29 loops=1)\n            -> Covering index scan on c using uq_categories_name  (cost=1.25 rows=10) (actual time=0.0104..0.0245 rows=10 loops=1)\n            -> Covering index lookup on p using idx_products_category (category_id=c.category_id)  (cost=0.281 rows=3) (actual time=0.00573..0.0105 rows=2.9 loops=10)\n        -> Index lookup on f using idx_sf_product_date (product_id=p.product_id), with index condition: ((f.sale_date >= DATE'2024-04-01') and (f.sale_date < DATE'2024-07-01'))  (cost=174 rows=2913) (actual time=0.366..3.32 rows=2488 loops=29)\n"
+      ]
+     ],
+     "elapsed_ms": 114.8
+    }
+   ],
+   "measured": true
+  },
+  "s6:ddf6c3776a9e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE agg_daily_product (\n  sale_date  DATE         NOT NULL,\n  product_id INT UNSIGNED NOT NULL,\n  quantity   INT UNSIGNED NOT NULL,\n  revenue    DECIMAL(14,2) NOT NULL,\n  n_sales    INT UNSIGNED NOT NULL,\n  PRIMARY KEY (sale_date, product_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO agg_daily_product\nSELECT sale_date, product_id, SUM(quantity), SUM(revenue), COUNT(*)\nFROM sales_fact GROUP BY sale_date, product_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1830,
+     "info": "Records: 1830  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE agg_daily_product",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "agg_daily_product",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM sales_fact) AS fact_rows, (SELECT COUNT(*) FROM agg_daily_product) AS summary_rows",
+     "status": "ok",
+     "columns": [
+      "fact_rows",
+      "summary_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       300000,
+       1830
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:db4912b9158e": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT c.name AS category, SUM(a.revenue) AS revenue\nFROM agg_daily_product a\nJOIN products p   ON p.product_id = a.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE a.sale_date >= '2024-04-01' AND a.sale_date < '2024-07-01'\nGROUP BY c.name",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (actual time=1.03..1.04 rows=9 loops=1)\n    -> Aggregate using temporary table  (actual time=1.02..1.02 rows=9 loops=1)\n        -> Nested loop inner join  (cost=410 rows=455) (actual time=0.0443..0.844 rows=440 loops=1)\n            -> Nested loop inner join  (cost=251 rows=455) (actual time=0.0402..0.571 rows=440 loops=1)\n                -> Filter: ((a.sale_date >= DATE'2024-04-01') and (a.sale_date < DATE'2024-07-01'))  (cost=91.4 rows=455) (actual time=0.0325..0.211 rows=455 loops=1)\n                    -> Index range scan on a using PRIMARY over ('2024-04-01' <= sale_date < '2024-07-01')  (cost=91.4 rows=455) (actual time=0.0306..0.17 rows=455 loops=1)\n                -> Filter: (p.category_id is not null)  (cost=0.25 rows=1) (actual time=576e-6..642e-6 rows=0.967 loops=455)\n                    -> Single-row index lookup on p using PRIMARY (product_id=a.product_id)  (cost=0.25 rows=1) (actual time=470e-6..491e-6 rows=1 loops=455)\n            -> Single-row index lookup on c using PRIMARY (category_id=p.category_id)  (cost=0.25 rows=1) (actual time=474e-6..495e-6 rows=1 loops=440)\n"
+      ]
+     ],
+     "elapsed_ms": 2.37
+    }
+   ],
+   "measured": true
+  },
+  "s8:b1201e2bb30e": {
+   "statements": [
+    {
+     "sql": "SELECT\n  (SELECT SUM(revenue) FROM sales_fact WHERE sale_date >= '2024-04-01' AND sale_date < '2024-07-01')        AS from_fact,\n  (SELECT SUM(revenue) FROM agg_daily_product WHERE sale_date >= '2024-04-01' AND sale_date < '2024-07-01') AS from_summary",
+     "status": "ok",
+     "columns": [
+      "from_fact",
+      "from_summary"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "24585901.40",
+       "24585901.40"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:64281348d865": {
+   "statements": [
+    {
+     "sql": "INSERT INTO sales_fact VALUES\n  (300001, '2024-12-31', 5, 1, 2, 59.98),\n  (300002, '2024-12-31', 5, 2, 1, 29.99),\n  (300003, '2024-12-31', 12, 3, 1, 129.99)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO agg_daily_product\nSELECT * FROM (\n  SELECT sale_date, product_id, SUM(quantity) AS quantity, SUM(revenue) AS revenue, COUNT(*) AS n_sales\n  FROM sales_fact\n  WHERE sale_date = '2024-12-31'\n  GROUP BY sale_date, product_id\n) AS fresh\nON DUPLICATE KEY UPDATE quantity = fresh.quantity, revenue = fresh.revenue, n_sales = fresh.n_sales",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 6  Duplicates: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT sale_date, product_id, quantity, revenue, n_sales\nFROM agg_daily_product WHERE sale_date = '2024-12-31' AND product_id IN (5, 12) ORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "sale_date",
+      "product_id",
+      "quantity",
+      "revenue",
+      "n_sales"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "2024-12-31",
+       5,
+       3,
+       "89.97",
+       2
+      ],
+      [
+       "2024-12-31",
+       12,
+       657,
+       "74907.43",
+       165
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:5fde554fccf3": {
+   "statements": [
+    {
+     "sql": "SELECT sale_date, SUM(revenue) AS revenue\nFROM agg_daily_product GROUP BY sale_date ORDER BY sale_date LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "sale_date",
+      "revenue"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "2024-01-01",
+       "266345.41"
+      ],
+      [
+       "2024-01-02",
+       "272215.40"
+      ],
+      [
+       "2024-01-03",
+       "268835.40"
+      ],
+      [
+       "2024-01-04",
+       "272215.40"
+      ],
+      [
+       "2024-01-05",
+       "266955.40"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:649b70102dc1": {
+   "statements": [
+    {
+     "sql": "SELECT sale_date, revenue,\n       ROUND(AVG(revenue) OVER w7, 2) AS moving_avg_7d,\n       SUM(revenue) OVER (ORDER BY sale_date ROWS UNBOUNDED PRECEDING) AS running_total\nFROM (SELECT sale_date, SUM(revenue) AS revenue FROM agg_daily_product GROUP BY sale_date) AS d\nWINDOW w7 AS (ORDER BY sale_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)\nORDER BY sale_date\nLIMIT 10",
+     "status": "ok",
+     "columns": [
+      "sale_date",
+      "revenue",
+      "moving_avg_7d",
+      "running_total"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       "2024-01-01",
+       "266345.41",
+       "266345.41",
+       "266345.41"
+      ],
+      [
+       "2024-01-02",
+       "272215.40",
+       "269280.41",
+       "538560.81"
+      ],
+      [
+       "2024-01-03",
+       "268835.40",
+       "269132.07",
+       "807396.21"
+      ],
+      [
+       "2024-01-04",
+       "272215.40",
+       "269902.90",
+       "1079611.61"
+      ],
+      [
+       "2024-01-05",
+       "266955.40",
+       "269313.40",
+       "1346567.01"
+      ],
+      [
+       "2024-01-06",
+       "272455.40",
+       "269837.07",
+       "1619022.41"
+      ],
+      [
+       "2024-01-07",
+       "268915.40",
+       "269705.40",
+       "1887937.81"
+      ],
+      [
+       "2024-01-08",
+       "271935.40",
+       "270503.97",
+       "2159873.21"
+      ],
+      [
+       "2024-01-09",
+       "267515.40",
+       "269832.54",
+       "2427388.61"
+      ],
+      [
+       "2024-01-10",
+       "272855.40",
+       "270406.83",
+       "2700244.01"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:250fae350e85": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT sale_date,\n       AVG(revenue) OVER (ORDER BY sale_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS ma7,\n       SUM(revenue) OVER (ORDER BY sale_date ROWS UNBOUNDED PRECEDING) AS running_total\nFROM (SELECT sale_date, SUM(revenue) AS revenue FROM agg_daily_product GROUP BY sale_date) AS d",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Window aggregate: sum(d.revenue) OVER (ORDER BY d.sale_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) \n    -> Table scan on <temporary>  (cost=2.5..2.5 rows=0)\n        -> Temporary table  (cost=0..0 rows=0)\n            -> Window aggregate with buffering: avg(revenue) OVER (ORDER BY d.sale_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) \n                -> Sort: d.sale_date  (cost=760..760 rows=366)\n                    -> Table scan on d  (cost=405..412 rows=366)\n                        -> Materialize  (cost=405..405 rows=366)\n                            -> Group aggregate: sum(agg_daily_product.revenue)  (cost=368 rows=366)\n                                -> Index scan on agg_daily_product using PRIMARY  (cost=185 rows=1831)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:1b736d65cb58": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT sale_date, product_id, revenue,\n       SUM(revenue) OVER (PARTITION BY product_id ORDER BY sale_date) AS product_running,\n       RANK() OVER (PARTITION BY sale_date ORDER BY revenue DESC)      AS rank_in_day\nFROM agg_daily_product",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Window aggregate: rank() OVER (PARTITION BY agg_daily_product.sale_date ORDER BY agg_daily_product.revenue desc ) \n    -> Sort: agg_daily_product.sale_date, agg_daily_product.revenue DESC\n        -> Table scan on <temporary>  (cost=2.5..2.5 rows=0)\n            -> Temporary table  (cost=0..0 rows=0)\n                -> Window aggregate with buffering: sum(agg_daily_product.revenue) OVER (PARTITION BY agg_daily_product.product_id ORDER BY agg_daily_product.sale_date ) \n                    -> Sort: agg_daily_product.product_id, agg_daily_product.sale_date  (cost=185 rows=1831)\n                        -> Table scan on agg_daily_product  (cost=185 rows=1831)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:2fdc152608d1": {
+   "statements": [
+    {
+     "sql": "SELECT month, product_id, revenue\nFROM (\n  SELECT DATE_FORMAT(sale_date, '%Y-%m') AS month, product_id, SUM(revenue) AS revenue,\n         RANK() OVER (PARTITION BY DATE_FORMAT(sale_date, '%Y-%m') ORDER BY SUM(revenue) DESC) AS rnk\n  FROM agg_daily_product\n  GROUP BY DATE_FORMAT(sale_date, '%Y-%m'), product_id\n) AS ranked\nWHERE rnk = 1\nORDER BY month, product_id\nLIMIT 6",
+     "status": "ok",
+     "columns": [
+      "month",
+      "product_id",
+      "revenue"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "2024-01",
+       19,
+       "525590.80"
+      ],
+      [
+       "2024-02",
+       4,
+       "459559.00"
+      ],
+      [
+       "2024-03",
+       19,
+       "527190.80"
+      ],
+      [
+       "2024-04",
+       4,
+       "459559.00"
+      ],
+      [
+       "2024-05",
+       14,
+       "549190.80"
+      ],
+      [
+       "2024-06",
+       14,
+       "459759.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:c9ba03eafddd": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE daily_revenue (sale_date DATE PRIMARY KEY, revenue DECIMAL(14,2) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO daily_revenue SELECT sale_date, SUM(revenue) FROM agg_daily_product GROUP BY sale_date",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 366,
+     "info": "Records: 366  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE daily_revenue",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "daily_revenue",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:cfdc5eba2ca1": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT d.sale_date, (SELECT SUM(x.revenue) FROM daily_revenue x WHERE x.sale_date <= d.sale_date) AS running_total\nFROM daily_revenue d",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Covering index scan on d using PRIMARY  (cost=36.9 rows=366) (actual time=0.0277..0.0609 rows=366 loops=1)\n-> Select #2 (subquery in projection; dependent)\n    -> Aggregate: sum(x.revenue)  (cost=24.6 rows=1) (actual time=0.108..0.108 rows=1 loops=366)\n        -> Filter: (x.sale_date <= d.sale_date)  (cost=12.4 rows=122) (actual time=0.0261..0.0924 rows=184 loops=366)\n            -> Index range scan on x (re-planned for each iteration)  (cost=12.4 rows=366) (actual time=0.0259..0.0679 rows=366 loops=366)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'd.sale_date' of SELECT #2 was resolved in SELECT #1"
+      }
+     ],
+     "elapsed_ms": 41.51
+    },
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT sale_date, SUM(revenue) OVER (ORDER BY sale_date ROWS UNBOUNDED PRECEDING) AS running_total\nFROM daily_revenue",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Window aggregate: sum(daily_revenue.revenue) OVER (ORDER BY daily_revenue.sale_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)   (actual time=0.115..0.226 rows=366 loops=1)\n    -> Sort: daily_revenue.sale_date  (cost=36.9 rows=366) (actual time=0.107..0.147 rows=366 loops=1)\n        -> Table scan on daily_revenue  (cost=36.9 rows=366) (actual time=0.0372..0.0631 rows=366 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.15
+    }
+   ],
+   "measured": true
+  },
+  "s13:dd4b42e57813": {
+   "statements": [
+    {
+     "sql": "SELECT ROUND(AVG(daily_avg), 4) AS avg_of_daily_avgs,\n       ROUND(SUM(daily_rev) / SUM(daily_n), 4) AS true_avg_per_sale\nFROM (SELECT sale_date, AVG(revenue) AS daily_avg, SUM(revenue) AS daily_rev, COUNT(*) AS daily_n\n      FROM sales_fact WHERE sale_date >= '2024-12-01' GROUP BY sale_date) AS d",
+     "status": "ok",
+     "columns": [
+      "avg_of_daily_avgs",
+      "true_avg_per_sale"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "329.5390",
+       "329.5392"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:d8a3bd1a92b4": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, sale_date FROM agg_daily_product\nWHERE RANK() OVER (PARTITION BY product_id ORDER BY revenue DESC) = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3593,
+      "message": "You cannot use the window function 'rank' in this context.'"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

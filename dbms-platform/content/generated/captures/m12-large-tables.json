@@ -99,7 +99,7 @@
      "columns": [],
      "affected_rows": 105119,
      "rows": [],
-     "elapsed_ms": 737.8
+     "elapsed_ms": 856.06
     }
    ],
    "measured": true
@@ -133,7 +133,7 @@
        105119
       ]
      ],
-     "elapsed_ms": 1375.91
+     "elapsed_ms": 1679.86
     }
    ],
    "measured": true
@@ -264,7 +264,7 @@
      "columns": [],
      "affected_rows": 1,
      "rows": [],
-     "elapsed_ms": 1841.76
+     "elapsed_ms": 2259.02
     }
    ],
    "measured": true
@@ -342,7 +342,7 @@
        105120
       ]
      ],
-     "elapsed_ms": 1894.07
+     "elapsed_ms": 2035.98
     }
    ],
    "measured": true
@@ -924,7 +924,7 @@
      "columns": [],
      "affected_rows": 1,
      "rows": [],
-     "elapsed_ms": 1729.73
+     "elapsed_ms": 2273.92
     }
    ],
    "measured": true
@@ -937,7 +937,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 61.05
+     "elapsed_ms": 32.59
     }
    ],
    "measured": true
@@ -951,7 +951,7 @@
      "affected_rows": 3000,
      "info": "Records: 3000  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 13.18
+     "elapsed_ms": 11.11
     }
    ],
    "measured": true

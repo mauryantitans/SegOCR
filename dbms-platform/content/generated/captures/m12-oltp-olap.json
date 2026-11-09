@@ -351,10 +351,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Limit: 5 row(s)  (cost=14 rows=5) (actual time=0.129..0.131 rows=5 loops=1)\n    -> Index lookup on sales using idx_sales_customer_time (customer_id=4217) (reverse)  (cost=14 rows=40) (actual time=0.128..0.13 rows=5 loops=1)\n"
+       "-> Limit: 5 row(s)  (cost=14 rows=5) (actual time=0.162..0.163 rows=5 loops=1)\n    -> Index lookup on sales using idx_sales_customer_time (customer_id=4217) (reverse)  (cost=14 rows=40) (actual time=0.161..0.162 rows=5 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 1.15
+     "elapsed_ms": 1.02
     }
    ],
    "measured": true
@@ -370,10 +370,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=131..131 rows=48 loops=1)\n    -> Aggregate using temporary table  (actual time=131..131 rows=48 loops=1)\n        -> Table scan on sales  (cost=20321 rows=198162) (actual time=0.278..32.3 rows=200000 loops=1)\n"
+       "-> Table scan on <temporary>  (actual time=169..169 rows=48 loops=1)\n    -> Aggregate using temporary table  (actual time=169..169 rows=48 loops=1)\n        -> Table scan on sales  (cost=20321 rows=198162) (actual time=0.716..40.4 rows=200000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 131.79
+     "elapsed_ms": 170.74
     }
    ],
    "measured": true
@@ -493,10 +493,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=179..179 rows=48 loops=1)\n    -> Aggregate using temporary table  (actual time=179..179 rows=48 loops=1)\n        -> Covering index scan on sales using idx_sales_region_time_amount  (cost=20321 rows=198162) (actual time=0.307..34.3 rows=200000 loops=1)\n"
+       "-> Table scan on <temporary>  (actual time=180..180 rows=48 loops=1)\n    -> Aggregate using temporary table  (actual time=180..180 rows=48 loops=1)\n        -> Covering index scan on sales using idx_sales_region_time_amount  (cost=20321 rows=198162) (actual time=0.274..33.9 rows=200000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 180.13
+     "elapsed_ms": 180.88
     }
    ],
    "measured": true
@@ -680,22 +680,22 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "A",
-        "trxId": "450910",
-        "state": "RUNNING",
-        "isolation": "REPEATABLE READ",
-        "rowsLocked": 5,
-        "rowsModified": 3,
-        "lockStructs": 3
-       },
-       {
         "session": "B",
-        "trxId": "450913",
+        "trxId": "545604",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
         "rowsModified": 0,
         "lockStructs": 2
+       },
+       {
+        "session": "A",
+        "trxId": "545598",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 5,
+        "rowsModified": 3,
+        "lockStructs": 3
        }
       ],
       "locks": [

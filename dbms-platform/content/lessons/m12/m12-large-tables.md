@@ -192,7 +192,7 @@ IGNORE 1 LINES
 ```
 
 :::version[LOAD DATA LOCAL and bulk-load options]
-`LOAD DATA LOCAL` requires `local_infile` to be enabled on both client and server (it is OFF by default on the server since 8.0). MySQL 8.4 additionally offers `LOAD DATA … ALGORITHM=BULK` in some editions/services (HeatWave) for faster parallel loading; it is not part of the 8.0 community server, so check the 8.4 manual for your edition before relying on it. The MySQL Shell utilities `util.importTable()` (parallel chunked import) and `util.loadDump()` are the standard community tools for multi-gigabyte loads.
+`LOAD DATA LOCAL` requires `local_infile` to be enabled on both client and server (it is OFF by default on the server since 8.0). Oracle documents an additional bulk-load algorithm for `LOAD DATA` in some recent Enterprise/HeatWave offerings; it is not part of the 8.0 community server, so check the manual for your exact edition and version before relying on it. The MySQL Shell utilities `util.importTable()` (parallel chunked import) and `util.loadDump()` are the standard community tools for multi-gigabyte loads.
 :::
 
 ## Practical Examples

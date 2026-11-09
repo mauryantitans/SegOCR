@@ -1,0 +1,1655 @@
+{
+ "doc": "p1-student-management",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:4219e3de451b": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE registrar_sheet (\n  student_number   CHAR(9),\n  student_name     VARCHAR(100),\n  student_email    VARCHAR(255),\n  course_code      VARCHAR(10),\n  course_title     VARCHAR(150),\n  credits          TINYINT,\n  instructor_email VARCHAR(255),\n  dept_name        VARCHAR(100),\n  term_code        CHAR(6),\n  grade            VARCHAR(2)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO registrar_sheet VALUES\n  ('S20240001','Maya Patel','maya.patel@students.example.edu','CS101','Introduction to Programming',4,'priya.raman@faculty.example.edu','Computer Science','2024FA','A'),\n  ('S20240001','Maya Patel','maya.patel@students.example.edu','MATH120','Calculus I',4,'elena.petrova@faculty.example.edu','Mathematics','2024FA','B+'),\n  ('S20240001','Maya Patel','mpatel@mail.example.com','CS210','Data Structures',4,'david.okafor@faculty.example.edu','Computer Science','2025SP','A-'),\n  ('S20240002','Liam Chen','liam.chen@students.example.edu','CS101','Intro to Programming',4,'priya.raman@faculty.example.edu','Computer Science','2024FA','B'),\n  ('S20240002','Liam Chen','liam.chen@students.example.edu','DATA200','Introduction to Data Analytics',3,'samuel.ortiz@faculty.example.edu','Data Science','2024FA','A'),\n  ('S20240003','Sofia Garcia','sofia.garcia@students.example.edu','CS101','Introduction to Programming',4,'priya.raman@faculty.example.edu','Computer Science','2024FA','A-'),\n  ('S20240003','Sofia Garcia','sofia.garcia@students.example.edu','CS340','Database Systems',3,'priya.raman@faculty.example.edu','Computer Science','2025SP','A'),\n  ('S20240003','Sofia Garcia','sofia.g@students.example.edu','MATH250','Linear Algebra',3,'elena.petrova@faculty.example.edu','Mathematics','2025FA',NULL),\n  ('S20240004','Noah Kim','noah.kim@students.example.edu','MATH120','Calculus I',4,'elena.petrova@faculty.example.edu','Mathematics','2024FA','A'),\n  ('S20240004','Noah Kim','noah.kim@students.example.edu','CS340','Database Systems',4,'priya.raman@faculty.example.edu','Computer Science','2025FA',NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 10,
+     "info": "Records: 10  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM registrar_sheet ORDER BY student_number, term_code, course_code",
+     "status": "ok",
+     "columns": [
+      "student_number",
+      "student_name",
+      "student_email",
+      "course_code",
+      "course_title",
+      "credits",
+      "instructor_email",
+      "dept_name",
+      "term_code",
+      "grade"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       "S20240001",
+       "Maya Patel",
+       "maya.patel@students.example.edu",
+       "CS101",
+       "Introduction to Programming",
+       4,
+       "priya.raman@faculty.example.edu",
+       "Computer Science",
+       "2024FA",
+       "A"
+      ],
+      [
+       "S20240001",
+       "Maya Patel",
+       "maya.patel@students.example.edu",
+       "MATH120",
+       "Calculus I",
+       4,
+       "elena.petrova@faculty.example.edu",
+       "Mathematics",
+       "2024FA",
+       "B+"
+      ],
+      [
+       "S20240001",
+       "Maya Patel",
+       "mpatel@mail.example.com",
+       "CS210",
+       "Data Structures",
+       4,
+       "david.okafor@faculty.example.edu",
+       "Computer Science",
+       "2025SP",
+       "A-"
+      ],
+      [
+       "S20240002",
+       "Liam Chen",
+       "liam.chen@students.example.edu",
+       "CS101",
+       "Intro to Programming",
+       4,
+       "priya.raman@faculty.example.edu",
+       "Computer Science",
+       "2024FA",
+       "B"
+      ],
+      [
+       "S20240002",
+       "Liam Chen",
+       "liam.chen@students.example.edu",
+       "DATA200",
+       "Introduction to Data Analytics",
+       3,
+       "samuel.ortiz@faculty.example.edu",
+       "Data Science",
+       "2024FA",
+       "A"
+      ],
+      [
+       "S20240003",
+       "Sofia Garcia",
+       "sofia.garcia@students.example.edu",
+       "CS101",
+       "Introduction to Programming",
+       4,
+       "priya.raman@faculty.example.edu",
+       "Computer Science",
+       "2024FA",
+       "A-"
+      ],
+      [
+       "S20240003",
+       "Sofia Garcia",
+       "sofia.g@students.example.edu",
+       "MATH250",
+       "Linear Algebra",
+       3,
+       "elena.petrova@faculty.example.edu",
+       "Mathematics",
+       "2025FA",
+       null
+      ],
+      [
+       "S20240003",
+       "Sofia Garcia",
+       "sofia.garcia@students.example.edu",
+       "CS340",
+       "Database Systems",
+       3,
+       "priya.raman@faculty.example.edu",
+       "Computer Science",
+       "2025SP",
+       "A"
+      ],
+      [
+       "S20240004",
+       "Noah Kim",
+       "noah.kim@students.example.edu",
+       "MATH120",
+       "Calculus I",
+       4,
+       "elena.petrova@faculty.example.edu",
+       "Mathematics",
+       "2024FA",
+       "A"
+      ],
+      [
+       "S20240004",
+       "Noah Kim",
+       "noah.kim@students.example.edu",
+       "CS340",
+       "Database Systems",
+       4,
+       "priya.raman@faculty.example.edu",
+       "Computer Science",
+       "2025FA",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:9e9fa31e48a0": {
+   "statements": [
+    {
+     "sql": "-- Update anomaly: one course, two different titles / credit values\nSELECT course_code,\n       COUNT(DISTINCT course_title) AS titles,\n       COUNT(DISTINCT credits)      AS credit_values,\n       GROUP_CONCAT(DISTINCT course_title ORDER BY course_title SEPARATOR ' | ') AS spellings\nFROM registrar_sheet\nGROUP BY course_code\nHAVING COUNT(DISTINCT course_title) > 1 OR COUNT(DISTINCT credits) > 1\nORDER BY course_code",
+     "status": "ok",
+     "columns": [
+      "course_code",
+      "titles",
+      "credit_values",
+      "spellings"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "CS101",
+       2,
+       1,
+       "Intro to Programming | Introduction to Programming"
+      ],
+      [
+       "CS340",
+       1,
+       2,
+       "Database Systems"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:e798f55d5f21": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE departments (\n  dept_id   INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  dept_code CHAR(4)      NOT NULL,\n  name      VARCHAR(100) NOT NULL,\n  building  VARCHAR(60)  NULL,\n  PRIMARY KEY (dept_id),\n  CONSTRAINT uq_departments_code UNIQUE (dept_code),\n  CONSTRAINT uq_departments_name UNIQUE (name)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE instructors (\n  instructor_id INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  dept_id       INT UNSIGNED NOT NULL,\n  first_name    VARCHAR(50)  NOT NULL,\n  last_name     VARCHAR(50)  NOT NULL,\n  email         VARCHAR(255) NOT NULL,\n  hire_date     DATE         NOT NULL,\n  PRIMARY KEY (instructor_id),\n  CONSTRAINT uq_instructors_email UNIQUE (email),\n  CONSTRAINT fk_instructors_dept FOREIGN KEY (dept_id) REFERENCES departments (dept_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE grade_scale (\n  grade       VARCHAR(2)   NOT NULL,\n  points      DECIMAL(3,2) NULL,\n  description VARCHAR(60)  NOT NULL,\n  PRIMARY KEY (grade),\n  CONSTRAINT chk_grade_points CHECK (points BETWEEN 0 AND 4)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SHOW TABLES",
+     "status": "ok",
+     "columns": [
+      "Tables_in_lab_8abcfbe5aedaaba98ace"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "departments"
+      ],
+      [
+       "grade_scale"
+      ],
+      [
+       "instructors"
+      ],
+      [
+       "registrar_sheet"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:497aa633d0cd": {
+   "statements": [
+    {
+     "sql": "SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_KEY, COLUMN_DEFAULT, EXTRA\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'instructors'\nORDER BY ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "COLUMN_TYPE",
+      "IS_NULLABLE",
+      "COLUMN_KEY",
+      "COLUMN_DEFAULT",
+      "EXTRA"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "instructor_id",
+       "int unsigned",
+       "NO",
+       "PRI",
+       null,
+       "auto_increment"
+      ],
+      [
+       "dept_id",
+       "int unsigned",
+       "NO",
+       "MUL",
+       null,
+       ""
+      ],
+      [
+       "first_name",
+       "varchar(50)",
+       "NO",
+       "",
+       null,
+       ""
+      ],
+      [
+       "last_name",
+       "varchar(50)",
+       "NO",
+       "",
+       null,
+       ""
+      ],
+      [
+       "email",
+       "varchar(255)",
+       "NO",
+       "UNI",
+       null,
+       ""
+      ],
+      [
+       "hire_date",
+       "date",
+       "NO",
+       "",
+       null,
+       ""
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:ef53cd7d7e34": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE students (\n  student_id     INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  student_number CHAR(9)      NOT NULL,\n  first_name     VARCHAR(50)  NOT NULL,\n  last_name      VARCHAR(50)  NOT NULL,\n  email          VARCHAR(255) NOT NULL,\n  date_of_birth  DATE         NOT NULL,\n  major_dept_id  INT UNSIGNED NULL,\n  enrolled_on    DATE         NOT NULL,\n  status         ENUM('active','on_leave','graduated','withdrawn') NOT NULL DEFAULT 'active',\n  PRIMARY KEY (student_id),\n  CONSTRAINT uq_students_number UNIQUE (student_number),\n  CONSTRAINT uq_students_email  UNIQUE (email),\n  CONSTRAINT fk_students_major  FOREIGN KEY (major_dept_id) REFERENCES departments (dept_id),\n  CONSTRAINT chk_students_number CHECK (student_number REGEXP '^S[0-9]{8}$')\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE courses (\n  course_id     INT UNSIGNED      NOT NULL AUTO_INCREMENT,\n  dept_id       INT UNSIGNED      NOT NULL,\n  course_code   VARCHAR(10)       NOT NULL,\n  title         VARCHAR(150)      NOT NULL,\n  credits       TINYINT UNSIGNED  NOT NULL,\n  capacity      SMALLINT UNSIGNED NOT NULL DEFAULT 30,\n  instructor_id INT UNSIGNED      NULL,\n  PRIMARY KEY (course_id),\n  CONSTRAINT uq_courses_code UNIQUE (course_code),\n  CONSTRAINT fk_courses_dept FOREIGN KEY (dept_id) REFERENCES departments (dept_id),\n  CONSTRAINT fk_courses_instructor FOREIGN KEY (instructor_id) REFERENCES instructors (instructor_id) ON DELETE SET NULL,\n  CONSTRAINT chk_courses_credits CHECK (credits BETWEEN 1 AND 6),\n  CONSTRAINT chk_courses_capacity CHECK (capacity > 0)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME, CONSTRAINT_NAME, CONSTRAINT_TYPE\nFROM information_schema.TABLE_CONSTRAINTS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('students', 'courses')\nORDER BY TABLE_NAME, CONSTRAINT_TYPE, CONSTRAINT_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "CONSTRAINT_NAME",
+      "CONSTRAINT_TYPE"
+     ],
+     "row_count": 11,
+     "rows": [
+      [
+       "courses",
+       "chk_courses_capacity",
+       "CHECK"
+      ],
+      [
+       "courses",
+       "chk_courses_credits",
+       "CHECK"
+      ],
+      [
+       "courses",
+       "fk_courses_dept",
+       "FOREIGN KEY"
+      ],
+      [
+       "courses",
+       "fk_courses_instructor",
+       "FOREIGN KEY"
+      ],
+      [
+       "courses",
+       "PRIMARY",
+       "PRIMARY KEY"
+      ],
+      [
+       "courses",
+       "uq_courses_code",
+       "UNIQUE"
+      ],
+      [
+       "students",
+       "chk_students_number",
+       "CHECK"
+      ],
+      [
+       "students",
+       "fk_students_major",
+       "FOREIGN KEY"
+      ],
+      [
+       "students",
+       "PRIMARY",
+       "PRIMARY KEY"
+      ],
+      [
+       "students",
+       "uq_students_email",
+       "UNIQUE"
+      ],
+      [
+       "students",
+       "uq_students_number",
+       "UNIQUE"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:d81461bb9cd7": {
+   "statements": [
+    {
+     "sql": "INSERT INTO departments (dept_id, dept_code, name, building) VALUES\n  (1, 'CS',   'Computer Science', 'Duncan Hall'),\n  (2, 'MATH', 'Mathematics',      'MacQuarrie Hall'),\n  (3, 'DATA', 'Data Science',     'Duncan Hall'),\n  (4, 'BUS',  'Business',         'Boccardo Center')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO instructors (instructor_id, dept_id, first_name, last_name, email, hire_date) VALUES\n  (1, 1, 'Priya',  'Raman',   'priya.raman@faculty.example.edu',   '2015-08-15'),\n  (2, 1, 'David',  'Okafor',  'david.okafor@faculty.example.edu',  '2018-01-10'),\n  (3, 2, 'Elena',  'Petrova', 'elena.petrova@faculty.example.edu', '2012-08-20'),\n  (4, 3, 'Samuel', 'Ortiz',   'samuel.ortiz@faculty.example.edu',  '2019-08-19'),\n  (5, 3, 'Hannah', 'Weiss',   'hannah.weiss@faculty.example.edu',  '2021-01-11'),\n  (6, 4, 'Marcus', 'Bell',    'marcus.bell@faculty.example.edu',   '2016-08-22')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 6,
+     "info": "Records: 6  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO grade_scale (grade, points, description) VALUES\n  ('A', 4.00, 'Excellent'), ('A-', 3.70, 'Excellent'), ('B+', 3.30, 'Good'), ('B', 3.00, 'Good'),\n  ('B-', 2.70, 'Good'), ('C+', 2.30, 'Satisfactory'), ('C', 2.00, 'Satisfactory'), ('C-', 1.70, 'Below average'),\n  ('D', 1.00, 'Poor'), ('F', 0.00, 'Fail'), ('W', NULL, 'Withdrawn - not counted in GPA')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 11,
+     "info": "Records: 11  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO students (student_id, student_number, first_name, last_name, email, date_of_birth, major_dept_id, enrolled_on, status) VALUES\n  (1,  'S20240001', 'Maya',     'Patel',    'maya.patel@students.example.edu',     '2003-04-12', 1,    '2024-08-19', 'active'),\n  (2,  'S20240002', 'Liam',     'Chen',     'liam.chen@students.example.edu',      '2002-11-03', 3,    '2024-08-19', 'active'),\n  (3,  'S20240003', 'Sofia',    'Garcia',   'sofia.garcia@students.example.edu',   '2004-01-25', 1,    '2024-08-19', 'active'),\n  (4,  'S20240004', 'Noah',     'Kim',      'noah.kim@students.example.edu',       '2003-07-30', 2,    '2024-08-19', 'active'),\n  (5,  'S20240005', 'Ava',      'Johnson',  'ava.johnson@students.example.edu',    '2001-09-14', 4,    '2024-08-19', 'on_leave'),\n  (6,  'S20240006', 'Ethan',    'Nguyen',   'ethan.nguyen@students.example.edu',   '2004-03-08', 3,    '2024-08-19', 'active'),\n  (7,  'S20240007', 'Isabella', 'Rossi',    'isabella.rossi@students.example.edu', '2003-12-01', 1,    '2024-08-19', 'active'),\n  (8,  'S20240008', 'Lucas',    'Brown',    'lucas.brown@students.example.edu',    '2002-05-22', 4,    '2024-08-19', 'withdrawn'),\n  (9,  'S20240009', 'Mia',      'Wilson',   'mia.wilson@students.example.edu',     '2004-06-17', 3,    '2024-08-19', 'active'),\n  (10, 'S20240010', 'Arjun',    'Singh',    'arjun.singh@students.example.edu',    '2003-02-28', 1,    '2024-08-19', 'active'),\n  (11, 'S20250011', 'Olivia',   'Martin',   'olivia.martin@students.example.edu',  '2005-08-09', 3,    '2025-01-21', 'active'),\n  (12, 'S20250012', 'James',    'Lee',      'james.lee@students.example.edu',      '2005-10-30', 2,    '2025-01-21', 'active'),\n  (13, 'S20250013', 'Chloe',    'Davis',    'chloe.davis@students.example.edu',    '2004-12-12', NULL, '2025-01-21', 'active'),\n  (14, 'S20250014', 'Daniel',   'Lopez',    'daniel.lopez@students.example.edu',   '2005-03-03', 1,    '2025-01-21', 'active'),\n  (15, 'S20250015', 'Emma',     'Thompson', 'emma.thompson@students.example.edu',  '2005-05-19', 4,    '2025-01-21', 'active'),\n  (16, 'S20250016', 'Ryan',     'Park',     'ryan.park@students.example.edu',      '2005-07-07', 3,    '2025-08-18', 'active'),\n  (17, 'S20250017', 'Zoe',      'Clark',    'zoe.clark@students.example.edu',      '2006-01-15', 1,    '2025-08-18', 'active'),\n  (18, 'S20250018', 'Omar',     'Haddad',   'omar.haddad@students.example.edu',    '2005-11-11', NULL, '2025-08-18', 'active'),\n  (19, 'S20250019', 'Grace',    'Ito',      'grace.ito@students.example.edu',      '2006-02-20', 2,    '2025-08-18', 'active'),\n  (20, 'S20250020', 'Henry',    'Walker',   'henry.walker@students.example.edu',   '2005-09-09', 4,    '2025-08-18', 'active')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 20,
+     "info": "Records: 20  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO courses (course_id, dept_id, course_code, title, credits, capacity, instructor_id) VALUES\n  (1,  1, 'CS101',   'Introduction to Programming',     4, 40, 1),\n  (2,  1, 'CS210',   'Data Structures',                 4, 35, 2),\n  (3,  1, 'CS340',   'Database Systems',                3, 30, 1),\n  (4,  2, 'MATH120', 'Calculus I',                      4, 45, 3),\n  (5,  2, 'MATH250', 'Linear Algebra',                  3, 35, 3),\n  (6,  3, 'DATA200', 'Introduction to Data Analytics',  3, 40, 4),\n  (7,  3, 'DATA310', 'Machine Learning',                3, 30, 5),\n  (8,  4, 'BUS100',  'Introduction to Business',        3, 50, 6),\n  (9,  4, 'BUS220',  'Business Statistics',             3, 40, 6),\n  (10, 3, 'DATA400', 'Data Science Capstone',           4, 20, NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 10,
+     "info": "Records: 10  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM departments) AS departments, (SELECT COUNT(*) FROM instructors) AS instructors,\n       (SELECT COUNT(*) FROM students) AS students, (SELECT COUNT(*) FROM courses) AS courses",
+     "status": "ok",
+     "columns": [
+      "departments",
+      "instructors",
+      "students",
+      "courses"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4,
+       6,
+       20,
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:57280d4f0762": {
+   "statements": [
+    {
+     "sql": "-- Foreign key: department 9 does not exist (error 1452)\nINSERT INTO instructors (dept_id, first_name, last_name, email, hire_date)\nVALUES (9, 'Test', 'Person', 'test.person@faculty.example.edu', '2025-01-01')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`instructors`, CONSTRAINT `fk_instructors_dept` FOREIGN KEY (`dept_id`) REFERENCES `departments` (`dept_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:b43a74b5c7c4": {
+   "statements": [
+    {
+     "sql": "-- UNIQUE: email already used by Maya Patel, typed in a different case (error 1062)\nINSERT INTO students (student_number, first_name, last_name, email, date_of_birth, enrolled_on)\nVALUES ('S20259999', 'Maya', 'Imposter', 'MAYA.PATEL@students.example.edu', '2005-01-01', '2025-08-18')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'MAYA.PATEL@students.example.edu' for key 'students.uq_students_email'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:f190f99edfb8": {
+   "statements": [
+    {
+     "sql": "-- CHECK: 8 credits is outside 1..6 (error 3819)\nUPDATE courses SET credits = 8 WHERE course_code = 'CS340'",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_courses_credits' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s10:fe5d6da10195": {
+   "statements": [
+    {
+     "sql": "-- Referenced row: a department with instructors and courses cannot be deleted (error 1451)\nDELETE FROM departments WHERE dept_code = 'BUS'",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1451,
+      "message": "Cannot delete or update a parent row: a foreign key constraint fails (`courses`, CONSTRAINT `fk_courses_dept` FOREIGN KEY (`dept_id`) REFERENCES `departments` (`dept_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:bc783b31bb59": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE enrollments (\n  student_id  INT UNSIGNED NOT NULL,\n  course_id   INT UNSIGNED NOT NULL,\n  term_code   CHAR(6)      NOT NULL,\n  grade       VARCHAR(2)   NULL,\n  enrolled_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  PRIMARY KEY (student_id, course_id, term_code),\n  CONSTRAINT fk_enrollments_student FOREIGN KEY (student_id) REFERENCES students (student_id),\n  CONSTRAINT fk_enrollments_course  FOREIGN KEY (course_id)  REFERENCES courses (course_id),\n  CONSTRAINT fk_enrollments_grade   FOREIGN KEY (grade)      REFERENCES grade_scale (grade),\n  CONSTRAINT chk_enrollments_term   CHECK (term_code REGEXP '^[0-9]{4}(SP|SU|FA)$')\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO enrollments (student_id, course_id, term_code, grade) VALUES\n  (1,1,'2024FA','A'),(1,4,'2024FA','B+'),(2,1,'2024FA','B'),(2,6,'2024FA','A'),\n  (3,1,'2024FA','A-'),(3,4,'2024FA','C+'),(4,4,'2024FA','A'),(4,1,'2024FA','B-'),\n  (5,8,'2024FA','B'),(5,9,'2024FA','W'),(6,6,'2024FA','B+'),(6,4,'2024FA','C'),\n  (7,1,'2024FA','B+'),(7,4,'2024FA','B'),(8,8,'2024FA','D'),(8,9,'2024FA','F'),\n  (9,6,'2024FA','A'),(9,1,'2024FA','A-'),(10,1,'2024FA','C'),(10,4,'2024FA','B-'),\n  (1,2,'2025SP','A-'),(1,5,'2025SP','B'),(2,7,'2025SP','B+'),(2,9,'2025SP','A-'),\n  (3,2,'2025SP','B'),(3,3,'2025SP','A'),(4,5,'2025SP','A'),(4,2,'2025SP','B+'),\n  (6,7,'2025SP','B'),(6,9,'2025SP','B-'),(7,2,'2025SP','C+'),(7,3,'2025SP','B+'),\n  (9,7,'2025SP','A'),(9,5,'2025SP','B+'),(10,2,'2025SP','B'),(10,3,'2025SP','W'),\n  (11,1,'2025SP','A'),(11,6,'2025SP','A-'),(12,4,'2025SP','B'),(12,1,'2025SP','B+'),\n  (13,8,'2025SP','A-'),(13,6,'2025SP','B'),(14,1,'2025SP','C+'),(14,4,'2025SP','C'),\n  (15,8,'2025SP','B+'),(15,9,'2025SP','B'),\n  (1,3,'2025FA',NULL),(1,7,'2025FA',NULL),(2,10,'2025FA',NULL),(2,3,'2025FA',NULL),\n  (3,7,'2025FA',NULL),(3,5,'2025FA',NULL),(4,3,'2025FA',NULL),(6,10,'2025FA',NULL),\n  (6,3,'2025FA',NULL),(7,7,'2025FA',NULL),(9,10,'2025FA',NULL),(9,3,'2025FA',NULL),\n  (11,2,'2025FA',NULL),(11,7,'2025FA',NULL),(12,5,'2025FA',NULL),(12,2,'2025FA',NULL),\n  (13,9,'2025FA',NULL),(14,2,'2025FA',NULL),(14,6,'2025FA',NULL),(16,1,'2025FA',NULL),\n  (16,6,'2025FA',NULL),(17,1,'2025FA',NULL),(17,4,'2025FA',NULL),(18,8,'2025FA',NULL),\n  (18,1,'2025FA',NULL),(19,4,'2025FA',NULL),(19,1,'2025FA',NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 73,
+     "info": "Records: 73  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT term_code, COUNT(*) AS enrolments, COUNT(grade) AS graded\nFROM enrollments\nGROUP BY term_code\nORDER BY LEFT(term_code, 4), FIELD(RIGHT(term_code, 2), 'SP', 'SU', 'FA')",
+     "status": "ok",
+     "columns": [
+      "term_code",
+      "enrolments",
+      "graded"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "2024FA",
+       20,
+       20
+      ],
+      [
+       "2025SP",
+       26,
+       26
+      ],
+      [
+       "2025FA",
+       27,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:7660a434f3f0": {
+   "statements": [
+    {
+     "sql": "-- Create: admit a new student (student_id is generated)\nINSERT INTO students (student_number, first_name, last_name, email, date_of_birth, major_dept_id, enrolled_on)\nVALUES ('S20250021', 'Priyanka', 'Das', 'priyanka.das@students.example.edu', '2006-03-30', 3, '2025-08-18')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT LAST_INSERT_ID() AS new_student_id",
+     "status": "ok",
+     "columns": [
+      "new_student_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       22
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:7716263b255b": {
+   "statements": [
+    {
+     "sql": "-- Update: Chloe Davis declares a Data Science major. Preview, then change by natural key.\nSELECT student_id, student_number, major_dept_id FROM students WHERE student_number = 'S20250013'",
+     "status": "ok",
+     "columns": [
+      "student_id",
+      "student_number",
+      "major_dept_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       13,
+       "S20250013",
+       null
+      ]
+     ]
+    },
+    {
+     "sql": "UPDATE students\nSET major_dept_id = (SELECT dept_id FROM departments WHERE dept_code = 'DATA')\nWHERE student_number = 'S20250013'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT student_number, first_name, last_name, major_dept_id FROM students WHERE student_number = 'S20250013'",
+     "status": "ok",
+     "columns": [
+      "student_number",
+      "first_name",
+      "last_name",
+      "major_dept_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "S20250013",
+       "Chloe",
+       "Davis",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:a100e28e7f64": {
+   "statements": [
+    {
+     "sql": "-- Create + Delete: Priyanka registers for CS101, then drops it during the add/drop period\nINSERT INTO enrollments (student_id, course_id, term_code)\nSELECT s.student_id, c.course_id, '2025FA'\nFROM students s JOIN courses c ON c.course_code = 'CS101'\nWHERE s.student_number = 'S20250021'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "DELETE e FROM enrollments e\nJOIN students s ON s.student_id = e.student_id\nJOIN courses  c ON c.course_id  = e.course_id\nWHERE s.student_number = 'S20250021' AND c.course_code = 'CS101' AND e.term_code = '2025FA'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS priyanka_enrolments\nFROM enrollments e JOIN students s ON s.student_id = e.student_id\nWHERE s.student_number = 'S20250021'",
+     "status": "ok",
+     "columns": [
+      "priyanka_enrolments"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:e7ada9df590e": {
+   "statements": [
+    {
+     "sql": "SELECT c.course_code, c.title, CONCAT(i.first_name, ' ', i.last_name) AS instructor\nFROM courses c\nJOIN instructors i ON i.instructor_id = c.instructor_id\nORDER BY c.course_code",
+     "status": "ok",
+     "columns": [
+      "course_code",
+      "title",
+      "instructor"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       "BUS100",
+       "Introduction to Business",
+       "Marcus Bell"
+      ],
+      [
+       "BUS220",
+       "Business Statistics",
+       "Marcus Bell"
+      ],
+      [
+       "CS101",
+       "Introduction to Programming",
+       "Priya Raman"
+      ],
+      [
+       "CS210",
+       "Data Structures",
+       "David Okafor"
+      ],
+      [
+       "CS340",
+       "Database Systems",
+       "Priya Raman"
+      ],
+      [
+       "DATA200",
+       "Introduction to Data Analytics",
+       "Samuel Ortiz"
+      ],
+      [
+       "DATA310",
+       "Machine Learning",
+       "Hannah Weiss"
+      ],
+      [
+       "MATH120",
+       "Calculus I",
+       "Elena Petrova"
+      ],
+      [
+       "MATH250",
+       "Linear Algebra",
+       "Elena Petrova"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:c96d8f7e6f59": {
+   "statements": [
+    {
+     "sql": "SELECT c.course_code, c.title, COALESCE(CONCAT(i.first_name, ' ', i.last_name), '(unassigned)') AS instructor\nFROM courses c\nLEFT JOIN instructors i ON i.instructor_id = c.instructor_id\nORDER BY c.course_code",
+     "status": "ok",
+     "columns": [
+      "course_code",
+      "title",
+      "instructor"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       "BUS100",
+       "Introduction to Business",
+       "Marcus Bell"
+      ],
+      [
+       "BUS220",
+       "Business Statistics",
+       "Marcus Bell"
+      ],
+      [
+       "CS101",
+       "Introduction to Programming",
+       "Priya Raman"
+      ],
+      [
+       "CS210",
+       "Data Structures",
+       "David Okafor"
+      ],
+      [
+       "CS340",
+       "Database Systems",
+       "Priya Raman"
+      ],
+      [
+       "DATA200",
+       "Introduction to Data Analytics",
+       "Samuel Ortiz"
+      ],
+      [
+       "DATA310",
+       "Machine Learning",
+       "Hannah Weiss"
+      ],
+      [
+       "DATA400",
+       "Data Science Capstone",
+       "(unassigned)"
+      ],
+      [
+       "MATH120",
+       "Calculus I",
+       "Elena Petrova"
+      ],
+      [
+       "MATH250",
+       "Linear Algebra",
+       "Elena Petrova"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:60e35be491ed": {
+   "statements": [
+    {
+     "sql": "SELECT c.course_code,\n       c.capacity,\n       COUNT(e.student_id)                              AS enrolled,\n       c.capacity - COUNT(e.student_id)                 AS seats_left,\n       ROUND(100 * COUNT(e.student_id) / c.capacity, 1) AS pct_full\nFROM courses c\nLEFT JOIN enrollments e ON e.course_id = c.course_id AND e.term_code = '2025FA'\nGROUP BY c.course_id, c.course_code, c.capacity\nORDER BY pct_full DESC, c.course_code",
+     "status": "ok",
+     "columns": [
+      "course_code",
+      "capacity",
+      "enrolled",
+      "seats_left",
+      "pct_full"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       "CS340",
+       30,
+       5,
+       25,
+       "16.7"
+      ],
+      [
+       "DATA400",
+       20,
+       3,
+       17,
+       "15.0"
+      ],
+      [
+       "DATA310",
+       30,
+       4,
+       26,
+       "13.3"
+      ],
+      [
+       "CS101",
+       40,
+       4,
+       36,
+       "10.0"
+      ],
+      [
+       "CS210",
+       35,
+       3,
+       32,
+       "8.6"
+      ],
+      [
+       "MATH250",
+       35,
+       2,
+       33,
+       "5.7"
+      ],
+      [
+       "DATA200",
+       40,
+       2,
+       38,
+       "5.0"
+      ],
+      [
+       "MATH120",
+       45,
+       2,
+       43,
+       "4.4"
+      ],
+      [
+       "BUS220",
+       40,
+       1,
+       39,
+       "2.5"
+      ],
+      [
+       "BUS100",
+       50,
+       1,
+       49,
+       "2.0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:4e6a0416a05a": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX, COLUMN_NAME, NON_UNIQUE\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('students', 'enrollments')\nORDER BY TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "INDEX_NAME",
+      "SEQ_IN_INDEX",
+      "COLUMN_NAME",
+      "NON_UNIQUE"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       "enrollments",
+       "fk_enrollments_course",
+       1,
+       "course_id",
+       1
+      ],
+      [
+       "enrollments",
+       "fk_enrollments_grade",
+       1,
+       "grade",
+       1
+      ],
+      [
+       "enrollments",
+       "PRIMARY",
+       1,
+       "student_id",
+       0
+      ],
+      [
+       "enrollments",
+       "PRIMARY",
+       2,
+       "course_id",
+       0
+      ],
+      [
+       "enrollments",
+       "PRIMARY",
+       3,
+       "term_code",
+       0
+      ],
+      [
+       "students",
+       "fk_students_major",
+       1,
+       "major_dept_id",
+       1
+      ],
+      [
+       "students",
+       "PRIMARY",
+       1,
+       "student_id",
+       0
+      ],
+      [
+       "students",
+       "uq_students_email",
+       1,
+       "email",
+       0
+      ],
+      [
+       "students",
+       "uq_students_number",
+       1,
+       "student_number",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:722b24fe2663": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE students",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "students",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT student_number, first_name, last_name FROM students WHERE last_name = 'Garcia'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "students",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       21,
+       10.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `students`.`student_number` AS `student_number`,`students`.`first_name` AS `first_name`,`students`.`last_name` AS `last_name` from `students` where (`students`.`last_name` = 'Garcia')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:12ca0b39fa70": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_students_name ON students (last_name, first_name)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE students",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "students",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT student_number, first_name, last_name FROM students WHERE last_name = 'Garcia'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "students",
+       null,
+       "ref",
+       "idx_students_name",
+       "idx_students_name",
+       "202",
+       "const",
+       1,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `students`.`student_number` AS `student_number`,`students`.`first_name` AS `first_name`,`students`.`last_name` AS `last_name` from `students` where (`students`.`last_name` = 'Garcia')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:f00a0742be3c": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_enrollments_course_term ON enrollments (course_id, term_code)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT INDEX_NAME, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS columns\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'enrollments'\nGROUP BY INDEX_NAME\nORDER BY INDEX_NAME",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "columns"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "fk_enrollments_grade",
+       "grade"
+      ],
+      [
+       "idx_enrollments_course_term",
+       "course_id,term_code"
+      ],
+      [
+       "PRIMARY",
+       "student_id,course_id,term_code"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:9fa9e7ef4b2d": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM enrollments WHERE student_id = 4 AND course_id = 3 AND term_code = '2025FA'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS rows_deleted",
+     "status": "ok",
+     "columns": [
+      "rows_deleted"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:23d8dd8e4e76": {
+   "statements": [
+    {
+     "sql": "INSERT INTO enrollments (student_id, course_id, term_code) VALUES (4, 99, '2025FA')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`enrollments`, CONSTRAINT `fk_enrollments_course` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s24:8f57a004f4f8": {
+   "statements": [
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT e.term_code, c.course_code FROM enrollments e JOIN courses c ON c.course_id = e.course_id\nWHERE e.student_id = 4 AND e.term_code = '2025FA'",
+     "status": "ok",
+     "columns": [
+      "term_code",
+      "course_code"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2025FA",
+       "CS340"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s25:ff0a025890c3": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM enrollments WHERE student_id = 4 AND course_id = 3 AND term_code = '2025FA'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO enrollments (student_id, course_id, term_code) VALUES (4, 7, '2025FA')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT e.term_code, c.course_code FROM enrollments e JOIN courses c ON c.course_id = e.course_id\nWHERE e.student_id = 4 AND e.term_code = '2025FA'",
+     "status": "ok",
+     "columns": [
+      "term_code",
+      "course_code"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2025FA",
+       "DATA310"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s27:fdf110a8e8aa": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE admission_applications (\n  application_id  INT UNSIGNED NOT NULL PRIMARY KEY,\n  applicant_email VARCHAR(255) NOT NULL,\n  program         VARCHAR(10)  NOT NULL,\n  submitted_at    DATETIME     NOT NULL,\n  status          ENUM('submitted','under_review','admitted','rejected') NOT NULL,\n  INDEX idx_applications_submitted (submitted_at)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 100000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO admission_applications\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 100000)\nSELECT n,\n       CONCAT('applicant', n, '@mail.example.com'),\n       ELT(1 + n % 5, 'CS', 'DATA', 'MATH', 'BUS', 'UNDECLARED'),\n       TIMESTAMP('2023-01-01') + INTERVAL ((n * 7919) % 1576800) MINUTE,\n       ELT(1 + (n * 31) % 4, 'submitted', 'under_review', 'admitted', 'rejected')\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE admission_applications",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "admission_applications",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s28:c7ea920f4352": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM admission_applications\nWHERE YEAR(submitted_at) = 2025 AND MONTH(submitted_at) = 3",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "admission_applications",
+       null,
+       "index",
+       null,
+       "idx_applications_submitted",
+       "5",
+       null,
+       99745,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `admission_applications` where ((year(`admission_applications`.`submitted_at`) = 2025) and (month(`admission_applications`.`submitted_at`) = 3))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s29:bad7297728cd": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM admission_applications\nWHERE submitted_at >= '2025-03-01' AND submitted_at < '2025-04-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "admission_applications",
+       null,
+       "range",
+       "idx_applications_submitted",
+       "idx_applications_submitted",
+       "5",
+       null,
+       2830,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `admission_applications` where ((`admission_applications`.`submitted_at` >= TIMESTAMP'2025-03-01 00:00:00') and (`admission_applications`.`submitted_at` < TIMESTAMP'2025-04-01 00:00:00'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s30:294c9b4ac717": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM admission_applications\n        WHERE YEAR(submitted_at) = 2025 AND MONTH(submitted_at) = 3) AS with_functions,\n       (SELECT COUNT(*) FROM admission_applications\n        WHERE submitted_at >= '2025-03-01' AND submitted_at < '2025-04-01') AS sargable_range",
+     "status": "ok",
+     "columns": [
+      "with_functions",
+      "sargable_range"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2830,
+       2830
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s31:f677102d4db3": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM admission_applications\nWHERE YEAR(submitted_at) = 2025 AND MONTH(submitted_at) = 3",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=20069 rows=1) (actual time=18.5..18.5 rows=1 loops=1)\n    -> Filter: ((year(admission_applications.submitted_at) = 2025) and (month(admission_applications.submitted_at) = 3))  (cost=10095 rows=99745) (actual time=12.9..18.4 rows=2830 loops=1)\n        -> Covering index scan on admission_applications using idx_applications_submitted  (cost=10095 rows=99745) (actual time=0.03..11.5 rows=100000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 19.37
+    }
+   ],
+   "measured": true
+  },
+  "s32:f29ca24bea34": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM admission_applications\nWHERE submitted_at >= '2025-03-01' AND submitted_at < '2025-04-01'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=850 rows=1) (actual time=0.828..0.828 rows=1 loops=1)\n    -> Filter: ((admission_applications.submitted_at >= TIMESTAMP'2025-03-01 00:00:00') and (admission_applications.submitted_at < TIMESTAMP'2025-04-01 00:00:00'))  (cost=567 rows=2830) (actual time=0.0315..0.704 rows=2830 loops=1)\n        -> Covering index range scan on admission_applications using idx_applications_submitted over ('2025-03-01 00:00:00' <= submitted_at < '2025-04-01 00:00:00')  (cost=567 rows=2830) (actual time=0.0294..0.4 rows=2830 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.83
+    }
+   ],
+   "measured": true
+  },
+  "s34:c41b4baae087": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW v_student_directory AS\nSELECT s.student_number,\n       s.first_name,\n       s.last_name,\n       s.email,\n       d.dept_code AS major,\n       s.status\nFROM students s\nLEFT JOIN departments d ON d.dept_id = s.major_dept_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM v_student_directory WHERE status = 'active' ORDER BY student_number LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "student_number",
+      "first_name",
+      "last_name",
+      "email",
+      "major",
+      "status"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "S20240001",
+       "Maya",
+       "Patel",
+       "maya.patel@students.example.edu",
+       "CS",
+       "active"
+      ],
+      [
+       "S20240002",
+       "Liam",
+       "Chen",
+       "liam.chen@students.example.edu",
+       "DATA",
+       "active"
+      ],
+      [
+       "S20240003",
+       "Sofia",
+       "Garcia",
+       "sofia.garcia@students.example.edu",
+       "CS",
+       "active"
+      ],
+      [
+       "S20240004",
+       "Noah",
+       "Kim",
+       "noah.kim@students.example.edu",
+       "MATH",
+       "active"
+      ],
+      [
+       "S20240006",
+       "Ethan",
+       "Nguyen",
+       "ethan.nguyen@students.example.edu",
+       "DATA",
+       "active"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s35:b160f89989a9": {
+   "statements": [
+    {
+     "sql": "-- Rule: no duplicate enrolment in the same term (primary key) — must fail with 1062\nINSERT INTO enrollments (student_id, course_id, term_code) VALUES (1, 3, '2025FA')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '1-3-2025FA' for key 'enrollments.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s36:bf047c9f8eda": {
+   "statements": [
+    {
+     "sql": "-- Rule: term codes are YYYY + SP/SU/FA — must fail with 3819\nINSERT INTO enrollments (student_id, course_id, term_code) VALUES (16, 2, 'FALL25')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_enrollments_term' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s37:464b674e7df7": {
+   "statements": [
+    {
+     "sql": "-- Rule: enrolment history is never deleted with the student — must fail with 1451\nDELETE FROM students WHERE student_number = 'S20240008'",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1451,
+      "message": "Cannot delete or update a parent row: a foreign key constraint fails (`enrollments`, CONSTRAINT `fk_enrollments_student` FOREIGN KEY (`student_id`) REFERENCES `students` (`student_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s38:1d20859cf0cc": {
+   "statements": [
+    {
+     "sql": "-- Positive: a retake of a failed course in a later term is allowed (Lucas failed BUS220 in 2024FA)\nSTART TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO enrollments (student_id, course_id, term_code) VALUES (8, 9, '2025SP')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT term_code, grade FROM enrollments WHERE student_id = 8 AND course_id = 9 ORDER BY term_code",
+     "status": "ok",
+     "columns": [
+      "term_code",
+      "grade"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "2024FA",
+       "F"
+      ],
+      [
+       "2025SP",
+       null
+      ]
+     ]
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s39:c5880aee037a": {
+   "statements": [
+    {
+     "sql": "SELECT 'instructor_outside_course_department' AS check_name, COUNT(*) AS failures\nFROM courses c JOIN instructors i ON i.instructor_id = c.instructor_id\nWHERE i.dept_id <> c.dept_id\nUNION ALL\nSELECT 'course_over_capacity_2025FA', COUNT(*)\nFROM (SELECT c.course_id\n      FROM courses c JOIN enrollments e ON e.course_id = c.course_id AND e.term_code = '2025FA'\n      GROUP BY c.course_id, c.capacity\n      HAVING COUNT(*) > c.capacity) AS over_cap",
+     "status": "ok",
+     "columns": [
+      "check_name",
+      "failures"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "instructor_outside_course_department",
+       0
+      ],
+      [
+       "course_over_capacity_2025FA",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

@@ -73,7 +73,7 @@
      "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 16.34
+     "elapsed_ms": 13.63
     }
    ],
    "measured": true
@@ -111,7 +111,7 @@
      "affected_rows": 0,
      "info": "Records: 0  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 214.61
+     "elapsed_ms": 208.02
     }
    ],
    "measured": true
@@ -155,7 +155,7 @@
      "affected_rows": 200000,
      "info": "Records: 200000  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 630.45
+     "elapsed_ms": 681.02
     }
    ],
    "measured": true
@@ -269,7 +269,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 3928.0
+     "elapsed_ms": 3538.41
     }
    ],
    "measured": true

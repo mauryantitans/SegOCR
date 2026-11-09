@@ -1,0 +1,474 @@
+id: m12-assessment
+module: m12
+title: "Module 12 Assessment — Real-World Database Engineering"
+passMark: 70
+description: >-
+  Covers the whole module: application architecture around MySQL (pools, transactions in request handlers,
+  deadlock retry, N+1), OLTP vs OLAP and summary tables, online schema evolution (INSTANT/INPLACE/COPY,
+  metadata locks, expand–contract), read replicas and consistency strategies, partitioning and pruning,
+  sharding and resharding, caching patterns and stampedes, large-table batching and archiving, HA/DR with
+  RPO/RTO, troubleshooting methodology, distributed integrity (idempotency keys, outbox, sagas,
+  reconciliation), and observability and capacity planning.
+questions:
+  - id: q1
+    question: "An API handles 1,200 requests/s and each request holds a database connection for 25 ms on average. Using Little's law, how many connections are busy on average across the fleet?"
+    options: ["12", "30", "48", "1,200"]
+    answer: 1
+    explanation: "L = λ × W = 1,200/s × 0.025 s = 30. 12 corresponds to 10 ms, 48 to 40 ms; 1,200 confuses arrival rate with concurrency. Pool sizes are then set with headroom per instance, not to the request rate."
+    concepts: [connection-pooling]
+  - id: q2
+    question: "A request handler receives error 1213 inside a transaction that inserted an order and two order lines. What must the retry logic do?"
+    options:
+      - "Re-execute only the statement that failed"
+      - "Roll back, back off with jitter, and re-run the entire transaction (bounded attempts)"
+      - "Commit what was done and report partial success"
+      - "Raise innodb_lock_wait_timeout"
+    answer: 1
+    explanation: "A deadlock victim's whole transaction is rolled back, so only re-running the whole unit of work is correct. Committing partial work is impossible (it was rolled back), and lock wait timeouts are unrelated to deadlock detection."
+    concepts: [deadlock-retry, transactions-in-handlers]
+  - id: q3
+    question: "A page renders 40 orders and lazily loads each order's customer through an ORM. How many SELECT statements reach MySQL, and what is the usual fix?"
+    options:
+      - "1; none needed"
+      - "41; eager loading (a join or a single IN (…) query for the customers)"
+      - "40; add an index on orders"
+      - "2; increase the pool size"
+    answer: 1
+    explanation: "N + 1 = 41 statements. Eager loading (joinedload/select_related or selectinload/prefetch_related) reduces it to 1 or 2. Indexes and pool size do not change the number of round trips."
+    concepts: [n-plus-one]
+  - id: q4
+    question: "A nightly job runs `INSERT INTO kpis SELECT … FROM orders …` at REPEATABLE READ on the primary and application updates on `orders` start to wait. Which change removes the waits without changing the result?"
+    options:
+      - "Run the job at READ COMMITTED (or on a replica), so the SELECT part is a consistent non-locking read"
+      - "Add FOR UPDATE to the SELECT"
+      - "Use LOCK TABLES orders READ"
+      - "Increase the buffer pool"
+    answer: 0
+    explanation: "At REPEATABLE READ, INSERT … SELECT takes shared next-key locks on the source rows; at READ COMMITTED it reads a consistent snapshot without locks. FOR UPDATE and LOCK TABLES make blocking worse; memory is irrelevant."
+    concepts: [etl-locking, oltp, olap]
+  - id: q5
+    question: "Which measures can be stored in a daily summary table and rolled up to months exactly? (Select all that apply.)"
+    type: multi
+    options: ["SUM(amount)", "COUNT(*)", "AVG(amount)", "COUNT(DISTINCT customer_id)"]
+    answer: [0, 1]
+    explanation: "Sums and counts are additive. Averages must be recomputed from sums and counts, and distinct counts are not additive across days."
+    concepts: [summary-tables]
+  - id: q6
+    question: "`ALTER TABLE t ADD COLUMN c INT, ALGORITHM=INSTANT` hangs on a busy production table. What is the most likely cause?"
+    options:
+      - "INSTANT rewrites every row and takes long on big tables"
+      - "It is waiting for an exclusive metadata lock held by an open transaction that touched t — and new queries on t now queue behind it"
+      - "The table has too many indexes"
+      - "The binary log is full"
+    answer: 1
+    explanation: "INSTANT changes only the dictionary but still needs a brief exclusive MDL. An idle open transaction holding a shared MDL blocks it, and later statements queue behind the pending exclusive request. Set lock_wait_timeout low in migration sessions."
+    concepts: [metadata-locks, algorithm-instant]
+  - id: q7
+    question: "Which schema changes on InnoDB (MySQL 8.0.29+/8.4) require ALGORITHM=COPY? (Select all that apply.)"
+    type: multi
+    options:
+      - "Changing a column from INT to BIGINT"
+      - "Adding a secondary index"
+      - "Widening a utf8mb4 VARCHAR(50) to VARCHAR(100)"
+      - "Dropping a column"
+    answer: [0, 2]
+    explanation: "Type changes need COPY, and so does crossing the 255-byte length-prefix boundary (200 → 400 bytes). Adding an index is INPLACE; dropping a column is INSTANT."
+    concepts: [online-ddl]
+  - id: q8
+    question: "A user edits their profile and the next page, read from an async replica, shows the old value. Which fix guarantees read-your-writes even when replica lag spikes to 30 s?"
+    options:
+      - "Route the user's reads to the primary for 5 seconds after a write"
+      - "Store the GTID of the user's write and read from a replica only after it has applied that GTID (WAIT_FOR_EXECUTED_GTID_SET), otherwise from the primary"
+      - "Enable semi-synchronous replication"
+      - "Use sticky sessions to one replica"
+    answer: 1
+    explanation: "A position-based token is exact. A 5-second window fails when lag exceeds 5 s; semi-sync only guarantees receipt, not apply; stickiness gives monotonic reads but not read-your-writes."
+    concepts: [read-your-writes, gtid]
+  - id: q9
+    question: "A table is partitioned by `RANGE COLUMNS(created_at)` by month. Which query cannot be pruned?"
+    options:
+      - "WHERE created_at >= '2024-03-01' AND created_at < '2024-04-01'"
+      - "WHERE created_at BETWEEN '2024-03-05' AND '2024-03-20'"
+      - "WHERE DATE_FORMAT(created_at, '%Y-%m') = '2024-03'"
+      - "WHERE created_at = '2024-03-07 10:00:00'"
+    answer: 2
+    explanation: "Wrapping the partitioning column in a function hides it from pruning, so every partition is read. Equality and ranges on the bare column map to partitions."
+    concepts: [partition-pruning]
+  - id: q10
+    question: "Why does `CREATE TABLE orders (order_id INT PRIMARY KEY, order_date DATE) PARTITION BY RANGE COLUMNS(order_date) (...)` fail with error 1503?"
+    options:
+      - "DATE columns cannot be partitioned"
+      - "Every unique key, including the primary key, must include the partitioning columns, because uniqueness is enforced per partition"
+      - "Partitioned tables need a foreign key"
+      - "RANGE COLUMNS requires MAXVALUE"
+    answer: 1
+    explanation: "Each partition has its own indexes; a unique key without the partitioning column could be violated across partitions. Foreign keys are actually not supported with partitioning (error 1506)."
+    concepts: [partitioning]
+  - id: q11
+    question: "A sharded system routes with `shard = hash(customer_id) % 8` and adds two shards (n = 10). Roughly what fraction of customers must move, and how is this avoided?"
+    options:
+      - "About 20%; nothing needs avoiding"
+      - "Most of them (the lab measured about 80% for 8 → 10); use a fixed number of buckets or hash ranges mapped to shards by a directory"
+      - "None; hashing is stable"
+      - "Exactly 50%; use range sharding"
+    answer: 1
+    explanation: "Modulo routing changes the shard of most keys when n changes. Fixed buckets (or Vitess-style keyspace-ID ranges) move only the reassigned buckets — close to the minimum of 20%."
+    concepts: [resharding]
+  - id: q12
+    question: "A cross-shard query must return the average order value per region. What must each shard return to the coordinator?"
+    options:
+      - "AVG(amount) per region"
+      - "SUM(amount) and COUNT(*) per region, so the coordinator can divide the totals"
+      - "Only COUNT(*)"
+      - "Every order row"
+    answer: 1
+    explanation: "Averaging per-shard averages is wrong unless shards have equal counts. Partial SUM and COUNT combine exactly; shipping every row works but defeats the pushdown."
+    concepts: [cross-shard-queries]
+  - id: q13
+    question: "A cache-aside reader misses, reads price 49.99, a writer updates the price and deletes the key, and the reader then stores 49.99. Which technique prevents this stale set?"
+    options:
+      - "A longer TTL"
+      - "Version-checked fills (or leases): store only if the version read is still current"
+      - "Writing the new value into the cache before committing"
+      - "Disabling the cache during updates"
+    answer: 1
+    explanation: "Conditioning the fill on the version (or a lease invalidated by the delete) rejects data read before the update. A longer TTL prolongs the staleness; writing before commit can cache uncommitted data."
+    concepts: [cache-invalidation]
+  - id: q14
+    question: "In the caching lab's stampede fix, why did followers use `FOR UPDATE SKIP LOCKED` on the lock row?"
+    options:
+      - "To wait in line for the leader"
+      - "To learn immediately that a leader is recomputing and serve the stale value instead of waiting or recomputing"
+      - "To delete the lock row"
+      - "Because FOR UPDATE does not work on single rows"
+    answer: 1
+    explanation: "SKIP LOCKED returns no row when it is locked, without waiting, so only one session recomputes and the rest serve stale data (stale-while-revalidate). Plain FOR UPDATE would make followers wait."
+    concepts: [cache-stampede, skip-locked]
+  - id: q15
+    question: "A purge must delete 80 million old rows from a replicated table. Which approach is safest?"
+    options:
+      - "One DELETE … WHERE created_at < ? statement"
+      - "A loop of DELETE … WHERE created_at < ? ORDER BY created_at LIMIT 5000, each batch its own transaction, throttled on replica lag, with an index on created_at"
+      - "TRUNCATE TABLE"
+      - "DELETE without WHERE during the night"
+    answer: 1
+    explanation: "Batching bounds lock duration, undo and replication event size; the index keeps each batch a range scan. A single DELETE lags replicas by its full duration; TRUNCATE removes everything."
+    concepts: [batching, chunked-deletes]
+  - id: q16
+    question: "A batch export pages through 50 million rows with `ORDER BY id LIMIT 1000 OFFSET ?`. Why does it get slower over time, and what is the fix?"
+    options:
+      - "The buffer pool fills; add memory"
+      - "Each page reads and discards all skipped rows; use keyset pagination (WHERE id > last_id ORDER BY id LIMIT 1000)"
+      - "OFFSET disables indexes; add an index"
+      - "MySQL caches earlier pages; disable the cache"
+    answer: 1
+    explanation: "OFFSET cost grows with the offset (the lab measured ~51,000 index steps for offset 50,000 versus ~1,000 for keyset). The index is used in both cases; there is no result cache."
+    concepts: [keyset-pagination]
+  - id: q17
+    question: "An architecture claims 'RPO = 0' using semi-synchronous replication with default settings. What is the caveat?"
+    options:
+      - "Semi-sync is only for read replicas"
+      - "If no replica acknowledges within rpl_semi_sync_source_timeout (10 s default), the source falls back to asynchronous replication and commits can again be lost on failover"
+      - "Semi-sync guarantees replicas have applied every transaction, so there is no caveat"
+      - "Semi-sync requires Group Replication"
+    answer: 1
+    explanation: "Semi-sync silently degrades to async after the timeout; RPO 0 holds only while it is active (monitor Rpl_semi_sync_source_status). It guarantees receipt, not apply, and is independent of Group Replication."
+    concepts: [rpo, failover]
+  - id: q18
+    question: "Which statements about HA and DR are correct? (Select all that apply.)"
+    type: multi
+    options:
+      - "Replication protects against an accidental DELETE because replicas keep the old rows"
+      - "A 3-member Group Replication cluster spread over three availability zones survives the loss of one zone without losing committed transactions"
+      - "Failover must include fencing of the old primary to prevent split brain"
+      - "Backups that have never been restored should be treated as untested assumptions"
+    answer: [1, 2, 3]
+    explanation: "Replicas replay the DELETE within seconds; only backups/PITR or a delayed replica protect against logical errors. Majority commit, fencing and restore testing are core HA/DR practices."
+    concepts: [high-availability, disaster-recovery, fencing]
+  - id: q19
+    question: "In a troubleshooting case, `EXPLAIN` estimated 10 rows but `EXPLAIN ANALYZE` showed 185,337 rows read by a reverse index scan. What does this tell you?"
+    options:
+      - "EXPLAIN ANALYZE is inaccurate"
+      - "The optimizer's estimate was badly wrong — the access path (scanning created_at backwards for ORDER BY … LIMIT while filtering customer_id) does far more work than planned; an index matching the predicate and order fixes it"
+      - "The table needs OPTIMIZE TABLE"
+      - "The buffer pool is too small"
+    answer: 1
+    explanation: "A large estimate-vs-actual gap is evidence of a misjudged plan. The fix in the lab was an index on (customer_id, created_at), after which one key lookup and ten backward steps sufficed."
+    concepts: [evidence-based-tuning]
+  - id: q20
+    question: "During a slowdown, all query digests slow down by a similar factor, rows examined per call are unchanged, disk await rises from 1 ms to 40 ms and lock waits are unchanged. What is the most likely bottleneck?"
+    options: ["A plan regression in one query", "Row-lock contention", "Storage I/O saturation", "Too few connections"]
+    answer: 2
+    explanation: "Uniform slowdown with unchanged work and rising I/O latency points to storage saturation (e.g. a backup on the primary). A plan regression affects one digest; lock waits are unchanged; connection exhaustion produces 1040 errors or pool waits."
+    concepts: [use-method, io-saturation]
+  - id: q21
+    question: "Two app instances process the same retried payment request at the same moment with the same idempotency key. What guarantees a single payment?"
+    options:
+      - "A SELECT that checks whether the key exists"
+      - "A PRIMARY/UNIQUE key on the idempotency key inserted in the same transaction as the payment: the second insert waits and then fails with 1062"
+      - "REPEATABLE READ isolation"
+      - "The transactional outbox"
+    answer: 1
+    explanation: "Only the unique index serialises concurrent duplicates. A SELECT check lets both pass; isolation levels do not prevent it; the outbox concerns events, not request deduplication."
+    concepts: [idempotency-keys]
+  - id: q22
+    question: "Which combination yields an exactly-once effect for a consumer that updates MySQL?"
+    options:
+      - "At-most-once delivery and no deduplication"
+      - "At-least-once delivery plus recording the event id in the same MySQL transaction as the effect"
+      - "Enabling the broker's exactly-once mode alone"
+      - "Publishing the event before committing the producer's transaction"
+    answer: 1
+    explanation: "Exactly-once effect = at-least-once delivery + idempotent, transactional processing. Broker features stop at the broker boundary; publishing before commit emits events for rolled-back transactions."
+    concepts: [idempotent-consumers, at-least-once]
+  - id: q23
+    question: "An SLO is 99.9% over 30 days. During one hour, 1.5% of requests fail. What is the 1-hour burn rate, and should it page under a 14.4 threshold?"
+    options: ["1.5; no", "15; yes", "150; yes", "0.15; no"]
+    answer: 1
+    explanation: "Burn rate = 0.015 / 0.001 = 15, above the 14.4 threshold (2% of a 30-day budget per hour), so a page is justified if the short window confirms it."
+    concepts: [burn-rate, slo]
+  - id: q24
+    question: "Three read replicas run at 50% peak CPU. What happens if one fails, and what does the N−1 rule recommend for a 70% ceiling?"
+    options:
+      - "Each survivor reaches ~75%; run each at ≤ ~47%"
+      - "Each survivor stays at 50%"
+      - "Each survivor reaches 100%; add a cache"
+      - "Load moves to the primary"
+    answer: 0
+    explanation: "150% of load over two servers is 75% each, above the 70% ceiling. With N servers, each should run at no more than (N−1)/N of the ceiling: 2/3 × 70% ≈ 47%."
+    concepts: [capacity-planning, sizing]
+challenges:
+  - id: c1
+    title: Retention without a giant DELETE
+    dataset: empty
+    difficulty: hard
+    kind: dml
+    setup: |
+      SET SESSION cte_max_recursion_depth = 30000;
+      CREATE TABLE notifications (
+        notification_id INT UNSIGNED PRIMARY KEY,
+        user_id INT UNSIGNED NOT NULL,
+        created_at DATETIME NOT NULL,
+        body VARCHAR(40) NOT NULL,
+        KEY idx_notifications_created (created_at)
+      );
+      INSERT INTO notifications
+      WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 30000)
+      SELECT n, n % 997 + 1, '2024-01-01' + INTERVAL n * 15 MINUTE, CONCAT('message ', n) FROM s;
+    prompt: |
+      Compliance requires deleting every notification created **before `2024-06-01`**. On production this
+      table is large and replicated, so the deletion must be done in **batches of at most 2,000 rows**, each
+      batch a separate statement in `created_at` order, repeating until nothing is left to delete. Write a
+      stored procedure `purge_notifications(IN cutoff DATETIME, IN batch_size INT)` that does this and call it
+      with `'2024-06-01'` and `2000`.
+
+      The checker compares the remaining row count and the oldest remaining `created_at`.
+    hints:
+      - "A WHILE loop: DELETE … WHERE created_at < cutoff ORDER BY created_at, notification_id LIMIT batch_size; then SET n = ROW_COUNT();"
+      - "Initialise the loop variable to a positive value; stop when a DELETE affects 0 rows."
+    solution: |
+      CREATE PROCEDURE purge_notifications(IN cutoff DATETIME, IN batch_size INT)
+      BEGIN
+        DECLARE n INT DEFAULT 1;
+        WHILE n > 0 DO
+          DELETE FROM notifications WHERE created_at < cutoff
+          ORDER BY created_at, notification_id LIMIT batch_size;
+          SET n = ROW_COUNT();
+        END WHILE;
+      END;
+      CALL purge_notifications('2024-06-01', 2000);
+    check: |
+      SELECT COUNT(*) AS remaining, MIN(created_at) AS oldest_remaining,
+             SUM(created_at < '2024-06-01') AS violations
+      FROM notifications;
+    explanation: |
+      The index on `created_at` makes each batch a range scan from the oldest remaining row, so every batch
+      costs about the same; each autocommitted DELETE holds its locks only for its own 2,000 rows and reaches
+      replicas as a small transaction. A single `DELETE … WHERE created_at < '2024-06-01'` produces the same
+      final data but as one large transaction. In production, add a short sleep or a replica-lag check
+      between batches, and consider monthly partitions with `DROP PARTITION` for the steady state.
+  - id: c2
+    title: Scatter-gather revenue report across shards
+    dataset: empty
+    difficulty: hard
+    setup: |
+      CREATE TABLE s0_orders (order_id INT PRIMARY KEY, customer_id INT NOT NULL, status VARCHAR(10) NOT NULL, amount DECIMAL(10,2) NOT NULL);
+      CREATE TABLE s1_orders LIKE s0_orders;
+      CREATE TABLE s2_orders LIKE s0_orders;
+      INSERT INTO s0_orders VALUES (1, 3, 'paid', 10.00), (2, 3, 'paid', 30.00), (3, 6, 'refunded', 25.00), (4, 9, 'paid', 5.00);
+      INSERT INTO s1_orders VALUES (5, 1, 'paid', 100.00), (6, 4, 'paid', 50.00), (7, 4, 'refunded', 50.00);
+      INSERT INTO s2_orders VALUES (8, 2, 'paid', 12.00), (9, 5, 'paid', 18.00), (10, 8, 'paid', 70.00), (11, 8, 'paid', 30.00), (12, 2, 'refunded', 12.00);
+    prompt: |
+      Orders are sharded by `customer_id` across `s0_orders`, `s1_orders` and `s2_orders`. Produce, as if over
+      all orders, one row per `status` with the columns `status`, `orders`, `revenue` (sum of `amount`),
+      `avg_amount` (rounded to 2 decimals) and `customers` (number of **distinct** customers with at least one
+      order in that status).
+
+      Combine per-shard partial results correctly. (Hint: because the shard key is `customer_id`, a customer
+      appears on exactly one shard.)
+    hints:
+      - "Per shard: status, COUNT(*), SUM(amount), COUNT(DISTINCT customer_id). Combine with SUM at the coordinator."
+      - "Average = SUM of sums / SUM of counts. Summing per-shard distinct counts is correct here only because customers never span shards."
+    solution: |
+      SELECT status, SUM(n) AS orders, SUM(revenue) AS revenue,
+             ROUND(SUM(revenue) / SUM(n), 2) AS avg_amount, SUM(customers) AS customers
+      FROM (
+        SELECT status, COUNT(*) AS n, SUM(amount) AS revenue, COUNT(DISTINCT customer_id) AS customers FROM s0_orders GROUP BY status
+        UNION ALL
+        SELECT status, COUNT(*), SUM(amount), COUNT(DISTINCT customer_id) FROM s1_orders GROUP BY status
+        UNION ALL
+        SELECT status, COUNT(*), SUM(amount), COUNT(DISTINCT customer_id) FROM s2_orders GROUP BY status
+      ) AS partials
+      GROUP BY status;
+    explanation: |
+      Paid: 9 orders, revenue 325.00, average 36.11, 7 customers; refunded: 3 orders, 87.00, 29.00, 3
+      customers. Averaging per-shard averages would give a different (wrong) paid average. Summing per-shard
+      `COUNT(DISTINCT customer_id)` is valid **only** because the shard key is `customer_id`; a distinct count
+      of a non-shard-key attribute (say, products) would need the coordinator to deduplicate the per-shard
+      value sets. A plain `UNION ALL` of all rows followed by one aggregate is also correct but ships every
+      row to the coordinator.
+  - id: c3
+    title: Reconcile payments against the provider
+    dataset: empty
+    difficulty: challenge
+    setup: |
+      CREATE TABLE our_payments (order_ref VARCHAR(10) PRIMARY KEY, amount DECIMAL(10,2) NOT NULL, status VARCHAR(10) NOT NULL);
+      CREATE TABLE provider_settlements (provider_ref VARCHAR(10) PRIMARY KEY, order_ref VARCHAR(10) NOT NULL, amount DECIMAL(10,2) NOT NULL);
+      INSERT INTO our_payments VALUES ('P-1', 10.00, 'paid'), ('P-2', 20.00, 'paid'), ('P-3', 30.00, 'failed'),
+                                      ('P-4', 40.00, 'paid'), ('P-5', 50.00, 'paid'), ('P-6', 60.00, 'failed');
+      INSERT INTO provider_settlements VALUES ('ch_a', 'P-1', 10.00), ('ch_b', 'P-2', 25.00), ('ch_c', 'P-3', 30.00),
+                                              ('ch_d', 'P-5', 50.00), ('ch_e', 'P-5', 50.00), ('ch_f', 'P-7', 70.00);
+    prompt: |
+      Write the daily reconciliation report. Return one row per discrepancy with columns `order_ref`,
+      `our_amount`, `settled_amount` (the **total** settled for that order), `settlements` (number of
+      provider settlements for that order) and `issue`, where `issue` is:
+
+      - `'double charge'` — more than one settlement for the order;
+      - `'unknown charge'` — settled, but we have no row;
+      - `'charged but failed'` — we recorded the payment as failed, but it was settled;
+      - `'missing settlement'` — we recorded it as paid, nothing was settled;
+      - `'amount mismatch'` — paid, settled once, amounts differ.
+
+      Apply the first matching rule in this order. Orders that match exactly must not appear.
+    hints:
+      - "Aggregate settlements per order_ref first (SUM(amount), COUNT(*)), because one order can have several."
+      - "MySQL has no FULL OUTER JOIN: LEFT JOIN from our_payments to the aggregate, UNION ALL the aggregate rows with no match in our_payments."
+      - "Compute issue with a CASE in the required order and filter out NULL issues in an outer query."
+    solution: |
+      WITH s AS (
+        SELECT order_ref, SUM(amount) AS settled_amount, COUNT(*) AS settlements
+        FROM provider_settlements GROUP BY order_ref
+      ), joined AS (
+        SELECT o.order_ref, o.amount AS our_amount, o.status, s.settled_amount, COALESCE(s.settlements, 0) AS settlements
+        FROM our_payments o LEFT JOIN s ON s.order_ref = o.order_ref
+        UNION ALL
+        SELECT s.order_ref, NULL, NULL, s.settled_amount, s.settlements
+        FROM s LEFT JOIN our_payments o ON o.order_ref = s.order_ref
+        WHERE o.order_ref IS NULL
+      )
+      SELECT order_ref, our_amount, settled_amount, settlements, issue
+      FROM (
+        SELECT order_ref, our_amount, settled_amount, settlements,
+               CASE WHEN settlements > 1 THEN 'double charge'
+                    WHEN our_amount IS NULL THEN 'unknown charge'
+                    WHEN status = 'failed' AND settlements > 0 THEN 'charged but failed'
+                    WHEN status = 'paid' AND settlements = 0 THEN 'missing settlement'
+                    WHEN status = 'paid' AND our_amount <> settled_amount THEN 'amount mismatch'
+               END AS issue
+        FROM joined
+      ) AS r
+      WHERE issue IS NOT NULL;
+    explanation: |
+      Five discrepancies: P-2 amount mismatch (20.00 vs 25.00), P-3 charged although recorded as failed (the
+      classic timeout-but-succeeded case), P-4 missing settlement, P-5 double charge (two settlements — exactly
+      what idempotency keys sent to the provider prevent), and P-7 an unknown charge. P-1 matches; P-6 failed
+      and was not settled, which is consistent. Aggregating settlements **before** joining is essential:
+      joining raw settlements would duplicate P-5's row and hide the double charge behind a "matching" amount.
+interview:
+  - id: i1
+    question: "Walk me through the transaction boundary and failure handling of a 'place order' endpoint backed by MySQL and a payment provider."
+    answer: |
+      - **Idempotency first.** The client sends an idempotency key; the handler inserts it (with a request
+        fingerprint) in the same transaction as the order, so a retry gets 1062 → replay of the stored response.
+      - **Local transaction.** `START TRANSACTION`; lock the product rows in a deterministic order
+        (`SELECT … WHERE id IN (…) ORDER BY id FOR UPDATE`) or use conditional `UPDATE … WHERE stock >= ?`; insert
+        the order and lines with prices copied from the locked rows; write an outbox event; `COMMIT`. No HTTP
+        calls inside.
+      - **Payment.** Authorise with the provider *outside* the database transaction, passing an idempotency key
+        derived from the order; treat timeouts as "unknown" and resolve by retrying with the same key or
+        querying the provider. Record the result with a conditional state transition (`pending → paid`).
+      - **Failures.** Retry the whole transaction on 1213 (and deliberately on 1205) with backoff and jitter;
+        never retry business-rule failures; release the connection in `finally` and roll back anything open.
+      - **Consistency afterwards.** The outbox relay publishes `OrderPlaced` at least once; consumers dedupe by
+        event id; a daily reconciliation compares orders with provider settlements.
+    concepts: [transactions-in-handlers, idempotency-keys, transactional-outbox, deadlock-retry]
+  - id: i2
+    question: "How would you add a NOT NULL column with a computed value to a 500-million-row table that receives thousands of writes per second?"
+    answer: |
+      Use expand–contract, never one ALTER with a default computation:
+      1. **Expand:** `ALTER TABLE … ADD COLUMN new_col … NULL, ALGORITHM=INSTANT` with `lock_wait_timeout` of a
+         few seconds and retries (and a pre-check for long-running transactions, because even INSTANT needs a
+         brief exclusive metadata lock).
+      2. **Dual write:** deploy code that writes `new_col` for new and updated rows (or a temporary trigger).
+      3. **Backfill:** a throttled, checkpointed job updating primary-key ranges of a few thousand rows with a
+         `new_col IS NULL` guard, pausing on replica lag.
+      4. **Verify:** count NULLs and mismatches per key range; switch reads behind a flag.
+      5. **Contract:** `NOT NULL` requires an in-place rebuild — on a table this size run it with gh-ost or
+         pt-online-schema-change to avoid hours of replica lag; later drop any superseded column (instant).
+      Throughout, state `ALGORITHM`/`LOCK` explicitly so an unexpected COPY fails instead of blocking writes.
+    concepts: [expand-contract, online-ddl, metadata-locks, backfill, gh-ost]
+  - id: i3
+    question: "When would you choose partitioning, read replicas, caching or sharding for a growing MySQL system?"
+    answer: |
+      They solve different bottlenecks, and the cheaper ones come first:
+      - **Query/index optimisation and vertical scaling** — always first; often the biggest win.
+      - **Caching** — hot, read-mostly, expensive data with an explicit staleness budget and invalidation plan.
+      - **Read replicas** — read capacity and workload isolation (reporting), with a consistency strategy
+        (GTID tokens for read-your-writes, lag thresholds); they add **no** write capacity.
+      - **Partitioning** — very large tables with time-based access and retention: pruning by time and cheap
+        `DROP/EXCHANGE PARTITION`; not a substitute for indexes, and no FKs or global unique keys.
+      - **Sharding** — when writes, data size or the working set exceed one primary: choose a shard key from
+        the access pattern (tenant/customer), co-locate related data, route via buckets or hash ranges, use
+        coordination-free IDs, and move analytics to a warehouse. It is the most expensive option in
+        complexity, so it comes last (or is bought, e.g. Vitess or a distributed SQL service).
+    concepts: [read-replicas, partitioning, sharding, caching]
+  - id: i4
+    question: "Define RPO and RTO and describe an architecture for RPO ≈ 0 within a region and RPO under a minute across regions."
+    answer: |
+      **RPO** is the maximum acceptable data loss measured in time; **RTO** the maximum acceptable time to
+      restore service. In-region: an InnoDB Cluster (Group Replication, three members in three availability
+      zones) or a managed Multi-AZ service — commits need a majority, so the loss of one zone loses no committed
+      transaction, and the primary is re-elected automatically within seconds; MySQL Router redirects clients.
+      Cross-region: an asynchronous replica cluster (InnoDB ClusterSet) with lag alerting well below 60 s;
+      regional failover is a rehearsed, usually human-approved procedure including fencing of the old primary
+      and a traffic switch. Logical errors are covered separately by backups plus continuous binlog archiving
+      (PITR) and optionally a delayed replica. The application must retry idempotently after failover, and
+      every number must be validated in drills.
+    concepts: [rpo, rto, group-replication, multi-region, fencing]
+  - id: i5
+    question: "The database is slow. Describe your first 15 minutes."
+    answer: |
+      1. **Scope the symptom** with RED metrics: which endpoints, since when, latency or errors (1040, 1205,
+         1213), primary or replicas.
+      2. **Check what changed:** deploys, migrations (MDL waits), traffic, batch jobs, backups, failovers.
+      3. **USE on resources:** `Threads_running` vs cores, buffer pool miss rate, disk await/queue depth,
+         `Innodb_row_lock_waits`, connections vs `max_connections`, replication lag.
+      4. **Workload:** top digests by total time from `sys.statement_analysis` — new digests, higher call counts,
+         or higher rows examined per call (plan regression).
+      5. **Locks:** `sys.innodb_lock_waits`, oldest transactions in `information_schema.INNODB_TRX`, metadata-lock
+         waits.
+      6. **Mitigate reversibly** (kill the blocker after capturing it, pause the job, roll back the deploy,
+         shed load) and **preserve evidence** for the post-incident review; then fix the cause and verify with
+         the same instruments.
+    concepts: [troubleshooting-methodology, use-method, workload-analysis]
+  - id: i6
+    question: "How do you plan capacity for a MySQL primary over the next year?"
+    answer: |
+      Collect long-term **daily peaks** of QPS, writes, CPU, IOPS, connections and data size; fit a trend
+      (log-linear when growth is compound) over a recent window and project when each resource reaches its
+      threshold (e.g. 70% peak CPU, 80% disk); compute the resource model from measurements (CPU time per query,
+      working-set fraction for the buffer pool, dirty pages per write for IOPS, binlog volume); apply N−1 so
+      the system survives a failure at peak; subtract lead times (procurement, migrations, sharding work) to
+      get decision dates; validate the proposed configuration with load tests at 2× forecast; and re-run the
+      forecast monthly, comparing it with actuals to calibrate.
+    concepts: [capacity-planning, growth-projection, sizing]

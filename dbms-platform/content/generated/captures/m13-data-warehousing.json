@@ -1,0 +1,982 @@
+{
+ "doc": "m13-data-warehousing",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:362080e98a1d": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE dim_date (\n  date_key     INT UNSIGNED PRIMARY KEY,      -- YYYYMMDD\n  full_date    DATE        NOT NULL UNIQUE,\n  year         SMALLINT    NOT NULL,\n  quarter      TINYINT     NOT NULL,\n  month        TINYINT     NOT NULL,\n  month_name   VARCHAR(9)  NOT NULL,\n  iso_week     TINYINT     NOT NULL,\n  day_of_week  VARCHAR(9)  NOT NULL,\n  is_weekend   BOOLEAN     NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO dim_date\nWITH RECURSIVE days(d) AS (\n  SELECT DATE '2024-01-01'\n  UNION ALL SELECT d + INTERVAL 1 DAY FROM days WHERE d < DATE '2024-12-31'\n)\nSELECT CAST(DATE_FORMAT(d, '%Y%m%d') AS UNSIGNED), d, YEAR(d), QUARTER(d), MONTH(d), MONTHNAME(d),\n       WEEK(d, 3), DAYNAME(d), DAYOFWEEK(d) IN (1, 7)\nFROM days",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 366,
+     "info": "Records: 366  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS days, MIN(full_date) AS first_day, MAX(full_date) AS last_day, SUM(is_weekend) AS weekend_days FROM dim_date",
+     "status": "ok",
+     "columns": [
+      "days",
+      "first_day",
+      "last_day",
+      "weekend_days"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       366,
+       "2024-01-01",
+       "2024-12-31",
+       "104"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:2b84d557974e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE dim_product (\n  product_key   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,\n  product_id    INT UNSIGNED NOT NULL UNIQUE,     -- natural key from OLTP\n  sku           VARCHAR(20)  NOT NULL,\n  product_name  VARCHAR(120) NOT NULL,\n  category      VARCHAR(60)  NOT NULL,\n  top_category  VARCHAR(60)  NOT NULL,\n  price_band    VARCHAR(10)  NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO dim_product (product_id, sku, product_name, category, top_category, price_band)\nWITH RECURSIVE cat_path AS (\n  SELECT category_id, name, parent_id, name AS top_name\n  FROM categories WHERE parent_id IS NULL\n  UNION ALL\n  SELECT c.category_id, c.name, c.parent_id, cp.top_name\n  FROM categories c JOIN cat_path cp ON c.parent_id = cp.category_id\n)\nSELECT p.product_id, p.sku, p.name,\n       COALESCE(cp.name, 'Uncategorized'), COALESCE(cp.top_name, 'Uncategorized'),\n       CASE WHEN p.price < 50 THEN 'budget' WHEN p.price < 500 THEN 'mid' ELSE 'premium' END\nFROM products p LEFT JOIN cat_path cp ON cp.category_id = p.category_id\nORDER BY p.product_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 30,
+     "info": "Records: 30  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_key, product_id, sku, category, top_category, price_band\nFROM dim_product ORDER BY product_key LIMIT 6",
+     "status": "ok",
+     "columns": [
+      "product_key",
+      "product_id",
+      "sku",
+      "category",
+      "top_category",
+      "price_band"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       1,
+       "SKU-1001",
+       "Laptops",
+       "Electronics",
+       "premium"
+      ],
+      [
+       2,
+       2,
+       "SKU-1002",
+       "Laptops",
+       "Electronics",
+       "premium"
+      ],
+      [
+       3,
+       3,
+       "SKU-1003",
+       "Laptops",
+       "Electronics",
+       "premium"
+      ],
+      [
+       4,
+       4,
+       "SKU-1004",
+       "Laptops",
+       "Electronics",
+       "mid"
+      ],
+      [
+       5,
+       5,
+       "SKU-1005",
+       "Accessories",
+       "Electronics",
+       "budget"
+      ],
+      [
+       6,
+       6,
+       "SKU-1006",
+       "Accessories",
+       "Electronics",
+       "mid"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:7a55af2faad3": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE dim_customer (\n  customer_key    INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,\n  customer_id     INT UNSIGNED NOT NULL,          -- natural key; not unique: one row per version\n  full_name       VARCHAR(101) NOT NULL,\n  city            VARCHAR(60)  NOT NULL,\n  state           CHAR(2)      NOT NULL,\n  loyalty_tier    VARCHAR(10)  NOT NULL,\n  effective_from  DATE         NOT NULL,\n  effective_to    DATE         NOT NULL DEFAULT '9999-12-31',\n  is_current      BOOLEAN      NOT NULL DEFAULT TRUE,\n  KEY idx_dim_customer_nk (customer_id, effective_from)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO dim_customer (customer_id, full_name, city, state, loyalty_tier, effective_from)\nSELECT customer_id, CONCAT(first_name, ' ', last_name), city, state,\n       COALESCE(loyalty_tier, 'none'), signup_date\nFROM customers ORDER BY customer_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "info": "Records: 25  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT customer_key, customer_id, full_name, city, loyalty_tier, effective_from, effective_to, is_current\nFROM dim_customer WHERE customer_id IN (4, 7) ORDER BY customer_key",
+     "status": "ok",
+     "columns": [
+      "customer_key",
+      "customer_id",
+      "full_name",
+      "city",
+      "loyalty_tier",
+      "effective_from",
+      "effective_to",
+      "is_current"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       4,
+       4,
+       "Diego Lopez",
+       "Austin",
+       "gold",
+       "2023-12-15",
+       "9999-12-31",
+       1
+      ],
+      [
+       7,
+       7,
+       "Nina Kim",
+       "San Francisco",
+       "silver",
+       "2024-01-06",
+       "9999-12-31",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:aba3bc41ae5d": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE dim_customer\n   SET effective_to = DATE '2024-07-01', is_current = FALSE\n WHERE customer_id = 4 AND is_current",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO dim_customer (customer_id, full_name, city, state, loyalty_tier, effective_from)\nSELECT customer_id, full_name, 'Seattle', 'WA', loyalty_tier, DATE '2024-07-01'\nFROM dim_customer WHERE customer_id = 4 AND effective_to = DATE '2024-07-01'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT customer_key, customer_id, city, state, effective_from, effective_to, is_current\nFROM dim_customer WHERE customer_id = 4 ORDER BY effective_from",
+     "status": "ok",
+     "columns": [
+      "customer_key",
+      "customer_id",
+      "city",
+      "state",
+      "effective_from",
+      "effective_to",
+      "is_current"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       4,
+       4,
+       "Austin",
+       "TX",
+       "2023-12-15",
+       "2024-07-01",
+       0
+      ],
+      [
+       32,
+       4,
+       "Seattle",
+       "WA",
+       "2024-07-01",
+       "9999-12-31",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:facea1b707cf": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE fact_sales (\n  order_id      INT UNSIGNED NOT NULL,            -- degenerate dimension\n  product_key   INT UNSIGNED NOT NULL,\n  date_key      INT UNSIGNED NOT NULL,\n  customer_key  INT UNSIGNED NOT NULL,\n  order_status  VARCHAR(10)  NOT NULL,\n  quantity      INT UNSIGNED NOT NULL,\n  revenue       DECIMAL(12,2) NOT NULL,           -- quantity × historical unit price\n  cost_amount   DECIMAL(12,2) NOT NULL,           -- quantity × product cost (current cost: see note)\n  PRIMARY KEY (order_id, product_key),\n  KEY idx_fact_date (date_key),\n  KEY idx_fact_customer (customer_key),\n  KEY idx_fact_product (product_key),\n  CONSTRAINT fk_fact_date     FOREIGN KEY (date_key)     REFERENCES dim_date (date_key),\n  CONSTRAINT fk_fact_product  FOREIGN KEY (product_key)  REFERENCES dim_product (product_key),\n  CONSTRAINT fk_fact_customer FOREIGN KEY (customer_key) REFERENCES dim_customer (customer_key)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO fact_sales\nSELECT oi.order_id, dp.product_key,\n       CAST(DATE_FORMAT(o.order_date, '%Y%m%d') AS UNSIGNED) AS date_key,\n       dc.customer_key, o.status, oi.quantity,\n       oi.quantity * oi.unit_price, oi.quantity * p.cost\nFROM order_items oi\nJOIN orders o        ON o.order_id = oi.order_id\nJOIN products p      ON p.product_id = oi.product_id\nJOIN dim_product dp  ON dp.product_id = oi.product_id\nJOIN dim_customer dc ON dc.customer_id = o.customer_id\n                    AND o.order_date >= dc.effective_from\n                    AND o.order_date <  dc.effective_to",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 166,
+     "info": "Records: 166  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS fact_rows, (SELECT COUNT(*) FROM order_items) AS source_lines,\n       SUM(revenue) AS revenue, SUM(quantity) AS units FROM fact_sales",
+     "status": "ok",
+     "columns": [
+      "fact_rows",
+      "source_lines",
+      "revenue",
+      "units"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       166,
+       182,
+       "62768.55",
+       "274"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:8922d808c11c": {
+   "statements": [
+    {
+     "sql": "SELECT o.order_id, o.customer_id, o.order_date, c.signup_date\nFROM orders o JOIN customers c ON c.customer_id = o.customer_id\nWHERE NOT EXISTS (SELECT 1 FROM dim_customer dc\n                  WHERE dc.customer_id = o.customer_id\n                    AND o.order_date >= dc.effective_from AND o.order_date < dc.effective_to)\nORDER BY o.order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "order_date",
+      "signup_date"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       44,
+       14,
+       "2024-01-28 11:12:00",
+       "2024-04-14"
+      ],
+      [
+       45,
+       16,
+       "2024-03-03 08:29:00",
+       "2024-06-05"
+      ],
+      [
+       52,
+       20,
+       "2024-02-05 12:00:00",
+       "2024-04-09"
+      ],
+      [
+       56,
+       16,
+       "2024-02-24 12:02:00",
+       "2024-06-05"
+      ],
+      [
+       68,
+       20,
+       "2024-03-16 09:07:00",
+       "2024-04-09"
+      ],
+      [
+       71,
+       14,
+       "2024-02-19 14:21:00",
+       "2024-04-14"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:4e4b61ce5a6a": {
+   "statements": [
+    {
+     "sql": "UPDATE dim_customer\n   SET effective_from = DATE '1900-01-01'\n WHERE customer_key IN (SELECT customer_key FROM\n         (SELECT MIN(customer_key) AS customer_key FROM dim_customer GROUP BY customer_id) AS first_versions)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 25,
+     "info": "Rows matched: 25  Changed: 25  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM fact_sales",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 166,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO fact_sales\nSELECT oi.order_id, dp.product_key,\n       CAST(DATE_FORMAT(o.order_date, '%Y%m%d') AS UNSIGNED) AS date_key,\n       dc.customer_key, o.status, oi.quantity,\n       oi.quantity * oi.unit_price, oi.quantity * p.cost\nFROM order_items oi\nJOIN orders o        ON o.order_id = oi.order_id\nJOIN products p      ON p.product_id = oi.product_id\nJOIN dim_product dp  ON dp.product_id = oi.product_id\nJOIN dim_customer dc ON dc.customer_id = o.customer_id\n                    AND o.order_date >= dc.effective_from\n                    AND o.order_date <  dc.effective_to",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 182,
+     "info": "Records: 182  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS fact_rows, (SELECT COUNT(*) FROM order_items) AS source_lines,\n       SUM(revenue) AS revenue, SUM(quantity) AS units FROM fact_sales",
+     "status": "ok",
+     "columns": [
+      "fact_rows",
+      "source_lines",
+      "revenue",
+      "units"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       182,
+       182,
+       "68697.85",
+       "302"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:79d73b4378f8": {
+   "statements": [
+    {
+     "sql": "SELECT d.quarter, p.top_category,\n       SUM(f.revenue) AS revenue,\n       COUNT(DISTINCT f.order_id) AS orders\nFROM fact_sales f\nJOIN dim_date d    ON d.date_key = f.date_key\nJOIN dim_product p ON p.product_key = f.product_key\nWHERE f.order_status IN ('paid', 'shipped', 'delivered')\nGROUP BY d.quarter, p.top_category WITH ROLLUP\nORDER BY GROUPING(d.quarter), d.quarter, GROUPING(p.top_category), p.top_category",
+     "status": "ok",
+     "columns": [
+      "quarter",
+      "top_category",
+      "revenue",
+      "orders"
+     ],
+     "row_count": 24,
+     "rows": [
+      [
+       1,
+       "Books",
+       "743.90",
+       10
+      ],
+      [
+       1,
+       "Electronics",
+       "5476.83",
+       8
+      ],
+      [
+       1,
+       "Fitness",
+       "826.99",
+       4
+      ],
+      [
+       1,
+       "Home & Kitchen",
+       "1560.78",
+       4
+      ],
+      [
+       1,
+       "Uncategorized",
+       "50.00",
+       1
+      ],
+      [
+       1,
+       null,
+       "8658.50",
+       14
+      ],
+      [
+       2,
+       "Books",
+       "377.91",
+       6
+      ],
+      [
+       2,
+       "Electronics",
+       "15915.28",
+       13
+      ],
+      [
+       2,
+       "Fitness",
+       "1031.10",
+       8
+      ],
+      [
+       2,
+       "Home & Kitchen",
+       "2497.57",
+       10
+      ],
+      [
+       2,
+       "Uncategorized",
+       "150.00",
+       2
+      ],
+      [
+       2,
+       null,
+       "19971.86",
+       17
+      ],
+      [
+       3,
+       "Books",
+       "475.05",
+       8
+      ],
+      [
+       3,
+       "Electronics",
+       "12192.79",
+       10
+      ],
+      [
+       3,
+       "Fitness",
+       "2719.29",
+       5
+      ],
+      [
+       3,
+       "Home & Kitchen",
+       "262.99",
+       3
+      ],
+      [
+       3,
+       "Uncategorized",
+       "150.00",
+       3
+      ],
+      [
+       3,
+       null,
+       "15800.12",
+       15
+      ],
+      [
+       4,
+       "Books",
+       "322.90",
+       7
+      ],
+      [
+       4,
+       "Electronics",
+       "12073.26",
+       14
+      ],
+      [
+       4,
+       "Fitness",
+       "2232.47",
+       7
+      ],
+      [
+       4,
+       "Home & Kitchen",
+       "3902.97",
+       9
+      ],
+      [
+       4,
+       null,
+       "18531.60",
+       19
+      ],
+      [
+       null,
+       null,
+       "62962.08",
+       65
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:f7c16207be83": {
+   "statements": [
+    {
+     "sql": "SELECT 'as-was (type 2)' AS view_of_history, c.city, SUM(f.revenue) AS revenue\nFROM fact_sales f JOIN dim_customer c ON c.customer_key = f.customer_key\nWHERE c.customer_id = 4\nGROUP BY c.city\nUNION ALL\nSELECT 'as-is (type 1)', cur.city, SUM(f.revenue)\nFROM fact_sales f\nJOIN dim_customer c   ON c.customer_key = f.customer_key\nJOIN dim_customer cur ON cur.customer_id = c.customer_id AND cur.is_current\nWHERE c.customer_id = 4\nGROUP BY cur.city\nORDER BY view_of_history, city",
+     "status": "ok",
+     "columns": [
+      "view_of_history",
+      "city",
+      "revenue"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "as-is (type 1)",
+       "Seattle",
+       "1383.44"
+      ],
+      [
+       "as-was (type 2)",
+       "Austin",
+       "1125.44"
+      ],
+      [
+       "as-was (type 2)",
+       "Seattle",
+       "258.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:d6f238a04c0c": {
+   "statements": [
+    {
+     "sql": "SELECT MIN(date_key) AS first_key, MAX(date_key) AS last_key, COUNT(*) AS days FROM dim_date WHERE year = 2024 AND quarter = 2",
+     "status": "ok",
+     "columns": [
+      "first_key",
+      "last_key",
+      "days"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20240401,
+       20240630,
+       91
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:2ea2d2e29762": {
+   "statements": [
+    {
+     "sql": "SELECT product_key, sku, category FROM dim_product WHERE top_category = 'Electronics' ORDER BY product_key LIMIT 8",
+     "status": "ok",
+     "columns": [
+      "product_key",
+      "sku",
+      "category"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       1,
+       "SKU-1001",
+       "Laptops"
+      ],
+      [
+       2,
+       "SKU-1002",
+       "Laptops"
+      ],
+      [
+       3,
+       "SKU-1003",
+       "Laptops"
+      ],
+      [
+       4,
+       "SKU-1004",
+       "Laptops"
+      ],
+      [
+       5,
+       "SKU-1005",
+       "Accessories"
+      ],
+      [
+       6,
+       "SKU-1006",
+       "Accessories"
+      ],
+      [
+       7,
+       "SKU-1007",
+       "Accessories"
+      ],
+      [
+       8,
+       "SKU-1008",
+       "Computers"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:bd4d3046b8c2": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT d.month, SUM(f.revenue)\nFROM fact_sales f\nJOIN dim_date d    ON d.date_key = f.date_key\nJOIN dim_product p ON p.product_key = f.product_key\nWHERE d.year = 2024 AND d.quarter = 2 AND p.top_category = 'Electronics' AND f.order_status = 'delivered'\nGROUP BY d.month",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Inner hash join (f.date_key = d.date_key), (f.product_key = p.product_key)  (cost=19.2 rows=1.82)\n            -> Filter: (f.order_status = 'delivered')  (cost=18.5 rows=18.2)\n                -> Table scan on f  (cost=18.5 rows=182)\n            -> Hash\n                -> Inner hash join (no condition)  (cost=0.7 rows=1)\n                    -> Filter: (p.top_category = 'Electronics')  (cost=0.35 rows=1)\n                        -> Table scan on p  (cost=0.35 rows=1)\n                    -> Hash\n                        -> Filter: ((d.`quarter` = 2) and (d.`year` = 2024))  (cost=0.35 rows=1)\n                            -> Table scan on d  (cost=0.35 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:b88c15e07210": {
+   "statements": [
+    {
+     "sql": "SELECT f.order_id, f.date_key, p.sku, f.quantity, f.revenue\nFROM fact_sales f\nJOIN dim_date d    ON d.date_key = f.date_key\nJOIN dim_product p ON p.product_key = f.product_key\nWHERE d.year = 2024 AND d.quarter = 2 AND p.top_category = 'Electronics' AND f.order_status = 'delivered'\nORDER BY f.date_key, f.order_id, p.sku",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "date_key",
+      "sku",
+      "quantity",
+      "revenue"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       33,
+       20240408,
+       "SKU-1010",
+       1,
+       "249.99"
+      ],
+      [
+       39,
+       20240411,
+       "SKU-1006",
+       1,
+       "89.99"
+      ],
+      [
+       3,
+       20240419,
+       "SKU-1013",
+       1,
+       "149.00"
+      ],
+      [
+       34,
+       20240520,
+       "SKU-1005",
+       1,
+       "29.99"
+      ],
+      [
+       30,
+       20240522,
+       "SKU-1001",
+       1,
+       "1299.00"
+      ],
+      [
+       30,
+       20240522,
+       "SKU-1012",
+       1,
+       "129.99"
+      ],
+      [
+       66,
+       20240614,
+       "SKU-1005",
+       1,
+       "29.99"
+      ],
+      [
+       24,
+       20240621,
+       "SKU-1001",
+       3,
+       "3507.30"
+      ],
+      [
+       74,
+       20240622,
+       "SKU-1003",
+       3,
+       "5397.00"
+      ],
+      [
+       74,
+       20240622,
+       "SKU-1006",
+       2,
+       "179.98"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:d814e03cfcfb": {
+   "statements": [
+    {
+     "sql": "SELECT d.month, d.month_name, SUM(f.revenue) AS revenue, SUM(f.quantity) AS units\nFROM fact_sales f\nJOIN dim_date d    ON d.date_key = f.date_key\nJOIN dim_product p ON p.product_key = f.product_key\nWHERE d.year = 2024 AND d.quarter = 2 AND p.top_category = 'Electronics' AND f.order_status = 'delivered'\nGROUP BY d.month, d.month_name\nORDER BY d.month",
+     "status": "ok",
+     "columns": [
+      "month",
+      "month_name",
+      "revenue",
+      "units"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       4,
+       "April",
+       "488.98",
+       "3"
+      ],
+      [
+       5,
+       "May",
+       "1458.98",
+       "3"
+      ],
+      [
+       6,
+       "June",
+       "9114.27",
+       "9"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:19b7c5256c49": {
+   "statements": [
+    {
+     "sql": "SELECT\n  (SELECT SUM(revenue) FROM fact_sales WHERE order_status = 'delivered')                    AS warehouse_delivered_revenue,\n  (SELECT SUM(oi.quantity * oi.unit_price)\n     FROM order_items oi JOIN orders o USING (order_id) WHERE o.status = 'delivered')        AS oltp_delivered_revenue,\n  (SELECT COUNT(*) FROM fact_sales f LEFT JOIN dim_customer c ON c.customer_key = f.customer_key\n    WHERE c.customer_key IS NULL)                                                           AS orphan_facts",
+     "status": "ok",
+     "columns": [
+      "warehouse_delivered_revenue",
+      "oltp_delivered_revenue",
+      "orphan_facts"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "43251.75",
+       "43251.75",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:757356d6d784": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE dim_category (\n  category_key INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,\n  category     VARCHAR(60) NOT NULL UNIQUE,\n  top_category VARCHAR(60) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO dim_category (category, top_category)\nSELECT DISTINCT category, top_category FROM dim_product ORDER BY top_category, category",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 10,
+     "info": "Records: 10  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE dim_product_sf (\n  product_key  INT UNSIGNED PRIMARY KEY,\n  sku          VARCHAR(20) NOT NULL,\n  category_key INT UNSIGNED NOT NULL,\n  CONSTRAINT fk_dps_category FOREIGN KEY (category_key) REFERENCES dim_category (category_key)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO dim_product_sf\nSELECT p.product_key, p.sku, c.category_key FROM dim_product p JOIN dim_category c ON c.category = p.category",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 30,
+     "info": "Records: 30  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT c.top_category, SUM(f.revenue) AS revenue\nFROM fact_sales f\nJOIN dim_product_sf p ON p.product_key = f.product_key\nJOIN dim_category c   ON c.category_key = p.category_key\nGROUP BY c.top_category ORDER BY revenue DESC",
+     "status": "ok",
+     "columns": [
+      "top_category",
+      "revenue"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Electronics",
+       "49406.01"
+      ],
+      [
+       "Home & Kitchen",
+       "9553.31"
+      ],
+      [
+       "Fitness",
+       "6844.85"
+      ],
+      [
+       "Books",
+       "2243.68"
+      ],
+      [
+       "Uncategorized",
+       "650.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:83890663a154": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT p.top_category, SUM(f.revenue)\nFROM fact_sales f JOIN dim_product p ON p.product_key = f.product_key\nJOIN dim_date d ON d.date_key = f.date_key\nWHERE d.quarter IN (3, 4)\nGROUP BY p.top_category",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (actual time=0.376..0.377 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=0.376..0.376 rows=5 loops=1)\n        -> Nested loop inner join  (cost=82.5 rows=36.4) (actual time=0.0625..0.33 rows=94 loops=1)\n            -> Inner hash join (f.product_key = p.product_key)  (cost=18.8 rows=182) (actual time=0.053..0.105 rows=182 loops=1)\n                -> Table scan on f  (cost=18.5 rows=182) (actual time=0.0127..0.0426 rows=182 loops=1)\n                -> Hash\n                    -> Table scan on p  (cost=0.35 rows=1) (actual time=0.0112..0.0215 rows=30 loops=1)\n            -> Filter: (d.`quarter` in (3,4))  (cost=0.25 rows=0.2) (actual time=0.00109..0.00112 rows=0.516 loops=182)\n                -> Single-row index lookup on d using PRIMARY (date_key=f.date_key)  (cost=0.25 rows=1) (actual time=395e-6..416e-6 rows=1 loops=182)\n"
+      ]
+     ],
+     "elapsed_ms": 1.64
+    }
+   ],
+   "measured": true
+  },
+  "s13:b6e63b4902d9": {
+   "statements": [
+    {
+     "sql": "SELECT o.order_id, o.order_date,\n       (SELECT COUNT(*) FROM dim_customer c\n         WHERE c.customer_id = o.customer_id\n           AND o.order_date BETWEEN c.effective_from AND c.effective_to - INTERVAL 1 DAY) AS versions_matched_inclusive,\n       (SELECT COUNT(*) FROM dim_customer c\n         WHERE c.customer_id = o.customer_id\n           AND o.order_date >= c.effective_from AND o.order_date < c.effective_to)      AS versions_matched_half_open\nFROM orders o WHERE o.customer_id = 4 ORDER BY o.order_date",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_date",
+      "versions_matched_inclusive",
+      "versions_matched_half_open"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       33,
+       "2024-04-08 13:23:00",
+       1,
+       1
+      ],
+      [
+       62,
+       "2024-04-30 17:10:00",
+       1,
+       1
+      ],
+      [
+       8,
+       "2024-06-30 17:33:00",
+       0,
+       1
+      ],
+      [
+       69,
+       "2024-12-01 19:06:00",
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:fd5aad7db59e": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS joined_rows_without_validity, (SELECT COUNT(*) FROM fact_sales f JOIN dim_customer c ON c.customer_key = f.customer_key WHERE c.customer_id = 4) AS correct_rows\nFROM fact_sales f\nJOIN dim_customer c_any ON c_any.customer_key = f.customer_key\nJOIN dim_customer c ON c.customer_id = c_any.customer_id\nWHERE c.customer_id = 4",
+     "status": "ok",
+     "columns": [
+      "joined_rows_without_validity",
+      "correct_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20,
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

@@ -1,0 +1,654 @@
+{
+ "doc": "m12-observability-capacity",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:a53c40eab898": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 2000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE metrics_daily (\n  day          DATE PRIMARY KEY,\n  db_size_gb   DECIMAL(8,1) NOT NULL,\n  peak_qps     INT NOT NULL,\n  peak_writes  INT NOT NULL,\n  p99_ms       DECIMAL(6,1) NOT NULL,\n  cpu_peak_pct DECIMAL(5,1) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO metrics_daily\nWITH RECURSIVE d(n) AS (SELECT 0 UNION ALL SELECT n + 1 FROM d WHERE n < 365)\nSELECT '2024-01-01' + INTERVAL n DAY,\n       ROUND(420 * POW(1.0028, n) + (n % 7) * 0.4, 1),\n       ROUND(5200 * POW(1.0015, n) * IF(DAYOFWEEK('2024-01-01' + INTERVAL n DAY) IN (1, 7), 0.72, 1.0) + (n * 37) % 300),\n       ROUND(0.18 * 5200 * POW(1.0015, n) * IF(DAYOFWEEK('2024-01-01' + INTERVAL n DAY) IN (1, 7), 0.72, 1.0)),\n       ROUND(38 + n * 0.035 + (n * 13) % 9, 1),\n       ROUND(LEAST(97, 5200 * POW(1.0015, n) * IF(DAYOFWEEK('2024-01-01' + INTERVAL n DAY) IN (1, 7), 0.72, 1.0) / 190), 1)\nFROM d",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 366,
+     "info": "Records: 366  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT MIN(day) AS first_day, MAX(day) AS last_day, COUNT(*) AS days,\n       MIN(db_size_gb) AS size_start_gb, MAX(db_size_gb) AS size_end_gb,\n       MAX(peak_qps) AS max_peak_qps, MAX(cpu_peak_pct) AS max_cpu_pct\nFROM metrics_daily",
+     "status": "ok",
+     "columns": [
+      "first_day",
+      "last_day",
+      "days",
+      "size_start_gb",
+      "size_end_gb",
+      "max_peak_qps",
+      "max_cpu_pct"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-01-01",
+       "2024-12-31",
+       366,
+       "420.0",
+       "1165.8",
+       9241,
+       "47.3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:db1b4f5b547c": {
+   "statements": [
+    {
+     "sql": "SELECT day, DAYNAME(day) AS dow, peak_qps,\n       ROUND(AVG(peak_qps) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)) AS qps_7d_avg,\n       peak_qps - LAG(peak_qps, 7) OVER (ORDER BY day) AS change_vs_same_day_last_week\nFROM metrics_daily\nWHERE day >= '2024-12-18'\nORDER BY day",
+     "status": "ok",
+     "columns": [
+      "day",
+      "dow",
+      "peak_qps",
+      "qps_7d_avg",
+      "change_vs_same_day_last_week"
+     ],
+     "row_count": 14,
+     "rows": [
+      [
+       "2024-12-18",
+       "Wednesday",
+       8937,
+       "8937",
+       null
+      ],
+      [
+       "2024-12-19",
+       "Thursday",
+       8988,
+       "8963",
+       null
+      ],
+      [
+       "2024-12-20",
+       "Friday",
+       9038,
+       "8988",
+       null
+      ],
+      [
+       "2024-12-21",
+       "Saturday",
+       6609,
+       "8393",
+       null
+      ],
+      [
+       "2024-12-22",
+       "Sunday",
+       6656,
+       "8046",
+       null
+      ],
+      [
+       "2024-12-23",
+       "Monday",
+       8889,
+       "8186",
+       null
+      ],
+      [
+       "2024-12-24",
+       "Tuesday",
+       8939,
+       "8294",
+       null
+      ],
+      [
+       "2024-12-25",
+       "Wednesday",
+       8989,
+       "8301",
+       52
+      ],
+      [
+       "2024-12-26",
+       "Thursday",
+       9040,
+       "8309",
+       52
+      ],
+      [
+       "2024-12-27",
+       "Friday",
+       9090,
+       "8316",
+       52
+      ],
+      [
+       "2024-12-28",
+       "Saturday",
+       6635,
+       "8320",
+       26
+      ],
+      [
+       "2024-12-29",
+       "Sunday",
+       6682,
+       "8323",
+       26
+      ],
+      [
+       "2024-12-30",
+       "Monday",
+       9241,
+       "8374",
+       352
+      ],
+      [
+       "2024-12-31",
+       "Tuesday",
+       8992,
+       "8381",
+       53
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:010eb457b11c": {
+   "statements": [
+    {
+     "sql": "WITH month_end AS (\n  SELECT DATE_FORMAT(day, '%Y-%m') AS month, db_size_gb,\n         ROW_NUMBER() OVER (PARTITION BY DATE_FORMAT(day, '%Y-%m') ORDER BY day DESC) AS rn\n  FROM metrics_daily\n)\nSELECT month, db_size_gb,\n       ROUND(db_size_gb - LAG(db_size_gb) OVER (ORDER BY month), 1) AS growth_gb,\n       ROUND(100 * (db_size_gb / LAG(db_size_gb) OVER (ORDER BY month) - 1), 2) AS growth_pct\nFROM month_end WHERE rn = 1 ORDER BY month",
+     "status": "ok",
+     "columns": [
+      "month",
+      "db_size_gb",
+      "growth_gb",
+      "growth_pct"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       "2024-01",
+       "457.6",
+       null,
+       null
+      ],
+      [
+       "2024-02",
+       "496.5",
+       "38.9",
+       "8.50"
+      ],
+      [
+       "2024-03",
+       "542.6",
+       "46.1",
+       "9.28"
+      ],
+      [
+       "2024-04",
+       "587.8",
+       "45.2",
+       "8.33"
+      ],
+      [
+       "2024-05",
+       "642.2",
+       "54.4",
+       "9.25"
+      ],
+      [
+       "2024-06",
+       "699.1",
+       "56.9",
+       "8.86"
+      ],
+      [
+       "2024-07",
+       "760.6",
+       "61.5",
+       "8.80"
+      ],
+      [
+       "2024-08",
+       "830.6",
+       "70.0",
+       "9.20"
+      ],
+      [
+       "2024-09",
+       "901.1",
+       "70.5",
+       "8.49"
+      ],
+      [
+       "2024-10",
+       "983.9",
+       "82.8",
+       "9.19"
+      ],
+      [
+       "2024-11",
+       "1070.6",
+       "86.7",
+       "8.81"
+      ],
+      [
+       "2024-12",
+       "1165.8",
+       "95.2",
+       "8.89"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:ff95e335e13b": {
+   "statements": [
+    {
+     "sql": "WITH recent AS (\n  SELECT DATEDIFF(day, '2024-01-01') AS t, LN(db_size_gb) AS y\n  FROM metrics_daily WHERE day > '2024-12-31' - INTERVAL 90 DAY\n), fit AS (\n  SELECT COUNT(*) AS n, SUM(t) AS sx, SUM(y) AS sy, SUM(t * y) AS sxy, SUM(t * t) AS sxx FROM recent\n), coef AS (\n  SELECT (n * sxy - sx * sy) / (n * sxx - sx * sx) AS b,\n         (sy - (n * sxy - sx * sy) / (n * sxx - sx * sx) * sx) / n AS a\n  FROM fit\n)\nSELECT ROUND(100 * (EXP(b) - 1), 3)                          AS daily_growth_pct,\n       ROUND(100 * (EXP(30 * b) - 1), 2)                     AS monthly_growth_pct,\n       ROUND(EXP(a + b * DATEDIFF('2024-12-31', '2024-01-01')), 1) AS fitted_size_today_gb,\n       ROUND(EXP(a + b * DATEDIFF('2025-06-30', '2024-01-01')), 1) AS projected_2025_06_30_gb,\n       ROUND(EXP(a + b * DATEDIFF('2025-12-31', '2024-01-01')), 1) AS projected_2025_12_31_gb\nFROM coef",
+     "status": "ok",
+     "columns": [
+      "daily_growth_pct",
+      "monthly_growth_pct",
+      "fitted_size_today_gb",
+      "projected_2025_06_30_gb",
+      "projected_2025_12_31_gb"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0.28,
+       8.74,
+       1166.6,
+       1933.6,
+       3232.0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:fbdcff92c37f": {
+   "statements": [
+    {
+     "sql": "WITH recent AS (\n  SELECT DATEDIFF(day, '2024-01-01') AS t, LN(db_size_gb) AS y\n  FROM metrics_daily WHERE day > '2024-12-31' - INTERVAL 90 DAY\n), coef AS (\n  SELECT (COUNT(*) * SUM(t * y) - SUM(t) * SUM(y)) / (COUNT(*) * SUM(t * t) - SUM(t) * SUM(t)) AS b\n  FROM recent\n)\nSELECT (SELECT db_size_gb FROM metrics_daily WHERE day = '2024-12-31') AS size_now_gb,\n       3000 * 0.80 AS threshold_gb,\n       CEIL(LN(3000 * 0.80 / (SELECT db_size_gb FROM metrics_daily WHERE day = '2024-12-31')) / b) AS days_until_threshold,\n       '2024-12-31' + INTERVAL CEIL(LN(3000 * 0.80 / (SELECT db_size_gb FROM metrics_daily WHERE day = '2024-12-31')) / b) DAY AS threshold_date\nFROM coef",
+     "status": "ok",
+     "columns": [
+      "size_now_gb",
+      "threshold_gb",
+      "days_until_threshold",
+      "threshold_date"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "1165.8",
+       "2400.00",
+       259.0,
+       "2025-09-16"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:f498681c2904": {
+   "statements": [
+    {
+     "sql": "WITH last30 AS (\n  SELECT peak_qps, cpu_peak_pct FROM metrics_daily WHERE day > '2024-12-31' - INTERVAL 30 DAY\n), ratio AS (\n  SELECT SUM(cpu_peak_pct) / SUM(peak_qps) * 1000 AS cpu_pct_per_kqps,\n         MAX(peak_qps) AS max_qps_30d, MAX(cpu_peak_pct) AS max_cpu_30d\n  FROM last30\n)\nSELECT ROUND(cpu_pct_per_kqps, 2)                            AS cpu_pct_per_1000_qps,\n       max_qps_30d, max_cpu_30d,\n       ROUND(70 / cpu_pct_per_kqps * 1000)                   AS qps_at_70pct_cpu,\n       CEIL(LN(70 / max_cpu_30d) / LN(1.0015))               AS days_until_70pct_at_current_growth,\n       ROUND(max_cpu_30d * 3 / 2, 1)                         AS read_replica_cpu_if_1_of_3_fails\nFROM ratio",
+     "status": "ok",
+     "columns": [
+      "cpu_pct_per_1000_qps",
+      "max_qps_30d",
+      "max_cpu_30d",
+      "qps_at_70pct_cpu",
+      "days_until_70pct_at_current_growth",
+      "read_replica_cpu_if_1_of_3_fails"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "5.17",
+       9241,
+       "47.3",
+       "13543",
+       262.0,
+       "71.0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:e21651a82489": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE sli_minute (minute_ts DATETIME PRIMARY KEY, valid INT NOT NULL, good INT NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sli_minute\nWITH RECURSIVE m(n) AS (SELECT 0 UNION ALL SELECT n + 1 FROM m WHERE n < 1439)\nSELECT '2024-12-02 00:00:00' + INTERVAL n MINUTE,\n       400 + (n * 17) % 120,\n       400 + (n * 17) % 120 - CASE WHEN n BETWEEN 840 AND 869 THEN 60 + (n % 5) * 10   -- a 30-minute incident at 14:00\n                                   ELSE (n % 97 = 0) END\nFROM m",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1440,
+     "info": "Records: 1440  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT SUM(good) AS good, SUM(valid) AS valid,\n       ROUND(100 * SUM(good) / SUM(valid), 4) AS sli_pct,\n       ROUND((SUM(valid) - SUM(good)) / (0.001 * SUM(valid)), 2) AS budget_used_x_daily_allowance\nFROM sli_minute",
+     "status": "ok",
+     "columns": [
+      "good",
+      "valid",
+      "sli_pct",
+      "budget_used_x_daily_allowance"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "659265",
+       "661680",
+       "99.6350",
+       "3.65"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:bd0a69d8b07e": {
+   "statements": [
+    {
+     "sql": "SELECT minute_ts,\n       ROUND(SUM(valid - good) OVER w / (0.001 * SUM(valid) OVER w), 1) AS burn_rate_1h\nFROM sli_minute\nWINDOW w AS (ORDER BY minute_ts ROWS BETWEEN 59 PRECEDING AND CURRENT ROW)\nORDER BY burn_rate_1h DESC, minute_ts\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "minute_ts",
+      "burn_rate_1h"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "2024-12-02 14:31:00",
+       "87.4"
+      ],
+      [
+       "2024-12-02 14:38:00",
+       "87.3"
+      ],
+      [
+       "2024-12-02 14:30:00",
+       "87.2"
+      ],
+      [
+       "2024-12-02 14:32:00",
+       "87.2"
+      ],
+      [
+       "2024-12-02 14:29:00",
+       "87.1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:406b1331f447": {
+   "statements": [
+    {
+     "sql": "SET @data_gb_in_12m      = 1400",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- projected data + indexes (from the fit, rounded up)\nSET @hot_fraction        = 0.25",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- share of data touched daily (working set), measured from buffer pool stats\nSET @peak_qps_in_12m     = 14000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- projected peak QPS\nSET @cpu_ms_per_query    = 0.35",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- average CPU time per query, from performance_schema / profiling\nSET @target_cpu_util     = 0.60",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- peak utilisation target\nSET @writes_per_s        = 2600",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- projected peak write statements per second\nSET @pages_per_write     = 2.5",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- dirty pages per write statement (clustered + secondary indexes), measured\nSET @flush_batching      = 0.2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- fraction of dirty-page writes not absorbed by repeated changes to the same page\nSET @binlog_gb_per_day   = 60",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- binary log volume\nSET @binlog_retention_d  = 7",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT CEIL(@peak_qps_in_12m * @cpu_ms_per_query / 1000 / @target_cpu_util)               AS cores_needed,\n       CEIL(@data_gb_in_12m * @hot_fraction * 1.1)                                          AS buffer_pool_gb,\n       CEIL(@data_gb_in_12m * @hot_fraction * 1.1 / 0.75)                                   AS ram_gb_if_pool_is_75pct,\n       CEIL(@writes_per_s * @pages_per_write * @flush_batching)                             AS data_write_iops_estimate,\n       CEIL((@data_gb_in_12m + @binlog_gb_per_day * @binlog_retention_d) / 0.80)            AS volume_gb_at_80pct_fill",
+     "status": "ok",
+     "columns": [
+      "cores_needed",
+      "buffer_pool_gb",
+      "ram_gb_if_pool_is_75pct",
+      "data_write_iops_estimate",
+      "volume_gb_at_80pct_fill"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "9",
+       "385",
+       "514",
+       "1300",
+       "2275"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:df25164fbe88": {
+   "statements": [
+    {
+     "sql": "SELECT YEARWEEK(day, 3) AS iso_week, MAX(peak_qps) AS weekly_peak, ROUND(AVG(peak_qps)) AS weekly_avg,\n       ROUND(MAX(peak_qps) / AVG(peak_qps), 2) AS peak_to_avg\nFROM metrics_daily WHERE day >= '2024-12-02' GROUP BY iso_week ORDER BY iso_week",
+     "status": "ok",
+     "columns": [
+      "iso_week",
+      "weekly_peak",
+      "weekly_avg",
+      "peak_to_avg"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       202449,
+       8936,
+       "8106",
+       "1.10"
+      ],
+      [
+       202450,
+       8987,
+       "8192",
+       "1.10"
+      ],
+      [
+       202451,
+       9038,
+       "8279",
+       "1.09"
+      ],
+      [
+       202452,
+       9090,
+       "8323",
+       "1.09"
+      ],
+      [
+       202501,
+       9241,
+       "9117",
+       "1.01"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:7198c7c38dc9": {
+   "statements": [
+    {
+     "sql": "WITH w AS (SELECT YEARWEEK(day, 3) AS iso_week, MAX(peak_qps) AS weekly_peak FROM metrics_daily GROUP BY iso_week)\nSELECT iso_week, weekly_peak,\n       ROUND(100 * (weekly_peak / LAG(weekly_peak) OVER (ORDER BY iso_week) - 1), 2) AS wow_growth_pct\nFROM w ORDER BY iso_week DESC LIMIT 6",
+     "status": "ok",
+     "columns": [
+      "iso_week",
+      "weekly_peak",
+      "wow_growth_pct"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       202501,
+       9241,
+       "1.66"
+      ],
+      [
+       202452,
+       9090,
+       "0.58"
+      ],
+      [
+       202451,
+       9038,
+       "0.57"
+      ],
+      [
+       202450,
+       8987,
+       "0.57"
+      ],
+      [
+       202449,
+       8936,
+       "1.12"
+      ],
+      [
+       202448,
+       8837,
+       "1.12"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:aa7f0741606a": {
+   "statements": [
+    {
+     "sql": "SELECT ROUND(AVG(CASE WHEN day < '2024-01-31' THEN p99_ms END), 1) AS p99_january,\n       ROUND(AVG(CASE WHEN day > '2024-12-01' THEN p99_ms END), 1) AS p99_december\nFROM metrics_daily",
+     "status": "ok",
+     "columns": [
+      "p99_january",
+      "p99_december"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "42.5",
+       "54.3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:1d493573da5b": {
+   "statements": [
+    {
+     "sql": "SELECT ROUND(AVG(peak_qps)) AS avg_of_daily_peaks_december,\n       MAX(peak_qps)        AS max_daily_peak_december,\n       ROUND(AVG(peak_qps) * 0.5) AS what_a_daily_average_might_look_like\nFROM metrics_daily WHERE day >= '2024-12-01'",
+     "status": "ok",
+     "columns": [
+      "avg_of_daily_peaks_december",
+      "max_daily_peak_december",
+      "what_a_daily_average_might_look_like"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "8220",
+       9241,
+       "4110"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}
