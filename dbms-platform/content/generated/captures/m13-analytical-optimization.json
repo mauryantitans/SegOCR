@@ -93,10 +93,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=182..182 rows=9 loops=1)\n    -> Aggregate using temporary table  (actual time=182..182 rows=9 loops=1)\n        -> Nested loop inner join  (cost=13375 rows=8323) (actual time=0.722..149 rows=72160 loops=1)\n            -> Nested loop inner join  (cost=10462 rows=8323) (actual time=0.717..99.8 rows=72160 loops=1)\n                -> Filter: ((f.sale_date >= DATE'2024-04-01') and (f.sale_date < DATE'2024-07-01'))  (cost=7549 rows=8323) (actual time=0.705..27.5 rows=74620 loops=1)\n                    -> Table scan on f  (cost=7549 rows=74925) (actual time=0.702..18.9 rows=74620 loops=1)\n                -> Filter: (p.category_id is not null)  (cost=0.25 rows=1) (actual time=737e-6..811e-6 rows=0.967 loops=74620)\n                    -> Single-row index lookup on p using PRIMARY (product_id=f.product_id)  (cost=0.25 rows=1) (actual time=616e-6..640e-6 rows=1 loops=74620)\n            -> Single-row index lookup on c using PRIMARY (category_id=p.category_id)  (cost=0.25 rows=1) (actual time=513e-6..537e-6 rows=1 loops=72160)\n"
+       "-> Table scan on <temporary>  (actual time=173..173 rows=9 loops=1)\n    -> Aggregate using temporary table  (actual time=173..173 rows=9 loops=1)\n        -> Nested loop inner join  (cost=13375 rows=8323) (actual time=0.724..141 rows=72160 loops=1)\n            -> Nested loop inner join  (cost=10462 rows=8323) (actual time=0.718..94 rows=72160 loops=1)\n                -> Filter: ((f.sale_date >= DATE'2024-04-01') and (f.sale_date < DATE'2024-07-01'))  (cost=7549 rows=8323) (actual time=0.708..26.1 rows=74620 loops=1)\n                    -> Table scan on f  (cost=7549 rows=74925) (actual time=0.705..17.4 rows=74620 loops=1)\n                -> Filter: (p.category_id is not null)  (cost=0.25 rows=1) (actual time=673e-6..753e-6 rows=0.967 loops=74620)\n                    -> Single-row index lookup on p using PRIMARY (product_id=f.product_id)  (cost=0.25 rows=1) (actual time=549e-6..574e-6 rows=1 loops=74620)\n            -> Single-row index lookup on c using PRIMARY (category_id=p.category_id)  (cost=0.25 rows=1) (actual time=469e-6..494e-6 rows=1 loops=72160)\n"
       ]
      ],
-     "elapsed_ms": 186.73
+     "elapsed_ms": 174.54
     }
    ],
    "measured": true
@@ -233,15 +233,34 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Group aggregate: sum(f.revenue)  (cost=31285 rows=10) (actual time=25.3..113 rows=9 loops=1)\n    -> Nested loop inner join  (cost=22547 rows=87387) (actual time=0.691..102 rows=72160 loops=1)\n        -> Nested loop inner join  (cost=6.76 rows=30) (actual time=0.0175..0.14 rows=29 loops=1)\n            -> Covering index scan on c using uq_categories_name  (cost=1.25 rows=10) (actual time=0.0104..0.0245 rows=10 loops=1)\n            -> Covering index lookup on p using idx_products_category (category_id=c.category_id)  (cost=0.281 rows=3) (actual time=0.00573..0.0105 rows=2.9 loops=10)\n        -> Index lookup on f using idx_sf_product_date (product_id=p.product_id), with index condition: ((f.sale_date >= DATE'2024-04-01') and (f.sale_date < DATE'2024-07-01'))  (cost=174 rows=2913) (actual time=0.366..3.32 rows=2488 loops=29)\n"
+       "-> Group aggregate: sum(f.revenue)  (cost=28322 rows=10) (actual time=26.3..97.7 rows=9 loops=1)\n    -> Nested loop inner join  (cost=20571 rows=77509) (actual time=0.799..87 rows=72160 loops=1)\n        -> Nested loop inner join  (cost=6.76 rows=30) (actual time=0.0265..0.14 rows=29 loops=1)\n            -> Covering index scan on c using uq_categories_name  (cost=1.25 rows=10) (actual time=0.016..0.0305 rows=10 loops=1)\n            -> Covering index lookup on p using idx_products_category (category_id=c.category_id)  (cost=0.281 rows=3) (actual time=0.00583..0.00998 rows=2.9 loops=10)\n        -> Index lookup on f using idx_sf_product_date (product_id=p.product_id), with index condition: ((f.sale_date >= DATE'2024-04-01') and (f.sale_date < DATE'2024-07-01'))  (cost=173 rows=2584) (actual time=0.276..2.84 rows=2488 loops=29)\n"
       ]
      ],
-     "elapsed_ms": 114.8
+     "elapsed_ms": 99.53
     }
    ],
    "measured": true
   },
-  "s6:ddf6c3776a9e": {
+  "s6:ecdc7c5a50f3": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT c.name AS category, SUM(f.revenue) AS revenue\nFROM sales_fact f FORCE INDEX (idx_sf_cover)\nJOIN products p   ON p.product_id = f.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE f.sale_date >= '2024-04-01' AND f.sale_date < '2024-07-01'\nGROUP BY c.name",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (actual time=94.3..94.3 rows=9 loops=1)\n    -> Aggregate using temporary table  (actual time=94.3..94.3 rows=9 loops=1)\n        -> Nested loop inner join  (cost=33740 rows=37462) (actual time=0.322..70.1 rows=72160 loops=1)\n            -> Nested loop inner join  (cost=20628 rows=37462) (actual time=0.319..48.5 rows=72160 loops=1)\n                -> Filter: ((f.sale_date >= DATE'2024-04-01') and (f.sale_date < DATE'2024-07-01'))  (cost=7517 rows=37462) (actual time=0.311..17.5 rows=74620 loops=1)\n                    -> Covering index range scan on f using idx_sf_cover over ('2024-04-01' <= sale_date < '2024-07-01')  (cost=7517 rows=37462) (actual time=0.31..11.5 rows=74620 loops=1)\n                -> Filter: (p.category_id is not null)  (cost=0.25 rows=1) (actual time=202e-6..266e-6 rows=0.967 loops=74620)\n                    -> Single-row index lookup on p using PRIMARY (product_id=f.product_id)  (cost=0.25 rows=1) (actual time=100e-6..121e-6 rows=1 loops=74620)\n            -> Single-row index lookup on c using PRIMARY (category_id=p.category_id)  (cost=0.25 rows=1) (actual time=82.7e-6..104e-6 rows=1 loops=72160)\n"
+      ]
+     ],
+     "elapsed_ms": 96.04
+    }
+   ],
+   "measured": true
+  },
+  "s7:ddf6c3776a9e": {
    "statements": [
     {
      "sql": "CREATE TABLE agg_daily_product (\n  sale_date  DATE         NOT NULL,\n  product_id INT UNSIGNED NOT NULL,\n  quantity   INT UNSIGNED NOT NULL,\n  revenue    DECIMAL(14,2) NOT NULL,\n  n_sales    INT UNSIGNED NOT NULL,\n  PRIMARY KEY (sale_date, product_id)\n)",
@@ -295,7 +314,7 @@
    ],
    "measured": null
   },
-  "s7:db4912b9158e": {
+  "s8:db4912b9158e": {
    "statements": [
     {
      "sql": "EXPLAIN ANALYZE\nSELECT c.name AS category, SUM(a.revenue) AS revenue\nFROM agg_daily_product a\nJOIN products p   ON p.product_id = a.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE a.sale_date >= '2024-04-01' AND a.sale_date < '2024-07-01'\nGROUP BY c.name",
@@ -306,15 +325,15 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=1.03..1.04 rows=9 loops=1)\n    -> Aggregate using temporary table  (actual time=1.02..1.02 rows=9 loops=1)\n        -> Nested loop inner join  (cost=410 rows=455) (actual time=0.0443..0.844 rows=440 loops=1)\n            -> Nested loop inner join  (cost=251 rows=455) (actual time=0.0402..0.571 rows=440 loops=1)\n                -> Filter: ((a.sale_date >= DATE'2024-04-01') and (a.sale_date < DATE'2024-07-01'))  (cost=91.4 rows=455) (actual time=0.0325..0.211 rows=455 loops=1)\n                    -> Index range scan on a using PRIMARY over ('2024-04-01' <= sale_date < '2024-07-01')  (cost=91.4 rows=455) (actual time=0.0306..0.17 rows=455 loops=1)\n                -> Filter: (p.category_id is not null)  (cost=0.25 rows=1) (actual time=576e-6..642e-6 rows=0.967 loops=455)\n                    -> Single-row index lookup on p using PRIMARY (product_id=a.product_id)  (cost=0.25 rows=1) (actual time=470e-6..491e-6 rows=1 loops=455)\n            -> Single-row index lookup on c using PRIMARY (category_id=p.category_id)  (cost=0.25 rows=1) (actual time=474e-6..495e-6 rows=1 loops=440)\n"
+       "-> Table scan on <temporary>  (actual time=1.26..1.26 rows=9 loops=1)\n    -> Aggregate using temporary table  (actual time=1.26..1.26 rows=9 loops=1)\n        -> Nested loop inner join  (cost=410 rows=455) (actual time=0.0556..1.01 rows=440 loops=1)\n            -> Nested loop inner join  (cost=251 rows=455) (actual time=0.0512..0.702 rows=440 loops=1)\n                -> Filter: ((a.sale_date >= DATE'2024-04-01') and (a.sale_date < DATE'2024-07-01'))  (cost=91.4 rows=455) (actual time=0.0417..0.227 rows=455 loops=1)\n                    -> Index range scan on a using PRIMARY over ('2024-04-01' <= sale_date < '2024-07-01')  (cost=91.4 rows=455) (actual time=0.0394..0.154 rows=455 loops=1)\n                -> Filter: (p.category_id is not null)  (cost=0.25 rows=1) (actual time=787e-6..867e-6 rows=0.967 loops=455)\n                    -> Single-row index lookup on p using PRIMARY (product_id=a.product_id)  (cost=0.25 rows=1) (actual time=602e-6..628e-6 rows=1 loops=455)\n            -> Single-row index lookup on c using PRIMARY (category_id=p.category_id)  (cost=0.25 rows=1) (actual time=525e-6..551e-6 rows=1 loops=440)\n"
       ]
      ],
-     "elapsed_ms": 2.37
+     "elapsed_ms": 2.9
     }
    ],
    "measured": true
   },
-  "s8:b1201e2bb30e": {
+  "s9:b1201e2bb30e": {
    "statements": [
     {
      "sql": "SELECT\n  (SELECT SUM(revenue) FROM sales_fact WHERE sale_date >= '2024-04-01' AND sale_date < '2024-07-01')        AS from_fact,\n  (SELECT SUM(revenue) FROM agg_daily_product WHERE sale_date >= '2024-04-01' AND sale_date < '2024-07-01') AS from_summary",
@@ -334,7 +353,7 @@
    ],
    "measured": null
   },
-  "s9:64281348d865": {
+  "s10:64281348d865": {
    "statements": [
     {
      "sql": "INSERT INTO sales_fact VALUES\n  (300001, '2024-12-31', 5, 1, 2, 59.98),\n  (300002, '2024-12-31', 5, 2, 1, 29.99),\n  (300003, '2024-12-31', 12, 3, 1, 129.99)",
@@ -594,7 +613,7 @@
    ],
    "measured": null
   },
-  "s11:c9ba03eafddd": {
+  "s12:c9ba03eafddd": {
    "statements": [
     {
      "sql": "CREATE TABLE daily_revenue (sale_date DATE PRIMARY KEY, revenue DECIMAL(14,2) NOT NULL)",
@@ -633,7 +652,7 @@
    ],
    "measured": null
   },
-  "s12:cfdc5eba2ca1": {
+  "s13:cfdc5eba2ca1": {
    "statements": [
     {
      "sql": "EXPLAIN ANALYZE\nSELECT d.sale_date, (SELECT SUM(x.revenue) FROM daily_revenue x WHERE x.sale_date <= d.sale_date) AS running_total\nFROM daily_revenue d",
@@ -644,7 +663,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Covering index scan on d using PRIMARY  (cost=36.9 rows=366) (actual time=0.0277..0.0609 rows=366 loops=1)\n-> Select #2 (subquery in projection; dependent)\n    -> Aggregate: sum(x.revenue)  (cost=24.6 rows=1) (actual time=0.108..0.108 rows=1 loops=366)\n        -> Filter: (x.sale_date <= d.sale_date)  (cost=12.4 rows=122) (actual time=0.0261..0.0924 rows=184 loops=366)\n            -> Index range scan on x (re-planned for each iteration)  (cost=12.4 rows=366) (actual time=0.0259..0.0679 rows=366 loops=366)\n"
+       "-> Covering index scan on d using PRIMARY  (cost=36.9 rows=366) (actual time=0.0583..0.113 rows=366 loops=1)\n-> Select #2 (subquery in projection; dependent)\n    -> Aggregate: sum(x.revenue)  (cost=24.6 rows=1) (actual time=0.179..0.179 rows=1 loops=366)\n        -> Filter: (x.sale_date <= d.sale_date)  (cost=12.4 rows=122) (actual time=0.0657..0.159 rows=184 loops=366)\n            -> Index range scan on x (re-planned for each iteration)  (cost=12.4 rows=366) (actual time=0.0654..0.125 rows=366 loops=366)\n"
       ]
      ],
      "warnings": [
@@ -654,7 +673,7 @@
        "message": "Field or reference 'd.sale_date' of SELECT #2 was resolved in SELECT #1"
       }
      ],
-     "elapsed_ms": 41.51
+     "elapsed_ms": 69.09
     },
     {
      "sql": "EXPLAIN ANALYZE\nSELECT sale_date, SUM(revenue) OVER (ORDER BY sale_date ROWS UNBOUNDED PRECEDING) AS running_total\nFROM daily_revenue",
@@ -665,15 +684,15 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Window aggregate: sum(daily_revenue.revenue) OVER (ORDER BY daily_revenue.sale_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)   (actual time=0.115..0.226 rows=366 loops=1)\n    -> Sort: daily_revenue.sale_date  (cost=36.9 rows=366) (actual time=0.107..0.147 rows=366 loops=1)\n        -> Table scan on daily_revenue  (cost=36.9 rows=366) (actual time=0.0372..0.0631 rows=366 loops=1)\n"
+       "-> Window aggregate: sum(daily_revenue.revenue) OVER (ORDER BY daily_revenue.sale_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)   (actual time=0.183..0.317 rows=366 loops=1)\n    -> Sort: daily_revenue.sale_date  (cost=36.9 rows=366) (actual time=0.174..0.196 rows=366 loops=1)\n        -> Table scan on daily_revenue  (cost=36.9 rows=366) (actual time=0.0622..0.0977 rows=366 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 1.15
+     "elapsed_ms": 1.98
     }
    ],
    "measured": true
   },
-  "s13:dd4b42e57813": {
+  "s14:dd4b42e57813": {
    "statements": [
     {
      "sql": "SELECT ROUND(AVG(daily_avg), 4) AS avg_of_daily_avgs,\n       ROUND(SUM(daily_rev) / SUM(daily_n), 4) AS true_avg_per_sale\nFROM (SELECT sale_date, AVG(revenue) AS daily_avg, SUM(revenue) AS daily_rev, COUNT(*) AS daily_n\n      FROM sales_fact WHERE sale_date >= '2024-12-01' GROUP BY sale_date) AS d",
@@ -693,7 +712,7 @@
    ],
    "measured": null
   },
-  "s14:d8a3bd1a92b4": {
+  "s15:d8a3bd1a92b4": {
    "statements": [
     {
      "sql": "SELECT product_id, sale_date FROM agg_daily_product\nWHERE RANK() OVER (PARTITION BY product_id ORDER BY revenue DESC) = 1",
