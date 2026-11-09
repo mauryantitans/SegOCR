@@ -263,7 +263,7 @@ CREATE TABLE course_prereqs (
 
 Note how mapping a relationship to a **weak** entity propagates the weak entity's *whole* key: `lesson_completions` references `lessons` with the composite `(course_id, lesson_no)`.
 
-Verify the result: twelve relations, and every foreign key with its referenced table and delete rule.
+Verify the result: eleven relations, and every foreign key with its referenced table and delete rule.
 
 ```sql run
 SELECT rc.TABLE_NAME AS child, rc.CONSTRAINT_NAME, rc.REFERENCED_TABLE_NAME AS parent, rc.DELETE_RULE,
@@ -385,7 +385,7 @@ ORDER BY u.user_id;
 SHOW CREATE TABLE payout_accounts;
 ```
 
-The reconstructed definition adds the backtick-quoted identifiers, the table's engine, default character set and collation, and shows `AUTO_INCREMENT=` with the next value. Now create a table whose constraints are **not** named and see the generated names:
+The reconstructed definition adds the backtick-quoted identifiers, the table's engine, default character set and collation, and shows `AUTO_INCREMENT=3` — the next value. The table holds one row, yet the counter skipped 2: the rejected duplicate insert in Practical Example 2 had already reserved it. AUTO_INCREMENT values are unique, not gap-free. Now create a table whose constraints are **not** named and see the generated names:
 
 ```sql run
 CREATE TABLE course_reviews (

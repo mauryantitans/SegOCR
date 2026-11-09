@@ -1,0 +1,939 @@
+{
+ "doc": "m09-views",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s2:31385aa24de5": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW v_order_totals AS\nSELECT o.order_id,\n       o.customer_id,\n       o.status,\n       SUM(oi.quantity * oi.unit_price) AS order_total\nFROM orders o\nJOIN order_items oi ON oi.order_id = o.order_id\nGROUP BY o.order_id, o.customer_id, o.status",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM v_order_totals ORDER BY order_total DESC, order_id LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "status",
+      "order_total"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       74,
+       10,
+       "delivered",
+       "6061.08"
+      ],
+      [
+       56,
+       16,
+       "shipped",
+       "4235.96"
+      ],
+      [
+       11,
+       9,
+       "paid",
+       "4157.98"
+      ],
+      [
+       60,
+       19,
+       "delivered",
+       "4046.97"
+      ],
+      [
+       35,
+       3,
+       "delivered",
+       "3797.96"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:43bfd13072ba": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW v_delivered_orders AS\nSELECT order_id, customer_id, order_date, shipped_at\nFROM orders\nWHERE status = 'delivered'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS delivered FROM v_delivered_orders",
+     "status": "ok",
+     "columns": [
+      "delivered"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       45
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:94238ccb7436": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, CHECK_OPTION, IS_UPDATABLE, SECURITY_TYPE\nFROM information_schema.VIEWS\nWHERE TABLE_SCHEMA = DATABASE()\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "CHECK_OPTION",
+      "IS_UPDATABLE",
+      "SECURITY_TYPE"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "v_delivered_orders",
+       "NONE",
+       "YES",
+       "DEFINER"
+      ],
+      [
+       "v_order_totals",
+       "NONE",
+       "NO",
+       "DEFINER"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:91e2ceecf66c": {
+   "statements": [
+    {
+     "sql": "SHOW CREATE VIEW v_delivered_orders",
+     "status": "ok",
+     "columns": [
+      "View",
+      "Create View",
+      "character_set_client",
+      "collation_connection"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "v_delivered_orders",
+       "CREATE ALGORITHM=UNDEFINED DEFINER=`your_lab`@`localhost` SQL SECURITY DEFINER VIEW `v_delivered_orders` AS select `orders`.`order_id` AS `order_id`,`orders`.`customer_id` AS `customer_id`,`orders`.`order_date` AS `order_date`,`orders`.`shipped_at` AS `shipped_at` from `orders` where (`orders`.`status` = 'delivered')",
+       "utf8mb4",
+       "utf8mb4_0900_ai_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:2189f6d29de1": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW v_customer_revenue AS\nSELECT c.customer_id,\n       CONCAT(c.first_name, ' ', c.last_name) AS customer_name,\n       c.state,\n       COUNT(*)            AS orders,\n       SUM(t.order_total)  AS revenue\nFROM customers c\nJOIN v_order_totals t ON t.customer_id = c.customer_id\nWHERE t.status NOT IN ('cancelled', 'refunded')\nGROUP BY c.customer_id, c.first_name, c.last_name, c.state",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT customer_name, state, orders, revenue\nFROM v_customer_revenue\nORDER BY revenue DESC, customer_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "customer_name",
+      "state",
+      "orders",
+      "revenue"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Lucia Moradi",
+       "CA",
+       7,
+       "8448.82"
+      ],
+      [
+       "Grace Berg",
+       "CA",
+       4,
+       "7657.55"
+      ],
+      [
+       "Lucas Lin",
+       "NY",
+       4,
+       "6893.02"
+      ],
+      [
+       "Diego Haddad",
+       "CA",
+       2,
+       "5829.45"
+      ],
+      [
+       "Leila Martin",
+       "CA",
+       8,
+       "5713.27"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:6c130c3d768b": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW v_customer_directory AS\nSELECT customer_id, first_name, city, state, loyalty_tier\nFROM customers",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM v_customer_directory WHERE state = 'CA' ORDER BY customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "city",
+      "state",
+      "loyalty_tier"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       3,
+       "Diego",
+       "San Jose",
+       "CA",
+       null
+      ],
+      [
+       6,
+       "Sofia",
+       "San Francisco",
+       "CA",
+       "silver"
+      ],
+      [
+       7,
+       "Nina",
+       "San Francisco",
+       "CA",
+       "silver"
+      ],
+      [
+       8,
+       "Hiro",
+       "San Francisco",
+       "CA",
+       "silver"
+      ],
+      [
+       9,
+       "Diego",
+       "San Francisco",
+       "CA",
+       "gold"
+      ],
+      [
+       11,
+       "Grace",
+       "San Francisco",
+       "CA",
+       "bronze"
+      ],
+      [
+       13,
+       "Diego",
+       "San Jose",
+       "CA",
+       "silver"
+      ],
+      [
+       15,
+       "Fatima",
+       "Los Angeles",
+       "CA",
+       "bronze"
+      ],
+      [
+       17,
+       "Chloe",
+       "San Jose",
+       "CA",
+       null
+      ],
+      [
+       18,
+       "Leila",
+       "San Francisco",
+       "CA",
+       "gold"
+      ],
+      [
+       19,
+       "Lucia",
+       "San Jose",
+       "CA",
+       "silver"
+      ],
+      [
+       25,
+       "Chloe",
+       "San Francisco",
+       "CA",
+       "bronze"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:7104ea7f1fa9": {
+   "statements": [
+    {
+     "sql": "UPDATE v_delivered_orders\nSET shipped_at = shipped_at\nWHERE order_id = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 1  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME, IS_UPDATABLE\nFROM information_schema.VIEWS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('v_delivered_orders', 'v_order_totals')\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "IS_UPDATABLE"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "v_delivered_orders",
+       "YES"
+      ],
+      [
+       "v_order_totals",
+       "NO"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:13abbd1c6375": {
+   "statements": [
+    {
+     "sql": "UPDATE v_order_totals SET status = 'paid' WHERE order_id = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1288,
+      "message": "The target table v_order_totals of the UPDATE is not updatable"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:05687ff7b366": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW v_active_products AS\nSELECT product_id, sku, name, price, stock_qty, is_active\nFROM products\nWHERE is_active = 1\nWITH CHECK OPTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE v_active_products SET stock_qty = stock_qty + 5 WHERE product_id = 13",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id, name, stock_qty FROM v_active_products WHERE product_id = 13",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "stock_qty"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       13,
+       "Studio Microphone",
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:ec96106a9d1d": {
+   "statements": [
+    {
+     "sql": "UPDATE v_active_products SET is_active = 0 WHERE product_id = 13",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1369,
+      "message": "CHECK OPTION failed 'v_active_products'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s13:b42831dbe38f": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW v_all_cheap AS\nSELECT product_id, name, price, is_active FROM products WHERE price < 50",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE VIEW v_all_cheap_local AS\nSELECT * FROM v_all_cheap WHERE is_active = 1\nWITH LOCAL CHECK OPTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE VIEW v_all_cheap_cascaded AS\nSELECT * FROM v_all_cheap WHERE is_active = 1\nWITH CASCADED CHECK OPTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- LOCAL: only is_active = 1 is checked; the inner view has no check option,\n-- so raising the price above 50 is allowed (the row leaves both views).\nUPDATE v_all_cheap_local SET price = price WHERE product_id = 9",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 1  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id, name, price FROM v_all_cheap_local WHERE product_id = 9",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       9,
+       "Laptop Stand",
+       "39.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:9c1a9831f1b7": {
+   "statements": [
+    {
+     "sql": "-- CASCADED: the inner view's price < 50 is checked as well\nUPDATE v_all_cheap_cascaded SET price = 60 WHERE product_id = 9",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1369,
+      "message": "CHECK OPTION failed 'v_all_cheap_cascaded'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s15:9c7234c659cf": {
+   "statements": [
+    {
+     "sql": "-- the same change through the LOCAL view is accepted (then undone)\nUPDATE v_all_cheap_local SET price = 60 WHERE product_id = 9",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id, price FROM products WHERE product_id = 9",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "price"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       9,
+       "60.00"
+      ]
+     ]
+    },
+    {
+     "sql": "UPDATE products SET price = 39.99 WHERE product_id = 9",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:d9f01e41fe6d": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT * FROM v_delivered_orders WHERE customer_id = 5",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (orders.`status` = 'delivered')  (cost=0.533 rows=0.333)\n    -> Index lookup on orders using idx_orders_customer (customer_id=5)  (cost=0.533 rows=2)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:532f38041794": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT * FROM v_order_totals WHERE customer_id = 5",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "PRIMARY",
+       "<derived2>",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       4,
+       100.0,
+       null
+      ],
+      [
+       2,
+       "DERIVED",
+       "o",
+       null,
+       "ref",
+       "PRIMARY,idx_orders_customer",
+       "idx_orders_customer",
+       "4",
+       "const",
+       2,
+       100.0,
+       "Using temporary"
+      ],
+      [
+       2,
+       "DERIVED",
+       "oi",
+       null,
+       "ref",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "o.order_id",
+       2,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `v_order_totals`.`order_id` AS `order_id`,`v_order_totals`.`customer_id` AS `customer_id`,`v_order_totals`.`status` AS `status`,`v_order_totals`.`order_total` AS `order_total` from `v_order_totals`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:18bf868e4fae": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT * FROM v_order_totals WHERE customer_id = 5",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on v_order_totals  (cost=2.5..2.5 rows=0)\n    -> Materialize  (cost=0..0 rows=0)\n        -> Table scan on <temporary>\n            -> Aggregate using temporary table\n                -> Nested loop inner join  (cost=2.16 rows=4.55)\n                    -> Index lookup on o using idx_orders_customer (customer_id=5)  (cost=0.7 rows=2)\n                    -> Index lookup on oi using PRIMARY (order_id=o.order_id)  (cost=0.614 rows=2.28)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:e22b91811547": {
+   "statements": [
+    {
+     "sql": "CREATE ALGORITHM = TEMPTABLE VIEW v_orders_tt AS\nSELECT order_id, customer_id, status FROM orders",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM v_orders_tt WHERE customer_id = 5",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "PRIMARY",
+       "<derived2>",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       2,
+       100.0,
+       null
+      ],
+      [
+       2,
+       "DERIVED",
+       "orders",
+       null,
+       "ref",
+       "idx_orders_customer",
+       "idx_orders_customer",
+       "4",
+       "const",
+       2,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `v_orders_tt`.`order_id` AS `order_id`,`v_orders_tt`.`customer_id` AS `customer_id`,`v_orders_tt`.`status` AS `status` from `v_orders_tt`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:c02fbc373c6f": {
+   "statements": [
+    {
+     "sql": "CREATE ALGORITHM = MERGE VIEW v_orders_per_customer AS\nSELECT customer_id, COUNT(*) AS n FROM orders GROUP BY customer_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1354,
+       "message": "View merge algorithm can't be used here for now (assumed undefined algorithm)"
+      }
+     ]
+    },
+    {
+     "sql": "SHOW WARNINGS",
+     "status": "ok",
+     "columns": [
+      "Level",
+      "Code",
+      "Message"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Warning",
+       1354,
+       "View merge algorithm can't be used here for now (assumed undefined algorithm)"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:96f2dd0e61c7": {
+   "statements": [
+    {
+     "sql": "SELECT d.order_id, d.order_date, t.order_total\nFROM v_delivered_orders d\nJOIN v_order_totals t ON t.order_id = d.order_id\nWHERE d.customer_id = 5\nORDER BY d.order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_date",
+      "order_total"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       34,
+       "2024-05-20 08:46:00",
+       "712.49"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:d18ae63948ee": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE mv_customer_revenue AS\nSELECT customer_id, customer_name, state, orders, revenue FROM v_customer_revenue",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 20,
+     "info": "Records: 20  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE mv_customer_revenue ADD PRIMARY KEY (customer_id)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS customers_with_revenue, SUM(revenue) AS total_revenue\nFROM mv_customer_revenue",
+     "status": "ok",
+     "columns": [
+      "customers_with_revenue",
+      "total_revenue"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20,
+       "63373.06"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:77b4070e5523": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT * FROM v_order_totals WHERE order_total > 1000",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on v_order_totals  (cost=2.5..2.5 rows=0)\n    -> Materialize  (cost=0..0 rows=0)\n        -> Filter: (sum((oi.quantity * oi.unit_price)) > 1000)\n            -> Table scan on <temporary>\n                -> Aggregate using temporary table\n                    -> Nested loop inner join  (cost=66.5 rows=182)\n                        -> Table scan on o  (cost=8.25 rows=80)\n                        -> Index lookup on oi using PRIMARY (order_id=o.order_id)  (cost=0.503 rows=2.28)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:6407ec06fbc2": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE price_list (sku VARCHAR(20) PRIMARY KEY, price DECIMAL(10,2))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO price_list VALUES ('A-1', 10.00), ('B-2', 20.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE VIEW v_price_list AS SELECT * FROM price_list",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE price_list ADD COLUMN currency CHAR(3) NOT NULL DEFAULT 'USD'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM v_price_list ORDER BY sku",
+     "status": "ok",
+     "columns": [
+      "sku",
+      "price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "A-1",
+       "10.00"
+      ],
+      [
+       "B-2",
+       "20.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:58c25d7d6136": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE price_list DROP COLUMN price",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s21:77c17be80966": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM v_price_list",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1356,
+      "message": "View 'v_price_list' references invalid table(s) or column(s) or function(s) or definer/invoker of view lack rights to use them"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s22:13f062c2eebe": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW v_product_margin AS\nSELECT product_id, name, price, price - cost AS margin FROM products",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s23:aa70fa4f4cf2": {
+   "statements": [
+    {
+     "sql": "INSERT INTO v_product_margin (product_id, name, price, margin) VALUES (99, 'Test', 10, 5)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1348,
+      "message": "Column 'margin' is not updatable"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s24:f3f6fbd8318d": {
+   "statements": [
+    {
+     "sql": "CREATE DEFINER = 'root'@'localhost' VIEW v_escalate AS SELECT 1 AS x",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1227,
+      "message": "Access denied; you need (at least one of) the SUPER or SET_USER_ID privilege(s) for this operation"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s25:3d306afcf474": {
+   "statements": [
+    {
+     "sql": "UPDATE v_delivered_orders\nSET shipped_at = shipped_at\nWHERE order_id = (SELECT MIN(order_id) FROM orders WHERE status = 'delivered')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1443,
+      "message": "The definition of table 'v_delivered_orders' prevents operation UPDATE on table 'v_delivered_orders'."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

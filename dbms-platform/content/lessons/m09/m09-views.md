@@ -228,7 +228,7 @@ GRANT SELECT ON shop.v_customer_directory TO 'support'@'%';
 ```sql run
 UPDATE v_delivered_orders
 SET shipped_at = shipped_at
-WHERE order_id = (SELECT MIN(order_id) FROM orders WHERE status = 'delivered');
+WHERE order_id = 2;
 
 SELECT TABLE_NAME, IS_UPDATABLE
 FROM information_schema.VIEWS
@@ -320,7 +320,7 @@ steps:
   - title: "3. The same plan as an iterator tree"
     explain: >-
       The tree format makes the order of work explicit: the innermost iterators run first (index lookup on
-      orders for customer 5, hash join with order_items, aggregate), the result is written by Materialize into
+      orders for customer 5, nested-loop join to order_items through its primary key, aggregate), the result is written by Materialize into
       a temporary table, and only then does the outer Table scan on v_order_totals read it.
     sql: EXPLAIN FORMAT=TREE SELECT * FROM v_order_totals WHERE customer_id = 5;
   - title: "4. Forcing TEMPTABLE on a simple view"
@@ -448,7 +448,7 @@ SELECT * FROM v_price_list;
 
 `CHECK TABLE v_price_list` reports the same problem, which is why migration pipelines should run it for every view after schema changes.
 
-**Mistake 3 — inserting into a non-insertable view.** A view with an expression column can be updatable (for its plain columns) but never insertable:
+**Mistake 3 — inserting into a non-insertable view.** A view with an expression column can be updatable (for its plain columns) but never insertable. MySQL rejects the write as soon as it reaches the computed column (error 1348, *Column 'margin' is not updatable*):
 
 ```sql run
 CREATE VIEW v_product_margin AS
@@ -465,9 +465,19 @@ INSERT INTO v_product_margin (product_id, name, price, margin) VALUES (99, 'Test
 CREATE DEFINER = 'root'@'localhost' VIEW v_escalate AS SELECT 1 AS x;
 ```
 
-**Mistake 5 — assuming a view caches its result.** Every read re-executes the query. A dashboard that reads an aggregating view every few seconds re-aggregates every few seconds. Use a summary table if that is too expensive.
+**Mistake 5 — updating a view with a subquery on the same base table.** A natural way to write "touch the first delivered order" fails, because MySQL cannot update a merged view while a subquery reads the same base table in the same statement (the same restriction as error 1093 for plain tables):
 
-**Mistake 6 — `SQL SECURITY DEFINER` with a powerful definer.** If a view's definer is an administrator account, anyone with `SELECT` on the view reads data with administrator rights through it. Use a dedicated definer with only the privileges the view needs.
+```sql run error
+UPDATE v_delivered_orders
+SET shipped_at = shipped_at
+WHERE order_id = (SELECT MIN(order_id) FROM orders WHERE status = 'delivered');
+```
+
+Compute the id first (a user variable, a derived table wrapped in another `SELECT`, or a multi-table `UPDATE … JOIN`), or update the base table directly.
+
+**Mistake 6 — assuming a view caches its result.** Every read re-executes the query. A dashboard that reads an aggregating view every few seconds re-aggregates every few seconds. Use a summary table if that is too expensive.
+
+**Mistake 7 — `SQL SECURITY DEFINER` with a powerful definer.** If a view's definer is an administrator account, anyone with `SELECT` on the view reads data with administrator rights through it. Use a dedicated definer with only the privileges the view needs.
 
 ## Industry Application
 

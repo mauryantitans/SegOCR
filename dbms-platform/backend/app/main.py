@@ -7,6 +7,7 @@ import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import pymysql
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -66,6 +67,17 @@ async def access_log(request: Request, call_next):
         logging.getLogger("access").info("%s %s %s %.1fms", request.method, request.url.path, response.status_code,
                                          (time.perf_counter() - t0) * 1000)
     return response
+
+
+@app.exception_handler(pymysql.err.OperationalError)
+async def sandbox_unavailable(request: Request, exc: pymysql.err.OperationalError):
+    code = exc.args[0] if exc.args else None
+    if code in (2002, 2003, 2006, 2013):  # cannot connect / server gone away
+        log.error("sandbox MySQL unreachable on %s: %s", request.url.path, exc)
+        return JSONResponse({"detail": "The SQL sandbox server is temporarily unavailable. Please try again shortly."},
+                            status_code=503)
+    log.exception("sandbox error on %s", request.url.path)
+    return JSONResponse({"detail": "The SQL sandbox reported an error."}, status_code=500)
 
 
 @app.exception_handler(Exception)

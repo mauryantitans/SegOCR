@@ -118,3 +118,14 @@ def test_reset_survives_stray_connection_holding_metadata_lock(client):
     labs.reset_lab(owner, "playground", "empty")  # must kill the stray connection instead of waiting
     assert labs.schema_overview(owner, "playground")["tables"] == []
     labs.drop_lab(schema)
+
+
+def test_sandbox_unreachable_returns_503(client, auth, monkeypatch):
+    import pymysql
+    from app.state import state
+
+    def boom(*a, **k):
+        raise pymysql.err.OperationalError(2003, "Can't connect to MySQL server")
+    monkeypatch.setattr(state.labs, "lab_info", boom)
+    r = client.post("/api/labs/run", json={"lab": "playground", "sql": "SELECT 1"}, headers=auth)
+    assert r.status_code == 503 and "unavailable" in r.json()["detail"]
