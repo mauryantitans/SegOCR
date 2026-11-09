@@ -1542,7 +1542,7 @@ EXPLAIN ANALYZE SELECT order_id, status, placed_at, total_amount
 FROM orders WHERE customer_id = 42 ORDER BY placed_at DESC LIMIT 10;
 ```
 
-`IGNORE INDEX` hides the composite index for one query. The first tree is revealing: it is a **full table scan** of all 150,014 orders followed by a sort, not the old foreign-key plan — because the implicit `fk_orders_customer` index no longer exists. The composite index *replaced* it (it now also serves the foreign key), so hiding it leaves no index on `customer_id` at all. The second plan reads exactly the ten rows it returns. Timings are from the build machine and will differ on yours; the row counts in `actual … rows=` are the robust evidence. Revise [Composite Indexes](/lessons/m07-composite-indexes) and [Optimizing ORDER BY and LIMIT](/lessons/m07-order-by-limit).
+`IGNORE INDEX` hides the composite index for one query. The first tree is revealing: it is a **full table scan** of all 150,014 orders followed by a sort, not the old foreign-key plan — because the implicit `fk_orders_customer` index no longer exists. The composite index *replaced* it (it now also serves the foreign key), so hiding it leaves no index on `customer_id` at all. The second plan reads exactly the ten rows it returns. Timings are from the build machine and will differ on yours; the row counts in `actual … rows=` are the robust evidence. Revise [Composite Indexes](/lessons/m07-composite-indexes) and [Optimizing Aggregation, Sorting and Pagination](/lessons/m07-optimizing-aggregation-sorting).
 
 ```exercise
 id: p3-ex9
@@ -1918,7 +1918,7 @@ steps:
     note: One unit existed, two were sold. This is a lost update — A's decrement was overwritten by B's stale computation.
 ```
 
-The row lock *did* serialize the two `UPDATE`s, but too late: both transactions made their decision on a value read without a lock. The CHECK constraint could not help, because neither write produced a negative number. Revise [Concurrency Anomalies](/lessons/m08-concurrency-anomalies).
+The row lock *did* serialize the two `UPDATE`s, but too late: both transactions made their decision on a value read without a lock. The CHECK constraint could not help, because neither write produced a negative number. Revise [Read Phenomena](/lessons/m08-read-phenomena).
 
 ### Fix 1 — pessimistic locking with `SELECT … FOR UPDATE`
 

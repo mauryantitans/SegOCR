@@ -313,7 +313,7 @@ The resulting relational schema, with primary keys underlined in words:
 
 ### Data type decisions
 
-Choosing types is where the physical design earns its keep. Each choice below is a small, deliberate trade-off (see [Data Types](/lessons/m02-data-types)):
+Choosing types is where the physical design earns its keep. Each choice below is a small, deliberate trade-off (see [Numeric Data Types](/lessons/m02-numeric-types) and [String Data Types](/lessons/m02-string-types)):
 
 | Column | Type | Why |
 |---|---|---|
@@ -766,7 +766,7 @@ WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('students', 'courses')
 ORDER BY TABLE_NAME, CONSTRAINT_TYPE, CONSTRAINT_NAME;
 ```
 
-The catalogue lists every constraint by name: one `PRIMARY KEY`, the `UNIQUE` natural keys, the `FOREIGN KEY`s and the `CHECK`s. Constraints are the database's **last line of defence**: the application should validate input too (for good error messages), but only constraints hold regardless of which program, script or person writes the data. Revise the theory in [Integrity Constraints](/lessons/m01-integrity-constraints) and the MySQL details in [Constraints in MySQL](/lessons/m02-constraints).
+The catalogue lists every constraint by name: one `PRIMARY KEY`, the `UNIQUE` natural keys, the `FOREIGN KEY`s and the `CHECK`s. Constraints are the database's **last line of defence**: the application should validate input too (for good error messages), but only constraints hold regardless of which program, script or person writes the data. Revise the theory in [Integrity Constraints](/lessons/m01-integrity-constraints) and the MySQL details in [Constraints in MySQL](/lessons/m02-constraints-mysql).
 
 ### Worked example — watching the constraints reject bad data
 
@@ -1491,8 +1491,9 @@ solution: |
   ORDER BY enrolments DESC, d.dept_code;
 orderMatters: true
 explanation: |
-  `distinct_students` is smaller than `enrolments` whenever a student takes two courses in the same department.
-  Joining via `students.major_dept_id` instead of `courses.dept_id` is the typical wrong answer — it answers "how many
+  On this sample data no student takes two Fall 2025 courses in the same department, so `distinct_students` equals
+  `enrolments` — but the two answer different questions and diverge as soon as someone does. Test data that cannot
+  tell two formulas apart cannot catch a bug that confuses them. Joining via `students.major_dept_id` instead of `courses.dept_id` is the typical wrong answer — it answers "how many
   enrolments do each department's *majors* have", a different question. Grouping by `d.dept_id` as well as
   `dept_code` is good practice: the key makes the grouping unambiguous and satisfies `ONLY_FULL_GROUP_BY`.
 ```
@@ -1845,7 +1846,7 @@ explanation: |
 
 ## 9. Indexing Strategy
 
-An index plan starts from the **queries**, not from the tables: list the access paths the application needs, then make sure each one can be served by an index — and add nothing else, because every index costs disk space, buffer-pool memory and extra work on every `INSERT`, `UPDATE` and `DELETE`. Revise [How B+ Tree Indexes Work](/lessons/m07-btree-indexes) and [Composite Indexes](/lessons/m07-composite-indexes).
+An index plan starts from the **queries**, not from the tables: list the access paths the application needs, then make sure each one can be served by an index — and add nothing else, because every index costs disk space, buffer-pool memory and extra work on every `INSERT`, `UPDATE` and `DELETE`. Revise [B-Trees and B+ Trees](/lessons/m07-btree-bplustree) and [Composite Indexes](/lessons/m07-composite-indexes).
 
 | Access path (from Stage 1) | Served by |
 |---|---|
@@ -2157,7 +2158,7 @@ solution: |
 
 ## 11. Query Optimization
 
-Query optimization in a beginner project is mostly about writing queries the optimizer *can* execute efficiently. The most important habit is writing **sargable** predicates (Search ARGument ABLE): conditions that compare an **unmodified indexed column** to a value, so an index range can be used. Revise [Reading EXPLAIN](/lessons/m07-explain) and [Index Selection and Sargability](/lessons/m07-index-selection).
+Query optimization in a beginner project is mostly about writing queries the optimizer *can* execute efficiently. The most important habit is writing **sargable** predicates (Search ARGument ABLE): conditions that compare an **unmodified indexed column** to a value, so an index range can be used. Revise [Reading EXPLAIN](/lessons/m07-explain) and [SARGable Queries](/lessons/m07-sargable-queries).
 
 To see the effect we need realistic volume. The admissions portal (which will feed the student table) keeps every application; generate 100,000 of them spread over three years:
 
@@ -2227,7 +2228,6 @@ The first plan scans all 100,000 index entries and filters them; the second read
 
 :::best-practice[Other beginner-level optimizations]
 - Select only the columns you need; `SELECT *` defeats covering indexes and sends unused data over the network.
-- Filter in SQL, not in the application: fetching 100,000 rows to count 3,000 of them moves the work to the slowest place.
 - Use `EXISTS` / `NOT EXISTS` for existence checks instead of `COUNT(*) > 0`.
 - Compare columns with values of the **same type**: `WHERE student_number = 20240001` (a number against a `CHAR` column) forces a conversion on every row and cannot use the index.
 :::
@@ -2751,9 +2751,9 @@ explanation: |
 
 A schema that passes its tests in a lab still has to survive years of production. Before the registrar's office goes live, a professional reviews:
 
-**Migrations and change management.** The DDL of Stages 6–9 becomes the first file of a versioned migration history (`V001__create_core_tables.sql`, `V002__add_roster_index.sql`, …) managed by a tool such as Flyway or Liquibase, reviewed like code and applied by a deployment account — never by hand in production. Adding a column, an index or a constraint to a large table later is an online operation in InnoDB for most changes (`ALGORITHM=INSTANT` or `INPLACE`), but adding a `CHECK` or a foreign key validates every existing row, so test migrations on a production-sized copy first. See [Schema Migrations](/lessons/m12-schema-migrations).
+**Migrations and change management.** The DDL of Stages 6–9 becomes the first file of a versioned migration history (`V001__create_core_tables.sql`, `V002__add_roster_index.sql`, …) managed by a tool such as Flyway or Liquibase, reviewed like code and applied by a deployment account — never by hand in production. Adding a column, an index or a constraint to a large table later is an online operation in InnoDB for most changes (`ALGORITHM=INSTANT` or `INPLACE`), but adding a `CHECK` or a foreign key validates every existing row, so test migrations on a production-sized copy first. See [Database Migrations and Version Management](/lessons/m11-migrations-versioning).
 
-**Backups and recovery.** Decide the **RPO** (how much data may be lost — for grades, essentially none) and the **RTO** (how long the system may be down — perhaps a few hours outside registration week). A typical setup is a nightly consistent logical or physical backup plus binary logs for point-in-time recovery, and — the step most teams skip — a **restore test** every month (see [Backup Strategies](/lessons/m10-backup-strategies)).
+**Backups and recovery.** Decide the **RPO** (how much data may be lost — for grades, essentially none) and the **RTO** (how long the system may be down — perhaps a few hours outside registration week). A typical setup is a nightly consistent logical or physical backup plus binary logs for point-in-time recovery, and — the step most teams skip — a **restore test** every month (see [Logical and Physical Backups](/lessons/m11-backups)).
 
 ```sql
 -- Display only (shell commands): a consistent logical backup of an InnoDB schema without locking it
@@ -2762,7 +2762,7 @@ A schema that passes its tests in a lab still has to survive years of production
 
 **Data lifecycle.** Enrolment history must be kept for years (Stage 1, retention rule). Plan an archival process — for example moving terms older than seven years to an archive schema — and document it, rather than letting the operational tables grow forever or deleting history ad hoc.
 
-**Peak load.** Registration week concentrates thousands of enrolments into a few hours. The capacity check of Stage 10 serializes enrolments **per course** — fine at this scale — but it means the transaction holding the course lock must be short: no user interaction while a transaction is open.
+**Peak load.** Registration week concentrates thousands of enrolments into a few hours. The capacity check of Stage 10 serializes enrolments **per course**, so those transactions must be short: no user interaction while one is open.
 
 **Privacy.** Production student data must never be copied into development or test databases unmasked. Generate synthetic data (as we did for the applications table) or mask names, emails and dates of birth before refreshing a test environment.
 

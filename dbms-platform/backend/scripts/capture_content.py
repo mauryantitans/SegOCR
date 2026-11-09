@@ -37,6 +37,7 @@ from app.config import get_settings  # noqa: E402
 from app.content.parser import LESSON_SECTIONS, ContentError, parse_document  # noqa: E402
 
 OWNER = "capture"
+PROJECT_IDS: set[str] = set()
 MIN_EXERCISES = 4
 MIN_QUESTIONS = 6
 DISPLAY_ROWS = 50
@@ -106,6 +107,16 @@ def lint(doc, kind: str, datasets: set[str], all_lesson_ids: set[str]) -> list[s
         if fences != parsed:
             errs.append(f"{fences} ```{kind} fences but {parsed} parsed — a ``` line inside a YAML block probably closed "
                         "it early (use ~~~ inside, or a four-backtick outer fence)")
+    # Internal links must resolve to curriculum lessons / projects.
+    for target in re.findall(r"\]\(/lessons/([^)#\s]+)", raw):
+        if target not in all_lesson_ids:
+            errs.append(f"broken lesson link /lessons/{target}")
+    for target in re.findall(r"\]\(/projects/([^)#\s]+)", raw):
+        if not target.startswith("p") or not (Path(__file__).resolve().parents[2] / "content" / "projects").exists():
+            continue
+        if not any(target == pth.stem for pth in (Path(__file__).resolve().parents[2] / "content" / "projects").glob("*.md")) \
+                and target not in PROJECT_IDS:
+            errs.append(f"broken project link /projects/{target}")
     for ref in meta.get("related", []) or []:
         if ref not in all_lesson_ids:
             errs.append(f"related lesson '{ref}' does not exist")
@@ -346,6 +357,7 @@ def main() -> int:
             for l in ch["lessons"]:
                 lessons[l["id"]] = (mod["id"], content / "lessons" / mod["id"] / f"{l['id']}.md")
     projects = {p["id"]: content / "projects" / f"{p['id']}.md" for p in cur.get("projects", [])}
+    PROJECT_IDS.update(projects)
 
     targets: list[tuple[str, str, Path]] = []
     for lid, (mid, path) in lessons.items():

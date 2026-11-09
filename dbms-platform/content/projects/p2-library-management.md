@@ -2419,7 +2419,7 @@ explanation: |
 
 ## 12. Security
 
-Library records are sensitive: in most US states, library patron records — *who borrowed what* — are confidential by law, and professional ethics in librarianship treat reading history as private. The database design must make the safe thing the default. Revise [Privileges and Roles](/lessons/m11-privileges-roles) and [Views and Stored Programs as a Security Layer](/lessons/m11-security-views-procedures).
+Library records are sensitive: in most US states, library patron records — *who borrowed what* — are confidential by law, and professional ethics in librarianship treat reading history as private. The database design must make the safe thing the default. Revise [Privileges and Roles](/lessons/m11-privileges-roles) and [Database Logic vs Application Logic](/lessons/m09-db-vs-app-logic).
 
 The access model has three consumers:
 

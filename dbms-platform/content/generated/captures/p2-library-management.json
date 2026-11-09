@@ -765,7 +765,7 @@
        null,
        null,
        null,
-       58861,
+       57766,
        3.33,
        "Using where"
       ]
@@ -866,10 +866,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Index range scan on loans using idx_loans_open_due over (returned_on = NULL AND due_on < '2026-03-16'), with index condition: ((loans.returned_on is null) and (loans.due_on < DATE'2026-03-16'))  (cost=2.06 rows=4) (actual time=0.0283..0.0308 rows=4 loops=1)\n"
+       "-> Index range scan on loans using idx_loans_open_due over (returned_on = NULL AND due_on < '2026-03-16'), with index condition: ((loans.returned_on is null) and (loans.due_on < DATE'2026-03-16'))  (cost=2.06 rows=4) (actual time=0.0281..0.0301 rows=4 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 0.83
+     "elapsed_ms": 0.93
     }
    ],
    "measured": true

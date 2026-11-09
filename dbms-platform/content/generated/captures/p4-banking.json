@@ -1,0 +1,2214 @@
+{
+ "doc": "p4-banking",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:0134c5e5f899": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE customers (\n  customer_id INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  full_name   VARCHAR(120) NOT NULL,\n  email       VARCHAR(255) NOT NULL,\n  kyc_status  ENUM('pending','verified','rejected') NOT NULL DEFAULT 'pending',\n  created_at  DATETIME     NOT NULL,\n  PRIMARY KEY (customer_id),\n  CONSTRAINT uq_customers_email UNIQUE (email)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE accounts (\n  account_id      INT UNSIGNED  NOT NULL AUTO_INCREMENT,\n  account_number  CHAR(12)      NOT NULL,\n  product         ENUM('checking','savings','clearing') NOT NULL,\n  currency        CHAR(3)       NOT NULL,\n  status          ENUM('active','frozen','closed') NOT NULL DEFAULT 'active',\n  balance         DECIMAL(19,4) NOT NULL DEFAULT 0,\n  overdraft_limit DECIMAL(19,4) NOT NULL DEFAULT 0,\n  opened_at       DATETIME      NOT NULL,\n  PRIMARY KEY (account_id),\n  CONSTRAINT uq_accounts_number UNIQUE (account_number),\n  CONSTRAINT chk_accounts_overdraft CHECK (balance >= -overdraft_limit),\n  CONSTRAINT chk_accounts_limit     CHECK (overdraft_limit >= 0),\n  CONSTRAINT chk_accounts_currency  CHECK (currency REGEXP '^[A-Z]{3}$')\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE account_holders (\n  account_id  INT UNSIGNED NOT NULL,\n  customer_id INT UNSIGNED NOT NULL,\n  role        ENUM('primary','joint','authorized_user') NOT NULL,\n  PRIMARY KEY (account_id, customer_id),\n  CONSTRAINT fk_holders_account  FOREIGN KEY (account_id)  REFERENCES accounts (account_id),\n  CONSTRAINT fk_holders_customer FOREIGN KEY (customer_id) REFERENCES customers (customer_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE transfers (\n  transfer_id     BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n  idempotency_key VARCHAR(64)     NOT NULL,\n  from_account_id INT UNSIGNED    NOT NULL,\n  to_account_id   INT UNSIGNED    NOT NULL,\n  amount          DECIMAL(19,4)   NOT NULL,\n  currency        CHAR(3)         NOT NULL,\n  memo            VARCHAR(140)    NULL,\n  created_at      DATETIME(6)     NOT NULL,\n  PRIMARY KEY (transfer_id),\n  CONSTRAINT uq_transfers_idempotency UNIQUE (idempotency_key),\n  CONSTRAINT fk_transfers_from FOREIGN KEY (from_account_id) REFERENCES accounts (account_id),\n  CONSTRAINT fk_transfers_to   FOREIGN KEY (to_account_id)   REFERENCES accounts (account_id),\n  CONSTRAINT chk_transfers_amount   CHECK (amount > 0),\n  CONSTRAINT chk_transfers_distinct CHECK (from_account_id <> to_account_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE audit_log (\n  audit_id   BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n  table_name VARCHAR(64)  NOT NULL,\n  row_key    VARCHAR(64)  NOT NULL,\n  action     ENUM('INSERT','UPDATE','DELETE') NOT NULL,\n  old_values JSON         NULL,\n  new_values JSON         NULL,\n  changed_by VARCHAR(288) NOT NULL,\n  changed_at DATETIME(6)  NOT NULL,\n  PRIMARY KEY (audit_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME, CONSTRAINT_NAME, CONSTRAINT_TYPE\nFROM information_schema.TABLE_CONSTRAINTS\nWHERE TABLE_SCHEMA = DATABASE() AND CONSTRAINT_TYPE IN ('CHECK', 'UNIQUE')\nORDER BY TABLE_NAME, CONSTRAINT_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "CONSTRAINT_NAME",
+      "CONSTRAINT_TYPE"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "accounts",
+       "chk_accounts_currency",
+       "CHECK"
+      ],
+      [
+       "accounts",
+       "chk_accounts_limit",
+       "CHECK"
+      ],
+      [
+       "accounts",
+       "chk_accounts_overdraft",
+       "CHECK"
+      ],
+      [
+       "accounts",
+       "uq_accounts_number",
+       "UNIQUE"
+      ],
+      [
+       "customers",
+       "uq_customers_email",
+       "UNIQUE"
+      ],
+      [
+       "transfers",
+       "chk_transfers_amount",
+       "CHECK"
+      ],
+      [
+       "transfers",
+       "chk_transfers_distinct",
+       "CHECK"
+      ],
+      [
+       "transfers",
+       "uq_transfers_idempotency",
+       "UNIQUE"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:6956c60275ac": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE ledger_entries (\n  entry_id    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n  transfer_id BIGINT UNSIGNED NOT NULL,\n  account_id  INT UNSIGNED    NOT NULL,\n  amount      DECIMAL(19,4)   NOT NULL,\n  created_at  DATETIME(6)     NOT NULL,\n  PRIMARY KEY (entry_id),\n  CONSTRAINT uq_ledger_transfer_account UNIQUE (transfer_id, account_id),\n  CONSTRAINT fk_ledger_transfer FOREIGN KEY (transfer_id) REFERENCES transfers (transfer_id),\n  CONSTRAINT fk_ledger_account  FOREIGN KEY (account_id)  REFERENCES accounts (account_id),\n  CONSTRAINT chk_ledger_amount CHECK (amount <> 0)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO customers (customer_id, full_name, email, kyc_status, created_at) VALUES\n  (1, 'Ana Lima',     'ana.lima@mail.example.com',     'verified', '2023-04-10 09:55:00'),\n  (2, 'Ben Okafor',   'ben.okafor@mail.example.com',   'verified', '2023-06-22 14:10:00'),\n  (3, 'Chloe Martin', 'chloe.martin@mail.example.com', 'verified', '2023-06-22 14:12:00'),\n  (4, 'Dev Patel',    'dev.patel@mail.example.com',    'verified', '2023-09-15 11:00:00'),\n  (5, 'Eva Novak',    'eva.novak@mail.example.com',    'verified', '2023-10-03 16:30:00'),\n  (6, 'Felix Wagner', 'felix.wagner@mail.example.com', 'verified', '2026-01-12 12:40:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 6,
+     "info": "Records: 6  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO accounts (account_id, account_number, product, currency, status, balance, overdraft_limit, opened_at) VALUES\n  (1, 'BK0000000001', 'clearing', 'USD', 'active', -19750.00, 1000000000.00, '2026-01-01 00:00:00'),\n  (2, 'BK0000000002', 'clearing', 'EUR', 'active', -1200.00, 1000000000.00, '2026-01-01 00:00:00'),\n  (101, 'BK0000000101', 'checking', 'USD', 'active', 3045.50, 0.00, '2023-04-10 10:00:00'),\n  (102, 'BK0000000102', 'savings', 'USD', 'active', 9000.00, 0.00, '2023-04-10 10:05:00'),\n  (103, 'BK0000000103', 'checking', 'USD', 'active', 1850.00, 0.00, '2023-06-22 14:30:00'),\n  (104, 'BK0000000104', 'checking', 'USD', 'active', 724.50, 0.00, '2023-07-01 09:00:00'),\n  (105, 'BK0000000105', 'checking', 'USD', 'active', 130.00, 200.00, '2023-09-15 11:20:00'),\n  (106, 'BK0000000106', 'savings', 'USD', 'frozen', 5000.00, 0.00, '2023-10-03 16:45:00'),\n  (107, 'BK0000000107', 'checking', 'EUR', 'active', 1200.00, 0.00, '2026-01-12 13:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 9,
+     "info": "Records: 9  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO account_holders (account_id, customer_id, role) VALUES\n  (101, 1, 'primary'), (102, 1, 'primary'), (103, 2, 'primary'), (103, 3, 'joint'),\n  (104, 3, 'primary'), (105, 4, 'primary'), (106, 5, 'primary'), (107, 6, 'primary')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 8,
+     "info": "Records: 8  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO transfers (transfer_id, idempotency_key, from_account_id, to_account_id, amount, currency, memo, created_at) VALUES\n  (1, 'seed-0001', 1, 101, 2500.00, 'USD', 'Opening deposit', '2026-03-01 09:00:00'),\n  (2, 'seed-0002', 1, 102, 10000.00, 'USD', 'Opening deposit', '2026-03-01 09:00:01'),\n  (3, 'seed-0003', 1, 103, 1800.00, 'USD', 'Opening deposit', '2026-03-01 09:00:02'),\n  (4, 'seed-0004', 1, 104, 650.00, 'USD', 'Opening deposit', '2026-03-01 09:00:03'),\n  (5, 'seed-0005', 1, 105, 300.00, 'USD', 'Opening deposit', '2026-03-01 09:00:04'),\n  (6, 'seed-0006', 1, 106, 5000.00, 'USD', 'Opening deposit', '2026-03-01 09:00:05'),\n  (7, 'seed-0007', 2, 107, 1200.00, 'EUR', 'Opening deposit', '2026-03-01 09:00:06'),\n  (8, 'seed-0008', 101, 103, 200.00, 'USD', 'Rent share', '2026-03-02 10:15:00'),\n  (9, 'seed-0009', 102, 101, 1000.00, 'USD', 'From savings', '2026-03-03 12:00:00'),\n  (10, 'seed-0010', 103, 104, 150.00, 'USD', 'Utilities', '2026-03-05 08:30:00'),\n  (11, 'seed-0011', 101, 1, 80.00, 'USD', 'Card settlement', '2026-03-06 18:45:00'),\n  (12, 'seed-0012', 105, 1, 420.00, 'USD', 'Card settlement', '2026-03-07 09:10:00'),\n  (13, 'seed-0013', 104, 101, 75.50, 'USD', 'Dinner', '2026-03-08 14:00:00'),\n  (14, 'seed-0014', 101, 105, 250.00, 'USD', 'Loan to Dev', '2026-03-09 16:20:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 14,
+     "info": "Records: 14  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO ledger_entries (entry_id, transfer_id, account_id, amount, created_at) VALUES\n  (1, 1, 1, -2500.00, '2026-03-01 09:00:00'),\n  (2, 1, 101, 2500.00, '2026-03-01 09:00:00'),\n  (3, 2, 1, -10000.00, '2026-03-01 09:00:01'),\n  (4, 2, 102, 10000.00, '2026-03-01 09:00:01'),\n  (5, 3, 1, -1800.00, '2026-03-01 09:00:02'),\n  (6, 3, 103, 1800.00, '2026-03-01 09:00:02'),\n  (7, 4, 1, -650.00, '2026-03-01 09:00:03'),\n  (8, 4, 104, 650.00, '2026-03-01 09:00:03'),\n  (9, 5, 1, -300.00, '2026-03-01 09:00:04'),\n  (10, 5, 105, 300.00, '2026-03-01 09:00:04'),\n  (11, 6, 1, -5000.00, '2026-03-01 09:00:05'),\n  (12, 6, 106, 5000.00, '2026-03-01 09:00:05'),\n  (13, 7, 2, -1200.00, '2026-03-01 09:00:06'),\n  (14, 7, 107, 1200.00, '2026-03-01 09:00:06'),\n  (15, 8, 101, -200.00, '2026-03-02 10:15:00'),\n  (16, 8, 103, 200.00, '2026-03-02 10:15:00'),\n  (17, 9, 102, -1000.00, '2026-03-03 12:00:00'),\n  (18, 9, 101, 1000.00, '2026-03-03 12:00:00'),\n  (19, 10, 103, -150.00, '2026-03-05 08:30:00'),\n  (20, 10, 104, 150.00, '2026-03-05 08:30:00'),\n  (21, 11, 101, -80.00, '2026-03-06 18:45:00'),\n  (22, 11, 1, 80.00, '2026-03-06 18:45:00'),\n  (23, 12, 105, -420.00, '2026-03-07 09:10:00'),\n  (24, 12, 1, 420.00, '2026-03-07 09:10:00'),\n  (25, 13, 104, -75.50, '2026-03-08 14:00:00'),\n  (26, 13, 101, 75.50, '2026-03-08 14:00:00'),\n  (27, 14, 101, -250.00, '2026-03-09 16:20:00'),\n  (28, 14, 105, 250.00, '2026-03-09 16:20:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 28,
+     "info": "Records: 28  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT a.account_number, a.product, a.currency, a.status, a.balance, a.overdraft_limit,\n       COALESCE(GROUP_CONCAT(CONCAT(c.full_name, ' (', h.role, ')') ORDER BY h.role, c.full_name SEPARATOR ', '), '-') AS holders\nFROM accounts a\nLEFT JOIN account_holders h ON h.account_id = a.account_id\nLEFT JOIN customers c ON c.customer_id = h.customer_id\nGROUP BY a.account_id\nORDER BY a.account_id",
+     "status": "ok",
+     "columns": [
+      "account_number",
+      "product",
+      "currency",
+      "status",
+      "balance",
+      "overdraft_limit",
+      "holders"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       "BK0000000001",
+       "clearing",
+       "USD",
+       "active",
+       "-19750.0000",
+       "1000000000.0000",
+       "-"
+      ],
+      [
+       "BK0000000002",
+       "clearing",
+       "EUR",
+       "active",
+       "-1200.0000",
+       "1000000000.0000",
+       "-"
+      ],
+      [
+       "BK0000000101",
+       "checking",
+       "USD",
+       "active",
+       "3045.5000",
+       "0.0000",
+       "Ana Lima (primary)"
+      ],
+      [
+       "BK0000000102",
+       "savings",
+       "USD",
+       "active",
+       "9000.0000",
+       "0.0000",
+       "Ana Lima (primary)"
+      ],
+      [
+       "BK0000000103",
+       "checking",
+       "USD",
+       "active",
+       "1850.0000",
+       "0.0000",
+       "Ben Okafor (primary), Chloe Martin (joint)"
+      ],
+      [
+       "BK0000000104",
+       "checking",
+       "USD",
+       "active",
+       "724.5000",
+       "0.0000",
+       "Chloe Martin (primary)"
+      ],
+      [
+       "BK0000000105",
+       "checking",
+       "USD",
+       "active",
+       "130.0000",
+       "200.0000",
+       "Dev Patel (primary)"
+      ],
+      [
+       "BK0000000106",
+       "savings",
+       "USD",
+       "frozen",
+       "5000.0000",
+       "0.0000",
+       "Eva Novak (primary)"
+      ],
+      [
+       "BK0000000107",
+       "checking",
+       "EUR",
+       "active",
+       "1200.0000",
+       "0.0000",
+       "Felix Wagner (primary)"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:659b3b5771bc": {
+   "statements": [
+    {
+     "sql": "SELECT currency, SUM(balance) AS sum_of_balances\nFROM accounts GROUP BY currency ORDER BY currency",
+     "status": "ok",
+     "columns": [
+      "currency",
+      "sum_of_balances"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "EUR",
+       "0.0000"
+      ],
+      [
+       "USD",
+       "0.0000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:393af6724def": {
+   "statements": [
+    {
+     "sql": "-- Overdraft beyond the limit (error 3819): Dev has 130.00 and a 200.00 limit\nUPDATE accounts SET balance = balance - 400 WHERE account_number = 'BK0000000105'",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_accounts_overdraft' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s5:b54df2860f4d": {
+   "statements": [
+    {
+     "sql": "-- A transfer to the same account (error 3819)\nINSERT INTO transfers (idempotency_key, from_account_id, to_account_id, amount, currency, created_at)\nVALUES ('test-self', 101, 101, 10.00, 'USD', '2026-03-10 09:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_transfers_distinct' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:c64280b5b44a": {
+   "statements": [
+    {
+     "sql": "-- The same idempotency key twice (error 1062)\nINSERT INTO transfers (idempotency_key, from_account_id, to_account_id, amount, currency, created_at)\nVALUES ('seed-0008', 101, 103, 200.00, 'USD', '2026-03-10 09:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry 'seed-0008' for key 'transfers.uq_transfers_idempotency'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:49ee0ff983ef": {
+   "statements": [
+    {
+     "sql": "CREATE TRIGGER trg_ledger_no_update BEFORE UPDATE ON ledger_entries\nFOR EACH ROW\nBEGIN\n  SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ledger entries are immutable; post a reversing transfer instead';\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER trg_ledger_no_delete BEFORE DELETE ON ledger_entries\nFOR EACH ROW\nBEGIN\n  SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ledger entries are immutable; post a reversing transfer instead';\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER trg_accounts_audit AFTER UPDATE ON accounts\nFOR EACH ROW\nBEGIN\n  IF NOT (OLD.status <=> NEW.status) OR NOT (OLD.overdraft_limit <=> NEW.overdraft_limit) THEN\n    INSERT INTO audit_log (table_name, row_key, action, old_values, new_values, changed_by, changed_at)\n    VALUES ('accounts', OLD.account_number, 'UPDATE',\n            JSON_OBJECT('status', OLD.status, 'overdraft_limit', OLD.overdraft_limit),\n            JSON_OBJECT('status', NEW.status, 'overdraft_limit', NEW.overdraft_limit),\n            USER(), NOW(6));\n  END IF;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT TRIGGER_NAME, ACTION_TIMING, EVENT_MANIPULATION, EVENT_OBJECT_TABLE\nFROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() ORDER BY TRIGGER_NAME",
+     "status": "ok",
+     "columns": [
+      "TRIGGER_NAME",
+      "ACTION_TIMING",
+      "EVENT_MANIPULATION",
+      "EVENT_OBJECT_TABLE"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "trg_accounts_audit",
+       "AFTER",
+       "UPDATE",
+       "accounts"
+      ],
+      [
+       "trg_ledger_no_delete",
+       "BEFORE",
+       "DELETE",
+       "ledger_entries"
+      ],
+      [
+       "trg_ledger_no_update",
+       "BEFORE",
+       "UPDATE",
+       "ledger_entries"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:d2abce4c43cd": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE transfer_funds(IN p_idempotency_key VARCHAR(64), IN p_from CHAR(12), IN p_to CHAR(12),\n                                IN p_amount DECIMAL(19,4), IN p_memo VARCHAR(140), IN p_now DATETIME(6))\nSQL SECURITY DEFINER\nBEGIN\n  DECLARE v_existing    BIGINT UNSIGNED;\n  DECLARE v_transfer_id BIGINT UNSIGNED;\n  DECLARE v_from_id, v_to_id INT UNSIGNED;\n  DECLARE v_from_status, v_to_status VARCHAR(10);\n  DECLARE v_from_cur, v_to_cur CHAR(3);\n  DECLARE v_from_balance, v_from_limit DECIMAL(19,4);\n  DECLARE EXIT HANDLER FOR SQLEXCEPTION\n  BEGIN\n    ROLLBACK;\n    RESIGNAL;\n  END;\n\n  IF p_amount IS NULL OR p_amount <= 0 THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Amount must be positive';\n  END IF;\n\n  -- Idempotency: a retried request returns the original transfer instead of moving money twice\n  SELECT transfer_id INTO v_existing FROM transfers WHERE idempotency_key = p_idempotency_key;\n  IF v_existing IS NOT NULL THEN\n    SELECT v_existing AS transfer_id, 'duplicate request: original transfer returned' AS result;\n  ELSE\n    SELECT account_id INTO v_from_id FROM accounts WHERE account_number = p_from;\n    SELECT account_id INTO v_to_id   FROM accounts WHERE account_number = p_to;\n    IF v_from_id IS NULL OR v_to_id IS NULL OR v_from_id = v_to_id THEN\n      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Unknown or identical accounts';\n    END IF;\n\n    START TRANSACTION;\n    -- Lock both account rows in one global order (lowest account_id first): no lock-order deadlocks\n    IF v_from_id < v_to_id THEN\n      SELECT status, currency, balance, overdraft_limit INTO v_from_status, v_from_cur, v_from_balance, v_from_limit\n      FROM accounts WHERE account_id = v_from_id FOR UPDATE;\n      SELECT status, currency INTO v_to_status, v_to_cur FROM accounts WHERE account_id = v_to_id FOR UPDATE;\n    ELSE\n      SELECT status, currency INTO v_to_status, v_to_cur FROM accounts WHERE account_id = v_to_id FOR UPDATE;\n      SELECT status, currency, balance, overdraft_limit INTO v_from_status, v_from_cur, v_from_balance, v_from_limit\n      FROM accounts WHERE account_id = v_from_id FOR UPDATE;\n    END IF;\n\n    IF v_from_status <> 'active' OR v_to_status <> 'active' THEN\n      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account is not active';\n    END IF;\n    IF v_from_cur <> v_to_cur THEN\n      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Currency mismatch';\n    END IF;\n    IF v_from_balance - p_amount < -v_from_limit THEN\n      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient funds';\n    END IF;\n\n    INSERT INTO transfers (idempotency_key, from_account_id, to_account_id, amount, currency, memo, created_at)\n    VALUES (p_idempotency_key, v_from_id, v_to_id, p_amount, v_from_cur, p_memo, p_now);\n    SET v_transfer_id = LAST_INSERT_ID();\n    UPDATE accounts SET balance = balance - p_amount WHERE account_id = v_from_id;\n    UPDATE accounts SET balance = balance + p_amount WHERE account_id = v_to_id;\n    INSERT INTO ledger_entries (transfer_id, account_id, amount, created_at)\n    VALUES (v_transfer_id, v_from_id, -p_amount, p_now), (v_transfer_id, v_to_id, p_amount, p_now);\n    COMMIT;\n    SELECT v_transfer_id AS transfer_id, 'completed' AS result;\n  END IF;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s9:42b2863eca4f": {
+   "statements": [
+    {
+     "sql": "CALL transfer_funds('req-20260310-0001', 'BK0000000101', 'BK0000000104', 120.00, 'Concert tickets', '2026-03-10 11:00:00.000000')",
+     "status": "ok",
+     "columns": [
+      "transfer_id",
+      "result"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       16,
+       "completed"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:159f3ff1b343": {
+   "statements": [
+    {
+     "sql": "CALL transfer_funds('req-20260310-0001', 'BK0000000101', 'BK0000000104', 120.00, 'Concert tickets', '2026-03-10 11:00:02.500000')",
+     "status": "ok",
+     "columns": [
+      "transfer_id",
+      "result"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       16,
+       "duplicate request: original transfer returned"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT account_number, balance FROM accounts WHERE account_number IN ('BK0000000101', 'BK0000000104') ORDER BY account_number",
+     "status": "ok",
+     "columns": [
+      "account_number",
+      "balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "BK0000000101",
+       "2925.5000"
+      ],
+      [
+       "BK0000000104",
+       "844.5000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:b748401e2c24": {
+   "statements": [
+    {
+     "sql": "-- Dev (130.00, limit 200.00) tries to send 400.00\nCALL transfer_funds('req-20260310-0002', 'BK0000000105', 'BK0000000101', 400.00, 'Too much', '2026-03-10 11:05:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Insufficient funds"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:6029f24adcad": {
+   "statements": [
+    {
+     "sql": "-- USD to EUR is not a plain transfer\nCALL transfer_funds('req-20260310-0003', 'BK0000000101', 'BK0000000107', 50.00, 'FX', '2026-03-10 11:06:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Currency mismatch"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s13:6c3c76609c15": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 60000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO transfers (transfer_id, idempotency_key, from_account_id, to_account_id, amount, currency, memo, created_at)\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 60000)\nSELECT 1000 + n,\n       CONCAT('hist-', n),\n       IF(n % 2 = 1, 1, 101 + ((n - 1) DIV 2) % 5),\n       IF(n % 2 = 1, 101 + ((n - 1) DIV 2) % 5, 1),\n       IF(n % 2 = 1, 100 + ((n - 1) DIV 2) % 97, (100 + ((n - 1) DIV 2) % 97) / 2),\n       'USD',\n       IF(n % 2 = 1, 'Salary', 'Card settlement'),\n       TIMESTAMP('2024-01-01') + INTERVAL (n * 17) MINUTE\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 60000,
+     "info": "Records: 60000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO ledger_entries (transfer_id, account_id, amount, created_at)\nSELECT transfer_id, from_account_id, -amount, created_at FROM transfers WHERE transfer_id > 1000\nUNION ALL\nSELECT transfer_id, to_account_id, amount, created_at FROM transfers WHERE transfer_id > 1000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 120000,
+     "info": "Records: 120000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts a\nJOIN (SELECT account_id, SUM(amount) AS ledger_balance FROM ledger_entries GROUP BY account_id) AS l\n  ON l.account_id = a.account_id\nSET a.balance = l.ledger_balance",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 6,
+     "info": "Rows matched: 9  Changed: 6  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE transfers, ledger_entries, accounts",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "transfers",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "ledger_entries",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "accounts",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS entries, SUM(amount) AS global_sum, MIN(created_at) AS first_entry, MAX(created_at) AS last_entry\nFROM ledger_entries",
+     "status": "ok",
+     "columns": [
+      "entries",
+      "global_sum",
+      "first_entry",
+      "last_entry"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       120030,
+       "0.0000",
+       "2024-01-01 00:17:00.000000",
+       "2026-03-10 11:00:00.000000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:94a10672433c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT entry_id, created_at, amount\nFROM ledger_entries\nWHERE account_id = 103 AND created_at >= '2024-03-01' AND created_at < '2024-04-01'\nORDER BY created_at, entry_id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "ledger_entries",
+       null,
+       "ref",
+       "fk_ledger_account",
+       "fk_ledger_account",
+       "4",
+       "const",
+       21564,
+       11.11,
+       "Using where; Using filesort"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `ledger_entries`.`entry_id` AS `entry_id`,`ledger_entries`.`created_at` AS `created_at`,`ledger_entries`.`amount` AS `amount` from `ledger_entries` where ((`ledger_entries`.`account_id` = 103) and (`ledger_entries`.`created_at` >= TIMESTAMP'2024-03-01 00:00:00') and (`ledger_entries`.`created_at` < TIMESTAMP'2024-04-01 00:00:00')) order by `ledger_entries`.`created_at`,`ledger_entries`.`entry_id`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:7960294031ea": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_ledger_account_time ON ledger_entries (account_id, created_at)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE ledger_entries",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "ledger_entries",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT entry_id, created_at, amount\nFROM ledger_entries\nWHERE account_id = 103 AND created_at >= '2024-03-01' AND created_at < '2024-04-01'\nORDER BY created_at, entry_id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "ledger_entries",
+       null,
+       "range",
+       "idx_ledger_account_time",
+       "idx_ledger_account_time",
+       "12",
+       null,
+       526,
+       100.0,
+       "Using index condition"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `ledger_entries`.`entry_id` AS `entry_id`,`ledger_entries`.`created_at` AS `created_at`,`ledger_entries`.`amount` AS `amount` from `ledger_entries` where ((`ledger_entries`.`account_id` = 103) and (`ledger_entries`.`created_at` >= TIMESTAMP'2024-03-01 00:00:00') and (`ledger_entries`.`created_at` < TIMESTAMP'2024-04-01 00:00:00')) order by `ledger_entries`.`created_at`,`ledger_entries`.`entry_id`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:f2b67d61e11b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT entry_id, created_at, amount\nFROM ledger_entries\nWHERE account_id = 103 AND created_at >= '2024-03-01' AND created_at < '2024-04-01'\nORDER BY created_at, entry_id",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Index range scan on ledger_entries using idx_ledger_account_time over (account_id = 103 AND '2024-03-01 00:00:00.000000' <= created_at < '2024-04-01 00:00:00.000000'), with index condition: ((ledger_entries.account_id = 103) and (ledger_entries.created_at >= TIMESTAMP'2024-03-01 00:00:00') and (ledger_entries.created_at < TIMESTAMP'2024-04-01 00:00:00'))  (cost=237 rows=526) (actual time=0.19..0.742 rows=526 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.6
+    }
+   ],
+   "measured": true
+  },
+  "c1:abae8de3d7a7": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "500.0000"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "500.0000"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = 400 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = 450 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "450.0000"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:04f70c415ee8": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "500.0000"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "500.0000"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = 400 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "627067",
+        "state": "LOCK WAIT",
+        "isolation": "SERIALIZABLE",
+        "rowsLocked": 2,
+        "rowsModified": 0,
+        "lockStructs": 4
+       },
+       {
+        "session": "B",
+        "trxId": "422147675914184",
+        "state": "RUNNING",
+        "isolation": "SERIALIZABLE",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "1"
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "error",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = 450 WHERE account_id = 1",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1213,
+        "message": "Deadlock found when trying to get lock; try restarting transaction"
+       }
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "400.0000"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c3:42487a6000e7": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance - 100 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance - 50 WHERE account_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance + 100 WHERE account_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "B",
+        "trxId": "627111",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
+        "lockStructs": 2
+       },
+       {
+        "session": "A",
+        "trxId": "627109",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 2,
+        "rowsModified": 1,
+        "lockStructs": 3
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "2"
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "2"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "error",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance + 50 WHERE account_id = 1",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1213,
+        "message": "Deadlock found when trying to get lock; try restarting transaction"
+       }
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT account_id, balance FROM accounts ORDER BY account_id",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "balance"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         1,
+         "400.0000"
+        ],
+        [
+         2,
+         "400.0000"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c4:3b5ae53c4143": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "500.0000"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "400.0000"
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "627159",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "B",
+        "trxId": "627163",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "1"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 2 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "300.0000"
+        ]
+       ]
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance - 100 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance + 100 WHERE account_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 2 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "400.0000"
+        ]
+       ]
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance - 50 WHERE account_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance + 50 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT account_id, balance FROM accounts ORDER BY account_id",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "balance"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         1,
+         "450.0000"
+        ],
+        [
+         2,
+         "350.0000"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c5:66edfd15b89f": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "500.0000"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "500.0000"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance - 100 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance + 100 WHERE account_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 2",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "400.0000"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM accounts WHERE account_id = 2",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "300.0000"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT SUM(balance) AS total_now FROM accounts",
+       "status": "ok",
+       "columns": [
+        "total_now"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "800.0000"
+        ]
+       ]
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c6:1b021ab5b8b6": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET status = 'frozen' WHERE holder = 'Dev'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "627250",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 6,
+        "rowsModified": 1,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "2"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "3"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "4"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "5"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "supremum pseudo-record"
+       }
+      ]
+     }
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance + 10 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "CREATE INDEX idx_accounts_holder ON accounts (holder)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Records: 0  Duplicates: 0  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET status = 'frozen' WHERE holder = 'Dev'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "627267",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 3,
+        "rowsModified": 1,
+        "lockStructs": 4
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "idx_accounts_holder",
+        "lockType": "RECORD",
+        "lockMode": "X",
+        "status": "GRANTED",
+        "lockData": "'Dev', 4"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "idx_accounts_holder",
+        "lockType": "RECORD",
+        "lockMode": "X,GAP",
+        "status": "GRANTED",
+        "lockData": "'Eva', 5"
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "4"
+       }
+      ]
+     }
+    },
+    {
+     "step": 6,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE accounts SET balance = balance + 10 WHERE account_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 7,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "s17:259339fc97f6": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT a.account_number, a.balance, l.ledger_balance\nFROM accounts a\nJOIN (SELECT account_id, SUM(amount) AS ledger_balance FROM ledger_entries GROUP BY account_id) AS l\n  ON l.account_id = a.account_id\nWHERE a.balance <> l.ledger_balance",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=3776 rows=9708) (actual time=113..113 rows=0 loops=1)\n    -> Table scan on a  (cost=1.15 rows=9) (actual time=0.0118..0.0177 rows=9 loops=1)\n    -> Filter: (a.balance <> l.ledger_balance)  (cost=24068..312 rows=1079) (actual time=12.5..12.5 rows=0 loops=9)\n        -> Index lookup on l using <auto_key0> (account_id=a.account_id)  (cost=24091..24402 rows=1198) (actual time=12.5..12.5 rows=1 loops=9)\n            -> Materialize  (cost=24090..24090 rows=8) (actual time=113..113 rows=9 loops=1)\n                -> Group aggregate: sum(ledger_entries.amount)  (cost=24090 rows=8) (actual time=56.8..113 rows=9 loops=1)\n                    -> Index scan on ledger_entries using idx_ledger_account_time  (cost=12105 rows=119847) (actual time=3.93..102 rows=120030 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 114.69
+    }
+   ],
+   "measured": true
+  },
+  "s19:17e0c875c309": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW v_teller_accounts AS\nSELECT CONCAT('••••', RIGHT(a.account_number, 4)) AS account_masked,\n       a.product, a.currency, a.status, a.balance,\n       (SELECT GROUP_CONCAT(c.full_name ORDER BY h.role, c.full_name SEPARATOR ', ')\n        FROM account_holders h JOIN customers c ON c.customer_id = h.customer_id\n        WHERE h.account_id = a.account_id) AS holders\nFROM accounts a\nWHERE a.product <> 'clearing'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM v_teller_accounts ORDER BY account_masked",
+     "status": "ok",
+     "columns": [
+      "account_masked",
+      "product",
+      "currency",
+      "status",
+      "balance",
+      "holders"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "••••0101",
+       "checking",
+       "USD",
+       "active",
+       "446845.0000",
+       "Ana Lima"
+      ],
+      [
+       "••••0102",
+       "savings",
+       "USD",
+       "active",
+       "452912.5000",
+       "Ana Lima"
+      ],
+      [
+       "••••0103",
+       "checking",
+       "USD",
+       "active",
+       "445755.5000",
+       "Ben Okafor, Chloe Martin"
+      ],
+      [
+       "••••0104",
+       "checking",
+       "USD",
+       "active",
+       "444743.0000",
+       "Chloe Martin"
+      ],
+      [
+       "••••0105",
+       "checking",
+       "USD",
+       "active",
+       "444021.5000",
+       "Dev Patel"
+      ],
+      [
+       "••••0106",
+       "savings",
+       "USD",
+       "frozen",
+       "5000.0000",
+       "Eva Novak"
+      ],
+      [
+       "••••0107",
+       "checking",
+       "EUR",
+       "active",
+       "1200.0000",
+       "Felix Wagner"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:3e97cc0a9c84": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET overdraft_limit = 500.00 WHERE account_number = 'BK0000000105'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET status = 'frozen' WHERE account_number = 'BK0000000107'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance WHERE account_number = 'BK0000000101'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 1  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT audit_id, table_name, row_key, action, old_values, new_values\nFROM audit_log ORDER BY audit_id",
+     "status": "ok",
+     "columns": [
+      "audit_id",
+      "table_name",
+      "row_key",
+      "action",
+      "old_values",
+      "new_values"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "accounts",
+       "BK0000000105",
+       "UPDATE",
+       "{\"status\": \"active\", \"overdraft_limit\": 200.0000}",
+       "{\"status\": \"active\", \"overdraft_limit\": 500.0000}"
+      ],
+      [
+       2,
+       "accounts",
+       "BK0000000107",
+       "UPDATE",
+       "{\"status\": \"active\", \"overdraft_limit\": 0.0000}",
+       "{\"status\": \"frozen\", \"overdraft_limit\": 0.0000}"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:ffb5900cab53": {
+   "statements": [
+    {
+     "sql": "-- Frozen source account (Eva, 106)\nCALL transfer_funds('test-0001', 'BK0000000106', 'BK0000000101', 10.00, 'test', '2026-03-10 12:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Account is not active"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s22:74eefc58ad08": {
+   "statements": [
+    {
+     "sql": "-- Non-positive amount\nCALL transfer_funds('test-0002', 'BK0000000101', 'BK0000000104', -25.00, 'test', '2026-03-10 12:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Amount must be positive"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s23:0bbc44d15aa9": {
+   "statements": [
+    {
+     "sql": "-- Unknown account\nCALL transfer_funds('test-0003', 'BK0000000101', 'BK0000009999', 10.00, 'test', '2026-03-10 12:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Unknown or identical accounts"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s24:55b5c2078625": {
+   "statements": [
+    {
+     "sql": "-- Tampering with history is impossible\nUPDATE ledger_entries SET amount = 0.01 WHERE entry_id = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Ledger entries are immutable; post a reversing transfer instead"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s25:f300acde22d3": {
+   "statements": [
+    {
+     "sql": "SELECT 'unbalanced_transfer' AS check_name, COUNT(*) AS failures\nFROM (SELECT transfer_id FROM ledger_entries GROUP BY transfer_id HAVING SUM(amount) <> 0 OR COUNT(*) <> 2) AS x\nUNION ALL\nSELECT 'transfer_without_entries', COUNT(*)\nFROM transfers t WHERE NOT EXISTS (SELECT 1 FROM ledger_entries e WHERE e.transfer_id = t.transfer_id)\nUNION ALL\nSELECT 'entry_amount_mismatch', COUNT(*)\nFROM ledger_entries e JOIN transfers t ON t.transfer_id = e.transfer_id\nWHERE NOT ((e.account_id = t.from_account_id AND e.amount = -t.amount)\n        OR (e.account_id = t.to_account_id   AND e.amount =  t.amount))\nUNION ALL\nSELECT 'balance_differs_from_ledger', COUNT(*)\nFROM accounts a\nLEFT JOIN (SELECT account_id, SUM(amount) AS s FROM ledger_entries GROUP BY account_id) l ON l.account_id = a.account_id\nWHERE a.balance <> COALESCE(l.s, 0)\nUNION ALL\nSELECT 'books_do_not_balance', COUNT(*)\nFROM (SELECT currency FROM accounts GROUP BY currency HAVING SUM(balance) <> 0) AS y\nUNION ALL\nSELECT 'customer_account_without_holder', COUNT(*)\nFROM accounts a WHERE a.product <> 'clearing'\n  AND NOT EXISTS (SELECT 1 FROM account_holders h WHERE h.account_id = a.account_id)",
+     "status": "ok",
+     "columns": [
+      "check_name",
+      "failures"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "unbalanced_transfer",
+       0
+      ],
+      [
+       "transfer_without_entries",
+       0
+      ],
+      [
+       "entry_amount_mismatch",
+       0
+      ],
+      [
+       "balance_differs_from_ledger",
+       0
+      ],
+      [
+       "books_do_not_balance",
+       0
+      ],
+      [
+       "customer_account_without_holder",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s26:4dca496d577c": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_flush_log_at_trx_commit AS flush_log_at_commit,\n       @@sync_binlog                     AS sync_binlog,\n       @@transaction_isolation           AS default_isolation",
+     "status": "ok",
+     "columns": [
+      "flush_log_at_commit",
+      "sync_binlog",
+      "default_isolation"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1,
+       "REPEATABLE-READ"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}
