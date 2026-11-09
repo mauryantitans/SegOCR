@@ -2,7 +2,7 @@
  "doc": "m01-integrity-constraints",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:eae8d554aeea": {
@@ -565,22 +565,22 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "A",
-        "trxId": "174599",
-        "state": "RUNNING",
-        "isolation": "REPEATABLE READ",
-        "rowsLocked": 2,
-        "rowsModified": 1,
-        "lockStructs": 5
-       },
-       {
         "session": "B",
-        "trxId": "174609",
+        "trxId": "670557",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
         "rowsModified": 0,
         "lockStructs": 2
+       },
+       {
+        "session": "A",
+        "trxId": "670548",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 2,
+        "rowsModified": 1,
+        "lockStructs": 5
        }
       ],
       "locks": [

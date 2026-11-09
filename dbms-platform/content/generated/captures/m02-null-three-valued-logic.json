@@ -2,7 +2,7 @@
  "doc": "m02-null-three-valued-logic",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:f8ab31cf8ea3": {
