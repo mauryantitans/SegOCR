@@ -517,7 +517,7 @@
        "sp_pings_pos",
        "34",
        null,
-       381,
+       371,
        100.0,
        "Using where"
       ]
@@ -582,7 +582,7 @@
        null,
        null,
        null,
-       20280,
+       19769,
        100.0,
        "Using where"
       ]
@@ -675,7 +675,7 @@
        "sp_pings_pos",
        "34",
        null,
-       52,
+       50,
        100.0,
        "Using where"
       ]
@@ -766,10 +766,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=210 rows=1) (actual time=3.01..3.01 rows=1 loops=1)\n    -> Filter: st_contains(<cache>((@same_day_zone)),courier_pings.pos)  (cost=172 rows=381) (actual time=0.0749..2.98 rows=377 loops=1)\n        -> Index range scan on courier_pings using sp_pings_pos over (pos unprintable_geometry_value)  (cost=172 rows=381) (actual time=0.0545..0.945 rows=377 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=204 rows=1) (actual time=2.62..2.62 rows=1 loops=1)\n    -> Filter: st_contains(<cache>((@same_day_zone)),courier_pings.pos)  (cost=167 rows=371) (actual time=0.066..2.59 rows=377 loops=1)\n        -> Index range scan on courier_pings using sp_pings_pos over (pos unprintable_geometry_value)  (cost=167 rows=371) (actual time=0.0485..0.962 rows=377 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 4.17
+     "elapsed_ms": 3.62
     },
     {
      "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM courier_pings IGNORE INDEX (sp_pings_pos) WHERE ST_Contains(@same_day_zone, pos)",
@@ -780,10 +780,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=4080 rows=1) (actual time=75.9..75.9 rows=1 loops=1)\n    -> Filter: st_contains(<cache>((@same_day_zone)),courier_pings.pos)  (cost=2052 rows=20280) (actual time=0.124..75.8 rows=377 loops=1)\n        -> Table scan on courier_pings  (cost=2052 rows=20280) (actual time=0.0161..6.35 rows=20000 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=3978 rows=1) (actual time=79.9..79.9 rows=1 loops=1)\n    -> Filter: st_contains(<cache>((@same_day_zone)),courier_pings.pos)  (cost=2001 rows=19769) (actual time=0.115..79.9 rows=377 loops=1)\n        -> Table scan on courier_pings  (cost=2001 rows=19769) (actual time=0.0144..6.7 rows=20000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 76.98
+     "elapsed_ms": 81.1
     }
    ],
    "measured": true
@@ -799,10 +799,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=4080 rows=1) (actual time=72.8..72.8 rows=1 loops=1)\n    -> Filter: (st_distance_sphere(courier_pings.pos,<cache>((@sjsu))) <= <cache>((@r_m)))  (cost=2052 rows=20280) (actual time=8.32..72.8 rows=42 loops=1)\n        -> Table scan on courier_pings  (cost=2052 rows=20280) (actual time=0.0134..8.85 rows=20000 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=3978 rows=1) (actual time=57.7..57.7 rows=1 loops=1)\n    -> Filter: (st_distance_sphere(courier_pings.pos,<cache>((@sjsu))) <= <cache>((@r_m)))  (cost=2001 rows=19769) (actual time=7.6..57.7 rows=42 loops=1)\n        -> Table scan on courier_pings  (cost=2001 rows=19769) (actual time=0.0169..6.71 rows=20000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 74.02
+     "elapsed_ms": 58.96
     },
     {
      "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM courier_pings WHERE MBRContains(@bbox, pos) AND ST_Distance_Sphere(pos, @sjsu) <= @r_m",
@@ -813,10 +813,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=28.9 rows=1) (actual time=0.828..0.829 rows=1 loops=1)\n    -> Filter: (mbrcontains(<cache>((@bbox)),courier_pings.pos) and (st_distance_sphere(courier_pings.pos,<cache>((@sjsu))) <= <cache>((@r_m))))  (cost=23.7 rows=52) (actual time=0.112..0.823 rows=42 loops=1)\n        -> Index range scan on courier_pings using sp_pings_pos over (pos unprintable_geometry_value)  (cost=23.7 rows=52) (actual time=0.0597..0.377 rows=55 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=27.8 rows=1) (actual time=0.895..0.895 rows=1 loops=1)\n    -> Filter: (mbrcontains(<cache>((@bbox)),courier_pings.pos) and (st_distance_sphere(courier_pings.pos,<cache>((@sjsu))) <= <cache>((@r_m))))  (cost=22.8 rows=50) (actual time=0.165..0.888 rows=42 loops=1)\n        -> Index range scan on courier_pings using sp_pings_pos over (pos unprintable_geometry_value)  (cost=22.8 rows=50) (actual time=0.106..0.412 rows=55 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 2.28
+     "elapsed_ms": 2.4
     }
    ],
    "measured": true

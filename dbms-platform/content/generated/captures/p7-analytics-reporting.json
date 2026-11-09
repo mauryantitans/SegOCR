@@ -1112,7 +1112,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Nested loop inner join  (cost=3722 rows=4937)\n            -> Nested loop inner join  (cost=1994 rows=4937)\n                -> Filter: (d.month_label = '2025-05')  (cost=74.3 rows=73.1)\n                    -> Table scan on d  (cost=74.3 rows=731)\n                -> Filter: (f.order_status <> 'CANCELLED')  (cost=18.9 rows=67.5)\n                    -> Index lookup on f using idx_fact_sales_date (date_key=d.date_key)  (cost=18.9 rows=75)\n            -> Single-row index lookup on p using PRIMARY (product_key=f.product_key)  (cost=0.25 rows=1)\n"
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Nested loop inner join  (cost=4166 rows=5538)\n            -> Nested loop inner join  (cost=2228 rows=5538)\n                -> Filter: (d.month_label = '2025-05')  (cost=74.3 rows=73.1)\n                    -> Table scan on d  (cost=74.3 rows=731)\n                -> Filter: (f.order_status <> 'CANCELLED')  (cost=21.1 rows=75.8)\n                    -> Index lookup on f using idx_fact_sales_date (date_key=d.date_key)  (cost=21.1 rows=84.2)\n            -> Single-row index lookup on p using PRIMARY (product_key=f.product_key)  (cost=0.25 rows=1)\n"
       ]
      ]
     }
@@ -1130,10 +1130,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=2.15..2.15 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=2.15..2.15 rows=5 loops=1)\n        -> Nested loop inner join  (cost=3722 rows=4937) (actual time=0.251..1.82 rows=627 loops=1)\n            -> Nested loop inner join  (cost=1994 rows=4937) (actual time=0.246..1.32 rows=627 loops=1)\n                -> Filter: (d.month_label = '2025-05')  (cost=74.3 rows=73.1) (actual time=0.151..0.22 rows=31 loops=1)\n                    -> Table scan on d  (cost=74.3 rows=731) (actual time=0.0279..0.158 rows=731 loops=1)\n                -> Filter: (f.order_status <> 'CANCELLED')  (cost=18.9 rows=67.5) (actual time=0.0288..0.0338 rows=20.2 loops=31)\n                    -> Index lookup on f using idx_fact_sales_date (date_key=d.date_key)  (cost=18.9 rows=75) (actual time=0.0285..0.0316 rows=21.1 loops=31)\n            -> Single-row index lookup on p using PRIMARY (product_key=f.product_key)  (cost=0.25 rows=1) (actual time=610e-6..636e-6 rows=1 loops=627)\n"
+       "-> Table scan on <temporary>  (actual time=1.97..1.97 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=1.97..1.97 rows=5 loops=1)\n        -> Nested loop inner join  (cost=4166 rows=5538) (actual time=0.23..1.74 rows=627 loops=1)\n            -> Nested loop inner join  (cost=2228 rows=5538) (actual time=0.224..1.19 rows=627 loops=1)\n                -> Filter: (d.month_label = '2025-05')  (cost=74.3 rows=73.1) (actual time=0.134..0.189 rows=31 loops=1)\n                    -> Table scan on d  (cost=74.3 rows=731) (actual time=0.0243..0.139 rows=731 loops=1)\n                -> Filter: (f.order_status <> 'CANCELLED')  (cost=21.1 rows=75.8) (actual time=0.0268..0.031 rows=20.2 loops=31)\n                    -> Index lookup on f using idx_fact_sales_date (date_key=d.date_key)  (cost=21.1 rows=84.2) (actual time=0.0266..0.0292 rows=21.1 loops=31)\n            -> Single-row index lookup on p using PRIMARY (product_key=f.product_key)  (cost=0.25 rows=1) (actual time=675e-6..696e-6 rows=1 loops=627)\n"
       ]
      ],
-     "elapsed_ms": 3.72
+     "elapsed_ms": 3.23
     }
    ],
    "measured": true
@@ -1181,10 +1181,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=1.27..1.27 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=1.27..1.27 rows=5 loops=1)\n        -> Nested loop inner join  (cost=2763 rows=5577) (actual time=0.145..1.02 rows=627 loops=1)\n            -> Nested loop inner join  (cost=812 rows=5577) (actual time=0.139..0.498 rows=627 loops=1)\n                -> Filter: (d.month_label = '2025-05')  (cost=74.3 rows=73.1) (actual time=0.122..0.179 rows=31 loops=1)\n                    -> Table scan on d  (cost=74.3 rows=731) (actual time=0.0183..0.124 rows=731 loops=1)\n                -> Filter: (f.order_status <> 'CANCELLED')  (cost=1.71 rows=76.3) (actual time=0.00448..0.00915 rows=20.2 loops=31)\n                    -> Covering index lookup on f using idx_fact_sales_date_cover (date_key=d.date_key)  (cost=1.71 rows=84.8) (actual time=0.00432..0.00696 rows=21.1 loops=31)\n            -> Single-row index lookup on p using PRIMARY (product_key=f.product_key)  (cost=0.25 rows=1) (actual time=642e-6..663e-6 rows=1 loops=627)\n"
+       "-> Table scan on <temporary>  (actual time=1.99..1.99 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=1.98..1.98 rows=5 loops=1)\n        -> Nested loop inner join  (cost=2763 rows=5577) (actual time=0.175..1.51 rows=627 loops=1)\n            -> Nested loop inner join  (cost=812 rows=5577) (actual time=0.167..0.764 rows=627 loops=1)\n                -> Filter: (d.month_label = '2025-05')  (cost=74.3 rows=73.1) (actual time=0.146..0.217 rows=31 loops=1)\n                    -> Table scan on d  (cost=74.3 rows=731) (actual time=0.0229..0.155 rows=731 loops=1)\n                -> Filter: (f.order_status <> 'CANCELLED')  (cost=1.71 rows=76.3) (actual time=0.00878..0.0162 rows=20.2 loops=31)\n                    -> Covering index lookup on f using idx_fact_sales_date_cover (date_key=d.date_key)  (cost=1.71 rows=84.8) (actual time=0.00855..0.0121 rows=21.1 loops=31)\n            -> Single-row index lookup on p using PRIMARY (product_key=f.product_key)  (cost=0.25 rows=1) (actual time=864e-6..891e-6 rows=1 loops=627)\n"
       ]
      ],
-     "elapsed_ms": 2.97
+     "elapsed_ms": 4.17
     }
    ],
    "measured": true
@@ -1399,7 +1399,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "660037",
+        "trxId": "812955",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -1408,7 +1408,7 @@
        },
        {
         "session": "B",
-        "trxId": "660041",
+        "trxId": "812959",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -1540,10 +1540,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=12.6..12.6 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=12.6..12.6 rows=5 loops=1)\n        -> Nested loop inner join  (cost=6695 rows=13809) (actual time=0.0597..9.54 rows=8053 loops=1)\n            -> Nested loop inner join  (cost=1862 rows=13809) (actual time=0.0526..4.09 rows=8053 loops=1)\n                -> Filter: (d.full_date between '2025-01-01' and '2025-06-30')  (cost=36.5 rows=181) (actual time=0.0264..0.11 rows=181 loops=1)\n                    -> Covering index range scan on d using uq_dim_date_full over ('2025-01-01' <= full_date <= '2025-06-30')  (cost=36.5 rows=181) (actual time=0.0235..0.0505 rows=181 loops=1)\n                -> Filter: (f.order_status <> 'CANCELLED')  (cost=1.65 rows=76.3) (actual time=0.00704..0.0193 rows=44.5 loops=181)\n                    -> Covering index lookup on f using idx_fact_sales_date_cover (date_key=d.date_key)  (cost=1.65 rows=84.8) (actual time=0.00684..0.0148 rows=47.1 loops=181)\n            -> Single-row index lookup on p using PRIMARY (product_key=f.product_key)  (cost=0.25 rows=1) (actual time=471e-6..498e-6 rows=1 loops=8053)\n"
+       "-> Table scan on <temporary>  (actual time=13.7..13.7 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=13.7..13.7 rows=5 loops=1)\n        -> Nested loop inner join  (cost=6695 rows=13809) (actual time=0.0615..10.3 rows=8053 loops=1)\n            -> Nested loop inner join  (cost=1862 rows=13809) (actual time=0.0551..4.34 rows=8053 loops=1)\n                -> Filter: (d.full_date between '2025-01-01' and '2025-06-30')  (cost=36.5 rows=181) (actual time=0.0268..0.12 rows=181 loops=1)\n                    -> Covering index range scan on d using uq_dim_date_full over ('2025-01-01' <= full_date <= '2025-06-30')  (cost=36.5 rows=181) (actual time=0.0237..0.0529 rows=181 loops=1)\n                -> Filter: (f.order_status <> 'CANCELLED')  (cost=1.65 rows=76.3) (actual time=0.00752..0.0203 rows=44.5 loops=181)\n                    -> Covering index lookup on f using idx_fact_sales_date_cover (date_key=d.date_key)  (cost=1.65 rows=84.8) (actual time=0.00731..0.0153 rows=47.1 loops=181)\n            -> Single-row index lookup on p using PRIMARY (product_key=f.product_key)  (cost=0.25 rows=1) (actual time=560e-6..586e-6 rows=1 loops=8053)\n"
       ]
      ],
-     "elapsed_ms": 14.27
+     "elapsed_ms": 15.67
     }
    ],
    "measured": true
@@ -1559,10 +1559,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=0.0647..0.0654 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=0.0639..0.0639 rows=5 loops=1)\n        -> Filter: (dw_agg_month_category.month_label between '2025-01' and '2025-06')  (cost=6.27 rows=30) (actual time=0.024..0.0365 rows=30 loops=1)\n            -> Index range scan on dw_agg_month_category using PRIMARY over ('2025-01' <= month_label <= '2025-06')  (cost=6.27 rows=30) (actual time=0.0219..0.0286 rows=30 loops=1)\n"
+       "-> Table scan on <temporary>  (actual time=0.0631..0.0638 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=0.0622..0.0622 rows=5 loops=1)\n        -> Filter: (dw_agg_month_category.month_label between '2025-01' and '2025-06')  (cost=6.27 rows=30) (actual time=0.022..0.0341 rows=30 loops=1)\n            -> Index range scan on dw_agg_month_category using PRIMARY over ('2025-01' <= month_label <= '2025-06')  (cost=6.27 rows=30) (actual time=0.0201..0.0267 rows=30 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 1.16
+     "elapsed_ms": 1.32
     }
    ],
    "measured": true

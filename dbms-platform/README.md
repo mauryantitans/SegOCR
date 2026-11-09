@@ -6,7 +6,7 @@ industry application → graded practice*, against a **real MySQL server**.
 
 - **Curriculum:** 13 modules, 154 lessons, 13 module assessments, 7 projects and 3 cumulative exams
   (`content/curriculum.yaml`), from DBMS fundamentals to indexing, transactions, internals, security, production
-  engineering and data warehousing — about 700,000 words, 920+ graded exercises and 1,500+ quiz/assessment
+  engineering and data warehousing — about 780,000 words of explanation, 920+ graded exercises and 1,500+ quiz/assessment
   questions. Every lesson and project is written and validated; see [docs/STATUS.md](docs/STATUS.md).
 - **Real SQL sandbox:** each learner gets private, resettable MySQL schemas (playground, per lesson, per exercise,
   concurrency labs), isolated by per-lab MySQL accounts and resource limits.

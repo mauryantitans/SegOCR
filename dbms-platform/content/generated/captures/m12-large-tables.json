@@ -99,7 +99,7 @@
      "columns": [],
      "affected_rows": 105119,
      "rows": [],
-     "elapsed_ms": 856.06
+     "elapsed_ms": 923.05
     }
    ],
    "measured": true
@@ -133,7 +133,7 @@
        105119
       ]
      ],
-     "elapsed_ms": 1679.86
+     "elapsed_ms": 1531.65
     }
    ],
    "measured": true
@@ -169,7 +169,7 @@
        "idx_events_created",
        "5",
        "const",
-       97006,
+       96980,
        100.0,
        "Using where"
       ]
@@ -264,7 +264,7 @@
      "columns": [],
      "affected_rows": 1,
      "rows": [],
-     "elapsed_ms": 2259.02
+     "elapsed_ms": 2171.67
     }
    ],
    "measured": true
@@ -342,7 +342,7 @@
        105120
       ]
      ],
-     "elapsed_ms": 2035.98
+     "elapsed_ms": 2034.02
     }
    ],
    "measured": true
@@ -924,7 +924,7 @@
      "columns": [],
      "affected_rows": 1,
      "rows": [],
-     "elapsed_ms": 2273.92
+     "elapsed_ms": 1965.26
     }
    ],
    "measured": true
@@ -937,7 +937,7 @@
      "columns": [],
      "affected_rows": 0,
      "rows": [],
-     "elapsed_ms": 32.59
+     "elapsed_ms": 67.68
     }
    ],
    "measured": true
@@ -951,7 +951,7 @@
      "affected_rows": 3000,
      "info": "Records: 3000  Duplicates: 0  Warnings: 0",
      "rows": [],
-     "elapsed_ms": 11.11
+     "elapsed_ms": 15.9
     }
    ],
    "measured": true
@@ -1173,7 +1173,7 @@
        "PRIMARY",
        "4",
        null,
-       89775,
+       88095,
        100.0,
        "Using where"
       ]

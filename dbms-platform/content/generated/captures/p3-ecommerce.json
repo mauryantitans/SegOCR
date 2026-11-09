@@ -737,10 +737,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Limit: 10 row(s)  (cost=15157 rows=10) (actual time=36.4..36.4 rows=10 loops=1)\n    -> Sort: orders.placed_at DESC, limit input to 10 row(s) per chunk  (cost=15157 rows=149247) (actual time=36.4..36.4 rows=10 loops=1)\n        -> Filter: (orders.customer_id = 42)  (cost=15157 rows=149247) (actual time=0.669..36.4 rows=30 loops=1)\n            -> Table scan on orders  (cost=15157 rows=149247) (actual time=0.0351..30.2 rows=150014 loops=1)\n"
+       "-> Limit: 10 row(s)  (cost=15157 rows=10) (actual time=35.4..35.4 rows=10 loops=1)\n    -> Sort: orders.placed_at DESC, limit input to 10 row(s) per chunk  (cost=15157 rows=149247) (actual time=35.4..35.4 rows=10 loops=1)\n        -> Filter: (orders.customer_id = 42)  (cost=15157 rows=149247) (actual time=0.563..35.4 rows=30 loops=1)\n            -> Table scan on orders  (cost=15157 rows=149247) (actual time=0.0387..29.3 rows=150014 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 37.44
+     "elapsed_ms": 36.51
     }
    ],
    "measured": true
@@ -756,10 +756,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Limit: 10 row(s)  (cost=10.5 rows=10) (actual time=0.0263..0.0394 rows=10 loops=1)\n    -> Index lookup on orders using idx_orders_customer_placed (customer_id=42) (reverse)  (cost=10.5 rows=30) (actual time=0.0256..0.0381 rows=10 loops=1)\n"
+       "-> Limit: 10 row(s)  (cost=10.5 rows=10) (actual time=0.0439..0.0633 rows=10 loops=1)\n    -> Index lookup on orders using idx_orders_customer_placed (customer_id=42) (reverse)  (cost=10.5 rows=30) (actual time=0.0432..0.0621 rows=10 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 0.94
+     "elapsed_ms": 1.22
     }
    ],
    "measured": true
@@ -1169,18 +1169,18 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "B",
-        "trxId": "624992",
-        "state": "LOCK WAIT",
+        "session": "A",
+        "trxId": "803776",
+        "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
         "rowsModified": 0,
         "lockStructs": 2
        },
        {
-        "session": "A",
-        "trxId": "624989",
-        "state": "RUNNING",
+        "session": "B",
+        "trxId": "803780",
+        "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
         "rowsModified": 0,
@@ -1424,10 +1424,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=41.9..41.9 rows=91 loops=1)\n    -> Aggregate using temporary table  (actual time=41.9..41.9 rows=91 loops=1)\n        -> Index range scan on orders using idx_orders_status_placed over (status = 'delivered' AND '2025-10-01 00:00:00' <= placed_at < '2026-01-01 00:00:00'), with index condition: ((orders.`status` = 'delivered') and (orders.placed_at >= TIMESTAMP'2025-10-01 00:00:00') and (orders.placed_at < TIMESTAMP'2026-01-01 00:00:00'))  (cost=12685 rows=28188) (actual time=0.339..37.8 rows=14957 loops=1)\n"
+       "-> Table scan on <temporary>  (actual time=43.7..43.7 rows=91 loops=1)\n    -> Aggregate using temporary table  (actual time=43.7..43.7 rows=91 loops=1)\n        -> Index range scan on orders using idx_orders_status_placed over (status = 'delivered' AND '2025-10-01 00:00:00' <= placed_at < '2026-01-01 00:00:00'), with index condition: ((orders.`status` = 'delivered') and (orders.placed_at >= TIMESTAMP'2025-10-01 00:00:00') and (orders.placed_at < TIMESTAMP'2026-01-01 00:00:00'))  (cost=12685 rows=28188) (actual time=0.473..39.5 rows=14957 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 43.21
+     "elapsed_ms": 45.21
     }
    ],
    "measured": true
@@ -1475,10 +1475,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=32.7..32.7 rows=91 loops=1)\n    -> Aggregate using temporary table  (actual time=32.7..32.7 rows=91 loops=1)\n        -> Filter: ((orders.`status` = 'delivered') and (orders.placed_at >= TIMESTAMP'2025-10-01 00:00:00') and (orders.placed_at < TIMESTAMP'2026-01-01 00:00:00'))  (cost=5945 rows=29364) (actual time=0.345..28.8 rows=14957 loops=1)\n            -> Covering index range scan on orders using idx_orders_status_placed_total over (status = 'delivered' AND '2025-10-01 00:00:00' <= placed_at < '2026-01-01 00:00:00')  (cost=5945 rows=29364) (actual time=0.341..25.6 rows=14957 loops=1)\n"
+       "-> Table scan on <temporary>  (actual time=7.85..7.85 rows=91 loops=1)\n    -> Aggregate using temporary table  (actual time=7.84..7.84 rows=91 loops=1)\n        -> Filter: ((orders.`status` = 'delivered') and (orders.placed_at >= TIMESTAMP'2025-10-01 00:00:00') and (orders.placed_at < TIMESTAMP'2026-01-01 00:00:00'))  (cost=5945 rows=29364) (actual time=0.0332..4.9 rows=14957 loops=1)\n            -> Covering index range scan on orders using idx_orders_status_placed_total over (status = 'delivered' AND '2025-10-01 00:00:00' <= placed_at < '2026-01-01 00:00:00')  (cost=5945 rows=29364) (actual time=0.0305..2.67 rows=14957 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 34.26
+     "elapsed_ms": 9.44
     }
    ],
    "measured": true
@@ -1562,10 +1562,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Limit/Offset: 20/100000 row(s)  (cost=15157 rows=20) (actual time=67..67 rows=20 loops=1)\n    -> Sort: orders.placed_at DESC, orders.order_id DESC, limit input to 100020 row(s) per chunk  (cost=15157 rows=149247) (actual time=57.8..63.5 rows=100020 loops=1)\n        -> Table scan on orders  (cost=15157 rows=149247) (actual time=1.07..28.2 rows=150015 loops=1)\n"
+       "-> Limit/Offset: 20/100000 row(s)  (cost=15157 rows=20) (actual time=53.7..53.7 rows=20 loops=1)\n    -> Sort: orders.placed_at DESC, orders.order_id DESC, limit input to 100020 row(s) per chunk  (cost=15157 rows=149247) (actual time=47.2..51.1 rows=100020 loops=1)\n        -> Table scan on orders  (cost=15157 rows=149247) (actual time=0.801..23.1 rows=150015 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 70.54
+     "elapsed_ms": 55.1
     }
    ],
    "measured": true
@@ -1601,10 +1601,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Limit: 20 row(s)  (cost=15157 rows=20) (actual time=17.6..17.6 rows=20 loops=1)\n    -> Index range scan on orders using idx_orders_placed over (placed_at < '2024-08-31 09:46:00') OR (placed_at = '2024-08-31 09:46:00' AND order_id < 106974) (reverse), with index condition: ((orders.placed_at < TIMESTAMP'2024-08-31 09:46:00') or ((orders.placed_at = TIMESTAMP'2024-08-31 09:46:00') and (orders.order_id < 106974)))  (cost=15157 rows=74624) (actual time=17.6..17.6 rows=20 loops=1)\n"
+       "-> Limit: 20 row(s)  (cost=15157 rows=20) (actual time=13.3..13.3 rows=20 loops=1)\n    -> Index range scan on orders using idx_orders_placed over (placed_at < '2024-08-31 09:46:00') OR (placed_at = '2024-08-31 09:46:00' AND order_id < 106974) (reverse), with index condition: ((orders.placed_at < TIMESTAMP'2024-08-31 09:46:00') or ((orders.placed_at = TIMESTAMP'2024-08-31 09:46:00') and (orders.order_id < 106974)))  (cost=15157 rows=74624) (actual time=13.3..13.3 rows=20 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 20.26
+     "elapsed_ms": 14.56
     }
    ],
    "measured": true

@@ -555,7 +555,7 @@
        null,
        null,
        null,
-       49746,
+       49764,
        100.0,
        "Using where"
       ]
@@ -913,7 +913,7 @@
        null,
        null,
        null,
-       49746,
+       49729,
        100.0,
        "Using where"
       ]
@@ -1006,10 +1006,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=665 rows=1) (actual time=4.95..4.95 rows=1 loops=1)\n    -> Filter: json'\"L7\"' member of (cast(json_extract(payload,_utf8mb4'$.labels') as char(5) array))  (cost=465 rows=2000) (actual time=0.045..4.83 rows=2000 loops=1)\n        -> Index lookup on events_json using idx_labels (cast(json_extract(payload,_utf8mb4'$.labels') as char(5) array)=json'\"L7\"')  (cost=465 rows=2000) (actual time=0.0435..4.34 rows=2000 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=665 rows=1) (actual time=4.86..4.86 rows=1 loops=1)\n    -> Filter: json'\"L7\"' member of (cast(json_extract(payload,_utf8mb4'$.labels') as char(5) array))  (cost=465 rows=2000) (actual time=0.0476..4.76 rows=2000 loops=1)\n        -> Index lookup on events_json using idx_labels (cast(json_extract(payload,_utf8mb4'$.labels') as char(5) array)=json'\"L7\"')  (cost=465 rows=2000) (actual time=0.0459..4.27 rows=2000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 6.02
+     "elapsed_ms": 5.95
     }
    ],
    "measured": true

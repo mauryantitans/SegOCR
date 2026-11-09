@@ -1376,10 +1376,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=10098 rows=1) (actual time=8.96..8.96 rows=1 loops=1)\n    -> Filter: (0 <> find_in_set('7',big_products_csv.tags))  (cost=5069 rows=50290) (actual time=0.0838..8.92 rows=1000 loops=1)\n        -> Table scan on big_products_csv  (cost=5069 rows=50290) (actual time=0.0796..4.81 rows=50000 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=10098 rows=1) (actual time=11.2..11.2 rows=1 loops=1)\n    -> Filter: (0 <> find_in_set('7',big_products_csv.tags))  (cost=5069 rows=50290) (actual time=0.0474..11.1 rows=1000 loops=1)\n        -> Table scan on big_products_csv  (cost=5069 rows=50290) (actual time=0.0434..6.01 rows=50000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 9.9
+     "elapsed_ms": 12.3
     },
     {
      "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM big_product_tags WHERE tag_id = 7",
@@ -1390,10 +1390,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Aggregate: count(0)  (cost=201 rows=1) (actual time=0.129..0.129 rows=1 loops=1)\n    -> Covering index lookup on big_product_tags using idx_tag (tag_id=7)  (cost=101 rows=1000) (actual time=0.0268..0.0943 rows=1000 loops=1)\n"
+       "-> Aggregate: count(0)  (cost=201 rows=1) (actual time=0.173..0.173 rows=1 loops=1)\n    -> Covering index lookup on big_product_tags using idx_tag (tag_id=7)  (cost=101 rows=1000) (actual time=0.0333..0.12 rows=1000 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 1.07
+     "elapsed_ms": 1.14
     }
    ],
    "measured": true

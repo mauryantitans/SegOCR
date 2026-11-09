@@ -908,10 +908,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on <temporary>  (actual time=0.355..0.356 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=0.355..0.355 rows=5 loops=1)\n        -> Nested loop inner join  (cost=82.5 rows=36.4) (actual time=0.0594..0.299 rows=94 loops=1)\n            -> Inner hash join (f.product_key = p.product_key)  (cost=18.8 rows=182) (actual time=0.0493..0.142 rows=182 loops=1)\n                -> Table scan on f  (cost=18.5 rows=182) (actual time=0.0124..0.0784 rows=182 loops=1)\n                -> Hash\n                    -> Table scan on p  (cost=0.35 rows=1) (actual time=0.0142..0.0248 rows=30 loops=1)\n            -> Filter: (d.`quarter` in (3,4))  (cost=0.25 rows=0.2) (actual time=670e-6..714e-6 rows=0.516 loops=182)\n                -> Single-row index lookup on d using PRIMARY (date_key=f.date_key)  (cost=0.25 rows=1) (actual time=496e-6..524e-6 rows=1 loops=182)\n"
+       "-> Table scan on <temporary>  (actual time=0.383..0.383 rows=5 loops=1)\n    -> Aggregate using temporary table  (actual time=0.382..0.382 rows=5 loops=1)\n        -> Nested loop inner join  (cost=82.5 rows=36.4) (actual time=0.0637..0.323 rows=94 loops=1)\n            -> Inner hash join (f.product_key = p.product_key)  (cost=18.8 rows=182) (actual time=0.0526..0.117 rows=182 loops=1)\n                -> Table scan on f  (cost=18.5 rows=182) (actual time=0.0162..0.0543 rows=182 loops=1)\n                -> Hash\n                    -> Table scan on p  (cost=0.35 rows=1) (actual time=0.0143..0.0247 rows=30 loops=1)\n            -> Filter: (d.`quarter` in (3,4))  (cost=0.25 rows=0.2) (actual time=945e-6..988e-6 rows=0.516 loops=182)\n                -> Single-row index lookup on d using PRIMARY (date_key=f.date_key)  (cost=0.25 rows=1) (actual time=775e-6..801e-6 rows=1 loops=182)\n"
       ]
      ],
-     "elapsed_ms": 1.76
+     "elapsed_ms": 1.93
     }
    ],
    "measured": true

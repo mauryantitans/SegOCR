@@ -765,7 +765,7 @@
        null,
        null,
        null,
-       57766,
+       60375,
        3.33,
        "Using where"
       ]
@@ -866,10 +866,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Index range scan on loans using idx_loans_open_due over (returned_on = NULL AND due_on < '2026-03-16'), with index condition: ((loans.returned_on is null) and (loans.due_on < DATE'2026-03-16'))  (cost=2.06 rows=4) (actual time=0.0281..0.0301 rows=4 loops=1)\n"
+       "-> Index range scan on loans using idx_loans_open_due over (returned_on = NULL AND due_on < '2026-03-16'), with index condition: ((loans.returned_on is null) and (loans.due_on < DATE'2026-03-16'))  (cost=2.06 rows=4) (actual time=0.0273..0.0292 rows=4 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 0.93
+     "elapsed_ms": 1.15
     }
    ],
    "measured": true
@@ -1041,7 +1041,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Nested loop inner join  (cost=8.05 rows=0)\n    -> Nested loop inner join  (cost=4.75 rows=0)\n        -> Filter: (b.title = 'The Quiet Orbit')  (cost=1.45 rows=1.2)\n            -> Table scan on b  (cost=1.45 rows=12)\n        -> Index lookup on v using <auto_key0> (book_id=b.book_id)  (cost=0.333..3.67 rows=11)\n            -> Materialize  (cost=0..0 rows=0)\n                -> Table scan on <temporary>\n                    -> Aggregate using temporary table\n                        -> Nested loop left join  (cost=258 rows=731)\n                            -> Table scan on c  (cost=2.45 rows=22)\n                            -> Filter: ((l.copy_id = c.copy_id) and (l.returned_on is null))  (cost=8.46 rows=33.2)\n                                -> Index lookup on l using idx_loans_open_due (returned_on=NULL)  (cost=8.46 rows=33.2)\n    -> Single-row index lookup on br using PRIMARY (branch_id=v.branch_id)  (cost=0.258 rows=1)\n"
+       "-> Nested loop inner join  (cost=8.05 rows=0)\n    -> Nested loop inner join  (cost=4.75 rows=0)\n        -> Filter: (b.title = 'The Quiet Orbit')  (cost=1.45 rows=1.2)\n            -> Table scan on b  (cost=1.45 rows=12)\n        -> Index lookup on v using <auto_key0> (book_id=b.book_id)  (cost=0.333..3.67 rows=11)\n            -> Materialize  (cost=0..0 rows=0)\n                -> Table scan on <temporary>\n                    -> Aggregate using temporary table\n                        -> Nested loop left join  (cost=258 rows=730)\n                            -> Table scan on c  (cost=2.45 rows=22)\n                            -> Filter: ((l.copy_id = c.copy_id) and (l.returned_on is null))  (cost=8.44 rows=33.2)\n                                -> Index lookup on l using idx_loans_open_due (returned_on=NULL)  (cost=8.44 rows=33.2)\n    -> Single-row index lookup on br using PRIMARY (branch_id=v.branch_id)  (cost=0.258 rows=1)\n"
       ]
      ]
     }
@@ -1059,7 +1059,7 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Table scan on v_branch_availability  (cost=2.5..2.5 rows=0)\n    -> Materialize  (cost=0..0 rows=0)\n        -> Table scan on <temporary>\n            -> Aggregate using temporary table\n                -> Nested loop left join  (cost=35.7 rows=99.7)\n                    -> Index lookup on c using fk_copies_book (book_id=12)  (cost=0.85 rows=3)\n                    -> Filter: ((l.copy_id = c.copy_id) and (l.returned_on is null))  (cost=9.41 rows=33.2)\n                        -> Index lookup on l using idx_loans_open_due (returned_on=NULL)  (cost=9.41 rows=33.2)\n"
+       "-> Table scan on v_branch_availability  (cost=2.5..2.5 rows=0)\n    -> Materialize  (cost=0..0 rows=0)\n        -> Table scan on <temporary>\n            -> Aggregate using temporary table\n                -> Nested loop left join  (cost=35.7 rows=99.5)\n                    -> Index lookup on c using fk_copies_book (book_id=12)  (cost=0.85 rows=3)\n                    -> Filter: ((l.copy_id = c.copy_id) and (l.returned_on is null))  (cost=9.4 rows=33.2)\n                        -> Index lookup on l using idx_loans_open_due (returned_on=NULL)  (cost=9.4 rows=33.2)\n"
       ]
      ]
     }

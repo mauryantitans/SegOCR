@@ -124,10 +124,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Limit: 10 row(s)  (cost=0.91 rows=1) (actual time=4.62..188 rows=10 loops=1)\n    -> Filter: (orders.customer_id = 4217)  (cost=0.91 rows=1) (actual time=4.62..188 rows=10 loops=1)\n        -> Index scan on orders using idx_orders_created (reverse)  (cost=0.91 rows=10) (actual time=0.0387..176 rows=185337 loops=1)\n"
+       "-> Limit: 10 row(s)  (cost=0.91 rows=1) (actual time=4.34..174 rows=10 loops=1)\n    -> Filter: (orders.customer_id = 4217)  (cost=0.91 rows=1) (actual time=4.34..174 rows=10 loops=1)\n        -> Index scan on orders using idx_orders_created (reverse)  (cost=0.91 rows=10) (actual time=0.037..165 rows=185337 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 189.0
+     "elapsed_ms": 175.4
     }
    ],
    "measured": true
@@ -296,10 +296,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Limit: 10 row(s)  (cost=3.5 rows=10) (actual time=0.0781..0.0801 rows=10 loops=1)\n    -> Index lookup on orders using idx_orders_customer_created (customer_id=4217) (reverse)  (cost=3.5 rows=10) (actual time=0.0773..0.0787 rows=10 loops=1)\n"
+       "-> Limit: 10 row(s)  (cost=3.5 rows=10) (actual time=0.0436..0.0463 rows=10 loops=1)\n    -> Index lookup on orders using idx_orders_customer_created (customer_id=4217) (reverse)  (cost=3.5 rows=10) (actual time=0.0429..0.045 rows=10 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 1.17
+     "elapsed_ms": 1.55
     }
    ],
    "measured": true
@@ -626,7 +626,7 @@
       "transactions": [
        {
         "session": "B",
-        "trxId": "554184",
+        "trxId": "784172",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -635,7 +635,7 @@
        },
        {
         "session": "A",
-        "trxId": "554181",
+        "trxId": "784169",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -816,7 +816,7 @@
       "transactions": [
        {
         "session": "B",
-        "trxId": "554248",
+        "trxId": "784236",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -825,7 +825,7 @@
        },
        {
         "session": "A",
-        "trxId": "554245",
+        "trxId": "784233",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -1017,7 +1017,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "554296",
+        "trxId": "784285",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 6,
@@ -1168,7 +1168,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "554314",
+        "trxId": "784304",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 3,

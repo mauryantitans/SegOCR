@@ -693,10 +693,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Index range scan on ledger_entries using idx_ledger_account_time over (account_id = 103 AND '2024-03-01 00:00:00.000000' <= created_at < '2024-04-01 00:00:00.000000'), with index condition: ((ledger_entries.account_id = 103) and (ledger_entries.created_at >= TIMESTAMP'2024-03-01 00:00:00') and (ledger_entries.created_at < TIMESTAMP'2024-04-01 00:00:00'))  (cost=237 rows=526) (actual time=0.19..0.742 rows=526 loops=1)\n"
+       "-> Index range scan on ledger_entries using idx_ledger_account_time over (account_id = 103 AND '2024-03-01 00:00:00.000000' <= created_at < '2024-04-01 00:00:00.000000'), with index condition: ((ledger_entries.account_id = 103) and (ledger_entries.created_at >= TIMESTAMP'2024-03-01 00:00:00') and (ledger_entries.created_at < TIMESTAMP'2024-04-01 00:00:00'))  (cost=237 rows=526) (actual time=0.156..0.716 rows=526 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 1.6
+     "elapsed_ms": 1.71
     }
    ],
    "measured": true
@@ -927,7 +927,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "627067",
+        "trxId": "805867",
         "state": "LOCK WAIT",
         "isolation": "SERIALIZABLE",
         "rowsLocked": 2,
@@ -936,7 +936,7 @@
        },
        {
         "session": "B",
-        "trxId": "422147675914184",
+        "trxId": "422147675912568",
         "state": "RUNNING",
         "isolation": "SERIALIZABLE",
         "rowsLocked": 1,
@@ -1118,22 +1118,22 @@
      "snapshot": {
       "transactions": [
        {
-        "session": "B",
-        "trxId": "627111",
-        "state": "RUNNING",
-        "isolation": "REPEATABLE READ",
-        "rowsLocked": 1,
-        "rowsModified": 1,
-        "lockStructs": 2
-       },
-       {
         "session": "A",
-        "trxId": "627109",
+        "trxId": "805910",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 2,
         "rowsModified": 1,
         "lockStructs": 3
+       },
+       {
+        "session": "B",
+        "trxId": "805913",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
+        "lockStructs": 2
        }
       ],
       "locks": [
@@ -1310,7 +1310,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "627159",
+        "trxId": "805961",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -1319,7 +1319,7 @@
        },
        {
         "session": "B",
-        "trxId": "627163",
+        "trxId": "805965",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -1703,7 +1703,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "627250",
+        "trxId": "806051",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 6,
@@ -1847,7 +1847,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "627267",
+        "trxId": "806069",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 3,
@@ -1937,10 +1937,10 @@
      "row_count": 1,
      "rows": [
       [
-       "-> Nested loop inner join  (cost=3776 rows=9708) (actual time=113..113 rows=0 loops=1)\n    -> Table scan on a  (cost=1.15 rows=9) (actual time=0.0118..0.0177 rows=9 loops=1)\n    -> Filter: (a.balance <> l.ledger_balance)  (cost=24068..312 rows=1079) (actual time=12.5..12.5 rows=0 loops=9)\n        -> Index lookup on l using <auto_key0> (account_id=a.account_id)  (cost=24091..24402 rows=1198) (actual time=12.5..12.5 rows=1 loops=9)\n            -> Materialize  (cost=24090..24090 rows=8) (actual time=113..113 rows=9 loops=1)\n                -> Group aggregate: sum(ledger_entries.amount)  (cost=24090 rows=8) (actual time=56.8..113 rows=9 loops=1)\n                    -> Index scan on ledger_entries using idx_ledger_account_time  (cost=12105 rows=119847) (actual time=3.93..102 rows=120030 loops=1)\n"
+       "-> Nested loop inner join  (cost=3776 rows=9708) (actual time=107..107 rows=0 loops=1)\n    -> Table scan on a  (cost=1.15 rows=9) (actual time=0.0201..0.0259 rows=9 loops=1)\n    -> Filter: (a.balance <> l.ledger_balance)  (cost=24068..312 rows=1079) (actual time=11.8..11.8 rows=0 loops=9)\n        -> Index lookup on l using <auto_key0> (account_id=a.account_id)  (cost=24091..24402 rows=1198) (actual time=11.8..11.8 rows=1 loops=9)\n            -> Materialize  (cost=24090..24090 rows=8) (actual time=107..107 rows=9 loops=1)\n                -> Group aggregate: sum(ledger_entries.amount)  (cost=24090 rows=8) (actual time=50.9..107 rows=9 loops=1)\n                    -> Index scan on ledger_entries using idx_ledger_account_time  (cost=12105 rows=119847) (actual time=3.42..97.5 rows=120030 loops=1)\n"
       ]
      ],
-     "elapsed_ms": 114.69
+     "elapsed_ms": 108.61
     }
    ],
    "measured": true
