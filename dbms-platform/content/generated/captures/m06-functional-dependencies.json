@@ -1,0 +1,754 @@
+{
+ "doc": "m06-functional-dependencies",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:b991f664875f": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE order_report (\n  order_id       INT UNSIGNED  NOT NULL,\n  order_date     DATETIME      NOT NULL,\n  customer_id    INT UNSIGNED  NOT NULL,\n  customer_email VARCHAR(255)  NOT NULL,\n  customer_city  VARCHAR(60)   NOT NULL,\n  customer_state CHAR(2)       NOT NULL,\n  product_id     INT UNSIGNED  NOT NULL,\n  product_name   VARCHAR(120)  NOT NULL,\n  list_price     DECIMAL(10,2) NOT NULL,\n  quantity       INT UNSIGNED  NOT NULL,\n  unit_price     DECIMAL(10,2) NOT NULL,\n  PRIMARY KEY (order_id, product_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO order_report\nSELECT o.order_id, o.order_date, c.customer_id, c.email, c.city, c.state,\n       p.product_id, p.name, p.price, oi.quantity, oi.unit_price\nFROM order_items oi\nJOIN orders o    ON o.order_id = oi.order_id\nJOIN customers c ON c.customer_id = o.customer_id\nJOIN products p  ON p.product_id = oi.product_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 182,
+     "info": "Records: 182  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_loaded FROM order_report",
+     "status": "ok",
+     "columns": [
+      "rows_loaded"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       182
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:e699c09ee01f": {
+   "statements": [
+    {
+     "sql": "SELECT 'product_id -> list_price' AS fd, COUNT(*) AS violating_groups\nFROM (SELECT product_id FROM order_report GROUP BY product_id\n      HAVING COUNT(DISTINCT list_price) > 1) AS v\nUNION ALL\nSELECT 'product_id -> unit_price', COUNT(*)\nFROM (SELECT product_id FROM order_report GROUP BY product_id\n      HAVING COUNT(DISTINCT unit_price) > 1) AS v",
+     "status": "ok",
+     "columns": [
+      "fd",
+      "violating_groups"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "product_id -> list_price",
+       0
+      ],
+      [
+       "product_id -> unit_price",
+       15
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:55ef03052711": {
+   "statements": [
+    {
+     "sql": "SELECT product_id,\n       COUNT(DISTINCT unit_price)                                AS distinct_prices,\n       GROUP_CONCAT(DISTINCT unit_price ORDER BY unit_price SEPARATOR ' | ') AS prices_seen\nFROM order_report\nGROUP BY product_id\nHAVING COUNT(DISTINCT unit_price) > 1\nORDER BY product_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "distinct_prices",
+      "prices_seen"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       2,
+       "1169.10 | 1299.00"
+      ],
+      [
+       10,
+       2,
+       "224.99 | 249.99"
+      ],
+      [
+       11,
+       2,
+       "71.99 | 79.99"
+      ],
+      [
+       12,
+       2,
+       "116.99 | 129.99"
+      ],
+      [
+       13,
+       2,
+       "134.10 | 149.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:a88f3156788c": {
+   "statements": [
+    {
+     "sql": "SELECT 'order_id, product_id -> quantity, unit_price' AS fd, COUNT(*) AS violating_groups\nFROM (SELECT order_id, product_id FROM order_report GROUP BY order_id, product_id\n      HAVING COUNT(DISTINCT quantity, unit_price) > 1) AS v\nUNION ALL\nSELECT 'order_id -> customer_id, order_date', COUNT(*)\nFROM (SELECT order_id FROM order_report GROUP BY order_id\n      HAVING COUNT(DISTINCT customer_id, order_date) > 1) AS v",
+     "status": "ok",
+     "columns": [
+      "fd",
+      "violating_groups"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "order_id, product_id -> quantity, unit_price",
+       0
+      ],
+      [
+       "order_id -> customer_id, order_date",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:01d1035b6b23": {
+   "statements": [
+    {
+     "sql": "SELECT 'customer_id -> customer_email' AS candidate_fd,\n       (SELECT COUNT(*) FROM (SELECT 1 FROM order_report GROUP BY customer_id\n                              HAVING COUNT(DISTINCT customer_email) > 1) v) AS violating_groups\nUNION ALL SELECT 'customer_email -> customer_id',\n       (SELECT COUNT(*) FROM (SELECT 1 FROM order_report GROUP BY customer_email\n                              HAVING COUNT(DISTINCT customer_id) > 1) v)\nUNION ALL SELECT 'customer_city -> customer_state',\n       (SELECT COUNT(*) FROM (SELECT 1 FROM order_report GROUP BY customer_city\n                              HAVING COUNT(DISTINCT customer_state) > 1) v)\nUNION ALL SELECT 'customer_city -> customer_id',\n       (SELECT COUNT(*) FROM (SELECT 1 FROM order_report GROUP BY customer_city\n                              HAVING COUNT(DISTINCT customer_id) > 1) v)\nUNION ALL SELECT 'order_date -> order_id',\n       (SELECT COUNT(*) FROM (SELECT 1 FROM order_report GROUP BY order_date\n                              HAVING COUNT(DISTINCT order_id) > 1) v)",
+     "status": "ok",
+     "columns": [
+      "candidate_fd",
+      "violating_groups"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "customer_id -> customer_email",
+       0
+      ],
+      [
+       "customer_email -> customer_id",
+       0
+      ],
+      [
+       "customer_city -> customer_state",
+       0
+      ],
+      [
+       "customer_city -> customer_id",
+       6
+      ],
+      [
+       "order_date -> order_id",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:962babeb9f14": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE city_check AS SELECT DISTINCT customer_city, customer_state FROM order_report",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 7,
+     "info": "Records: 7  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO city_check VALUES ('Portland', 'OR'), ('Portland', 'ME')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT customer_city, COUNT(DISTINCT customer_state) AS states\nFROM city_check\nGROUP BY customer_city\nHAVING COUNT(DISTINCT customer_state) > 1",
+     "status": "ok",
+     "columns": [
+      "customer_city",
+      "states"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Portland",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:2dd6c3d85642": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE promo_usage (\n  campaign VARCHAR(20) NOT NULL,\n  order_id INT NOT NULL PRIMARY KEY,\n  code     VARCHAR(20) NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO promo_usage VALUES\n  ('spring', 1, 'SPRING15'), ('spring', 2, NULL), ('spring', 3, 'SPRING15'),\n  ('vip',    4, 'VIP20'),    ('vip',    5, 'VIP20')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT campaign,\n       COUNT(DISTINCT code)                      AS naive_distinct,\n       COUNT(DISTINCT code) + MAX(code IS NULL)  AS null_aware_distinct\nFROM promo_usage\nGROUP BY campaign\nORDER BY campaign",
+     "status": "ok",
+     "columns": [
+      "campaign",
+      "naive_distinct",
+      "null_aware_distinct"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "spring",
+       1,
+       2
+      ],
+      [
+       "vip",
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:3209ce9edb86": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, c.email, c.city, COUNT(*) AS orders_placed\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nGROUP BY c.customer_id\nORDER BY orders_placed DESC, c.customer_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "email",
+      "city",
+      "orders_placed"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       18,
+       "leila.martin18@example.com",
+       "San Francisco",
+       8
+      ],
+      [
+       19,
+       "lucia.moradi19@example.com",
+       "San Jose",
+       8
+      ],
+      [
+       14,
+       "zara.novak14@example.com",
+       "New York",
+       6
+      ],
+      [
+       22,
+       "tomas.martin22@example.com",
+       "Seattle",
+       6
+      ],
+      [
+       10,
+       "lucas.lin10@example.com",
+       "New York",
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:dfb465f40502": {
+   "statements": [
+    {
+     "sql": "SELECT o.order_id, c.email, COUNT(*) AS line_items\nFROM orders o\nJOIN customers c   ON c.customer_id = o.customer_id\nJOIN order_items i ON i.order_id = o.order_id\nGROUP BY o.order_id\nORDER BY line_items DESC, o.order_id\nLIMIT 3",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "email",
+      "line_items"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       2,
+       "lucia.moradi19@example.com",
+       4
+      ],
+      [
+       4,
+       "lucas.lin10@example.com",
+       4
+      ],
+      [
+       11,
+       "diego.moradi9@example.com",
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:5b055acbe321": {
+   "statements": [
+    {
+     "sql": "SELECT c.city, c.state, COUNT(*) AS customers\nFROM customers c\nGROUP BY c.city",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1055,
+      "message": "Expression #2 of SELECT list is not in GROUP BY clause and contains nonaggregated column 'c.state' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:6d59baef1b6c": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, order_id, unit_price\nFROM order_report\nWHERE product_id IN (1, 5)\nORDER BY product_id, order_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "order_id",
+      "unit_price"
+     ],
+     "row_count": 18,
+     "rows": [
+      [
+       1,
+       11,
+       "1299.00"
+      ],
+      [
+       1,
+       17,
+       "1299.00"
+      ],
+      [
+       1,
+       21,
+       "1299.00"
+      ],
+      [
+       1,
+       22,
+       "1299.00"
+      ],
+      [
+       1,
+       24,
+       "1169.10"
+      ],
+      [
+       1,
+       30,
+       "1299.00"
+      ],
+      [
+       1,
+       41,
+       "1299.00"
+      ],
+      [
+       1,
+       50,
+       "1299.00"
+      ],
+      [
+       1,
+       56,
+       "1299.00"
+      ],
+      [
+       1,
+       60,
+       "1299.00"
+      ],
+      [
+       1,
+       80,
+       "1299.00"
+      ],
+      [
+       5,
+       1,
+       "29.99"
+      ],
+      [
+       5,
+       26,
+       "29.99"
+      ],
+      [
+       5,
+       28,
+       "29.99"
+      ],
+      [
+       5,
+       34,
+       "29.99"
+      ],
+      [
+       5,
+       43,
+       "29.99"
+      ],
+      [
+       5,
+       66,
+       "29.99"
+      ],
+      [
+       5,
+       71,
+       "29.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:c8b45cfca8f2": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, COUNT(*) AS rows_in_group,\n       GROUP_CONCAT(unit_price ORDER BY order_id) AS rhs_values\nFROM order_report\nWHERE product_id IN (1, 5)\nGROUP BY product_id\nORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "rows_in_group",
+      "rhs_values"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       11,
+       "1299.00,1299.00,1299.00,1299.00,1169.10,1299.00,1299.00,1299.00,1299.00,1299.00,1299.00"
+      ],
+      [
+       5,
+       7,
+       "29.99,29.99,29.99,29.99,29.99,29.99,29.99"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:066b13c50499": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, COUNT(DISTINCT unit_price) AS distinct_rhs\nFROM order_report\nWHERE product_id IN (1, 5)\nGROUP BY product_id\nORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "distinct_rhs"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       2
+      ],
+      [
+       5,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:a13c4641edf8": {
+   "statements": [
+    {
+     "sql": "SELECT product_id\nFROM order_report\nWHERE product_id IN (1, 5)\nGROUP BY product_id\nHAVING COUNT(DISTINCT unit_price) > 1\nORDER BY product_id",
+     "status": "ok",
+     "columns": [
+      "product_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:bae60851300d": {
+   "statements": [
+    {
+     "sql": "SELECT fd, violating_groups,\n       CASE WHEN violating_groups > 0 THEN 'refuted by data'\n            ELSE 'satisfied by this instance' END AS verdict\nFROM (\n  SELECT 'order_id -> order_date' AS fd,\n         (SELECT COUNT(*) FROM (SELECT 1 FROM order_report GROUP BY order_id HAVING COUNT(DISTINCT order_date) > 1) v) AS violating_groups\n  UNION ALL SELECT 'customer_id -> customer_city',\n         (SELECT COUNT(*) FROM (SELECT 1 FROM order_report GROUP BY customer_id HAVING COUNT(DISTINCT customer_city) > 1) v)\n  UNION ALL SELECT 'product_id -> list_price',\n         (SELECT COUNT(*) FROM (SELECT 1 FROM order_report GROUP BY product_id HAVING COUNT(DISTINCT list_price) > 1) v)\n  UNION ALL SELECT 'product_id -> unit_price',\n         (SELECT COUNT(*) FROM (SELECT 1 FROM order_report GROUP BY product_id HAVING COUNT(DISTINCT unit_price) > 1) v)\n  UNION ALL SELECT 'order_id -> product_id',\n         (SELECT COUNT(*) FROM (SELECT 1 FROM order_report GROUP BY order_id HAVING COUNT(DISTINCT product_id) > 1) v)\n) AS profile\nORDER BY fd",
+     "status": "ok",
+     "columns": [
+      "fd",
+      "violating_groups",
+      "verdict"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "customer_id -> customer_city",
+       0,
+       "satisfied by this instance"
+      ],
+      [
+       "order_id -> order_date",
+       0,
+       "satisfied by this instance"
+      ],
+      [
+       "order_id -> product_id",
+       59,
+       "refuted by data"
+      ],
+      [
+       "product_id -> list_price",
+       0,
+       "satisfied by this instance"
+      ],
+      [
+       "product_id -> unit_price",
+       15,
+       "refuted by data"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:d208992a9da7": {
+   "statements": [
+    {
+     "sql": "-- B: self-join — returns the actual conflicting row pairs (good for investigation)\nSELECT a.product_id, a.order_id AS order_a, a.unit_price AS price_a,\n       b.order_id AS order_b, b.unit_price AS price_b\nFROM order_report a\nJOIN order_report b\n  ON b.product_id = a.product_id AND b.unit_price <> a.unit_price AND a.order_id < b.order_id\nORDER BY a.product_id, a.order_id, b.order_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "order_a",
+      "price_a",
+      "order_b",
+      "price_b"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       11,
+       "1299.00",
+       24,
+       "1169.10"
+      ],
+      [
+       1,
+       17,
+       "1299.00",
+       24,
+       "1169.10"
+      ],
+      [
+       1,
+       21,
+       "1299.00",
+       24,
+       "1169.10"
+      ],
+      [
+       1,
+       22,
+       "1299.00",
+       24,
+       "1169.10"
+      ],
+      [
+       1,
+       24,
+       "1169.10",
+       30,
+       "1299.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:0da45bbb31e9": {
+   "statements": [
+    {
+     "sql": "-- C: window function — flags every row that belongs to a violating group\nSELECT product_id, order_id, unit_price\nFROM (SELECT product_id, order_id, unit_price,\n             MIN(unit_price) OVER (PARTITION BY product_id) AS lo,\n             MAX(unit_price) OVER (PARTITION BY product_id) AS hi\n      FROM order_report) AS t\nWHERE lo <> hi\nORDER BY product_id, order_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "order_id",
+      "unit_price"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       11,
+       "1299.00"
+      ],
+      [
+       1,
+       17,
+       "1299.00"
+      ],
+      [
+       1,
+       21,
+       "1299.00"
+      ],
+      [
+       1,
+       22,
+       "1299.00"
+      ],
+      [
+       1,
+       24,
+       "1169.10"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:bf07917459e2": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT product_id FROM order_report GROUP BY product_id HAVING COUNT(DISTINCT unit_price) > 1",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (count(distinct order_report.unit_price) > 1)  (cost=36.6 rows=13.5)\n    -> Group aggregate: count(distinct order_report.unit_price)  (cost=36.6 rows=13.5)\n        -> Sort: order_report.product_id  (cost=18.4 rows=182)\n            -> Table scan on order_report  (cost=18.4 rows=182)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:8d1dc6d1e0c9": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_fdcheck ON order_report (product_id, unit_price)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE order_report",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "order_report",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT product_id FROM order_report GROUP BY product_id HAVING COUNT(DISTINCT unit_price) > 1",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (count(distinct order_report.unit_price) > 1)  (cost=15.7 rows=28)\n    -> Group aggregate: count(distinct order_report.unit_price)  (cost=15.7 rows=28)\n        -> Covering index skip scan for deduplication on order_report using idx_fdcheck  (cost=11.3 rows=44)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:a9090804bc0f": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS orders_violating_order_id_to_quantity\nFROM (SELECT order_id FROM order_report GROUP BY order_id\n      HAVING COUNT(DISTINCT quantity) > 1) AS v",
+     "status": "ok",
+     "columns": [
+      "orders_violating_order_id_to_quantity"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       46
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:ed1950ca3271": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS customers_with_several_rows\nFROM (SELECT customer_id FROM order_report GROUP BY customer_id HAVING COUNT(*) > 1) AS v",
+     "status": "ok",
+     "columns": [
+      "customers_with_several_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

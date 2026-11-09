@@ -1,0 +1,873 @@
+{
+ "doc": "m05-er-to-relational",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:7f0860481129": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE users (\n  user_id     INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  email       VARCHAR(255) NOT NULL,\n  given_name  VARCHAR(60)  NOT NULL,      -- composite attribute \"full name\" → leaf components\n  family_name VARCHAR(60)  NOT NULL,\n  joined_on   DATE         NOT NULL,\n  CONSTRAINT pk_users PRIMARY KEY (user_id),\n  CONSTRAINT uq_users_email UNIQUE (email)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE categories (\n  category_id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  name        VARCHAR(60) NOT NULL,\n  CONSTRAINT uq_categories_name UNIQUE (name)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s2:a98ff8081a81": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE learners (\n  user_id    INT UNSIGNED NOT NULL PRIMARY KEY,\n  country    CHAR(2)      NOT NULL,\n  CONSTRAINT fk_learners_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE instructors (\n  user_id    INT UNSIGNED NOT NULL PRIMARY KEY,\n  bio        VARCHAR(500) NOT NULL,\n  CONSTRAINT fk_instructors_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s3:7a4cf792abe8": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE learner_interests (\n  user_id   INT UNSIGNED NOT NULL,\n  interest  VARCHAR(40)  NOT NULL,\n  PRIMARY KEY (user_id, interest),\n  CONSTRAINT fk_interests_learner FOREIGN KEY (user_id) REFERENCES learners (user_id) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s4:e6b3c6aa4316": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE courses (\n  course_id     INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  slug          VARCHAR(80)  NOT NULL,\n  title         VARCHAR(150) NOT NULL,\n  price         DECIMAL(8,2) NOT NULL,\n  category_id   SMALLINT UNSIGNED NOT NULL,\n  instructor_id INT UNSIGNED NOT NULL,\n  CONSTRAINT uq_courses_slug UNIQUE (slug),\n  CONSTRAINT chk_courses_price CHECK (price >= 0),\n  CONSTRAINT fk_courses_category   FOREIGN KEY (category_id)   REFERENCES categories (category_id),\n  CONSTRAINT fk_courses_instructor FOREIGN KEY (instructor_id) REFERENCES instructors (user_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s5:4d3dd2afecd7": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE lessons (\n  course_id    INT UNSIGNED      NOT NULL,\n  lesson_no    SMALLINT UNSIGNED NOT NULL,     -- partial key\n  title        VARCHAR(150)      NOT NULL,\n  duration_min SMALLINT UNSIGNED NOT NULL,\n  PRIMARY KEY (course_id, lesson_no),\n  CONSTRAINT fk_lessons_course FOREIGN KEY (course_id) REFERENCES courses (course_id) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s6:d311842ecdc3": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE payout_accounts (\n  account_id    INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  instructor_id INT UNSIGNED NOT NULL,\n  iban          VARCHAR(34)  NOT NULL,\n  CONSTRAINT uq_payout_instructor UNIQUE (instructor_id),\n  CONSTRAINT fk_payout_instructor FOREIGN KEY (instructor_id) REFERENCES instructors (user_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s7:6b6f0784e5dd": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE enrollments (\n  learner_id   INT UNSIGNED NOT NULL,\n  course_id    INT UNSIGNED NOT NULL,\n  enrolled_at  DATETIME     NOT NULL,\n  progress_pct TINYINT UNSIGNED NOT NULL DEFAULT 0,\n  PRIMARY KEY (learner_id, course_id),\n  KEY idx_enrollments_course (course_id),\n  CONSTRAINT chk_enrollments_progress CHECK (progress_pct <= 100),\n  CONSTRAINT fk_enrollments_learner FOREIGN KEY (learner_id) REFERENCES learners (user_id),\n  CONSTRAINT fk_enrollments_course  FOREIGN KEY (course_id)  REFERENCES courses (course_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE lesson_completions (\n  learner_id   INT UNSIGNED      NOT NULL,\n  course_id    INT UNSIGNED      NOT NULL,\n  lesson_no    SMALLINT UNSIGNED NOT NULL,\n  completed_at DATETIME          NOT NULL,\n  PRIMARY KEY (learner_id, course_id, lesson_no),\n  KEY idx_completions_lesson (course_id, lesson_no),\n  CONSTRAINT fk_completions_learner FOREIGN KEY (learner_id) REFERENCES learners (user_id),\n  CONSTRAINT fk_completions_lesson  FOREIGN KEY (course_id, lesson_no)\n    REFERENCES lessons (course_id, lesson_no) ON DELETE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE course_prereqs (\n  course_id  INT UNSIGNED NOT NULL,\n  prereq_id  INT UNSIGNED NOT NULL,\n  PRIMARY KEY (course_id, prereq_id),\n  KEY idx_prereqs_prereq (prereq_id),\n  CONSTRAINT chk_prereqs_not_self CHECK (course_id <> prereq_id),\n  CONSTRAINT fk_prereqs_course FOREIGN KEY (course_id) REFERENCES courses (course_id),\n  CONSTRAINT fk_prereqs_prereq FOREIGN KEY (prereq_id) REFERENCES courses (course_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s8:42a376d542d4": {
+   "statements": [
+    {
+     "sql": "SELECT rc.TABLE_NAME AS child, rc.CONSTRAINT_NAME, rc.REFERENCED_TABLE_NAME AS parent, rc.DELETE_RULE,\n       GROUP_CONCAT(k.COLUMN_NAME ORDER BY k.ORDINAL_POSITION) AS fk_columns\nFROM information_schema.REFERENTIAL_CONSTRAINTS AS rc\nJOIN information_schema.KEY_COLUMN_USAGE AS k\n  ON k.CONSTRAINT_SCHEMA = rc.CONSTRAINT_SCHEMA AND k.TABLE_NAME = rc.TABLE_NAME\n AND k.CONSTRAINT_NAME = rc.CONSTRAINT_NAME\nWHERE rc.CONSTRAINT_SCHEMA = DATABASE()\nGROUP BY rc.TABLE_NAME, rc.CONSTRAINT_NAME, rc.REFERENCED_TABLE_NAME, rc.DELETE_RULE\nORDER BY child, rc.CONSTRAINT_NAME",
+     "status": "ok",
+     "columns": [
+      "child",
+      "CONSTRAINT_NAME",
+      "parent",
+      "DELETE_RULE",
+      "fk_columns"
+     ],
+     "row_count": 13,
+     "rows": [
+      [
+       "course_prereqs",
+       "fk_prereqs_course",
+       "courses",
+       "NO ACTION",
+       "course_id"
+      ],
+      [
+       "course_prereqs",
+       "fk_prereqs_prereq",
+       "courses",
+       "NO ACTION",
+       "prereq_id"
+      ],
+      [
+       "courses",
+       "fk_courses_category",
+       "categories",
+       "NO ACTION",
+       "category_id"
+      ],
+      [
+       "courses",
+       "fk_courses_instructor",
+       "instructors",
+       "NO ACTION",
+       "instructor_id"
+      ],
+      [
+       "enrollments",
+       "fk_enrollments_course",
+       "courses",
+       "NO ACTION",
+       "course_id"
+      ],
+      [
+       "enrollments",
+       "fk_enrollments_learner",
+       "learners",
+       "NO ACTION",
+       "learner_id"
+      ],
+      [
+       "instructors",
+       "fk_instructors_user",
+       "users",
+       "CASCADE",
+       "user_id"
+      ],
+      [
+       "learner_interests",
+       "fk_interests_learner",
+       "learners",
+       "CASCADE",
+       "user_id"
+      ],
+      [
+       "learners",
+       "fk_learners_user",
+       "users",
+       "CASCADE",
+       "user_id"
+      ],
+      [
+       "lesson_completions",
+       "fk_completions_learner",
+       "learners",
+       "NO ACTION",
+       "learner_id"
+      ],
+      [
+       "lesson_completions",
+       "fk_completions_lesson",
+       "lessons",
+       "CASCADE",
+       "course_id,lesson_no"
+      ],
+      [
+       "lessons",
+       "fk_lessons_course",
+       "courses",
+       "CASCADE",
+       "course_id"
+      ],
+      [
+       "payout_accounts",
+       "fk_payout_instructor",
+       "instructors",
+       "NO ACTION",
+       "instructor_id"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:0115348a314c": {
+   "statements": [
+    {
+     "sql": "INSERT INTO users (email, given_name, family_name, joined_on) VALUES\n  ('ada@learn.io',  'Ada',   'Okoye',  '2024-01-05'),\n  ('ben@learn.io',  'Ben',   'Lindqvist', '2024-02-11'),\n  ('chen@learn.io', 'Chen',  'Wu',     '2024-02-20'),\n  ('dina@learn.io', 'Dina',  'Haddad', '2024-03-01'),\n  ('eli@learn.io',  'Eli',   'Moreau', '2024-03-15')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO instructors VALUES (1, 'Database engineer, 12 years in fintech.'), (2, 'Data scientist and author.')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO learners    VALUES (2, 'SE'), (3, 'CN'), (4, 'JO'), (5, 'FR')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- Ben is both\nINSERT INTO learner_interests VALUES (3, 'databases'), (3, 'python'), (4, 'statistics'), (5, 'databases')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO categories (name) VALUES ('Databases'), ('Machine Learning')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO courses (slug, title, price, category_id, instructor_id) VALUES\n  ('mysql-fundamentals', 'MySQL Fundamentals',         49.00, 1, 1),\n  ('mysql-performance',  'MySQL Performance Tuning',   89.00, 1, 1),\n  ('intro-ml',           'Introduction to ML',         59.00, 2, 2)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO lessons VALUES\n  (1, 1, 'Relational model', 25), (1, 2, 'SELECT basics', 30), (1, 3, 'Joins', 40),\n  (2, 1, 'Indexes', 35), (2, 2, 'EXPLAIN', 45),\n  (3, 1, 'What is learning?', 20)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 6,
+     "info": "Records: 6  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO course_prereqs VALUES (2, 1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO payout_accounts (instructor_id, iban) VALUES (1, 'GB29NWBK60161331926819')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO enrollments VALUES\n  (2, 1, '2024-03-02 10:00:00', 100), (3, 1, '2024-03-05 18:30:00', 66),\n  (3, 2, '2024-04-01 09:00:00', 0),   (4, 3, '2024-03-20 12:00:00', 100), (5, 1, '2024-04-02 08:15:00', 33)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO lesson_completions VALUES\n  (2, 1, 1, '2024-03-03 10:00:00'), (2, 1, 2, '2024-03-04 10:00:00'), (2, 1, 3, '2024-03-06 10:00:00'),\n  (3, 1, 1, '2024-03-06 19:00:00'), (3, 1, 2, '2024-03-08 19:00:00'),\n  (4, 3, 1, '2024-03-21 12:00:00'), (5, 1, 1, '2024-04-03 08:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 7,
+     "info": "Records: 7  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM users) AS users, (SELECT COUNT(*) FROM courses) AS courses,\n       (SELECT COUNT(*) FROM lessons) AS lessons, (SELECT COUNT(*) FROM enrollments) AS enrollments",
+     "status": "ok",
+     "columns": [
+      "users",
+      "courses",
+      "lessons",
+      "enrollments"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       3,
+       6,
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:2ae15954d77a": {
+   "statements": [
+    {
+     "sql": "INSERT INTO learner_interests VALUES (1, 'sql')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`learner_interests`, CONSTRAINT `fk_interests_learner` FOREIGN KEY (`user_id`) REFERENCES `learners` (`user_id`) ON DELETE CASCADE)"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:bc416e371605": {
+   "statements": [
+    {
+     "sql": "INSERT INTO lesson_completions VALUES (3, 1, 9, '2024-05-01 10:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`lesson_completions`, CONSTRAINT `fk_completions_lesson` FOREIGN KEY (`course_id`, `lesson_no`) REFERENCES `lessons` (`course_id`, `lesson_no`) ON DELETE CASCADE)"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:51e2dda18494": {
+   "statements": [
+    {
+     "sql": "INSERT INTO payout_accounts (instructor_id, iban) VALUES (1, 'DE89370400440532013000')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '1' for key 'payout_accounts.uq_payout_instructor'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s13:8d1035a194d5": {
+   "statements": [
+    {
+     "sql": "SELECT u.given_name AS learner, c.title AS course,\n       CONCAT(iu.given_name, ' ', iu.family_name) AS instructor,\n       COUNT(lc.lesson_no) AS lessons_done,\n       (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.course_id) AS lessons_total\nFROM enrollments AS e\nJOIN users   AS u  ON u.user_id   = e.learner_id\nJOIN courses AS c  ON c.course_id = e.course_id\nJOIN users   AS iu ON iu.user_id  = c.instructor_id\nLEFT JOIN lesson_completions AS lc\n       ON lc.learner_id = e.learner_id AND lc.course_id = e.course_id\nGROUP BY e.learner_id, e.course_id, u.given_name, c.title, iu.given_name, iu.family_name\nORDER BY learner, course",
+     "status": "ok",
+     "columns": [
+      "learner",
+      "course",
+      "instructor",
+      "lessons_done",
+      "lessons_total"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "Ben",
+       "MySQL Fundamentals",
+       "Ada Okoye",
+       3,
+       3
+      ],
+      [
+       "Chen",
+       "MySQL Fundamentals",
+       "Ada Okoye",
+       2,
+       3
+      ],
+      [
+       "Chen",
+       "MySQL Performance Tuning",
+       "Ada Okoye",
+       0,
+       2
+      ],
+      [
+       "Dina",
+       "Introduction to ML",
+       "Ben Lindqvist",
+       1,
+       1
+      ],
+      [
+       "Eli",
+       "MySQL Fundamentals",
+       "Ada Okoye",
+       1,
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:7de34990bbf6": {
+   "statements": [
+    {
+     "sql": "SELECT u.user_id, u.given_name,\n       EXISTS (SELECT 1 FROM learners    l WHERE l.user_id = u.user_id) AS is_learner,\n       EXISTS (SELECT 1 FROM instructors i WHERE i.user_id = u.user_id) AS is_instructor\nFROM users AS u\nORDER BY u.user_id",
+     "status": "ok",
+     "columns": [
+      "user_id",
+      "given_name",
+      "is_learner",
+      "is_instructor"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "Ada",
+       0,
+       1
+      ],
+      [
+       2,
+       "Ben",
+       1,
+       1
+      ],
+      [
+       3,
+       "Chen",
+       1,
+       0
+      ],
+      [
+       4,
+       "Dina",
+       1,
+       0
+      ],
+      [
+       5,
+       "Eli",
+       1,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:a2bf8c1cd242": {
+   "statements": [
+    {
+     "sql": "SHOW CREATE TABLE payout_accounts",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Create Table"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "payout_accounts",
+       "CREATE TABLE `payout_accounts` (\n  `account_id` int unsigned NOT NULL AUTO_INCREMENT,\n  `instructor_id` int unsigned NOT NULL,\n  `iban` varchar(34) NOT NULL,\n  PRIMARY KEY (`account_id`),\n  UNIQUE KEY `uq_payout_instructor` (`instructor_id`),\n  CONSTRAINT `fk_payout_instructor` FOREIGN KEY (`instructor_id`) REFERENCES `instructors` (`user_id`)\n) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:81fb42a133ba": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE course_reviews (\n  learner_id INT UNSIGNED NOT NULL,\n  course_id  INT UNSIGNED NOT NULL,\n  rating     TINYINT UNSIGNED NOT NULL CHECK (rating BETWEEN 1 AND 5),\n  PRIMARY KEY (learner_id, course_id),\n  FOREIGN KEY (learner_id, course_id) REFERENCES enrollments (learner_id, course_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT CONSTRAINT_NAME, CONSTRAINT_TYPE\nFROM information_schema.TABLE_CONSTRAINTS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'course_reviews'\nORDER BY CONSTRAINT_TYPE, CONSTRAINT_NAME",
+     "status": "ok",
+     "columns": [
+      "CONSTRAINT_NAME",
+      "CONSTRAINT_TYPE"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "course_reviews_chk_1",
+       "CHECK"
+      ],
+      [
+       "course_reviews_ibfk_1",
+       "FOREIGN KEY"
+      ],
+      [
+       "PRIMARY",
+       "PRIMARY KEY"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:9a1e54031117": {
+   "statements": [
+    {
+     "sql": "SELECT DISTINCT TABLE_NAME AS child, REFERENCED_TABLE_NAME AS parent\nFROM information_schema.REFERENTIAL_CONSTRAINTS\nWHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME <> REFERENCED_TABLE_NAME\nORDER BY child, parent",
+     "status": "ok",
+     "columns": [
+      "child",
+      "parent"
+     ],
+     "row_count": 13,
+     "rows": [
+      [
+       "course_prereqs",
+       "courses"
+      ],
+      [
+       "course_reviews",
+       "enrollments"
+      ],
+      [
+       "courses",
+       "categories"
+      ],
+      [
+       "courses",
+       "instructors"
+      ],
+      [
+       "enrollments",
+       "courses"
+      ],
+      [
+       "enrollments",
+       "learners"
+      ],
+      [
+       "instructors",
+       "users"
+      ],
+      [
+       "learner_interests",
+       "learners"
+      ],
+      [
+       "learners",
+       "users"
+      ],
+      [
+       "lesson_completions",
+       "learners"
+      ],
+      [
+       "lesson_completions",
+       "lessons"
+      ],
+      [
+       "lessons",
+       "courses"
+      ],
+      [
+       "payout_accounts",
+       "instructors"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:edfb947ba464": {
+   "statements": [
+    {
+     "sql": "SELECT t.TABLE_NAME\nFROM information_schema.TABLES AS t\nWHERE t.TABLE_SCHEMA = DATABASE() AND t.TABLE_TYPE = 'BASE TABLE'\n  AND NOT EXISTS (SELECT 1 FROM information_schema.REFERENTIAL_CONSTRAINTS AS rc\n                  WHERE rc.CONSTRAINT_SCHEMA = t.TABLE_SCHEMA AND rc.TABLE_NAME = t.TABLE_NAME\n                    AND rc.REFERENCED_TABLE_NAME <> t.TABLE_NAME)\nORDER BY t.TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "categories"
+      ],
+      [
+       "users"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:288a83d78bc2": {
+   "statements": [
+    {
+     "sql": "WITH RECURSIVE edges AS (\n  SELECT DISTINCT TABLE_NAME AS child, REFERENCED_TABLE_NAME AS parent\n  FROM information_schema.REFERENTIAL_CONSTRAINTS\n  WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME <> REFERENCED_TABLE_NAME\n),\nlvl (table_name, depth) AS (\n  SELECT CAST(TABLE_NAME AS CHAR(64)), 0\n  FROM information_schema.TABLES\n  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'\n  UNION ALL\n  SELECT CAST(e.child AS CHAR(64)), l.depth + 1\n  FROM lvl AS l JOIN edges AS e ON e.parent = l.table_name\n)\nSELECT table_name, MAX(depth) AS load_level\nFROM lvl\nGROUP BY table_name\nORDER BY load_level, table_name",
+     "status": "ok",
+     "columns": [
+      "table_name",
+      "load_level"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       "categories",
+       0
+      ],
+      [
+       "users",
+       0
+      ],
+      [
+       "instructors",
+       1
+      ],
+      [
+       "learners",
+       1
+      ],
+      [
+       "courses",
+       2
+      ],
+      [
+       "learner_interests",
+       2
+      ],
+      [
+       "payout_accounts",
+       2
+      ],
+      [
+       "course_prereqs",
+       3
+      ],
+      [
+       "enrollments",
+       3
+      ],
+      [
+       "lessons",
+       3
+      ],
+      [
+       "course_reviews",
+       4
+      ],
+      [
+       "lesson_completions",
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:ec01088059f0": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE companies (company_id INT UNSIGNED PRIMARY KEY, name VARCHAR(80) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE course_sponsorships (\n  sponsorship_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  course_id      INT UNSIGNED NOT NULL,\n  sponsor_user_id    INT UNSIGNED NULL,\n  sponsor_company_id INT UNSIGNED NULL,\n  CONSTRAINT chk_sponsor_exactly_one CHECK ((sponsor_user_id IS NULL) <> (sponsor_company_id IS NULL)),\n  FOREIGN KEY (course_id)          REFERENCES courses (course_id),\n  FOREIGN KEY (sponsor_user_id)    REFERENCES users (user_id),\n  FOREIGN KEY (sponsor_company_id) REFERENCES companies (company_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO companies VALUES (1, 'DataCorp')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO course_sponsorships (course_id, sponsor_company_id) VALUES (1, 1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO course_sponsorships (course_id, sponsor_user_id) VALUES (3, 2)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT sponsorship_id, course_id, sponsor_user_id, sponsor_company_id FROM course_sponsorships ORDER BY sponsorship_id",
+     "status": "ok",
+     "columns": [
+      "sponsorship_id",
+      "course_id",
+      "sponsor_user_id",
+      "sponsor_company_id"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       1,
+       null,
+       1
+      ],
+      [
+       2,
+       3,
+       2,
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:1378b3b20949": {
+   "statements": [
+    {
+     "sql": "INSERT INTO course_sponsorships (course_id, sponsor_user_id, sponsor_company_id) VALUES (2, 1, 1)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_sponsor_exactly_one' is violated."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s19:d45ddf3dea1c": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE enrollments, lesson_completions, lessons",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "enrollments",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lesson_completions",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "lessons",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT learner_id FROM enrollments WHERE course_id = 1",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Covering index lookup on enrollments using idx_enrollments_course (course_id=1)  (cost=0.551 rows=3)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:e5b03db38232": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT u.email, l.country\nFROM users AS u JOIN learners AS l ON l.user_id = u.user_id",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=2.05 rows=4)\n    -> Table scan on l  (cost=0.65 rows=4)\n    -> Single-row index lookup on u using PRIMARY (user_id=l.user_id)  (cost=0.275 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:5d2f6db11241": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE certificates (\n  learner_id INT UNSIGNED NOT NULL,\n  course_id  INT UNSIGNED NOT NULL,\n  issued_on  DATE NOT NULL,\n  PRIMARY KEY (learner_id, course_id),\n  FOREIGN KEY (learner_id, course_id) REFERENCES course_completions (learner_id, course_id)\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1824,
+      "message": "Failed to open the referenced table 'course_completions'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s22:97aeb30e6c21": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE featured_categories (\n  category_id INT NOT NULL PRIMARY KEY,\n  FOREIGN KEY (category_id) REFERENCES categories (category_id)\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3780,
+      "message": "Referencing column 'category_id' and referenced column 'category_id' in foreign key constraint 'featured_categories_ibfk_1' are incompatible."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

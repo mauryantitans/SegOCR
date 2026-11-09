@@ -1,0 +1,233 @@
+{
+ "doc": "m05-er-notation",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-08"
+ },
+ "blocks": {
+  "s1:c17fd1517186": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE library_cards (\n  card_no   CHAR(10)     NOT NULL PRIMARY KEY,\n  member_id INT UNSIGNED NOT NULL,\n  CONSTRAINT uq_cards_member UNIQUE (member_id),\n  CONSTRAINT fk_cards_member FOREIGN KEY (member_id) REFERENCES members (member_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE members\n  ADD COLUMN referred_by INT UNSIGNED NULL,\n  ADD CONSTRAINT fk_members_referred_by FOREIGN KEY (referred_by) REFERENCES members (member_id)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 20,
+     "info": "Records: 20  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s2:871611c7f46a": {
+   "statements": [
+    {
+     "sql": "WITH fk AS (\n  SELECT k.CONSTRAINT_NAME, k.TABLE_NAME AS child, k.REFERENCED_TABLE_NAME AS parent,\n         GROUP_CONCAT(k.COLUMN_NAME ORDER BY k.COLUMN_NAME) AS cols,\n         MAX(c.IS_NULLABLE = 'YES') AS nullable_fk\n  FROM information_schema.KEY_COLUMN_USAGE AS k\n  JOIN information_schema.COLUMNS AS c\n    ON c.TABLE_SCHEMA = k.TABLE_SCHEMA AND c.TABLE_NAME = k.TABLE_NAME AND c.COLUMN_NAME = k.COLUMN_NAME\n  WHERE k.TABLE_SCHEMA = DATABASE() AND k.REFERENCED_TABLE_NAME IS NOT NULL\n  GROUP BY k.CONSTRAINT_NAME, k.TABLE_NAME, k.REFERENCED_TABLE_NAME\n),\nuk AS (\n  SELECT k.TABLE_NAME, k.CONSTRAINT_NAME,\n         GROUP_CONCAT(k.COLUMN_NAME ORDER BY k.COLUMN_NAME) AS cols\n  FROM information_schema.TABLE_CONSTRAINTS AS tc\n  JOIN information_schema.KEY_COLUMN_USAGE AS k\n    ON k.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA AND k.TABLE_NAME = tc.TABLE_NAME\n   AND k.CONSTRAINT_NAME = tc.CONSTRAINT_NAME\n  WHERE tc.TABLE_SCHEMA = DATABASE() AND tc.CONSTRAINT_TYPE IN ('PRIMARY KEY', 'UNIQUE')\n  GROUP BY k.TABLE_NAME, k.CONSTRAINT_NAME\n),\npkcols AS (\n  SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE\n  WHERE TABLE_SCHEMA = DATABASE() AND CONSTRAINT_NAME = 'PRIMARY'\n)\nSELECT CONCAT('  ', UPPER(fk.parent), ' ',\n              IF(fk.nullable_fk, '|o', '||'),\n              IF(EXISTS (SELECT 1 FROM pkcols p WHERE p.TABLE_NAME = fk.child AND FIND_IN_SET(p.COLUMN_NAME, fk.cols)), '--', '..'),\n              IF(EXISTS (SELECT 1 FROM uk WHERE uk.TABLE_NAME = fk.child AND uk.cols = fk.cols), 'o|', 'o{'),\n              ' ', UPPER(fk.child), ' : ', fk.CONSTRAINT_NAME) AS mermaid_line\nFROM fk\nORDER BY fk.parent, fk.child, fk.CONSTRAINT_NAME",
+     "status": "ok",
+     "columns": [
+      "mermaid_line"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "  AUTHORS ||--o{ BOOK_AUTHORS : fk_book_authors_author"
+      ],
+      [
+       "  BOOKS ||--o{ BOOK_AUTHORS : fk_book_authors_book"
+      ],
+      [
+       "  BOOKS ||..o{ COPIES : fk_copies_book"
+      ],
+      [
+       "  COPIES ||..o{ LOANS : fk_loans_copy"
+      ],
+      [
+       "  MEMBERS ||..o| LIBRARY_CARDS : fk_cards_member"
+      ],
+      [
+       "  MEMBERS ||..o{ LOANS : fk_loans_member"
+      ],
+      [
+       "  MEMBERS |o..o{ MEMBERS : fk_members_referred_by"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:2336ca574969": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM members)                                   AS members,\n       (SELECT COUNT(*) FROM library_cards)                             AS cards,\n       (SELECT COUNT(*) FROM members m\n        WHERE NOT EXISTS (SELECT 1 FROM library_cards c WHERE c.member_id = m.member_id)) AS members_without_card",
+     "status": "ok",
+     "columns": [
+      "members",
+      "cards",
+      "members_without_card"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20,
+       0,
+       20
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:071a6b0b0298": {
+   "statements": [
+    {
+     "sql": "SELECT CONSTRAINT_NAME, TABLE_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME\nFROM information_schema.KEY_COLUMN_USAGE\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'loans' AND REFERENCED_TABLE_NAME = 'members'",
+     "status": "ok",
+     "columns": [
+      "CONSTRAINT_NAME",
+      "TABLE_NAME",
+      "COLUMN_NAME",
+      "REFERENCED_TABLE_NAME",
+      "REFERENCED_COLUMN_NAME"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "fk_loans_member",
+       "loans",
+       "member_id",
+       "members",
+       "member_id"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:4c8a51010934": {
+   "statements": [
+    {
+     "sql": "SELECT COLUMN_NAME, IS_NULLABLE FROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'loans' AND COLUMN_NAME = 'member_id'",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME",
+      "IS_NULLABLE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "member_id",
+       "NO"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:257ce57221c7": {
+   "statements": [
+    {
+     "sql": "SELECT INDEX_NAME, NON_UNIQUE, SEQ_IN_INDEX, COLUMN_NAME\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'loans' AND COLUMN_NAME = 'member_id'\nORDER BY INDEX_NAME",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "NON_UNIQUE",
+      "SEQ_IN_INDEX",
+      "COLUMN_NAME"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "idx_loans_member",
+       1,
+       1,
+       "member_id"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:132effcff3c6": {
+   "statements": [
+    {
+     "sql": "SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'loans' AND CONSTRAINT_NAME = 'PRIMARY'",
+     "status": "ok",
+     "columns": [
+      "COLUMN_NAME"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "loan_id"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:b7ecb69c6014": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT TABLE_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME\nFROM information_schema.KEY_COLUMN_USAGE\nWHERE TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=36.4 rows=21.7)\n    -> Nested loop inner join  (cost=33.7 rows=21.7)\n        -> Nested loop inner join  (cost=4.91 rows=9.87)\n            -> Nested loop inner join  (cost=1.45 rows=1)\n                -> Index scan on cat using name  (cost=1.1 rows=1)\n                -> Single-row covering index lookup on sch using catalog_id (catalog_id=mysql.cat.id, name=database())  (cost=0.35 rows=1)\n            -> Invalidate materialized tables (row from tbl)  (cost=3.46 rows=9.87)\n                -> Index lookup on tbl using schema_id (schema_id=mysql.sch.id)  (cost=3.46 rows=9.87)\n        -> Table scan on constraints  (cost=2.91..4.29 rows=2.2)\n            -> Union all materialize (invalidate on row from tbl)  (cost=1.76..1.76 rows=2.2)\n                -> Zero rows (Impossible WHERE)  (cost=0..0 rows=0)\n                -> Nested loop inner join  (cost=1.54 rows=2.2)\n                    -> Index lookup on fk using table_id (table_id=mysql.tbl.id)  (cost=0.77 rows=2.2)\n                    -> Index lookup on fkcu using PRIMARY (foreign_key_id=mysql.fk.id)  (cost=0.295 rows=1)\n    -> Filter: ((0 <> can_access_column(mysql.sch.`name`,mysql.tbl.`name`,mysql.col.`name`)) and (0 <> is_visible_dd_object(mysql.tbl.hidden,((mysql.col.hidden not in ('Visible','User')) or (0 <> constraints.HIDDEN)),mysql.col.`options`)))  (cost=0.0304 rows=1)\n        -> Single-row index lookup on col using PRIMARY (id=constraints.column_id)  (cost=0.0304 rows=1)\n"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'mysql.tbl.id' of SELECT #3 was resolved in SELECT #2"
+      },
+      {
+       "level": "Note",
+       "code": 1276,
+       "message": "Field or reference 'mysql.tbl.id' of SELECT #4 was resolved in SELECT #2"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:8f026a303d1e": {
+   "statements": [
+    {
+     "sql": "SELECT tc.CONSTRAINT_TYPE, k.COLUMN_NAME\nFROM information_schema.TABLE_CONSTRAINTS AS tc\nJOIN information_schema.KEY_COLUMN_USAGE AS k\n  ON k.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA AND k.TABLE_NAME = tc.TABLE_NAME\n AND k.CONSTRAINT_NAME = tc.CONSTRAINT_NAME\nWHERE tc.TABLE_SCHEMA = DATABASE() AND tc.TABLE_NAME = 'library_cards'\nORDER BY tc.CONSTRAINT_TYPE, k.COLUMN_NAME",
+     "status": "ok",
+     "columns": [
+      "CONSTRAINT_TYPE",
+      "COLUMN_NAME"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "FOREIGN KEY",
+       "member_id"
+      ],
+      [
+       "PRIMARY KEY",
+       "card_no"
+      ],
+      [
+       "UNIQUE",
+       "member_id"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}
