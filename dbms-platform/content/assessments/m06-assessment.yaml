@@ -1,0 +1,503 @@
+id: m06-assessment
+module: m06
+title: "Module 6 Assessment — Database Normalization"
+passMark: 70
+description: >-
+  Covers all of Module 6: update, insertion and deletion anomalies; functional dependencies, Armstrong's axioms
+  and checking FDs in data with SQL; attribute closure, candidate keys, prime attributes, minimal covers and FD
+  equivalence; 1NF (lists, repeating groups, JSON), 2NF, 3NF and 3NF synthesis, BCNF and lost dependencies,
+  multivalued and join dependencies (4NF, 5NF); lossless-join and dependency-preservation tests including the
+  chase; and principled denormalization (summary tables, triggers, generated columns, drift and contention).
+  The SQL challenges ask you to audit dependencies in real data, migrate a flat table into a normalized MySQL
+  schema and expose spurious tuples and lost dependencies; the interview questions ask you to defend design
+  trade-offs.
+questions:
+  - id: q1
+    question: "A flat table stores each product's name on every order line. Deleting the only order that contains product 16 removes the product's name from the database. Which anomaly is this, and what design fact causes it?"
+    options:
+      - "Update anomaly — the name was changed in some rows only"
+      - "Deletion anomaly — facts about two entities (order line and product) are stored in the same tuple"
+      - "Insertion anomaly — the product cannot be inserted without an order"
+      - "Spurious tuples — the join was lossy"
+    answer: 1
+    explanation: "Deleting one fact (the order line) destroyed another (the product). The insertion anomaly is the mirror image (cannot add the product without an order); update anomalies are partial changes; spurious tuples come from lossy joins."
+    concepts: [deletion-anomaly]
+  - id: q2
+    question: "Which SQL query shows that the FD `customer_id → email` is violated in table t?"
+    options:
+      - "SELECT customer_id FROM t GROUP BY customer_id HAVING COUNT(*) > 1"
+      - "SELECT customer_id FROM t GROUP BY customer_id HAVING COUNT(DISTINCT email) > 1"
+      - "SELECT email FROM t GROUP BY email HAVING COUNT(DISTINCT customer_id) > 1"
+      - "SELECT DISTINCT customer_id, email FROM t"
+    answer: 1
+    explanation: "A violation is one determinant value with more than one dependent value. COUNT(*) > 1 detects redundancy, not inconsistency; the third query tests the reverse FD email → customer_id."
+    concepts: [fd-checking, functional-dependency]
+  - id: q3
+    question: "The check `GROUP BY city HAVING COUNT(DISTINCT state) > 1` returns no rows on today's customers. What may a designer conclude?"
+    options:
+      - "city → state is an FD of the schema; create cities(city PK, state)"
+      - "The current instance satisfies city → state; whether it is an FD depends on the domain (Portland, OR vs Portland, ME)"
+      - "state → city holds"
+      - "city is a candidate key of customers"
+    answer: 1
+    explanation: "Data can refute but never prove an FD. MySQL's ONLY_FULL_GROUP_BY check reasons the same way: it derives FDs from declared keys and equalities, never from data."
+    concepts: [fd-checking]
+  - id: q4
+    question: "Which rules are derivable from Armstrong's axioms (reflexivity, augmentation, transitivity)? (Select all that apply.)"
+    type: multi
+    options:
+      - "Union: X → Y and X → Z ⟹ X → YZ"
+      - "Pseudotransitivity: X → Y and WY → Z ⟹ WX → Z"
+      - "Left-side splitting: XY → Z ⟹ X → Z"
+      - "Decomposition: X → YZ ⟹ X → Y"
+    answer: [0, 1, 3]
+    explanation: "Union, pseudotransitivity and decomposition are sound derived rules. Left sides cannot be split: (order_id, product_id) → quantity does not imply order_id → quantity."
+    concepts: [armstrongs-axioms]
+  - id: q5
+    question: "R(A, B, C, D, E) with F = {A → B, BC → D, D → E}. What is (AC)⁺?"
+    options: ["{A, B, C}", "{A, B, C, D}", "{A, B, C, D, E}", "{A, C, D, E}"]
+    answer: 2
+    explanation: "A → B adds B; with B and C, BC → D adds D; D → E adds E. AC is therefore a superkey (and a candidate key, since A⁺ and C⁺ are smaller)."
+    concepts: [attribute-closure]
+  - id: q6
+    question: "R(A, B, C, D) with F = {AB → C, C → D, D → A}. Which are all the candidate keys?"
+    options: ["AB only", "AB and BC", "AB, BC and BD", "B only"]
+    answer: 2
+    explanation: "B is on no right side, so it is in every key; B⁺ = {B}. (AB)⁺ = ABCD, (BC)⁺: C → D, D → A gives ABCD, (BD)⁺: D → A, AB → C gives ABCD. All three are minimal. All attributes are prime."
+    concepts: [candidate-key, prime-attribute]
+  - id: q7
+    question: "F = {A → BC, B → C, A → B, AB → C}. Which set is a minimal cover of F?"
+    options: ["{A → B, A → C, B → C}", "{A → B, B → C}", "{A → BC}", "{AB → C, A → B}"]
+    answer: 1
+    explanation: "Split right sides; A is extraneous in AB → C (B → C); then A → C is redundant (A → B, B → C). {A → B, A → C, B → C} is equivalent but not minimal; {A → BC} loses B → C."
+    concepts: [minimal-cover]
+  - id: q8
+    question: "In MySQL, a UNIQUE index exists on (course_id, term, year, room) and `room` is nullable. Why is this not a candidate key in the relational sense?"
+    options:
+      - "UNIQUE indexes are not enforced by InnoDB"
+      - "MySQL allows any number of rows with NULL in a UNIQUE column, so those rows are not identified by the index"
+      - "Candidate keys must be single columns"
+      - "Only PRIMARY KEY indexes can be candidate keys"
+    answer: 1
+    explanation: "A candidate key must identify every tuple. Make all key columns NOT NULL so that a UNIQUE constraint really enforces the key; additional candidate keys are normally declared as UNIQUE."
+    concepts: [candidate-key]
+  - id: q9
+    question: "`SELECT … WHERE tags LIKE '%sql%'` over tag lists 'mysql,perf', 'sql,joins' and 'nosql,json' — which statements are true? (Select all that apply.)"
+    type: multi
+    options:
+      - "It returns all three rows"
+      - "FIND_IN_SET('sql', tags) returns the correct single row but cannot use an index to seek"
+      - "A junction table (post_id, tag) with an index on tag answers the question with an index lookup"
+      - "A foreign key from the list elements to a tag table can be declared on the VARCHAR column"
+    answer: [0, 1, 2]
+    explanation: "Substring search matches inside other tags; FIND_IN_SET matches exact elements but scans; a 1NF junction table supports indexed equality and foreign keys. No FK can point into a list value."
+    concepts: [first-normal-form, comma-separated-list]
+  - id: q10
+    question: "Which statement about JSON array columns and 1NF is most accurate for MySQL 8.4?"
+    options:
+      - "A multi-valued index makes a JSON array column relationally equivalent to a junction table"
+      - "JSON arrays are non-atomic; multi-valued indexes speed up MEMBER OF/JSON_CONTAINS searches but provide no foreign keys or cross-row uniqueness"
+      - "JSON columns cannot be searched by element"
+      - "JSON_TABLE stores the array as hidden rows"
+    answer: 1
+    explanation: "Multi-valued indexes (8.0.17+) solve search, not integrity. JSON_TABLE is a table function that unnests at query time; the array is stored in MySQL's binary JSON format inside the row."
+    concepts: [json-table, multi-valued-index, first-normal-form]
+  - id: q11
+    question: "R(student_id, section_id, grade, student_name) with key (student_id, section_id) and student_id → student_name. Which normal form is violated first, and what is the fix?"
+    options:
+      - "1NF — split student_name into first and last name"
+      - "2NF — move student_name to students(student_id PK, student_name)"
+      - "3NF — create a view"
+      - "BCNF only — no fix needed for 2NF or 3NF"
+    answer: 1
+    explanation: "student_name is non-prime and depends on part of the key — a partial dependency. Decompose on the partial determinant; the shared attribute student_id is the key of the new table, so the split is lossless."
+    concepts: [second-normal-form, partial-dependency]
+  - id: q12
+    question: "Under Zaniolo's definition, which FD violates 3NF in R(section_id, instructor_id, instructor_name, dept_id) with key section_id and F = {section_id → instructor_id; instructor_id → instructor_name, dept_id}?"
+    options:
+      - "section_id → instructor_id"
+      - "instructor_id → instructor_name"
+      - "Neither — R is in 3NF"
+      - "Both"
+    answer: 1
+    explanation: "instructor_id is not a superkey and instructor_name is not prime — a transitive dependency. section_id → instructor_id has a superkey on the left."
+    concepts: [third-normal-form, transitive-dependency]
+  - id: q13
+    question: "3NF synthesis from F = {A → B, C → D} over R(A, B, C, D) produces (A, B) and (C, D). What must step 3 add, and why?"
+    options:
+      - "Nothing; both relations are in BCNF"
+      - "A relation (A, C) containing the candidate key, because otherwise the join of (A, B) and (C, D) is a Cartesian product with spurious tuples"
+      - "A relation (B, D), to preserve dependencies"
+      - "A surrogate key column in each relation"
+    answer: 1
+    explanation: "Losslessness of synthesis requires some relation to contain a key of R. Dependencies are already preserved; surrogate keys change nothing in the theory."
+    concepts: [3nf-synthesis, lossless-join]
+  - id: q14
+    question: "ta_assignment(student_id, course_id, ta_name) with F = {student_id, course_id → ta_name; ta_name → course_id}. Which statements are true? (Select all that apply.)"
+    type: multi
+    options:
+      - "It is in 3NF because every attribute is prime"
+      - "It is not in BCNF because ta_name is not a superkey"
+      - "Its BCNF decomposition (ta_name, course_id), (student_id, ta_name) preserves every FD"
+      - "A composite FK (ta_name, course_id) plus UNIQUE (student_id, course_id) can enforce both FDs declaratively"
+    answer: [0, 1, 3]
+    explanation: "Keys are {student_id, course_id} and {student_id, ta_name}; 3NF holds, BCNF fails. The BCNF decomposition loses student_id, course_id → ta_name; keeping course_id in the child under a composite FK and a UNIQUE index enforces both rules with indexes."
+    concepts: [bcnf, dependency-preservation, composite-foreign-key]
+  - id: q15
+    question: "course_info(course_id, instructor, textbook) is all-key; instructors and textbooks are chosen independently per course. Which statement is correct?"
+    options:
+      - "It is in 4NF because it has no non-trivial FDs"
+      - "It is in BCNF but violates 4NF because course_id ↠ instructor holds and course_id is not a superkey"
+      - "It violates 2NF"
+      - "It violates 5NF only"
+    answer: 1
+    explanation: "With no non-trivial FDs it is in BCNF, but the MVD forces i × t rows per course. Decompose into (course_id, instructor) and (course_id, textbook) — lossless by Fagin's theorem."
+    concepts: [fourth-normal-form, multivalued-dependency]
+  - id: q16
+    question: "SUPPLY(supplier, part, project): each of the three two-way joins of its projections produces spurious rows; the three-way join reproduces it exactly. What does this show?"
+    options:
+      - "SUPPLY is in 5NF"
+      - "A join dependency holds that is not implied by the key; SUPPLY is in 4NF but not 5NF"
+      - "SUPPLY violates BCNF"
+      - "The three-way decomposition is lossy"
+    answer: 1
+    explanation: "No binary decomposition is lossless, so no MVD holds (4NF holds), but *(SP, PJ, SJ) holds and is not implied by the all-attribute key — the definition of a 5NF violation."
+    concepts: [join-dependency, fifth-normal-form]
+  - id: q17
+    question: "R(A, B, C) with F = {A → B}. Which decomposition is lossless, and which test proves it?"
+    options:
+      - "(A, B), (B, C) — because B is shared"
+      - "(A, B), (A, C) — because R1 ∩ R2 = A and A → B, so the shared attributes are a key of (A, B)"
+      - "(A, C), (B, C) — because C is shared"
+      - "Any decomposition is lossless if foreign keys are declared"
+    answer: 1
+    explanation: "The binary test requires R1 ∩ R2 → R1 or R1 ∩ R2 → R2. Foreign keys guarantee matches exist; they do not make a split on a non-key attribute lossless."
+    concepts: [lossless-join]
+  - id: q18
+    question: "A dashboard reads revenue per customer 1,000 times per minute; order lines are written 50 times per minute, with little contention per customer. Which design is the best starting point?"
+    options:
+      - "Recompute SUM over all order lines on every dashboard request"
+      - "A summary table keyed by customer, maintained synchronously or by a frequent refresh, with a scheduled drift audit"
+      - "A generated column on customers computing SUM over order lines"
+      - "Disable foreign keys to speed up writes"
+    answer: 1
+    explanation: "Reads dominate and the derivation is expensive, so pre-aggregation pays; drift audits keep it honest. Generated columns cannot reference other rows (error 3102), and disabling FKs trades integrity for nothing relevant."
+    concepts: [denormalization, summary-tables, read-write-tradeoff]
+  - id: q19
+    question: "Two transactions insert lines for the same order; a trigger maintains orders.order_total. What does InnoDB do?"
+    options:
+      - "Runs both in parallel since the inserted lines are different rows"
+      - "Makes the second wait: the first holds an exclusive lock on the order row (from its trigger UPDATE) until commit, and the second needs that row for its FK check and trigger"
+      - "Aborts both with a deadlock"
+      - "Merges the two increments automatically"
+    answer: 1
+    explanation: "Synchronous denormalization turns the parent row into a lock hot spot. In the normalized design the FK checks take compatible shared locks and the inserts do not wait for each other."
+    concepts: [triggers, read-write-tradeoff]
+challenges:
+  - id: c1
+    title: Dependency profile of a flat export
+    dataset: shop
+    difficulty: medium
+    setup: |
+      CREATE TABLE sales_export AS
+      SELECT o.order_id, o.customer_id, c.email AS customer_email, c.city AS customer_city,
+             oi.product_id, p.name AS product_name, p.price AS list_price, oi.unit_price
+      FROM order_items oi
+      JOIN orders o    ON o.order_id = oi.order_id
+      JOIN customers c ON c.customer_id = o.customer_id
+      JOIN products p  ON p.product_id = oi.product_id;
+      UPDATE sales_export SET customer_email = 'old.address@example.com' WHERE order_id IN (2, 11);
+      UPDATE sales_export SET product_name = 'Wireless Mouse v2' WHERE order_id = 26 AND product_id = 5;
+    prompt: |
+      A data-quality pipeline receives `sales_export(order_id, customer_id, customer_email, customer_city,
+      product_id, product_name, list_price, unit_price)` — a flat export with one row per order line.
+      The business rules say `customer_id → customer_email`, `customer_id → customer_city`,
+      `product_id → product_name` and `product_id → list_price`.
+
+      Return one row per rule with columns `fd` (exactly the text `customer_id -> customer_email`,
+      `customer_id -> customer_city`, `product_id -> product_name`, `product_id -> list_price`) and
+      `violating_groups` (number of determinant values with more than one distinct dependent value),
+      ordered by `fd`.
+    hints:
+      - "Each rule is GROUP BY determinant HAVING COUNT(DISTINCT dependent) > 1, wrapped in a derived table and counted."
+      - "Combine the four counts with UNION ALL; give every branch the same two columns."
+    solution: |
+      SELECT fd, violating_groups FROM (
+        SELECT 'customer_id -> customer_email' AS fd,
+               (SELECT COUNT(*) FROM (SELECT customer_id FROM sales_export GROUP BY customer_id
+                                      HAVING COUNT(DISTINCT customer_email) > 1) v) AS violating_groups
+        UNION ALL
+        SELECT 'customer_id -> customer_city',
+               (SELECT COUNT(*) FROM (SELECT customer_id FROM sales_export GROUP BY customer_id
+                                      HAVING COUNT(DISTINCT customer_city) > 1) v)
+        UNION ALL
+        SELECT 'product_id -> product_name',
+               (SELECT COUNT(*) FROM (SELECT product_id FROM sales_export GROUP BY product_id
+                                      HAVING COUNT(DISTINCT product_name) > 1) v)
+        UNION ALL
+        SELECT 'product_id -> list_price',
+               (SELECT COUNT(*) FROM (SELECT product_id FROM sales_export GROUP BY product_id
+                                      HAVING COUNT(DISTINCT list_price) > 1) v)
+      ) AS profile
+      ORDER BY fd;
+    orderMatters: true
+    explanation: |
+      One customer violates the email rule: order 2 is one of customer 19's eight orders, so after the edit her
+      lines carry two different emails. Order 11 was edited too, but it is customer 9's only order — all of that
+      customer's lines changed together, so the FD still holds in the data even though the value may be wrong. A
+      dependency check detects *inconsistency*, not incorrectness. The edit on order 26 gave product 5 two names;
+      the city and list-price rules are satisfied by this instance. `HAVING COUNT(*) > 1` would be the classic
+      wrong answer: it counts redundancy (customers on several lines), not inconsistency.
+  - id: c2
+    title: Normalize a flat rental log into 3NF
+    dataset: empty
+    difficulty: hard
+    kind: dml
+    setup: |
+      CREATE TABLE rental_flat (
+        rental_id INT UNSIGNED NOT NULL PRIMARY KEY,
+        member_id INT UNSIGNED NOT NULL, member_name VARCHAR(40) NOT NULL,
+        isbn CHAR(13) NOT NULL, title VARCHAR(80) NOT NULL,
+        publisher_id INT UNSIGNED NOT NULL, publisher_name VARCHAR(40) NOT NULL,
+        rented_on DATE NOT NULL);
+      INSERT INTO rental_flat VALUES
+        (1, 10, 'Ana Ruiz',  '9781449373320', 'Designing Data-Intensive Applications', 1, 'OReilly', '2024-03-01'),
+        (2, 11, 'Ben Okoro', '9781449373320', 'Designing Data-Intensive Applications', 1, 'OReilly', '2024-03-02'),
+        (3, 10, 'Ana Ruiz',  '9780073523323', 'Database System Concepts',              2, 'McGraw Hill', '2024-03-05'),
+        (4, 12, 'Chen Wu',   '9781492040347', 'Database Internals',                    1, 'OReilly', '2024-03-07'),
+        (5, 11, 'Ben Okoro', '9780073523323', 'Database System Concepts',              2, 'McGraw Hill', '2024-03-09');
+    prompt: |
+      `rental_flat(rental_id, member_id, member_name, isbn, title, publisher_id, publisher_name, rented_on)` has
+      the FDs `rental_id → member_id, isbn, rented_on`, `member_id → member_name`, `isbn → title, publisher_id`
+      and `publisher_id → publisher_name`. Synthesize the 3NF schema in MySQL:
+
+      1. `publisher (publisher_id INT UNSIGNED PRIMARY KEY, publisher_name VARCHAR(40) NOT NULL)`
+      2. `member (member_id INT UNSIGNED PRIMARY KEY, member_name VARCHAR(40) NOT NULL)`
+      3. `book (isbn CHAR(13) PRIMARY KEY, title VARCHAR(80) NOT NULL, publisher_id INT UNSIGNED NOT NULL)` with
+         foreign key `fk_book_publisher`
+      4. `rental (rental_id INT UNSIGNED PRIMARY KEY, member_id INT UNSIGNED NOT NULL, isbn CHAR(13) NOT NULL,
+         rented_on DATE NOT NULL)` with foreign keys `fk_rental_member` and `fk_rental_book`
+      5. Migrate the data (parents first) and drop `rental_flat`.
+
+      The checker lists the foreign keys with their referenced tables, the row count of each table, and the
+      number of rows produced by joining the four tables back together.
+    hints:
+      - "Create and fill parents before children: publisher, member, book, rental."
+      - "Use INSERT … SELECT DISTINCT for publisher, member and book; rental needs no DISTINCT."
+      - "Declare foreign keys at table level: CONSTRAINT fk_book_publisher FOREIGN KEY (publisher_id) REFERENCES publisher (publisher_id)."
+    solution: |
+      CREATE TABLE publisher (publisher_id INT UNSIGNED PRIMARY KEY, publisher_name VARCHAR(40) NOT NULL);
+      CREATE TABLE member (member_id INT UNSIGNED PRIMARY KEY, member_name VARCHAR(40) NOT NULL);
+      CREATE TABLE book (
+        isbn CHAR(13) PRIMARY KEY, title VARCHAR(80) NOT NULL, publisher_id INT UNSIGNED NOT NULL,
+        CONSTRAINT fk_book_publisher FOREIGN KEY (publisher_id) REFERENCES publisher (publisher_id));
+      CREATE TABLE rental (
+        rental_id INT UNSIGNED PRIMARY KEY, member_id INT UNSIGNED NOT NULL, isbn CHAR(13) NOT NULL,
+        rented_on DATE NOT NULL,
+        CONSTRAINT fk_rental_member FOREIGN KEY (member_id) REFERENCES member (member_id),
+        CONSTRAINT fk_rental_book   FOREIGN KEY (isbn)      REFERENCES book (isbn));
+      INSERT INTO publisher SELECT DISTINCT publisher_id, publisher_name FROM rental_flat;
+      INSERT INTO member    SELECT DISTINCT member_id, member_name FROM rental_flat;
+      INSERT INTO book      SELECT DISTINCT isbn, title, publisher_id FROM rental_flat;
+      INSERT INTO rental    SELECT rental_id, member_id, isbn, rented_on FROM rental_flat;
+      DROP TABLE rental_flat;
+    check: |
+      SELECT CONSTRAINT_NAME AS item, REFERENCED_TABLE_NAME AS detail
+      FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE()
+      UNION ALL
+      SELECT CONCAT('rows: ', TABLE_NAME), CAST(TABLE_ROWS_EXACT AS CHAR) FROM (
+        SELECT 'publisher' AS TABLE_NAME, (SELECT COUNT(*) FROM publisher) AS TABLE_ROWS_EXACT
+        UNION ALL SELECT 'member', (SELECT COUNT(*) FROM member)
+        UNION ALL SELECT 'book', (SELECT COUNT(*) FROM book)
+        UNION ALL SELECT 'rental', (SELECT COUNT(*) FROM rental)) AS t
+      UNION ALL
+      SELECT 'rebuilt rows', CAST(COUNT(*) AS CHAR)
+      FROM rental r JOIN member m ON m.member_id = r.member_id
+      JOIN book b ON b.isbn = r.isbn JOIN publisher p ON p.publisher_id = b.publisher_id
+      UNION ALL
+      SELECT 'remaining tables', CAST(COUNT(*) AS CHAR) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()
+      ORDER BY item;
+    explanation: |
+      Synthesis creates one table per determinant of the (already minimal) cover; `rental` contains the original
+      key, so no extra key relation is needed. The result: 2 publishers, 3 members, 3 books, 5 rentals, and the
+      join rebuilds all 5 rentals — lossless, with every FD enforced by a primary key. Putting `publisher_name`
+      in `book` would leave the transitive dependency `isbn → publisher_id → publisher_name`; creating `rental`
+      before its parents fails because a foreign key must reference an existing table.
+  - id: c3
+    title: Expose the spurious tuples
+    dataset: shop
+    difficulty: hard
+    prompt: |
+      A colleague proposes storing order lines as two tables, `order_customer(order_id, customer_id)` and
+      `customer_product(customer_id, product_id)`, both built with `SELECT DISTINCT` from `orders` and
+      `order_items`. Prove the proposal is lossy: return the number of **spurious** `(order_id, customer_id,
+      product_id)` rows that joining the two projections on `customer_id` produces, together with the number of
+      real order lines. Columns: `real_lines`, `joined_rows`, `spurious_rows`.
+    hints:
+      - "Build both projections as CTEs: SELECT DISTINCT o.order_id, o.customer_id FROM orders o; SELECT DISTINCT o.customer_id, i.product_id FROM orders o JOIN order_items i …"
+      - "The real relation is SELECT i.order_id, o.customer_id, i.product_id FROM order_items i JOIN orders o …"
+      - "spurious_rows = COUNT of (join EXCEPT real)."
+    solution: |
+      WITH oc AS (SELECT DISTINCT order_id, customer_id FROM orders),
+           cp AS (SELECT DISTINCT o.customer_id, i.product_id
+                  FROM orders o JOIN order_items i ON i.order_id = o.order_id),
+           real_rel AS (SELECT i.order_id, o.customer_id, i.product_id
+                        FROM order_items i JOIN orders o ON o.order_id = i.order_id),
+           joined AS (SELECT oc.order_id, oc.customer_id, cp.product_id
+                      FROM oc JOIN cp ON cp.customer_id = oc.customer_id)
+      SELECT (SELECT COUNT(*) FROM real_rel) AS real_lines,
+             (SELECT COUNT(*) FROM joined)   AS joined_rows,
+             (SELECT COUNT(*) FROM (SELECT * FROM joined EXCEPT SELECT * FROM real_rel) d) AS spurious_rows;
+    explanation: |
+      The shared attribute `customer_id` is a key of neither projection (customers have several orders and
+      several products), so the binary lossless-join test fails, and the join attaches every product a customer
+      ever bought to every one of their orders. The real 182 lines are all present in the join — lossy
+      decompositions add tuples, they do not drop them — which is why checking only `real EXCEPT joined` would
+      wrongly pass the design. On the shop data the join produces 730 rows for 182 real lines — 548 of them spurious.
+  - id: c4
+    title: Audit a lost dependency
+    dataset: university
+    difficulty: challenge
+    setup: |
+      CREATE TABLE ta_course (ta_name VARCHAR(40) PRIMARY KEY, course_id VARCHAR(10) NOT NULL);
+      CREATE TABLE student_ta (student_id INT UNSIGNED NOT NULL, ta_name VARCHAR(40) NOT NULL,
+        PRIMARY KEY (student_id, ta_name),
+        CONSTRAINT fk_student_ta FOREIGN KEY (ta_name) REFERENCES ta_course (ta_name));
+      INSERT INTO ta_course VALUES ('Maya Chen', 'CS-157A'), ('Ravi Patel', 'CS-157A'), ('Lena Fischer', 'CS-146'),
+        ('Omar Haddad', 'DATA-225'), ('Jonas Berg', 'DATA-225');
+      INSERT INTO student_ta VALUES
+        (20230001, 'Maya Chen'), (20230001, 'Ravi Patel'), (20230001, 'Lena Fischer'),
+        (20230002, 'Omar Haddad'), (20230002, 'Jonas Berg'), (20230003, 'Ravi Patel'),
+        (20230004, 'Lena Fischer'), (20230099, 'Maya Chen');
+    prompt: |
+      After a BCNF decomposition the university stores `ta_course(ta_name, course_id)` and
+      `student_ta(student_id, ta_name)`. The rule "a student has at most one TA per course" is no longer enforced
+      by any key, and `student_ta.student_id` was never given a foreign key to `students`.
+
+      Return one row per problem found, with columns `student_id`, `problem` and `detail`:
+
+      - for each student with more than one TA in the same course: `problem` = `'two TAs for one course'` and
+        `detail` = the course id;
+      - for each `student_ta` student id that does not exist in `students`: `problem` = `'unknown student'` and
+        `detail` = `''` (empty string).
+
+      Order by `student_id`, then `problem`, then `detail`.
+    hints:
+      - "Join student_ta to ta_course, GROUP BY student_id, course_id HAVING COUNT(*) > 1."
+      - "Unknown students: student_ta rows with NOT EXISTS (SELECT 1 FROM students s WHERE s.student_id = st.student_id); use DISTINCT."
+      - "Combine both result sets with UNION ALL and sort the combined result."
+    solution: |
+      SELECT st.student_id, 'two TAs for one course' AS problem, tc.course_id AS detail
+      FROM student_ta st JOIN ta_course tc ON tc.ta_name = st.ta_name
+      GROUP BY st.student_id, tc.course_id
+      HAVING COUNT(*) > 1
+      UNION ALL
+      SELECT DISTINCT st.student_id, 'unknown student', ''
+      FROM student_ta st
+      WHERE NOT EXISTS (SELECT 1 FROM students s WHERE s.student_id = st.student_id)
+      ORDER BY student_id, problem, detail;
+    orderMatters: true
+    explanation: |
+      Student 20230001 has two CS-157A TAs and student 20230002 two DATA-225 TAs — violations of the lost FD
+      `student_id, course_id → ta_name` that only the join can see. Student 20230099 does not exist: a missing
+      foreign key, which is a referential-integrity gap rather than a normalization one, but surfaces in the same
+      audit. The durable fix is declarative: keep `course_id` in the child with a composite foreign key to
+      `ta_course(ta_name, course_id)`, a `UNIQUE (student_id, course_id)` index, and a foreign key to `students`.
+interview:
+  - id: i1
+    question: "Explain update, insertion and deletion anomalies with one example each, and how normalization prevents them."
+    answer: |
+      All three come from storing facts about different things in one table, so the same fact is repeated.
+
+      - **Update:** a flat order-line table stores the customer's email on every line; changing it on only some
+        lines leaves two emails for one customer.
+      - **Insertion:** a product cannot be recorded until someone orders it, because `order_id` is part of the key
+        and cannot be NULL.
+      - **Deletion:** deleting the only order that contains a product deletes the product's name and price.
+
+      Normalization decomposes the table so that each fact is stored once, in a table keyed by what determines it
+      (customers by `customer_id`, products by `product_id`, lines by `(order_id, product_id)`), connected by
+      foreign keys. An email change is then one row; products exist independently of orders; deleting an order
+      cannot delete a product. The join of the pieces reproduces the original report — verified with `EXCEPT` in
+      both directions — so no information is lost.
+    concepts: [update-anomaly, insertion-anomaly, deletion-anomaly]
+  - id: i2
+    question: "How do you find all candidate keys of a relation, and why do you need all of them rather than just the primary key?"
+    answer: |
+      Use attribute closure. Split right sides, then classify attributes: those on no right side are in **every**
+      key; those only on right sides are in **no** key. Start from the core (attributes on no right side). If its
+      closure is the whole relation it is the only key; otherwise add the remaining attributes in subsets of
+      increasing size, computing closures and skipping supersets of keys already found. A set is a candidate key
+      when its closure is everything and no proper subset's closure is.
+
+      All keys matter for two reasons. **Normal forms** are defined with prime attributes (members of *any* key):
+      whether `X → A` violates 3NF depends on whether A is prime. And **integrity**: every candidate key is a
+      business uniqueness rule — e.g. `(room, term, slot)` in a booking table — that must be declared as a
+      `UNIQUE` constraint on `NOT NULL` columns, or the database will double-book. In MySQL a nullable `UNIQUE`
+      index is not a key, because it allows multiple NULLs.
+    concepts: [candidate-key, attribute-closure, prime-attribute]
+  - id: i3
+    question: "What is the difference between 3NF and BCNF, and when would you deliberately stop at 3NF?"
+    answer: |
+      BCNF requires every non-trivial FD's left side to be a superkey. 3NF also allows `X → A` when A is prime.
+      They differ only when a relation has overlapping composite candidate keys — the classic
+      `(student, course) → TA`, `TA → course` case: all attributes are prime, so it is 3NF, but `TA` is not a
+      superkey, so it is not BCNF, and the TA's course is repeated per student.
+
+      BCNF decomposition is always lossless but may **lose a dependency**: splitting into `(TA, course)` and
+      `(student, TA)` leaves no table in which "one TA per student per course" can be enforced by a key. 3NF
+      synthesis always preserves dependencies. I would stop at 3NF — or use the composite-FK pattern (child keeps
+      `course` under `FOREIGN KEY (TA, course) REFERENCES ta_course (TA, course) ON UPDATE CASCADE` plus
+      `UNIQUE (student, course)`) — when the lost FD is a real business rule that must hold under concurrent
+      writes. Triggers or application checks are weaker: they must cover every write path, and check-then-insert
+      logic with nonlocking reads can race.
+    concepts: [bcnf, third-normal-form, dependency-preservation]
+  - id: i4
+    question: "How do you check that a decomposition is lossless, both in theory and on real data in MySQL?"
+    answer: |
+      **Theory:** for a binary split, the shared attributes must be a superkey of one side
+      (`R1 ∩ R2 → R1` or `→ R2` in F⁺) — one closure computation. For more pieces use the chase: build a tableau
+      with distinguished symbols for each piece's attributes, apply the FDs to equate symbols, and the
+      decomposition is lossless iff some row becomes all distinguished.
+
+      **Data:** after migrating, rebuild the original with joins (LEFT JOINs through nullable FKs) and compare in
+      both directions with `EXCEPT` (MySQL 8.0.31+) plus `COUNT(*)`. The important direction is
+      `joined EXCEPT original`: lossy decompositions never lose original rows, they add spurious ones. A join that
+      returns more rows than the child table is the practical red flag. The data check verifies one instance; only
+      the theoretical test guarantees future data.
+    concepts: [lossless-join, chase-algorithm, except]
+  - id: i5
+    question: "When is a JSON array column acceptable in a MySQL schema, and when must you use a junction table?"
+    answer: |
+      Strictly, an array violates 1NF. In MySQL 8 it is still a defensible choice when the elements are **plain
+      values, not entities**, are **never referenced by foreign keys**, need **no cross-row uniqueness**, and are
+      **read and written as a unit** with the parent — e.g. labels on a ticket or a snapshot of an API payload. Add
+      a multi-valued index (`CAST(col AS CHAR(n) ARRAY)`) if you search by element with `MEMBER OF` or
+      `JSON_CONTAINS`, and `JSON_SCHEMA_VALID` in a `CHECK` constraint for shape.
+
+      Use a junction table when elements are entities with their own attributes (authors, courses, products), when
+      you must join, count or constrain individual elements, when renames must propagate, or when other tables
+      reference them. Comma-separated `VARCHAR` lists are never acceptable for stored data: substring matching gives
+      wrong answers, `FIND_IN_SET` cannot use an index, and no constraint applies to the elements.
+    concepts: [first-normal-form, json-table, junction-table]
+  - id: i6
+    question: "Your team wants to add a denormalized `order_total` column to a busy orders table. What questions do you ask and what do you propose?"
+    answer: |
+      **Is it justified?** Which queries need it, how often do they run, and what do they cost today (`EXPLAIN
+      ANALYZE`)? Could an index, covering index, query rewrite, cache or replica solve it? Is the value really
+      derived (sum of lines) rather than an independent fact such as an agreed invoice amount?
+
+      **How is it maintained?** Every write path to order lines — insert, update (including moving a line between
+      orders), delete, bulk loads, migrations, admin scripts — must update the total in the same transaction
+      (triggers or one service owning writes), or the total must be refreshed asynchronously with documented
+      staleness.
+
+      **What does it cost?** Each line write becomes an extra update and an exclusive lock on the order row until
+      commit; concurrent writers to the same order serialize, and bulk inserts do one extra update per row.
+
+      **How do we detect drift?** A scheduled audit comparing `order_total` with `SUM(quantity × unit_price)` per
+      order, alerting on differences, with repairs always flowing from the line items to the total.
+
+      If those answers are acceptable I would add it with triggers or service-level maintenance plus the audit,
+      document it as derived data, and keep the normalized line items as the source of truth.
+    concepts: [denormalization, triggers, read-write-tradeoff]

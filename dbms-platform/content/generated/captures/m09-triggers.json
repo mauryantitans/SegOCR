@@ -1,0 +1,690 @@
+{
+ "doc": "m09-triggers",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s2:763fec283f26": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE account_audit (\n  audit_id    BIGINT AUTO_INCREMENT PRIMARY KEY,\n  account_id  INT UNSIGNED NOT NULL,\n  action      ENUM('insert', 'update', 'delete') NOT NULL,\n  old_balance DECIMAL(14,2),\n  new_balance DECIMAL(14,2),\n  old_status  VARCHAR(10),\n  new_status  VARCHAR(10),\n  changed_by  VARCHAR(288) NOT NULL,\n  changed_at  DATETIME(6) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER trg_accounts_audit_upd\nAFTER UPDATE ON accounts\nFOR EACH ROW\nBEGIN\n  IF NOT (OLD.balance <=> NEW.balance) OR NOT (OLD.status <=> NEW.status) THEN\n    INSERT INTO account_audit (account_id, action, old_balance, new_balance, old_status, new_status,\n                               changed_by, changed_at)\n    VALUES (NEW.account_id, 'update', OLD.balance, NEW.balance, OLD.status, NEW.status,\n            USER(), NOW(6));\n  END IF;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s3:54449bcb27c0": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET balance = balance - 100.00 WHERE account_id = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET status = 'frozen' WHERE account_id = 20",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET opened_at = opened_at WHERE account_id = 3",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 1  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- no balance/status change: not audited\n\nSELECT audit_id, account_id, action, old_balance, new_balance, old_status, new_status\nFROM account_audit ORDER BY audit_id",
+     "status": "ok",
+     "columns": [
+      "audit_id",
+      "account_id",
+      "action",
+      "old_balance",
+      "new_balance",
+      "old_status",
+      "new_status"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       2,
+       "update",
+       "4428.20",
+       "4328.20",
+       "active",
+       "active"
+      ],
+      [
+       2,
+       20,
+       "update",
+       "1873.49",
+       "1873.49",
+       "active",
+       "frozen"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:f53c6944de54": {
+   "statements": [
+    {
+     "sql": "CREATE TRIGGER trg_accounts_audit_ins\nAFTER INSERT ON accounts\nFOR EACH ROW\n  INSERT INTO account_audit (account_id, action, new_balance, new_status, changed_by, changed_at)\n  VALUES (NEW.account_id, 'insert', NEW.balance, NEW.status, USER(), NOW(6))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER trg_accounts_audit_del\nAFTER DELETE ON accounts\nFOR EACH ROW\n  INSERT INTO account_audit (account_id, action, old_balance, old_status, changed_by, changed_at)\n  VALUES (OLD.account_id, 'delete', OLD.balance, OLD.status, USER(), NOW(6))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO accounts (account_id, customer_id, branch_id, account_type, balance, status, opened_at)\nVALUES (26, 1, 1, 'savings', 50.00, 'active', '2024-06-01 10:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM accounts WHERE account_id = 26",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT audit_id, account_id, action, old_balance, new_balance, old_status, new_status\nFROM account_audit ORDER BY audit_id",
+     "status": "ok",
+     "columns": [
+      "audit_id",
+      "account_id",
+      "action",
+      "old_balance",
+      "new_balance",
+      "old_status",
+      "new_status"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       2,
+       "update",
+       "4428.20",
+       "4328.20",
+       "active",
+       "active"
+      ],
+      [
+       2,
+       20,
+       "update",
+       "1873.49",
+       "1873.49",
+       "active",
+       "frozen"
+      ],
+      [
+       3,
+       26,
+       "insert",
+       null,
+       "50.00",
+       null,
+       "active"
+      ],
+      [
+       4,
+       26,
+       "delete",
+       "50.00",
+       null,
+       "active",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:7ad779afef1f": {
+   "statements": [
+    {
+     "sql": "SELECT TRIGGER_NAME, ACTION_TIMING, EVENT_MANIPULATION, EVENT_OBJECT_TABLE, ACTION_ORDER\nFROM information_schema.TRIGGERS\nWHERE TRIGGER_SCHEMA = DATABASE()\nORDER BY EVENT_OBJECT_TABLE, EVENT_MANIPULATION, ACTION_ORDER",
+     "status": "ok",
+     "columns": [
+      "TRIGGER_NAME",
+      "ACTION_TIMING",
+      "EVENT_MANIPULATION",
+      "EVENT_OBJECT_TABLE",
+      "ACTION_ORDER"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "trg_accounts_audit_ins",
+       "AFTER",
+       "INSERT",
+       "accounts",
+       1
+      ],
+      [
+       "trg_accounts_audit_upd",
+       "AFTER",
+       "UPDATE",
+       "accounts",
+       1
+      ],
+      [
+       "trg_accounts_audit_del",
+       "AFTER",
+       "DELETE",
+       "accounts",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:9b054e91165a": {
+   "statements": [
+    {
+     "sql": "CREATE TRIGGER trg_txn_account_active\nBEFORE INSERT ON transactions\nFOR EACH ROW\nBEGIN\n  DECLARE v_status VARCHAR(10);\n  SELECT status INTO v_status FROM accounts WHERE account_id = NEW.account_id;\n  IF v_status IS NULL OR v_status <> 'active' THEN\n    SIGNAL SQLSTATE '45000'\n      SET MESSAGE_TEXT = 'Ledger rows can only be written for active accounts', MYSQL_ERRNO = 5101;\n  END IF;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s7:cc18a2b7d1e0": {
+   "statements": [
+    {
+     "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\nVALUES (7, 'deposit', 10.00, 2744.51, 'TRG-DEMO', '2024-06-01 10:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 5101,
+      "message": "Ledger rows can only be written for active accounts"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:a27eca7c8f2e": {
+   "statements": [
+    {
+     "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\nVALUES (5, 'fee', 1.00, 6997.91, 'TRG-DEMO', '2024-06-01 10:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS demo_rows FROM transactions WHERE reference = 'TRG-DEMO'",
+     "status": "ok",
+     "columns": [
+      "demo_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:8687e308d1f3": {
+   "statements": [
+    {
+     "sql": "CREATE TRIGGER trg_accounts_version\nBEFORE UPDATE ON accounts\nFOR EACH ROW\nSET NEW.version = OLD.version + 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER trg_customers_email_ins\nBEFORE INSERT ON customers\nFOR EACH ROW\nSET NEW.email = LOWER(TRIM(NEW.email))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance + 5.00 WHERE account_id = 4",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO customers (customer_id, full_name, email, date_of_birth, kyc_verified)\nVALUES (16, 'Test Person', '  Test.Person@Example.COM ', '1990-01-01', 1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT version FROM accounts WHERE account_id = 4) AS acct4_version,\n       (SELECT email FROM customers WHERE customer_id = 16) AS stored_email",
+     "status": "ok",
+     "columns": [
+      "acct4_version",
+      "stored_email"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "test.person@example.com"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:c36565ca1b50": {
+   "statements": [
+    {
+     "sql": "CREATE TRIGGER trg_accounts_closed_guard\nBEFORE UPDATE ON accounts\nFOR EACH ROW\nPRECEDES trg_accounts_version\nBEGIN\n  IF OLD.status = 'closed' AND NOT (OLD.balance <=> NEW.balance) THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Closed accounts cannot change balance', MYSQL_ERRNO = 5102;\n  END IF;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT TRIGGER_NAME, ACTION_TIMING, EVENT_MANIPULATION, ACTION_ORDER\nFROM information_schema.TRIGGERS\nWHERE TRIGGER_SCHEMA = DATABASE() AND EVENT_OBJECT_TABLE = 'accounts'\nORDER BY ACTION_TIMING, EVENT_MANIPULATION, ACTION_ORDER",
+     "status": "ok",
+     "columns": [
+      "TRIGGER_NAME",
+      "ACTION_TIMING",
+      "EVENT_MANIPULATION",
+      "ACTION_ORDER"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "trg_accounts_closed_guard",
+       "BEFORE",
+       "UPDATE",
+       1
+      ],
+      [
+       "trg_accounts_version",
+       "BEFORE",
+       "UPDATE",
+       2
+      ],
+      [
+       "trg_accounts_audit_ins",
+       "AFTER",
+       "INSERT",
+       1
+      ],
+      [
+       "trg_accounts_audit_upd",
+       "AFTER",
+       "UPDATE",
+       1
+      ],
+      [
+       "trg_accounts_audit_del",
+       "AFTER",
+       "DELETE",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:390a5ccbc950": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET balance = 10.00 WHERE account_id = 12",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 5102,
+      "message": "Closed accounts cannot change balance"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:2c493458aa37": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS audit_rows_before FROM account_audit",
+     "status": "ok",
+     "columns": [
+      "audit_rows_before"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:2b3b10afa9d0": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET balance = balance + 1.00 WHERE account_id IN (10, 11, 12) ORDER BY account_id",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 5102,
+      "message": "Closed accounts cannot change balance"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:c4aa85348ec5": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS audit_rows_after,\n       (SELECT balance FROM accounts WHERE account_id = 10) AS acct10_balance,\n       (SELECT version FROM accounts WHERE account_id = 10) AS acct10_version\nFROM account_audit",
+     "status": "ok",
+     "columns": [
+      "audit_rows_after",
+      "acct10_balance",
+      "acct10_version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       "348.43",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:5bd5f246b694": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance, status, version FROM accounts WHERE account_id = 8",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "status",
+      "version"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       8,
+       "10403.88",
+       "active",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:26502034d4cf": {
+   "statements": [
+    {
+     "sql": "SELECT TRIGGER_NAME, ACTION_ORDER FROM information_schema.TRIGGERS\nWHERE TRIGGER_SCHEMA = DATABASE() AND EVENT_OBJECT_TABLE = 'accounts'\n  AND ACTION_TIMING = 'BEFORE' AND EVENT_MANIPULATION = 'UPDATE'\nORDER BY ACTION_ORDER",
+     "status": "ok",
+     "columns": [
+      "TRIGGER_NAME",
+      "ACTION_ORDER"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "trg_accounts_closed_guard",
+       1
+      ],
+      [
+       "trg_accounts_version",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:bd140fcb02d6": {
+   "statements": [
+    {
+     "sql": "UPDATE accounts SET balance = balance + 25.00 WHERE account_id = 8",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:f746c2f26b84": {
+   "statements": [
+    {
+     "sql": "SELECT a.account_id, a.balance, a.version, au.old_balance, au.new_balance\nFROM accounts a\nJOIN account_audit au ON au.account_id = a.account_id\nWHERE a.account_id = 8\nORDER BY au.audit_id DESC\nLIMIT 1",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance",
+      "version",
+      "old_balance",
+      "new_balance"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       8,
+       "10428.88",
+       1,
+       "10403.88",
+       "10428.88"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:76224bbfa8b4": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE ledger_plain (\n  id INT PRIMARY KEY, account_id INT NOT NULL, amount DECIMAL(14,2) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE ledger_audited LIKE ledger_plain",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE ledger_audit_log (\n  log_id BIGINT AUTO_INCREMENT PRIMARY KEY, id INT NOT NULL, amount DECIMAL(14,2) NOT NULL, logged_at DATETIME(6) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER trg_ledger_audited_ins\nAFTER INSERT ON ledger_audited\nFOR EACH ROW\n  INSERT INTO ledger_audit_log (id, amount, logged_at) VALUES (NEW.id, NEW.amount, NOW(6))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 100000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s16:135a892e96e2": {
+   "statements": [
+    {
+     "sql": "INSERT INTO ledger_plain\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 50000)\nSELECT n, 1 + n % 25, (n % 1000) + 0.99 FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Records: 50000  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 159.34
+    }
+   ],
+   "measured": true
+  },
+  "s17:403ff86f728f": {
+   "statements": [
+    {
+     "sql": "INSERT INTO ledger_audited\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 50000)\nSELECT n, 1 + n % 25, (n % 1000) + 0.99 FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Records: 50000  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 656.27
+    }
+   ],
+   "measured": true
+  },
+  "s18:70eda15b65f3": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM ledger_plain) AS plain_rows,\n       (SELECT COUNT(*) FROM ledger_audited) AS audited_rows,\n       (SELECT COUNT(*) FROM ledger_audit_log) AS audit_log_rows",
+     "status": "ok",
+     "columns": [
+      "plain_rows",
+      "audited_rows",
+      "audit_log_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       50000,
+       50000,
+       50000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:a362c630d505": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE notes_demo (id INT PRIMARY KEY, body VARCHAR(50), edits INT NOT NULL DEFAULT 0)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO notes_demo VALUES (1, 'first', 0)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER trg_notes_count_edits\nAFTER UPDATE ON notes_demo\nFOR EACH ROW\n  UPDATE notes_demo SET edits = edits + 1 WHERE id = NEW.id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s20:ab58c033de52": {
+   "statements": [
+    {
+     "sql": "UPDATE notes_demo SET body = 'second' WHERE id = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1442,
+      "message": "Can't update table 'notes_demo' in stored function/trigger because it is already used by statement which invoked this stored function/trigger."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s21:951f2923efd5": {
+   "statements": [
+    {
+     "sql": "CREATE TRIGGER trg_bad_after\nAFTER INSERT ON branches\nFOR EACH ROW\nSET NEW.city = UPPER(NEW.city)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1362,
+      "message": "Updating of NEW row is not allowed in after trigger"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s22:00aa3b76b3e5": {
+   "statements": [
+    {
+     "sql": "CREATE TRIGGER trg_bad_old\nBEFORE INSERT ON branches\nFOR EACH ROW\nSET @x = OLD.city",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1363,
+      "message": "There is no OLD row in on INSERT trigger"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

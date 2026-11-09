@@ -1,0 +1,860 @@
+{
+ "doc": "m10-pages-records",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:a49c799fc814": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_page_size                    AS page_size_bytes,\n       @@innodb_page_size / 1024             AS page_size_kb,\n       @@innodb_file_per_table               AS file_per_table,\n       @@innodb_default_row_format           AS default_row_format,\n       @@innodb_data_file_path               AS system_tablespace,\n       @@innodb_temp_data_file_path          AS global_temp_tablespace,\n       @@innodb_fill_factor                  AS fill_factor_pct,\n       @@innodb_strict_mode                  AS strict_mode",
+     "status": "ok",
+     "columns": [
+      "page_size_bytes",
+      "page_size_kb",
+      "file_per_table",
+      "default_row_format",
+      "system_tablespace",
+      "global_temp_tablespace",
+      "fill_factor_pct",
+      "strict_mode"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       16384,
+       "16.0000",
+       1,
+       "dynamic",
+       "ibdata1:12M:autoextend",
+       "ibtmp1:12M:autoextend",
+       100,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:b7777227bd0b": {
+   "statements": [
+    {
+     "sql": "SET SESSION information_schema_stats_expiry = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 300000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE grow (id INT PRIMARY KEY, pad CHAR(200) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT 0 AS row_count, DATA_LENGTH, DATA_LENGTH DIV 16384 AS pages, DATA_FREE\nFROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'grow'",
+     "status": "ok",
+     "columns": [
+      "row_count",
+      "DATA_LENGTH",
+      "pages",
+      "DATA_FREE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       16384,
+       1,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:e4a81d11e3d0": {
+   "statements": [
+    {
+     "sql": "INSERT INTO grow WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 50)\n  SELECT n, 'x' FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50,
+     "info": "Records: 50  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE grow",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "grow",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT 50 AS row_count, DATA_LENGTH, DATA_LENGTH DIV 16384 AS pages, DATA_FREE\nFROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'grow'",
+     "status": "ok",
+     "columns": [
+      "row_count",
+      "DATA_LENGTH",
+      "pages",
+      "DATA_FREE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       50,
+       16384,
+       1,
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO grow WITH RECURSIVE s(n) AS (SELECT 51 UNION ALL SELECT n + 1 FROM s WHERE n < 100)\n  SELECT n, 'x' FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50,
+     "info": "Records: 50  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE grow",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "grow",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT 100 AS row_count, DATA_LENGTH, DATA_LENGTH DIV 16384 AS pages, DATA_FREE\nFROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'grow'",
+     "status": "ok",
+     "columns": [
+      "row_count",
+      "DATA_LENGTH",
+      "pages",
+      "DATA_FREE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       100,
+       49152,
+       3,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:9c6d100d99a5": {
+   "statements": [
+    {
+     "sql": "INSERT INTO grow WITH RECURSIVE s(n) AS (SELECT 101 UNION ALL SELECT n + 1 FROM s WHERE n < 2000)\n  SELECT n, 'x' FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1900,
+     "info": "Records: 1900  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE grow",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "grow",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT 2000 AS row_count, DATA_LENGTH, DATA_LENGTH DIV 16384 AS pages, DATA_FREE\nFROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'grow'",
+     "status": "ok",
+     "columns": [
+      "row_count",
+      "DATA_LENGTH",
+      "pages",
+      "DATA_FREE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2000,
+       524288,
+       32,
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO grow WITH RECURSIVE s(n) AS (SELECT 2001 UNION ALL SELECT n + 1 FROM s WHERE n < 3000)\n  SELECT n, 'x' FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1000,
+     "info": "Records: 1000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE grow",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "grow",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT 3000 AS row_count, DATA_LENGTH, DATA_LENGTH DIV 16384 AS pages, DATA_FREE\nFROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'grow'",
+     "status": "ok",
+     "columns": [
+      "row_count",
+      "DATA_LENGTH",
+      "pages",
+      "DATA_FREE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3000,
+       1589248,
+       97,
+       4194304
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO grow WITH RECURSIVE s(n) AS (SELECT 3001 UNION ALL SELECT n + 1 FROM s WHERE n < 20000)\n  SELECT n, 'x' FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 17000,
+     "info": "Records: 17000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE grow",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "grow",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT 20000 AS row_count, DATA_LENGTH, DATA_LENGTH DIV 16384 AS pages, DATA_FREE\nFROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'grow'",
+     "status": "ok",
+     "columns": [
+      "row_count",
+      "DATA_LENGTH",
+      "pages",
+      "DATA_FREE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20000,
+       5783552,
+       353,
+       4194304
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:6d82f8cbeb9d": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE profile_dynamic (\n  id INT PRIMARY KEY,\n  t1 TEXT, t2 TEXT, t3 TEXT, t4 TEXT, t5 TEXT, t6 TEXT,\n  t7 TEXT, t8 TEXT, t9 TEXT, t10 TEXT, t11 TEXT, t12 TEXT\n) ROW_FORMAT = DYNAMIC",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO profile_dynamic VALUES (1,\n  REPEAT('a', 1000), REPEAT('b', 1000), REPEAT('c', 1000), REPEAT('d', 1000), REPEAT('e', 1000), REPEAT('f', 1000),\n  REPEAT('g', 1000), REPEAT('h', 1000), REPEAT('i', 1000), REPEAT('j', 1000), REPEAT('k', 1000), REPEAT('l', 1000))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT id, LENGTH(t1) + LENGTH(t12) AS sample_bytes FROM profile_dynamic",
+     "status": "ok",
+     "columns": [
+      "id",
+      "sample_bytes"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       2000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:6e6fa4d0a2ac": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE profile_compact (\n  id INT PRIMARY KEY,\n  t1 TEXT, t2 TEXT, t3 TEXT, t4 TEXT, t5 TEXT, t6 TEXT,\n  t7 TEXT, t8 TEXT, t9 TEXT, t10 TEXT, t11 TEXT, t12 TEXT\n) ROW_FORMAT = COMPACT",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1118,
+      "message": "Row size too large (> 8126). Changing some columns to TEXT or BLOB or using ROW_FORMAT=DYNAMIC or ROW_FORMAT=COMPRESSED may help. In current row format, BLOB prefix of 768 bytes is stored inline."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:007e080da7ed": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE too_wide_char (\n  c1 CHAR(255), c2 CHAR(255), c3 CHAR(255), c4 CHAR(255), c5 CHAR(255), c6 CHAR(255), c7 CHAR(255), c8 CHAR(255),\n  c9 CHAR(255), c10 CHAR(255), c11 CHAR(255), c12 CHAR(255), c13 CHAR(255), c14 CHAR(255), c15 CHAR(255), c16 CHAR(255),\n  c17 CHAR(255), c18 CHAR(255), c19 CHAR(255), c20 CHAR(255), c21 CHAR(255), c22 CHAR(255), c23 CHAR(255), c24 CHAR(255),\n  c25 CHAR(255), c26 CHAR(255), c27 CHAR(255), c28 CHAR(255), c29 CHAR(255), c30 CHAR(255), c31 CHAR(255), c32 CHAR(255)\n) CHARSET = latin1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1118,
+      "message": "Row size too large (> 8126). Changing some columns to TEXT or BLOB may help. In current row format, BLOB prefix of 0 bytes is stored inline."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s9:529760f64441": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE too_long_declared (a VARCHAR(40000), b VARCHAR(40000)) CHARSET = latin1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1118,
+      "message": "Row size too large. The maximum row size for the used table type, not counting BLOBs, is 65535. This includes storage overhead, check the manual. You have to change some columns to TEXT or BLOBs"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s10:01b836697655": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE doc_dynamic   (id INT PRIMARY KEY, title VARCHAR(100) NOT NULL, body MEDIUMTEXT NOT NULL) ROW_FORMAT = DYNAMIC",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE doc_compact   (id INT PRIMARY KEY, title VARCHAR(100) NOT NULL, body MEDIUMTEXT NOT NULL) ROW_FORMAT = COMPACT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE doc_redundant (id INT PRIMARY KEY, title VARCHAR(100) NOT NULL, body MEDIUMTEXT NOT NULL) ROW_FORMAT = REDUNDANT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO doc_dynamic\n  WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 1000)\n  SELECT n, CONCAT('doc ', n), REPEAT(MD5(n), 300) FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1000,
+     "info": "Records: 1000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO doc_compact   SELECT * FROM doc_dynamic",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1000,
+     "info": "Records: 1000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO doc_redundant SELECT * FROM doc_dynamic",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1000,
+     "info": "Records: 1000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE doc_dynamic, doc_compact, doc_redundant",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "doc_dynamic",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "doc_compact",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "doc_redundant",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT TABLE_NAME, ROW_FORMAT, DATA_LENGTH, DATA_LENGTH DIV 16384 AS pages\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'doc%'\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "ROW_FORMAT",
+      "DATA_LENGTH",
+      "pages"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "doc_compact",
+       "Compact",
+       18366464,
+       1121
+      ],
+      [
+       "doc_dynamic",
+       "Dynamic",
+       17317888,
+       1057
+      ],
+      [
+       "doc_redundant",
+       "Redundant",
+       18366464,
+       1121
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:e42c4f858dda": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE note_dynamic (id INT PRIMARY KEY, title VARCHAR(100) NOT NULL, body TEXT NOT NULL) ROW_FORMAT = DYNAMIC",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE note_compact (id INT PRIMARY KEY, title VARCHAR(100) NOT NULL, body TEXT NOT NULL) ROW_FORMAT = COMPACT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO note_dynamic\n  WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 1000)\n  SELECT n, CONCAT('note ', n), REPEAT(MD5(n), 30) FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1000,
+     "info": "Records: 1000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO note_compact SELECT * FROM note_dynamic",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1000,
+     "info": "Records: 1000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE note_dynamic, note_compact",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "note_dynamic",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "note_compact",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT TABLE_NAME, ROW_FORMAT, DATA_LENGTH DIV 16384 AS pages\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'note%'\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "ROW_FORMAT",
+      "pages"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "note_compact",
+       "Compact",
+       97
+      ],
+      [
+       "note_dynamic",
+       "Dynamic",
+       97
+      ]
+     ]
+    },
+    {
+     "sql": "DROP TABLE doc_dynamic, doc_compact, doc_redundant, note_dynamic, note_compact",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s12:25f621800eff": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE fmt_compressed (id INT PRIMARY KEY, b TEXT) ROW_FORMAT = COMPRESSED KEY_BLOCK_SIZE = 8",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE fmt_redundant  (id INT PRIMARY KEY, b VARCHAR(100)) ROW_FORMAT = REDUNDANT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE fmt_default    (id INT PRIMARY KEY, b VARCHAR(100))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME, ROW_FORMAT, CREATE_OPTIONS\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'fmt%'\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "ROW_FORMAT",
+      "CREATE_OPTIONS"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "fmt_compressed",
+       "Compressed",
+       "row_format=COMPRESSED KEY_BLOCK_SIZE=8"
+      ],
+      [
+       "fmt_default",
+       "Dynamic",
+       ""
+      ],
+      [
+       "fmt_redundant",
+       "Redundant",
+       "row_format=REDUNDANT"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:6daf34d978ff": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE key_sequential (k CHAR(32) PRIMARY KEY, pad CHAR(100) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE key_random     (k CHAR(32) PRIMARY KEY, pad CHAR(100) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:b67fee890827": {
+   "statements": [
+    {
+     "sql": "INSERT INTO key_sequential\n  WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 100000)\n  SELECT LPAD(n, 32, '0'), REPEAT('x', 100) FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:f3dbf08b181a": {
+   "statements": [
+    {
+     "sql": "INSERT INTO key_random\n  WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 100000)\n  SELECT MD5(n), REPEAT('x', 100) FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:91e139a06d02": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE key_sequential, key_random",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "key_sequential",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "key_random",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT TABLE_NAME, DATA_LENGTH DIV 16384 AS pages, AVG_ROW_LENGTH, DATA_FREE\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'key_%'\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "pages",
+      "AVG_ROW_LENGTH",
+      "DATA_FREE"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "key_random",
+       1637,
+       258,
+       7340032
+      ],
+      [
+       "key_sequential",
+       1061,
+       175,
+       4194304
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:ff268c11d551": {
+   "statements": [
+    {
+     "sql": "OPTIMIZE TABLE key_random",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "key_random",
+       "optimize",
+       "note",
+       "Table does not support optimize, doing recreate + analyze instead"
+      ],
+      [
+       "key_random",
+       "optimize",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:f9ed23de1954": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE key_random",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "key_random",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT TABLE_NAME, DATA_LENGTH DIV 16384 AS pages, AVG_ROW_LENGTH, DATA_FREE\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'key_%'\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "pages",
+      "AVG_ROW_LENGTH",
+      "DATA_FREE"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "key_random",
+       1188,
+       196,
+       2097152
+      ],
+      [
+       "key_sequential",
+       1061,
+       175,
+       4194304
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:18c7b0d37a71": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE no_pk (a INT, b INT)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT _rowid FROM no_pk",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1054,
+      "message": "Unknown column '_rowid' in 'field list'"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

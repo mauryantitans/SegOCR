@@ -77,6 +77,7 @@ class StatementResult:
     warnings: list[dict] = field(default_factory=list)
     error: dict | None = None
     elapsed_ms: float = 0.0
+    more_results: list[dict] = field(default_factory=list)  # further result sets (CALL of a multi-SELECT procedure)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -270,8 +271,15 @@ class LabSession:
                     res.row_count = count
                     first = False
                 else:
+                    meta = [(d[5], d[1]) for d in cur.description]
+                    extra = cur.fetchmany(limit + 1)
+                    more = {"columns": [d[0] for d in cur.description],
+                            "rows": [[self.scrub(to_jsonable(v, *meta[k])) for k, v in enumerate(r)] for r in extra[:limit]],
+                            "truncated": len(extra) > limit}
                     for _ in cur:
                         pass
+                    more["row_count"] = len(more["rows"])
+                    res.more_results.append(more)
             else:
                 if first or res.affected_rows is None:
                     res.affected_rows = max(cur.rowcount, 0) if cur.rowcount is not None else None

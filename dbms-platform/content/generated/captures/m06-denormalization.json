@@ -1,0 +1,896 @@
+{
+ "doc": "m06-denormalization",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:243772a4aec9": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 400000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE big_customer (\n  customer_id INT UNSIGNED PRIMARY KEY,\n  name        VARCHAR(40) NOT NULL,\n  region      CHAR(2)     NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO big_customer\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 2000)\nSELECT n, CONCAT('Customer ', n), ELT(1 + n % 4, 'NE', 'SE', 'MW', 'W') FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2000,
+     "info": "Records: 2000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE big_order (\n  order_id    INT UNSIGNED PRIMARY KEY,\n  customer_id INT UNSIGNED NOT NULL,\n  order_date  DATE NOT NULL,\n  KEY idx_big_order_customer (customer_id),\n  CONSTRAINT fk_big_order_customer FOREIGN KEY (customer_id) REFERENCES big_customer (customer_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO big_order\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 100000)\nSELECT n, 1 + (n * 7919) % 2000, DATE '2024-01-01' + INTERVAL (n % 366) DAY FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE big_item (\n  order_id   INT UNSIGNED NOT NULL,\n  line_no    TINYINT UNSIGNED NOT NULL,\n  product_id INT UNSIGNED NOT NULL,\n  quantity   SMALLINT UNSIGNED NOT NULL,\n  unit_price DECIMAL(10,2) NOT NULL,\n  PRIMARY KEY (order_id, line_no),\n  CONSTRAINT fk_big_item_order FOREIGN KEY (order_id) REFERENCES big_order (order_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO big_item\nWITH RECURSIVE s(n) AS (SELECT 0 UNION ALL SELECT n + 1 FROM s WHERE n < 299999)\nSELECT 1 + n DIV 3, 1 + n % 3, 1 + (n * 31) % 30, 1 + n % 4, 10 + (n * 37) % 490 FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 300000,
+     "info": "Records: 300000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE big_customer, big_order, big_item",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "big_customer",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "big_order",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "big_item",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM big_customer) AS customers,\n       (SELECT COUNT(*) FROM big_order)    AS orders,\n       (SELECT COUNT(*) FROM big_item)     AS order_lines",
+     "status": "ok",
+     "columns": [
+      "customers",
+      "orders",
+      "order_lines"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2000,
+       100000,
+       300000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:0c91959eff4c": {
+   "statements": [
+    {
+     "sql": "SELECT o.customer_id, SUM(i.quantity * i.unit_price) AS revenue\nFROM big_order o JOIN big_item i ON i.order_id = o.order_id\nGROUP BY o.customer_id\nORDER BY revenue DESC, o.customer_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "revenue"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       485,
+       "117030.00"
+      ],
+      [
+       1105,
+       "117030.00"
+      ],
+      [
+       25,
+       "116940.00"
+      ],
+      [
+       645,
+       "116940.00"
+      ],
+      [
+       185,
+       "116850.00"
+      ]
+     ],
+     "elapsed_ms": 298.64
+    }
+   ],
+   "measured": true
+  },
+  "s3:a9b0923a455a": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE customer_revenue (\n  customer_id INT UNSIGNED PRIMARY KEY,\n  orders      INT UNSIGNED  NOT NULL,\n  revenue     DECIMAL(14,2) NOT NULL,\n  refreshed_at DATETIME NOT NULL,\n  KEY idx_customer_revenue_revenue (revenue)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO customer_revenue (customer_id, orders, revenue, refreshed_at)\nSELECT o.customer_id, COUNT(DISTINCT o.order_id), SUM(i.quantity * i.unit_price), '2025-01-01 00:00:00'\nFROM big_order o JOIN big_item i ON i.order_id = o.order_id\nGROUP BY o.customer_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2000,
+     "info": "Records: 2000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE customer_revenue",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "customer_revenue",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS summary_rows FROM customer_revenue",
+     "status": "ok",
+     "columns": [
+      "summary_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:a792f89920d1": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, revenue\nFROM customer_revenue\nORDER BY revenue DESC, customer_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "revenue"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       485,
+       "117030.00"
+      ],
+      [
+       1105,
+       "117030.00"
+      ],
+      [
+       25,
+       "116940.00"
+      ],
+      [
+       645,
+       "116940.00"
+      ],
+      [
+       185,
+       "116850.00"
+      ]
+     ],
+     "elapsed_ms": 0.97
+    }
+   ],
+   "measured": true
+  },
+  "s5:49badfaaa6bb": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE big_order ADD COLUMN order_total DECIMAL(12,2) NOT NULL DEFAULT 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE big_order o\nJOIN (SELECT order_id, SUM(quantity * unit_price) AS t FROM big_item GROUP BY order_id) x ON x.order_id = o.order_id\nSET o.order_total = x.t",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Rows matched: 100000  Changed: 100000  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE INDEX idx_big_order_total ON big_order (order_total)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE big_order",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "big_order",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS orders_over_1500 FROM big_order WHERE order_total > 1500",
+     "status": "ok",
+     "columns": [
+      "orders_over_1500"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       62756
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:6887ad3c1512": {
+   "statements": [
+    {
+     "sql": "CREATE TRIGGER trg_big_item_ai AFTER INSERT ON big_item FOR EACH ROW\n  UPDATE big_order SET order_total = order_total + NEW.quantity * NEW.unit_price WHERE order_id = NEW.order_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER trg_big_item_au AFTER UPDATE ON big_item FOR EACH ROW\n  UPDATE big_order SET order_total = order_total - OLD.quantity * OLD.unit_price + NEW.quantity * NEW.unit_price\n  WHERE order_id = NEW.order_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER trg_big_item_ad AFTER DELETE ON big_item FOR EACH ROW\n  UPDATE big_order SET order_total = order_total - OLD.quantity * OLD.unit_price WHERE order_id = OLD.order_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO big_item VALUES (1, 4, 7, 2, 100.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE big_item SET quantity = 3 WHERE order_id = 1 AND line_no = 4",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT o.order_id, o.order_total, (SELECT SUM(quantity * unit_price) FROM big_item WHERE order_id = 1) AS recomputed\nFROM big_order o WHERE o.order_id = 1",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_total",
+      "recomputed"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "656.00",
+       "656.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:9f042c80514e": {
+   "statements": [
+    {
+     "sql": "-- Normalized: compute totals on the fly, then filter\nSELECT COUNT(*) AS orders_over_1500\nFROM (SELECT order_id FROM big_item GROUP BY order_id HAVING SUM(quantity * unit_price) > 1500) t",
+     "status": "ok",
+     "columns": [
+      "orders_over_1500"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       62756
+      ]
+     ],
+     "elapsed_ms": 74.65
+    }
+   ],
+   "measured": true
+  },
+  "s8:89acf94ffcd4": {
+   "statements": [
+    {
+     "sql": "-- Denormalized: an index range scan on the stored total\nSELECT COUNT(*) AS orders_over_1500 FROM big_order WHERE order_total > 1500",
+     "status": "ok",
+     "columns": [
+      "orders_over_1500"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       62756
+      ]
+     ],
+     "elapsed_ms": 7.49
+    }
+   ],
+   "measured": true
+  },
+  "s9:51ec3a6b2074": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM big_order WHERE order_total > 1500",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=14995 rows=1) (actual time=12.8..12.8 rows=1 loops=1)\n    -> Filter: (big_order.order_total > 1500.00)  (cost=10017 rows=49777) (actual time=0.253..10.6 rows=62756 loops=1)\n        -> Covering index range scan on big_order using idx_big_order_total over (1500.00 < order_total)  (cost=10017 rows=49777) (actual time=0.251..5.92 rows=62756 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 13.87
+    }
+   ],
+   "measured": true
+  },
+  "s10:db8c63d09214": {
+   "statements": [
+    {
+     "sql": "INSERT INTO big_item (order_id, line_no, product_id, quantity, unit_price)\nWITH RECURSIVE s(n) AS (SELECT 0 UNION ALL SELECT n + 1 FROM s WHERE n < 29999)\nSELECT 1 + n, 5, 1 + n % 30, 1, 20.00 FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 30000,
+     "info": "Records: 30000  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 907.72
+    }
+   ],
+   "measured": true
+  },
+  "s11:2eddca8c7904": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE big_item_plain LIKE big_item",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s12:f1d915216eb1": {
+   "statements": [
+    {
+     "sql": "INSERT INTO big_item_plain (order_id, line_no, product_id, quantity, unit_price)\nWITH RECURSIVE s(n) AS (SELECT 0 UNION ALL SELECT n + 1 FROM s WHERE n < 29999)\nSELECT 1 + n, 5, 1 + n % 30, 1, 20.00 FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 30000,
+     "info": "Records: 30000  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 177.07
+    }
+   ],
+   "measured": true
+  },
+  "s13:41b8b9c63234": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE big_item ADD COLUMN line_total DECIMAL(12,2) AS (quantity * unit_price) VIRTUAL,\n                     ADD INDEX idx_big_item_line_total (line_total)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE big_order ADD COLUMN order_month CHAR(7) AS (DATE_FORMAT(order_date, '%Y-%m')) STORED,\n                      ADD INDEX idx_big_order_month (order_month)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE big_item, big_order",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "big_item",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "big_order",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT order_month, COUNT(*) AS orders FROM big_order\nWHERE order_month IN ('2024-02', '2024-03') GROUP BY order_month ORDER BY order_month",
+     "status": "ok",
+     "columns": [
+      "order_month",
+      "orders"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "2024-02",
+       7946
+      ],
+      [
+       "2024-03",
+       8486
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:9d637a32664a": {
+   "statements": [
+    {
+     "sql": "UPDATE big_item SET line_total = 0 WHERE order_id = 1 AND line_no = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3105,
+      "message": "The value specified for generated column 'line_total' in table 'big_item' is not allowed."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:df06d2c3c57b": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS drifted_orders\nFROM big_order o\nLEFT JOIN (SELECT order_id, SUM(quantity * unit_price) AS t FROM big_item GROUP BY order_id) x\n       ON x.order_id = o.order_id\nWHERE o.order_total <> COALESCE(x.t, 0)",
+     "status": "ok",
+     "columns": [
+      "drifted_orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:95cc7735eb53": {
+   "statements": [
+    {
+     "sql": "UPDATE big_order SET order_total = order_total + 5 WHERE order_id BETWEEN 100 AND 104",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Rows matched: 5  Changed: 5  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:217fb1392390": {
+   "statements": [
+    {
+     "sql": "SELECT o.order_id, o.order_total AS stored_total, x.t AS recomputed\nFROM big_order o\nJOIN (SELECT order_id, SUM(quantity * unit_price) AS t FROM big_item GROUP BY order_id) x\n  ON x.order_id = o.order_id\nWHERE o.order_total <> x.t\nORDER BY o.order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "stored_total",
+      "recomputed"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       100,
+       "2403.00",
+       "2398.00"
+      ],
+      [
+       101,
+       "2301.00",
+       "2296.00"
+      ],
+      [
+       102,
+       "2317.00",
+       "2312.00"
+      ],
+      [
+       103,
+       "743.00",
+       "738.00"
+      ],
+      [
+       104,
+       "1989.00",
+       "1984.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:c91bbddbb8e8": {
+   "statements": [
+    {
+     "sql": "UPDATE big_order o\nJOIN (SELECT order_id, SUM(quantity * unit_price) AS t FROM big_item WHERE order_id BETWEEN 100 AND 104 GROUP BY order_id) x\n  ON x.order_id = o.order_id\nSET o.order_total = x.t",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Rows matched: 5  Changed: 5  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS drifted_orders\nFROM big_order o\nJOIN (SELECT order_id, SUM(quantity * unit_price) AS t FROM big_item GROUP BY order_id) x ON x.order_id = o.order_id\nWHERE o.order_total <> x.t",
+     "status": "ok",
+     "columns": [
+      "drifted_orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:c905f57f82ab": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO ord_line VALUES (1, 1, 25.00)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "INSERT INTO ord_line VALUES (1, 2, 40.00)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "432995",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 2,
+        "rowsModified": 2,
+        "lockStructs": 5
+       },
+       {
+        "session": "B",
+        "trxId": "433006",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 3
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "ord",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "ord",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "ord",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "A",
+        "table": "ord",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "A",
+        "table": "ord_line",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "ord",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "ord",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "1"
+       },
+       {
+        "session": "B",
+        "table": "ord_line",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT order_id, order_total FROM ord ORDER BY order_id",
+       "status": "ok",
+       "columns": [
+        "order_id",
+        "order_total"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         1,
+         "65.00"
+        ],
+        [
+         2,
+         "0.00"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s15:0426c5af7445": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT customer_id, revenue FROM customer_revenue ORDER BY revenue DESC, customer_id LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 5 row(s)  (cost=202 rows=5)\n    -> Sort: customer_revenue.revenue DESC, customer_revenue.customer_id, limit input to 5 row(s) per chunk  (cost=202 rows=2000)\n        -> Index scan on customer_revenue using idx_customer_revenue_revenue  (cost=202 rows=2000)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:c9d2d3f557d3": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT o.customer_id, SUM(i.quantity * i.unit_price) AS revenue\nFROM big_order o JOIN big_item i ON i.order_id = o.order_id\nGROUP BY o.customer_id ORDER BY revenue DESC, o.customer_id LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 5 row(s)\n    -> Sort: revenue DESC, o.customer_id, limit input to 5 row(s) per chunk\n        -> Stream results  (cost=100329 rows=1984)\n            -> Group aggregate: sum((i.quantity * i.unit_price))  (cost=100329 rows=1984)\n                -> Nested loop inner join  (cost=67740 rows=325893)\n                    -> Index scan on o using idx_big_order_customer  (cost=10080 rows=99913)\n                    -> Index lookup on i using PRIMARY (order_id=o.order_id)  (cost=0.251 rows=3.26)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:9d2d2a91b847": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE big_order ADD COLUMN items_total DECIMAL(12,2)\n  AS ((SELECT SUM(quantity * unit_price) FROM big_item WHERE big_item.order_id = big_order.order_id)) STORED",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3102,
+      "message": "Expression of generated column 'items_total' contains a disallowed function."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

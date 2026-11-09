@@ -1,0 +1,1020 @@
+{
+ "doc": "m06-bcnf",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:e69fc51eb3a4": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE ta_assignment (\n  student_id INT UNSIGNED NOT NULL,\n  course_id  VARCHAR(10)  NOT NULL,\n  ta_name    VARCHAR(40)  NOT NULL,\n  PRIMARY KEY (student_id, course_id),\n  CONSTRAINT uq_ta_assignment_student_ta UNIQUE (student_id, ta_name)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO ta_assignment VALUES\n  (20230001, 'CS-157A', 'Maya Chen'),   (20230002, 'CS-157A', 'Maya Chen'),\n  (20230003, 'CS-157A', 'Ravi Patel'),  (20230004, 'CS-157A', 'Ravi Patel'),\n  (20230005, 'CS-157A', 'Maya Chen'),\n  (20230001, 'CS-146',  'Lena Fischer'), (20230003, 'CS-146', 'Lena Fischer'),\n  (20230006, 'CS-146',  'Lena Fischer'),\n  (20230002, 'DATA-225', 'Omar Haddad')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 9,
+     "info": "Records: 9  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ta_name, course_id, COUNT(*) AS rows_repeating_this_fact\nFROM ta_assignment GROUP BY ta_name, course_id ORDER BY ta_name",
+     "status": "ok",
+     "columns": [
+      "ta_name",
+      "course_id",
+      "rows_repeating_this_fact"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Lena Fischer",
+       "CS-146",
+       3
+      ],
+      [
+       "Maya Chen",
+       "CS-157A",
+       3
+      ],
+      [
+       "Omar Haddad",
+       "DATA-225",
+       1
+      ],
+      [
+       "Ravi Patel",
+       "CS-157A",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:7e717a05947d": {
+   "statements": [
+    {
+     "sql": "SELECT 'ta_name -> course_id' AS fd,\n       (SELECT COUNT(*) FROM (SELECT 1 FROM ta_assignment GROUP BY ta_name\n          HAVING COUNT(DISTINCT course_id) > 1) v) AS violations\nUNION ALL\nSELECT 'student_id, course_id -> ta_name',\n       (SELECT COUNT(*) FROM (SELECT 1 FROM ta_assignment GROUP BY student_id, course_id\n          HAVING COUNT(DISTINCT ta_name) > 1) v)",
+     "status": "ok",
+     "columns": [
+      "fd",
+      "violations"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "ta_name -> course_id",
+       0
+      ],
+      [
+       "student_id, course_id -> ta_name",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:4f192176862c": {
+   "statements": [
+    {
+     "sql": "UPDATE ta_assignment SET course_id = 'CS-146' WHERE student_id = 20230005 AND ta_name = 'Maya Chen'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ta_name, COUNT(DISTINCT course_id) AS courses, GROUP_CONCAT(DISTINCT course_id ORDER BY course_id) AS course_list\nFROM ta_assignment GROUP BY ta_name HAVING COUNT(DISTINCT course_id) > 1",
+     "status": "ok",
+     "columns": [
+      "ta_name",
+      "courses",
+      "course_list"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Maya Chen",
+       2,
+       "CS-146,CS-157A"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:a2000704ebb1": {
+   "statements": [
+    {
+     "sql": "UPDATE ta_assignment SET course_id = 'CS-157A' WHERE student_id = 20230005 AND ta_name = 'Maya Chen'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s5:1d7d7e322a99": {
+   "statements": [
+    {
+     "sql": "INSERT INTO ta_assignment (student_id, course_id, ta_name) VALUES (NULL, 'DATA-245', 'Jonas Berg')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1048,
+      "message": "Column 'student_id' cannot be null"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:d36836493ab8": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE ta_course (\n  ta_name   VARCHAR(40) NOT NULL PRIMARY KEY,\n  course_id VARCHAR(10) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE student_ta (\n  student_id INT UNSIGNED NOT NULL,\n  ta_name    VARCHAR(40)  NOT NULL,\n  PRIMARY KEY (student_id, ta_name),\n  CONSTRAINT fk_student_ta_ta FOREIGN KEY (ta_name) REFERENCES ta_course (ta_name)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO ta_course  SELECT DISTINCT ta_name, course_id FROM ta_assignment",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO student_ta SELECT student_id, ta_name FROM ta_assignment",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 9,
+     "info": "Records: 9  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO ta_course VALUES ('Jonas Berg', 'DATA-245')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "-- the insertion anomaly is gone\nSELECT (SELECT COUNT(*) FROM ta_course) AS tas, (SELECT COUNT(*) FROM student_ta) AS student_ta_links",
+     "status": "ok",
+     "columns": [
+      "tas",
+      "student_ta_links"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       9
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:99fc4b2e4386": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM (SELECT student_id, course_id, ta_name FROM ta_assignment\n          EXCEPT SELECT st.student_id, tc.course_id, st.ta_name FROM student_ta st JOIN ta_course tc USING (ta_name)) d) AS lost,\n       (SELECT COUNT(*) FROM (SELECT st.student_id, tc.course_id, st.ta_name FROM student_ta st JOIN ta_course tc USING (ta_name)\n          EXCEPT SELECT student_id, course_id, ta_name FROM ta_assignment) d) AS spurious",
+     "status": "ok",
+     "columns": [
+      "lost",
+      "spurious"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:5f343a2bc4e4": {
+   "statements": [
+    {
+     "sql": "INSERT INTO student_ta VALUES (20230001, 'Ravi Patel')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT st.student_id, tc.course_id, COUNT(*) AS tas_for_this_course,\n       GROUP_CONCAT(st.ta_name ORDER BY st.ta_name) AS tas\nFROM student_ta st JOIN ta_course tc USING (ta_name)\nGROUP BY st.student_id, tc.course_id\nHAVING COUNT(*) > 1",
+     "status": "ok",
+     "columns": [
+      "student_id",
+      "course_id",
+      "tas_for_this_course",
+      "tas"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20230001,
+       "CS-157A",
+       2,
+       "Maya Chen,Ravi Patel"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:65cdfba8cb5e": {
+   "statements": [
+    {
+     "sql": "DELETE FROM student_ta WHERE student_id = 20230001 AND ta_name = 'Ravi Patel'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s10:8a3da7188d65": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE ta_course ADD CONSTRAINT uq_ta_course_pair UNIQUE (ta_name, course_id)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE student_ta_checked (\n  student_id INT UNSIGNED NOT NULL,\n  ta_name    VARCHAR(40)  NOT NULL,\n  course_id  VARCHAR(10)  NOT NULL,\n  PRIMARY KEY (student_id, ta_name),\n  CONSTRAINT uq_stc_one_ta_per_course UNIQUE (student_id, course_id),\n  CONSTRAINT fk_stc_ta_course FOREIGN KEY (ta_name, course_id)\n    REFERENCES ta_course (ta_name, course_id) ON UPDATE CASCADE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO student_ta_checked\nSELECT st.student_id, st.ta_name, tc.course_id FROM student_ta st JOIN ta_course tc USING (ta_name)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 9,
+     "info": "Records: 9  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_loaded FROM student_ta_checked",
+     "status": "ok",
+     "columns": [
+      "rows_loaded"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       9
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:8f9d55c5d290": {
+   "statements": [
+    {
+     "sql": "INSERT INTO student_ta_checked VALUES (20230001, 'Ravi Patel', 'CS-157A')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '20230001-CS-157A' for key 'student_ta_checked.uq_stc_one_ta_per_course'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:442b5cecf117": {
+   "statements": [
+    {
+     "sql": "INSERT INTO student_ta_checked VALUES (20230006, 'Maya Chen', 'DATA-225')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`student_ta_checked`, CONSTRAINT `fk_stc_ta_course` FOREIGN KEY (`ta_name`, `course_id`) REFERENCES `ta_course` (`ta_name`, `course_id`) ON UPDATE CASCADE)"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s13:16488d26df42": {
+   "statements": [
+    {
+     "sql": "UPDATE ta_course SET course_id = 'DATA-245' WHERE ta_name = 'Omar Haddad'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT student_id, ta_name, course_id FROM student_ta_checked WHERE ta_name = 'Omar Haddad'",
+     "status": "ok",
+     "columns": [
+      "student_id",
+      "ta_name",
+      "course_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       20230002,
+       "Omar Haddad",
+       "DATA-245"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:6cdb47589825": {
+   "statements": [
+    {
+     "sql": "CREATE TRIGGER trg_student_ta_one_per_course\nBEFORE INSERT ON student_ta\nFOR EACH ROW\nBEGIN\n  IF EXISTS (SELECT 1\n             FROM student_ta st\n             JOIN ta_course tc_old ON tc_old.ta_name = st.ta_name\n             JOIN ta_course tc_new ON tc_new.ta_name = NEW.ta_name\n             WHERE st.student_id = NEW.student_id\n               AND tc_old.course_id = tc_new.course_id) THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'student already has a TA for this course';\n  END IF;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s15:6462316df49b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO student_ta VALUES (20230001, 'Ravi Patel')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "student already has a TA for this course"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:3e6c64b5b7bd": {
+   "statements": [
+    {
+     "sql": "SELECT 'R1 ta_course' AS relation, COUNT(*) AS rows_ FROM ta_course\nUNION ALL SELECT 'R2 student_ta', COUNT(*) FROM student_ta",
+     "status": "ok",
+     "columns": [
+      "relation",
+      "rows_"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "R1 ta_course",
+       5
+      ],
+      [
+       "R2 student_ta",
+       9
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:d4b1004fa37f": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO student_ta VALUES (20230007, 'Maya Chen')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "INSERT INTO student_ta VALUES (20230007, 'Ravi Patel')",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1644,
+        "message": "student already has a TA for this course"
+       }
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "error"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "431125",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 4,
+        "rowsModified": 1,
+        "lockStructs": 7
+       },
+       {
+        "session": "B",
+        "trxId": "422147675911760",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 2,
+        "rowsModified": 0,
+        "lockStructs": 4
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "student_ta",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "student_ta",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "student_ta",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "20230007, 'Maya Chen'",
+        "reportedByThreadOf": "B"
+       },
+       {
+        "session": "A",
+        "table": "student_ta",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,GAP",
+        "status": "GRANTED",
+        "lockData": "20230007, 'Maya Chen'"
+       },
+       {
+        "session": "A",
+        "table": "student_ta",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S",
+        "status": "GRANTED",
+        "lockData": "supremum pseudo-record"
+       },
+       {
+        "session": "A",
+        "table": "ta_course",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "ta_course",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "'Maya Chen'"
+       },
+       {
+        "session": "B",
+        "table": "student_ta",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "student_ta",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S",
+        "status": "WAITING",
+        "lockData": "20230007, 'Maya Chen'"
+       },
+       {
+        "session": "B",
+        "table": "ta_course",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "ta_course",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "'Ravi Patel'"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT student_id, ta_name FROM student_ta",
+       "status": "ok",
+       "columns": [
+        "student_id",
+        "ta_name"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         20230007,
+         "Maya Chen"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:4bce7d161393": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT COUNT(*) AS existing_cs157a_tas FROM student_ta st JOIN ta_course tc USING (ta_name)\nWHERE st.student_id = 20230007 AND tc.course_id = 'CS-157A'",
+       "status": "ok",
+       "columns": [
+        "existing_cs157a_tas"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT COUNT(*) AS existing_cs157a_tas FROM student_ta st JOIN ta_course tc USING (ta_name)\nWHERE st.student_id = 20230007 AND tc.course_id = 'CS-157A'",
+       "status": "ok",
+       "columns": [
+        "existing_cs157a_tas"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "INSERT INTO student_ta VALUES (20230007, 'Maya Chen')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "INSERT INTO student_ta VALUES (20230007, 'Ravi Patel')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT st.student_id, tc.course_id, COUNT(*) AS tas_for_course\nFROM student_ta st JOIN ta_course tc USING (ta_name)\nGROUP BY st.student_id, tc.course_id",
+       "status": "ok",
+       "columns": [
+        "student_id",
+        "course_id",
+        "tas_for_course"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         20230007,
+         "CS-157A",
+         2
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c3:19244555505e": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO student_ta_checked VALUES (20230007, 'Maya Chen', 'CS-157A')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "INSERT INTO student_ta_checked VALUES (20230007, 'Ravi Patel', 'CS-157A')",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1062,
+        "message": "Duplicate entry '20230007-CS-157A' for key 'student_ta_checked.uq_stc_one_ta_per_course'"
+       }
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "error"
+    },
+    {
+     "step": 2,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "431604",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 2,
+        "rowsModified": 1,
+        "lockStructs": 4
+       },
+       {
+        "session": "B",
+        "trxId": "431616",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "student_ta_checked",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "student_ta_checked",
+        "index": "uq_stc_one_ta_per_course",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "20230007, 'CS-157A', 'Maya Chen'",
+        "reportedByThreadOf": "B"
+       },
+       {
+        "session": "A",
+        "table": "ta_course",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "ta_course",
+        "index": "uq_ta_course_pair",
+        "lockType": "RECORD",
+        "lockMode": "S,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "'Maya Chen', 'CS-157A'"
+       },
+       {
+        "session": "B",
+        "table": "student_ta_checked",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "student_ta_checked",
+        "index": "uq_stc_one_ta_per_course",
+        "lockType": "RECORD",
+        "lockMode": "S",
+        "status": "WAITING",
+        "lockData": "20230007, 'CS-157A', 'Maya Chen'"
+       }
+      ]
+     }
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT student_id, ta_name, course_id FROM student_ta_checked",
+       "status": "ok",
+       "columns": [
+        "student_id",
+        "ta_name",
+        "course_id"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         20230007,
+         "Maya Chen",
+         "CS-157A"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s16:b69f68a01007": {
+   "statements": [
+    {
+     "sql": "SELECT design, enforces_ta_to_course, enforces_one_ta_per_student_course, redundancy\nFROM (\n  SELECT 1 AS n, '3NF ta_assignment' AS design, 'no (prime loophole)' AS enforces_ta_to_course,\n         'yes (primary key)' AS enforces_one_ta_per_student_course, 'TA course repeated per student' AS redundancy\n  UNION ALL SELECT 2, 'BCNF ta_course + student_ta', 'yes (PK of ta_course)', 'no (lost dependency)', 'none'\n  UNION ALL SELECT 3, 'BCNF + trigger', 'yes', 'yes for INSERTs it covers; concurrency must be tested', 'none'\n  UNION ALL SELECT 4, 'ta_course + student_ta_checked', 'yes (composite FK)', 'yes (UNIQUE index)', 'course repeated, kept consistent by FK + CASCADE'\n) AS t ORDER BY n",
+     "status": "ok",
+     "columns": [
+      "design",
+      "enforces_ta_to_course",
+      "enforces_one_ta_per_student_course",
+      "redundancy"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "3NF ta_assignment",
+       "no (prime loophole)",
+       "yes (primary key)",
+       "TA course repeated per student"
+      ],
+      [
+       "BCNF ta_course + student_ta",
+       "yes (PK of ta_course)",
+       "no (lost dependency)",
+       "none"
+      ],
+      [
+       "BCNF + trigger",
+       "yes",
+       "yes for INSERTs it covers; concurrency must be tested",
+       "none"
+      ],
+      [
+       "ta_course + student_ta_checked",
+       "yes (composite FK)",
+       "yes (UNIQUE index)",
+       "course repeated, kept consistent by FK + CASCADE"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:3140391aab60": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE ta_course_nouniq (ta_name VARCHAR(40) NOT NULL, course_id VARCHAR(10) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE child_bad (\n  student_id INT UNSIGNED NOT NULL, ta_name VARCHAR(40) NOT NULL, course_id VARCHAR(10) NOT NULL,\n  CONSTRAINT fk_child_bad FOREIGN KEY (ta_name, course_id) REFERENCES ta_course_nouniq (ta_name, course_id)\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1822,
+      "message": "Failed to add the foreign key constraint. Missing index for constraint 'fk_child_bad' in the referenced table 'ta_course_nouniq'"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

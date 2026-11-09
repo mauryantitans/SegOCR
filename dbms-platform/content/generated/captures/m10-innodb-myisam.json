@@ -1,0 +1,809 @@
+{
+ "doc": "m10-innodb-myisam",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:e7c2e9e4accc": {
+   "statements": [
+    {
+     "sql": "SELECT @@default_storage_engine      AS default_engine,\n       @@disabled_storage_engines    AS disabled_engines,\n       @@key_buffer_size             AS myisam_key_cache_bytes,\n       @@concurrent_insert           AS myisam_concurrent_insert,\n       @@innodb_buffer_pool_size     AS innodb_buffer_pool_bytes",
+     "status": "ok",
+     "columns": [
+      "default_engine",
+      "disabled_engines",
+      "myisam_key_cache_bytes",
+      "myisam_concurrent_insert",
+      "innodb_buffer_pool_bytes"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "InnoDB",
+       "",
+       16777216,
+       "AUTO",
+       134217728
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:473dc98faa41": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 2000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE acct_innodb (\n  id      INT PRIMARY KEY,\n  branch  INT NOT NULL,\n  owner   CHAR(50) NOT NULL,\n  balance DECIMAL(12,2) NOT NULL,\n  KEY idx_branch (branch)\n) ENGINE = InnoDB",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE acct_myisam LIKE acct_innodb",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE acct_myisam ENGINE = MyISAM",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO acct_innodb\n  WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 1000)\n  SELECT n, n % 50, CONCAT('owner ', n), 100.00 FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1000,
+     "info": "Records: 1000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO acct_myisam SELECT * FROM acct_innodb",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1000,
+     "info": "Records: 1000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE acct_innodb, acct_myisam",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "acct_innodb",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "acct_myisam",
+       "analyze",
+       "status",
+       "Table is already up to date"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:e01c0f8c3071": {
+   "statements": [
+    {
+     "sql": "SET SESSION information_schema_stats_expiry = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME, ENGINE, ROW_FORMAT, TABLE_ROWS, AVG_ROW_LENGTH,\n       DATA_LENGTH, INDEX_LENGTH, MAX_DATA_LENGTH\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'acct%'\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "ENGINE",
+      "ROW_FORMAT",
+      "TABLE_ROWS",
+      "AVG_ROW_LENGTH",
+      "DATA_LENGTH",
+      "INDEX_LENGTH",
+      "MAX_DATA_LENGTH"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "acct_innodb",
+       "InnoDB",
+       "Dynamic",
+       1000,
+       114,
+       114688,
+       16384,
+       0
+      ],
+      [
+       "acct_myisam",
+       "MyISAM",
+       "Fixed",
+       1000,
+       215,
+       215000,
+       23552,
+       60517119992791039
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:b68009eeaa9b": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE acct_innodb SET balance = balance - 30 WHERE id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE acct_myisam SET balance = balance - 30 WHERE id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1196,
+       "message": "Some non-transactional changed tables couldn't be rolled back"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT 'InnoDB' AS engine, balance FROM acct_innodb WHERE id = 1\nUNION ALL\nSELECT 'MyISAM', balance FROM acct_myisam WHERE id = 1",
+     "status": "ok",
+     "columns": [
+      "engine",
+      "balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "InnoDB",
+       "100.00"
+      ],
+      [
+       "MyISAM",
+       "70.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:061f98c8b984": {
+   "statements": [
+    {
+     "sql": "INSERT INTO acct_myisam VALUES (2001, 1, 'new A', 0), (2002, 1, 'new B', 0), (1, 1, 'duplicate', 0), (2003, 1, 'new C', 0)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '1' for key 'acct_myisam.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:d2c9ef28d56a": {
+   "statements": [
+    {
+     "sql": "INSERT INTO acct_innodb VALUES (2001, 1, 'new A', 0), (2002, 1, 'new B', 0), (1, 1, 'duplicate', 0), (2003, 1, 'new C', 0)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '1' for key 'acct_innodb.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:7c64180cd5fd": {
+   "statements": [
+    {
+     "sql": "SELECT 'InnoDB' AS engine, COUNT(*) AS new_rows FROM acct_innodb WHERE id > 2000\nUNION ALL\nSELECT 'MyISAM', COUNT(*) FROM acct_myisam WHERE id > 2000",
+     "status": "ok",
+     "columns": [
+      "engine",
+      "new_rows"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "InnoDB",
+       0
+      ],
+      [
+       "MyISAM",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:8a175a5fd2a3": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE branch_myisam (branch_id INT PRIMARY KEY) ENGINE = MyISAM",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE loan_myisam (\n  loan_id   INT PRIMARY KEY,\n  branch_id INT,\n  FOREIGN KEY (branch_id) REFERENCES branch_myisam (branch_id)\n) ENGINE = MyISAM",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO loan_myisam VALUES (1, 999)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT CONSTRAINT_NAME FROM information_schema.REFERENTIAL_CONSTRAINTS\nWHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'loan_myisam'",
+     "status": "ok",
+     "columns": [
+      "CONSTRAINT_NAME"
+     ],
+     "row_count": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s9:f318ee9783d2": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM acct_myisam",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       "Select tables optimized away"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `acct_myisam`"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM acct_innodb",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "acct_innodb",
+       null,
+       "index",
+       null,
+       "idx_branch",
+       "4",
+       null,
+       1002,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `acct_innodb`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:e8894f79206a": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT id FROM acct_innodb WHERE branch = 7",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "acct_innodb",
+       null,
+       "ref",
+       "idx_branch",
+       "idx_branch",
+       "4",
+       "const",
+       20,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `acct_innodb`.`id` AS `id` from `acct_innodb` where (`acct_innodb`.`branch` = 7)"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT id FROM acct_myisam WHERE branch = 7",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "acct_myisam",
+       null,
+       "ref",
+       "idx_branch",
+       "idx_branch",
+       "4",
+       "const",
+       20,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `acct_myisam`.`id` AS `id` from `acct_myisam` where (`acct_myisam`.`branch` = 7)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:e1d72e76c3f3": {
+   "statements": [
+    {
+     "sql": "DELETE FROM acct_myisam WHERE id = 500",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME, DATA_FREE FROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'acct_myisam'",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "DATA_FREE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "acct_myisam",
+       215
+      ]
+     ]
+    },
+    {
+     "sql": "CHECK TABLE acct_myisam",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "acct_myisam",
+       "check",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:72301925309c": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "LOCK TABLES stock_myisam WRITE",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE stock_myisam SET qty = qty - 1 WHERE sku = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT SUM(qty) FROM stock_myisam",
+       "status": "ok",
+       "columns": [
+        "SUM(qty)"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "59"
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UNLOCK TABLES",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT sku, qty FROM stock_myisam ORDER BY sku",
+       "status": "ok",
+       "columns": [
+        "sku",
+        "qty"
+       ],
+       "row_count": 3,
+       "rows": [
+        [
+         1,
+         9
+        ],
+        [
+         2,
+         20
+        ],
+        [
+         3,
+         30
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:9abf88264c80": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE stock_innodb SET qty = qty - 1 WHERE sku = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE stock_innodb SET qty = qty - 1 WHERE sku = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT sku, qty FROM stock_innodb ORDER BY sku",
+       "status": "ok",
+       "columns": [
+        "sku",
+        "qty"
+       ],
+       "row_count": 3,
+       "rows": [
+        [
+         1,
+         10
+        ],
+        [
+         2,
+         19
+        ],
+        [
+         3,
+         30
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "371586",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "stock_innodb",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "stock_innodb",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "1"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT sku, qty FROM stock_innodb ORDER BY sku",
+       "status": "ok",
+       "columns": [
+        "sku",
+        "qty"
+       ],
+       "row_count": 3,
+       "rows": [
+        [
+         1,
+         9
+        ],
+        [
+         2,
+         19
+        ],
+        [
+         3,
+         30
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s12:ae489ccf3df1": {
+   "statements": [
+    {
+     "sql": "REPAIR TABLE acct_innodb",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "acct_innodb",
+       "repair",
+       "note",
+       "The storage engine for the table doesn't support repair"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

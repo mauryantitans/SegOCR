@@ -51,6 +51,12 @@ export function StatementView({ st, showSql = false, compact = false }: { st: St
         </div>
       )}
       {ok && st.columns.length > 0 && <ResultGrid st={st} />}
+      {ok && st.more_results?.map((r, k) => (
+        <div key={k} className="space-y-1">
+          <div className="text-[10.5px] uppercase tracking-wider text-slate-500">Result set {k + 2}</div>
+          <ResultGrid st={{ ...st, ...r, index: st.index }} />
+        </div>
+      ))}
       {ok && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-slate-500">
           <span className="inline-flex items-center gap-1 text-emerald-400/80"><CheckCircle2 size={12} />OK</span>

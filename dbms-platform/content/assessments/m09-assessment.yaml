@@ -1,0 +1,569 @@
+id: m09-assessment
+module: m09
+title: "Module 9 Assessment — Views, Stored Programs & Database Objects"
+passMark: 70
+description: >-
+  Covers the whole module: views (MERGE vs TEMPTABLE, updatability, WITH CHECK OPTION, DEFINER and SQL SECURITY),
+  user, local and system variables, stored procedures and control flow, stored functions and their
+  characteristics and cost, condition handlers, SIGNAL/RESIGNAL, GET DIAGNOSTICS and cursors versus set-based
+  SQL, triggers (BEFORE/AFTER, NEW/OLD, ordering, error 1442), events and scheduled jobs, prepared statements and
+  safe dynamic SQL, and the decision framework for placing logic in the database or the application.
+questions:
+  - id: q1
+    question: "EXPLAIN for `SELECT * FROM v WHERE customer_id = 5` shows a row for `<derived2>` with select_type DERIVED. What does that tell you about the view v?"
+    options:
+      - "It was merged into the outer query"
+      - "It was materialized into a temporary table (TEMPTABLE), e.g. because it contains GROUP BY, DISTINCT, LIMIT or UNION"
+      - "Its result was read from a cache"
+      - "It is an updatable view"
+    answer: 1
+    explanation: "DERIVED/<derivedN> means materialization. A merged view leaves no trace of itself in the plan; MySQL has no result cache for views; and materialized (TEMPTABLE) views are never updatable."
+    concepts: [view-algorithms]
+  - id: q2
+    question: "A view is defined `… FROM orders WHERE status IN ('pending','paid') WITH CHECK OPTION`. Which statements through the view succeed? (Select all that apply.)"
+    type: multi
+    options:
+      - "UPDATE v SET status = 'paid' WHERE status = 'pending'"
+      - "UPDATE v SET status = 'shipped' WHERE order_id = 11"
+      - "UPDATE v SET discount_code = NULL WHERE order_id = 11 (if discount_code is in the view)"
+      - "INSERT a row with status 'cancelled' through the view"
+    answer: [0, 2]
+    explanation: "The check option rejects writes producing rows outside the view's WHERE (error 1369): 'shipped' and 'cancelled' would leave the view. Changing status to 'paid' or touching another column keeps the row inside."
+    concepts: [check-option]
+  - id: q3
+    question: "Why can a `SQL SECURITY DEFINER` view act as a column-level security boundary?"
+    options:
+      - "Because it copies the definer's grants to the querying user"
+      - "Because privileges on the base tables are checked against the definer, so users need SELECT only on the view"
+      - "Because views encrypt hidden columns"
+      - "Because SQL SECURITY DEFINER disables privilege checks"
+    answer: 1
+    explanation: "The view body runs in the definer's security context; the caller still needs SELECT on the view itself. Nothing is copied, encrypted or disabled. With SQL SECURITY INVOKER the caller would need base-table privileges."
+    concepts: [definer-security]
+  - id: q4
+    question: "`SET GLOBAL sort_buffer_size = 4194304` is run by an administrator. Which sessions use the new value?"
+    options:
+      - "All sessions immediately"
+      - "Only sessions opened afterwards (existing sessions keep their session copy)"
+      - "Only the administrator's session"
+      - "None until SET PERSIST is used"
+    answer: 1
+    explanation: "Session values are copied from the global value at connect time. SET GLOBAL changes the global value only; SET PERSIST additionally saves it for restarts."
+    concepts: [system-variables]
+  - id: q5
+    question: "Inside a stored procedure, a local variable is declared as `DECLARE status VARCHAR(10) DEFAULT 'x';` and the procedure runs `SELECT COUNT(*) FROM orders WHERE status = 'paid';`. What is counted?"
+    options:
+      - "Paid orders"
+      - "All orders if 'x' = 'paid', otherwise none — the local variable shadows the column"
+      - "An ambiguity error is raised"
+      - "Orders whose status is 'x'"
+    answer: 1
+    explanation: "Local variables and parameters take precedence over column names; the predicate compares 'x' = 'paid', false for every row, so the count is 0. MySQL raises no error, which is why p_/v_ prefixes are recommended."
+    concepts: [local-variables, variable-scope]
+  - id: q6
+    question: "A procedure declared `p(OUT r INT)` is called with `SET @r = 10; CALL p(@r);`, and its body is only `SET r = r + 1;`. What is @r afterwards?"
+    options: ["11", "10", "NULL", "1"]
+    answer: 2
+    explanation: "OUT parameters start as NULL inside the routine regardless of the caller's value, so NULL + 1 = NULL is copied back. An INOUT parameter would have produced 11."
+    concepts: [procedure-parameters]
+  - id: q7
+    question: "Under autocommit, a stored procedure without START TRANSACTION runs three UPDATEs; the third fails with a CHECK violation and there is no handler. What persists?"
+    options: ["Nothing", "The first two UPDATEs", "All three", "Only the third"]
+    answer: 1
+    explanation: "A procedure is not a transaction: each statement commits on its own under autocommit, and the error only undoes the failing statement. Atomicity requires START TRANSACTION, COMMIT and an EXIT handler that rolls back."
+    concepts: [transactions-in-procedures]
+  - id: q8
+    question: "`WHERE order_id = f()` uses a primary-key lookup when f is declared DETERMINISTIC but a full index scan with one call per row when it is not. Why?"
+    options:
+      - "DETERMINISTIC functions are cached in the query cache"
+      - "A DETERMINISTIC call with constant arguments may be evaluated once as a constant; a NOT DETERMINISTIC call must be evaluated per row"
+      - "NOT DETERMINISTIC functions cannot read tables"
+      - "DETERMINISTIC functions are compiled to native code"
+    answer: 1
+    explanation: "The declaration changes optimizer behaviour (the module's call-counting demo showed 80 calls vs 3). There is no query cache in 8.x, NOT DETERMINISTIC functions can read tables, and nothing is compiled natively."
+    concepts: [deterministic, function-cost]
+  - id: q9
+    question: "A server has binary logging on and `log_bin_trust_function_creators = 0`. `CREATE FUNCTION f() RETURNS INT RETURN 1;` (no characteristics) fails. With which error?"
+    options: ["1418", "1442", "1064", "1321"]
+    answer: 0
+    explanation: "Error 1418 requires one of DETERMINISTIC, NO SQL or READS SQL DATA when binary logging is enabled. 1442 is a trigger/function modifying the invoking table, 1064 a syntax error, 1321 a function ending without RETURN."
+    concepts: [binary-logging]
+  - id: q10
+    question: "Which handler is chosen when an INSERT raises a duplicate-key error and the block declares handlers FOR SQLEXCEPTION, FOR SQLSTATE '23000' and FOR 1062?"
+    options: ["FOR SQLEXCEPTION", "FOR SQLSTATE '23000'", "FOR 1062", "All three, in declaration order"]
+    answer: 2
+    explanation: "MySQL picks the most specific match: MySQL error number, then SQLSTATE value, then condition class. Only one handler runs."
+    concepts: [condition-handlers]
+  - id: q11
+    question: "A cursor loop's `CONTINUE HANDLER FOR NOT FOUND SET done = TRUE` ends the loop after only a few rows. The loop body contains `SELECT city INTO v_city FROM branches WHERE branch_id = v_branch`. What is the most likely cause?"
+    options:
+      - "The cursor's query was re-executed"
+      - "A lookup that found no row raised NOT FOUND, which the same handler caught, setting done"
+      - "FETCH skips rows with NULL values"
+      - "The cursor timed out"
+    answer: 1
+    explanation: "SELECT … INTO with no row raises the NOT FOUND condition (SQLSTATE 02000), indistinguishable from end-of-cursor for that handler. Use a scalar subquery, reset the flag, or isolate the lookup in its own block."
+    concepts: [cursors, condition-handlers]
+  - id: q12
+    question: "Which statements about `SIGNAL` and `RESIGNAL` are true? (Select all that apply.)"
+    type: multi
+    options:
+      - "SIGNAL SQLSTATE '45000' raises an exception that aborts the statement unless handled"
+      - "SIGNAL SQLSTATE '01000' raises only a warning"
+      - "RESIGNAL without arguments re-raises the condition that activated the current handler"
+      - "RESIGNAL can be used anywhere to raise a new error"
+    answer: [0, 1, 2]
+    explanation: "Class 45 is an exception, class 01 a warning. RESIGNAL is only valid inside an active handler (error 1645 otherwise); to raise a new condition elsewhere use SIGNAL."
+    concepts: [signal-resignal]
+  - id: q13
+    question: "An AFTER UPDATE trigger on `documents` runs `UPDATE documents SET revision = revision + 1 WHERE doc_id = NEW.doc_id`. What happens on the next UPDATE of documents, and what is the fix?"
+    options:
+      - "Infinite recursion; set max_sp_recursion_depth"
+      - "Error 1442; use a BEFORE UPDATE trigger with SET NEW.revision = OLD.revision + 1"
+      - "It works; revision grows by 2"
+      - "CREATE TRIGGER fails; use FOLLOWS"
+    answer: 1
+    explanation: "A trigger may not modify the table that the invoking statement uses (1442, raised at execution time — the CREATE succeeds). A BEFORE trigger can instead change the row being written through NEW."
+    concepts: [triggers, new-old-rows]
+  - id: q14
+    question: "Which changes are NOT seen by a trigger-based audit on the `transactions` table? (Select all that apply.)"
+    type: multi
+    options:
+      - "Rows deleted by ON DELETE CASCADE from a parent table"
+      - "TRUNCATE TABLE transactions"
+      - "A multi-row DELETE FROM transactions WHERE …"
+      - "LOAD DATA into transactions"
+    answer: [0, 1]
+    explanation: "Foreign-key cascades and TRUNCATE do not fire triggers. Ordinary multi-row DELETEs fire the delete trigger once per row, and LOAD DATA fires insert triggers."
+    concepts: [triggers, audit-trail]
+  - id: q15
+    question: "A recurring event runs every 10 minutes; one run takes 25 minutes. What does MySQL do?"
+    options:
+      - "Queues the next run until the current one finishes"
+      - "Starts new instances on schedule, which run concurrently with the slow one"
+      - "Disables the event"
+      - "Kills the slow run"
+    answer: 1
+    explanation: "The scheduler re-queues recurring events independently of running executions; overlap prevention (GET_LOCK, a status row) is the job author's responsibility."
+    concepts: [event-scheduler, scheduled-jobs]
+  - id: q16
+    question: "In the lab, `SHOW EVENTS` lists your event as ENABLED but `LAST_EXECUTED` is NULL forever. Why?"
+    options:
+      - "The event has a syntax error"
+      - "The Event Scheduler is OFF on the lab server, so events are defined but never fire"
+      - "Lab events only run at midnight"
+      - "LAST_EXECUTED is not maintained in MySQL 8"
+    answer: 1
+    explanation: "@@event_scheduler = OFF in the sandbox; the module therefore runs event bodies as procedures. Syntax errors are caught at CREATE EVENT time, and LAST_EXECUTED is maintained when events run."
+    concepts: [event-scheduler, job-monitoring]
+  - id: q17
+    question: "`PREPARE s FROM 'SELECT id, name FROM products ORDER BY ? LIMIT 5'; SET @c = 'price'; EXECUTE s USING @c;` — what happens?"
+    options:
+      - "Rows are sorted by price"
+      - "Syntax error: placeholders are not allowed in ORDER BY"
+      - "The query runs but sorts by the constant string 'price', i.e. effectively unsorted"
+      - "SQL injection occurs"
+    answer: 2
+    explanation: "A placeholder always binds a value, never an identifier. Sorting by a constant leaves the scan order; dynamic sort columns need a whitelist mapped to hard-coded identifiers."
+    concepts: [placeholders, dynamic-sql]
+  - id: q18
+    question: "Which statements about MySQL prepared statements are true? (Select all that apply.)"
+    type: multi
+    options:
+      - "A bound value cannot change the parsed statement's syntax, which prevents injection through that value"
+      - "EXECUTE … USING accepts only user variables"
+      - "MySQL reuses one optimized plan for every EXECUTE regardless of the values"
+      - "Prepared statements are session-scoped and freed by DEALLOCATE PREPARE or session end"
+    answer: [0, 1, 3]
+    explanation: "Binding happens after parsing; USING takes @variables only; prepared statements live in the session. MySQL optimizes on every EXECUTE with the actual values (the module showed different row estimates for 'escalated' and 'closed')."
+    concepts: [prepared-statements]
+  - id: q19
+    question: "A daily withdrawal limit is enforced by a BEFORE INSERT trigger that sums today's withdrawals with a plain SELECT. What happens when two sessions insert concurrently?"
+    options:
+      - "The trigger serializes them automatically"
+      - "Both checks can pass on their own snapshots and the limit is exceeded, unless the trigger first locks a shared row (e.g. the account FOR UPDATE)"
+      - "The second insert always deadlocks"
+      - "MySQL converts the SELECT into a locking read inside triggers"
+    answer: 1
+    explanation: "Plain SELECTs in triggers are consistent non-locking reads; the module's race allowed 2,300 against a 2,000 limit until the trigger locked the account row. Placement in the database does not by itself make a multi-row rule concurrency-safe."
+    concepts: [data-integrity, business-logic-placement]
+  - id: q20
+    question: "Which rule belongs in application code (with an outbox) rather than in a trigger or constraint?"
+    options:
+      - "balance must be non-negative"
+      - "e-mail must be unique"
+      - "When a loan becomes active, notify the credit bureau and e-mail the borrower"
+      - "A closed account's balance must not change"
+    answer: 2
+    explanation: "External side effects need retries and observability and must not run inside a database transaction. The others are declarative (CHECK, UNIQUE) or a transition constraint suitable for a BEFORE UPDATE trigger."
+    concepts: [decision-framework]
+challenges:
+  - id: c1
+    title: A guarded support view
+    dataset: shop
+    difficulty: medium
+    kind: dml
+    concepts: [views, check-option, updatable-views]
+    prompt: |
+      The support team may only work with **open** orders — status `'pending'`, `'paid'` or `'shipped'`.
+
+      1. Create a view **`v_open_orders`** with columns `order_id`, `customer_id`, `status`, `shipped_at` for open
+         orders only, such that **no write through the view can produce a row outside it** (standard, cascading form).
+      2. Through the view, mark every `'paid'` order of **customer 9** as `'shipped'` with `shipped_at` set to
+         `'2025-01-02 10:00:00'`.
+
+      The checker reads the view's metadata and the open orders of customer 9.
+    hints:
+      - "WHERE status IN ('pending', 'paid', 'shipped') WITH CHECK OPTION"
+      - "UPDATE v_open_orders SET status = 'shipped', shipped_at = '2025-01-02 10:00:00' WHERE customer_id = 9 AND status = 'paid';"
+    solution: |
+      CREATE VIEW v_open_orders AS
+      SELECT order_id, customer_id, status, shipped_at
+      FROM orders
+      WHERE status IN ('pending', 'paid', 'shipped')
+      WITH CHECK OPTION;
+      UPDATE v_open_orders
+      SET status = 'shipped', shipped_at = '2025-01-02 10:00:00'
+      WHERE customer_id = 9 AND status = 'paid';
+    check: |
+      SELECT v.CHECK_OPTION, v.IS_UPDATABLE, o.order_id, o.status, o.shipped_at
+      FROM information_schema.VIEWS v
+      CROSS JOIN v_open_orders o
+      WHERE v.TABLE_SCHEMA = DATABASE() AND v.TABLE_NAME = 'v_open_orders' AND o.customer_id = 9
+      ORDER BY o.order_id;
+    explanation: |
+      The view is a single-table row subset, so it is mergeable and updatable; `WITH CHECK OPTION` (CASCADED) makes it
+      also a write constraint — setting status to `'delivered'` through it would fail with error 1369, which is
+      exactly what keeps support tooling from closing orders. `'shipped'` is still inside the view, so the update is
+      accepted.
+
+  - id: c2
+    title: ATM withdrawals with signalled errors and a review queue
+    dataset: bank
+    difficulty: hard
+    kind: dml
+    concepts: [stored-procedures, signal-resignal, triggers, transactions-in-procedures]
+    setup: |
+      CREATE TABLE review_queue (txn_id BIGINT UNSIGNED PRIMARY KEY, account_id INT UNSIGNED NOT NULL, amount DECIMAL(14,2) NOT NULL);
+    prompt: |
+      The setup created `review_queue(txn_id, account_id, amount)`.
+
+      1. Create a trigger **`trg_review_large_withdrawals`** that adds every **withdrawal of 1,000.00 or more** inserted
+         into `transactions` to `review_queue` (with its `txn_id`, `account_id` and `amount`).
+      2. Create a procedure **`atm_withdraw(IN p_account INT, IN p_amount DECIMAL(14,2), IN p_ref VARCHAR(40))`** that, in
+         one transaction, locks the account, raises `SQLSTATE '45000'` with `MYSQL_ERRNO = 5002` and
+         `MESSAGE_TEXT = 'Account is not active'` for a non-active account, or `MYSQL_ERRNO = 5003` and
+         `MESSAGE_TEXT = 'Insufficient funds'` if the balance is too low; otherwise subtracts the amount, increments
+         `version`, writes a `'withdrawal'` ledger row (new balance as `balance_after`, `p_ref`, `created_at`
+         `'2025-01-02 12:00:00'`) and commits. Any error must roll back and be re-raised.
+
+      The checker performs withdrawals through a harness that records errors, then reads balances, versions, the
+      ledger rows with references starting with `'ATM-'` and the review queue.
+    hints:
+      - "The trigger must be AFTER INSERT so that NEW.txn_id (AUTO_INCREMENT) is known."
+      - "Procedure: EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END; then START TRANSACTION; SELECT balance, status INTO … FOR UPDATE; IF … SIGNAL …"
+      - "Use DELIMITER // … // for the procedure (it has a nested handler block followed by statements)."
+    solution: |
+      CREATE TRIGGER trg_review_large_withdrawals
+      AFTER INSERT ON transactions
+      FOR EACH ROW
+      BEGIN
+        IF NEW.txn_type = 'withdrawal' AND NEW.amount >= 1000 THEN
+          INSERT INTO review_queue VALUES (NEW.txn_id, NEW.account_id, NEW.amount);
+        END IF;
+      END;
+      DELIMITER //
+      CREATE PROCEDURE atm_withdraw(IN p_account INT, IN p_amount DECIMAL(14,2), IN p_ref VARCHAR(40))
+        MODIFIES SQL DATA
+      BEGIN
+        DECLARE v_balance DECIMAL(14,2);
+        DECLARE v_status VARCHAR(10);
+        DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+          ROLLBACK;
+          RESIGNAL;
+        END;
+        START TRANSACTION;
+        SELECT balance, status INTO v_balance, v_status FROM accounts WHERE account_id = p_account FOR UPDATE;
+        IF v_status IS NULL OR v_status <> 'active' THEN
+          SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 5002, MESSAGE_TEXT = 'Account is not active';
+        END IF;
+        IF v_balance < p_amount THEN
+          SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 5003, MESSAGE_TEXT = 'Insufficient funds';
+        END IF;
+        UPDATE accounts SET balance = balance - p_amount, version = version + 1 WHERE account_id = p_account;
+        INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)
+          SELECT account_id, 'withdrawal', p_amount, balance, p_ref, '2025-01-02 12:00:00'
+          FROM accounts WHERE account_id = p_account;
+        COMMIT;
+      END//
+      DELIMITER ;
+    check: |
+      CREATE TABLE harness_errors (call_no INT PRIMARY KEY, errno INT, msg VARCHAR(128));
+      CREATE PROCEDURE harness_atm(IN p_no INT, IN p_account INT, IN p_amount DECIMAL(14,2))
+      BEGIN
+        DECLARE CONTINUE HANDLER FOR SQLEXCEPTION
+        BEGIN
+          GET DIAGNOSTICS CONDITION 1 @e_no = MYSQL_ERRNO, @e_msg = MESSAGE_TEXT;
+          INSERT INTO harness_errors VALUES (p_no, @e_no, @e_msg);
+        END;
+        CALL atm_withdraw(p_account, p_amount, CONCAT('ATM-', p_no));
+      END;
+      CALL harness_atm(1, 6, 1200.00);
+      CALL harness_atm(2, 6, 50.00);
+      CALL harness_atm(3, 7, 10.00);
+      CALL harness_atm(4, 23, 500.00);
+      SELECT 'acct' AS kind, a.account_id AS k, a.balance AS v1, a.version AS v2, NULL AS v3
+      FROM accounts a WHERE a.account_id IN (6, 7, 23)
+      UNION ALL
+      SELECT 'ledger', t.account_id, t.amount, t.balance_after, t.reference FROM transactions t WHERE t.reference LIKE 'ATM-%'
+      UNION ALL
+      SELECT 'review', r.account_id, r.amount, NULL, NULL FROM review_queue r
+      UNION ALL
+      SELECT 'error', e.call_no, e.errno, NULL, e.msg FROM harness_errors e
+      ORDER BY kind, k, v1, v3;
+    explanation: |
+      The procedure owns the transaction: it locks the account row, signals business errors with stable numbers,
+      and its exit handler rolls back and re-raises so callers (here the harness) see 5002/5003. The large withdrawal
+      reaches the review queue through the AFTER INSERT trigger — `NEW.txn_id` is only known after the row is
+      written — and because the trigger runs inside the same transaction, a rolled-back withdrawal leaves no queue
+      entry. Account 7 is frozen; account 23 has too little money; account 6 succeeds twice.
+
+  - id: c3
+    title: A safe dynamic status counter
+    dataset: shop
+    difficulty: hard
+    kind: dml
+    concepts: [dynamic-sql, placeholders, sql-injection, identifier-quoting]
+    prompt: |
+      Create **`status_count(IN p_entity VARCHAR(20), IN p_status VARCHAR(20), OUT p_n INT)`** that counts rows with
+      the given status in either `orders` (when `p_entity = 'orders'`) or `payments` (when `p_entity = 'payments'`).
+      Any other entity must raise `SQLSTATE '45000'` with `MESSAGE_TEXT = 'Unknown entity'`.
+
+      Requirements: build the statement dynamically, take the **table name only from a whitelist** (never from
+      `p_entity` itself), quote it as an identifier, and pass the status as a **bound** placeholder value.
+
+      The checker calls it for `('orders','delivered')`, `('payments','failed')`, an injection attempt in the status
+      (`'x'' OR ''1''=''1'`), and an injection attempt in the entity (through a handler).
+    hints:
+      - "SET v_table = CASE p_entity WHEN 'orders' THEN 'orders' WHEN 'payments' THEN 'payments' END; IF v_table IS NULL THEN SIGNAL …"
+      - "SET @q = CONCAT('SELECT COUNT(*) INTO @cnt FROM `', v_table, '` WHERE status = ?'); SET @st = p_status; EXECUTE q USING @st;"
+      - "Write it inside DELIMITER // … //."
+    solution: |
+      DELIMITER //
+      CREATE PROCEDURE status_count(IN p_entity VARCHAR(20), IN p_status VARCHAR(20), OUT p_n INT)
+        READS SQL DATA
+      BEGIN
+        DECLARE v_table VARCHAR(64);
+        SET v_table = CASE p_entity WHEN 'orders' THEN 'orders' WHEN 'payments' THEN 'payments' ELSE NULL END;
+        IF v_table IS NULL THEN
+          SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Unknown entity';
+        END IF;
+        SET @q = CONCAT('SELECT COUNT(*) INTO @cnt FROM `', REPLACE(v_table, '`', '``'), '` WHERE status = ?');
+        SET @st = p_status;
+        PREPARE q FROM @q;
+        EXECUTE q USING @st;
+        DEALLOCATE PREPARE q;
+        SET p_n = @cnt;
+      END//
+      DELIMITER ;
+    check: |
+      CREATE PROCEDURE harness_sc()
+      BEGIN
+        DECLARE CONTINUE HANDLER FOR SQLEXCEPTION GET DIAGNOSTICS CONDITION 1 @sc_err = MESSAGE_TEXT;
+        SET @sc_err = NULL;
+        CALL status_count('orders` WHERE 1=1#', 'paid', @n4);
+      END;
+      CALL status_count('orders', 'delivered', @n1);
+      CALL status_count('payments', 'failed', @n2);
+      CALL status_count('orders', 'x'' OR ''1''=''1', @n3);
+      CALL harness_sc();
+      SELECT @n1 AS delivered_orders, @n2 AS failed_payments, @n3 AS injection_in_value, @sc_err AS injection_in_entity;
+    explanation: |
+      The entity text selects one of two hard-coded table names, so an attacker-controlled entity can only reach the
+      `SIGNAL`; the status travels as a bound value, so the tautology is compared literally and matches nothing.
+      Backtick quoting with doubled backticks is defence in depth for identifiers. A single static statement per entity
+      inside an `IF` would be equally safe and avoids dynamic SQL entirely — a perfectly good answer in practice.
+
+  - id: c4
+    title: A batched archive job and its event
+    dataset: bank
+    difficulty: hard
+    kind: dml
+    concepts: [events, batch-maintenance, job-monitoring]
+    setup: |
+      CREATE TABLE transactions_archive LIKE transactions;
+      CREATE TABLE job_runs (job VARCHAR(40) NOT NULL, rows_moved INT NOT NULL);
+    prompt: |
+      The setup created an empty `transactions_archive` (same structure as `transactions`) and `job_runs(job, rows_moved)`.
+
+      1. Create **`archive_ledger(IN p_before DATETIME, IN p_batch INT)`** that moves ledger rows with
+         `created_at < p_before` from `transactions` to `transactions_archive`, **oldest first in batches** of `p_batch`
+         rows; each batch copies the rows and deletes them **in one transaction**. When nothing is left, insert one row
+         `('archive_ledger', <total rows moved>)` into `job_runs`.
+      2. Create an event **`ev_archive_ledger`** that runs **every 1 day** starting `'2030-01-01 03:40:00'` and calls the
+         procedure with `p_before = NOW() - INTERVAL 2 YEAR` and batch size 500. (The lab's scheduler is off, so the
+         event will never fire; the checker runs the procedure directly.)
+
+      The checker calls `archive_ledger('2022-07-01 00:00:00', 7)` and compares the counts and the event definition.
+    hints:
+      - "Loop: START TRANSACTION; INSERT INTO transactions_archive SELECT * FROM transactions WHERE created_at < p_before ORDER BY created_at, txn_id LIMIT p_batch; read ROW_COUNT(); delete the copied rows; COMMIT. Stop when the INSERT copied 0 rows."
+      - "Delete the copied rows with a multi-table DELETE that joins the archive: DELETE t FROM transactions t JOIN transactions_archive a ON a.txn_id = t.txn_id;"
+    solution: |
+      CREATE PROCEDURE archive_ledger(IN p_before DATETIME, IN p_batch INT)
+        MODIFIES SQL DATA
+      BEGIN
+        DECLARE v_rows INT DEFAULT 1;
+        DECLARE v_total INT DEFAULT 0;
+        WHILE v_rows > 0 DO
+          START TRANSACTION;
+          INSERT INTO transactions_archive
+            SELECT * FROM transactions WHERE created_at < p_before ORDER BY created_at, txn_id LIMIT p_batch;
+          SET v_rows = ROW_COUNT();
+          DELETE t FROM transactions t JOIN transactions_archive a ON a.txn_id = t.txn_id;
+          COMMIT;
+          SET v_total = v_total + v_rows;
+        END WHILE;
+        INSERT INTO job_runs VALUES ('archive_ledger', v_total);
+      END;
+      CREATE EVENT ev_archive_ledger
+        ON SCHEDULE EVERY 1 DAY STARTS '2030-01-01 03:40:00'
+        DO CALL archive_ledger(NOW() - INTERVAL 2 YEAR, 500);
+    check: |
+      CALL archive_ledger('2022-07-01 00:00:00', 7);
+      SELECT j.job, j.rows_moved,
+             (SELECT COUNT(*) FROM transactions_archive) AS archived,
+             (SELECT COUNT(*) FROM transactions WHERE created_at < '2022-07-01') AS old_left,
+             (SELECT COUNT(*) FROM transactions) AS live_rows,
+             e.INTERVAL_VALUE, e.INTERVAL_FIELD, e.STARTS
+      FROM job_runs j
+      CROSS JOIN information_schema.EVENTS e
+      WHERE e.EVENT_SCHEMA = DATABASE() AND e.EVENT_NAME = 'ev_archive_ledger';
+    explanation: |
+      Each batch is one small transaction: copy the oldest rows, delete exactly the copied ids, commit. A crash
+      between batches leaves the data consistent (every row is in exactly one table), and the job is restartable —
+      rerunning it simply continues. `ORDER BY created_at, txn_id` makes the batch boundaries deterministic. Deleting by
+      joining against the archive is safe here because the archive only ever contains rows moved by this job;
+      production versions track the batch's ids in a temporary table instead. The event is only the trigger: it runs
+      `CALL archive_ledger(...)`, so the same procedure can be run manually or by an external scheduler.
+interview:
+  - id: i1
+    question: "Explain the MERGE and TEMPTABLE algorithms for MySQL views. How do they affect performance and updatability, and what changed in MySQL 8.0.22?"
+    answer: |
+      A view stores only its query. With **MERGE**, MySQL substitutes the view definition into the outer query —
+      its tables join the outer FROM, its WHERE is AND-ed with the outer WHERE — so the result is one query and all
+      base-table indexes are usable; mergeable views can be updatable. With **TEMPTABLE**, the view's query runs first
+      into an internal temporary table that the outer query then reads; EXPLAIN shows `<derivedN>`/`DERIVED`
+      (tree: `Materialize`). MySQL must materialize when rows do not map one-to-one to base rows: aggregates,
+      `DISTINCT`, `GROUP BY`, `HAVING`, `LIMIT`, `UNION`, subqueries in the select list. Such views are not updatable.
+      `ALGORITHM=UNDEFINED` (default) picks MERGE when possible; asking for MERGE where impossible gives warning 1354.
+
+      Since **8.0.22**, *derived condition pushdown* moves outer predicates into a materialized view: into its WHERE if
+      they reference grouping columns, otherwise into HAVING. So `SELECT * FROM v_order_totals WHERE customer_id = 5`
+      aggregates only that customer's orders, while a filter on the aggregate (`order_total > 1000`) still forces
+      every group to be computed. Practical advice: keep hot-path views mergeable, avoid deep view stacks, and replace
+      heavy aggregating views with summary tables (MySQL has no materialized views).
+    concepts: [view-algorithms]
+  - id: i2
+    question: "Why is a cursor loop usually slower than the equivalent set-based statement, and when is a cursor still the right tool?"
+    answer: |
+      A cursor loop executes one `FETCH` and at least one separate statement per row; each statement is opened,
+      optimized, locked and executed individually, and the optimizer never sees the whole problem, so it cannot
+      choose join orders, batch I/O or use a single scan. Under autocommit every per-row statement is also its own
+      durable commit. The module measured a 25,000-row update: the cursor version was several times slower
+      than one `UPDATE` even inside a single transaction, and a loop under autocommit was more than 50× slower than the
+      same loop in one transaction.
+
+      Cursors are right when each row needs **different procedural work** that one statement cannot express: calling
+      a procedure per row (a fee run with per-account error isolation), executing different dynamic SQL per row
+      (maintenance over tables listed in `information_schema`), or deliberately committing in small batches. Even
+      then, the cursor should orchestrate set-based statements and its `NOT FOUND` handler should live in its own
+      block so that lookups inside the loop cannot end it early.
+    concepts: [cursors, set-based-thinking]
+  - id: i3
+    question: "What are the main pitfalls of triggers in MySQL, and how do you use them responsibly?"
+    answer: |
+      **Hidden logic**: an `UPDATE` of one row may write several tables, take extra locks and fail with errors
+      from code the developer has never seen; bulk fixes and migrations unexpectedly fire them too. **Row-level only**:
+      MySQL has no statement-level triggers, so cost scales with rows (the module measured an audit trigger making a
+      50,000-row insert more than three times slower). **Restrictions**: no transaction control, no result sets, no dynamic
+      SQL, and a trigger may not modify its own table (error 1442 — use `BEFORE` + `SET NEW.col`). **Gaps**: foreign-key
+      cascades and `TRUNCATE` do not fire triggers. **Concurrency**: plain reads inside triggers are non-locking
+      snapshots, so multi-row checks race unless the trigger locks. **Ordering**: several triggers per event run in
+      `ACTION_ORDER`, controlled with `FOLLOWS`/`PRECEDES`. **Security context**: triggers run as their definer —
+      record `USER()`, not `CURRENT_USER()`, in audits.
+
+      Responsible use: prefer declarative constraints; keep triggers short (validate, set `NEW`, write one audit row);
+      name them consistently, document and inventory them (`information_schema.TRIGGERS`), test them in CI including
+      concurrency, and consider binary-log CDC for high-volume auditing.
+    concepts: [triggers, hidden-logic]
+  - id: i4
+    question: "How do prepared statements prevent SQL injection, what are their limits, and how do server-side and client-side (emulated) prepared statements differ?"
+    answer: |
+      A prepared statement is parsed with typed placeholders; values are bound **after** parsing, so a value can never
+      change the syntax tree — `x' OR '1'='1` is compared as one string. Limits: placeholders stand only for
+      **values**, not identifiers or keywords; `ORDER BY ?` sorts by a constant and `FROM ?` is a syntax error. Dynamic
+      identifiers need a whitelist mapping to hard-coded names, plus backtick quoting for metadata-derived names.
+      `QUOTE()`/escaping is a fallback for text that must be generated, but it must never be forgotten and depends on
+      the character set.
+
+      **Server-side** prepared statements use `COM_STMT_PREPARE/EXECUTE/CLOSE` (or SQL `PREPARE`/`EXECUTE`): parsing
+      happens once on the server, values travel separately in binary form, statements occupy server memory per session
+      up to `max_prepared_stmt_count`. MySQL still optimizes each execution with the actual values. **Emulated**
+      prepares (PyMySQL, PDO's default, Connector/J unless `useServerPrepStmts=true`) escape values in the driver and
+      send ordinary queries — one round trip and no server state, safe if the driver's escaping matches the connection
+      character set (configured through the driver, not `SET NAMES`). Defence in depth: least-privilege accounts, no
+      multi-statements, code scanning for string-built SQL.
+    concepts: [prepared-statements, sql-injection]
+  - id: i5
+    question: "What do DETERMINISTIC, NO SQL and READS SQL DATA mean for a MySQL stored function, which of them does MySQL verify, and why do they matter for binary logging and query performance?"
+    answer: |
+      They are the author's claims: `DETERMINISTIC` — same arguments give the same result; `NO SQL` — no SQL
+      statements; `READS SQL DATA` — reads but does not modify data (others: `CONTAINS SQL`, the default, and
+      `MODIFIES SQL DATA`). **MySQL verifies none of them.**
+
+      Binary logging: with binary logging on and `log_bin_trust_function_creators = 0`, `CREATE FUNCTION` requires at
+      least one of `DETERMINISTIC`, `NO SQL` or `READS SQL DATA` (error 1418), because statement-based replication
+      re-executes function calls on replicas and non-deterministic, data-modifying functions could diverge. With row-based
+      logging the risk is smaller; on current releases both `binlog_format` and `log_bin_trust_function_creators` are
+      deprecated.
+
+      Performance: a `DETERMINISTIC` call with constant arguments can be evaluated once as a constant and drive an
+      index lookup; a `NOT DETERMINISTIC` one is evaluated per row (the module counted 80 calls vs 3). A call on a
+      column is always per row and not sargable; a data-reading function in `WHERE` over 100,000 rows ran 100,000
+      queries and was more than ten times slower than the equivalent join. A false `DETERMINISTIC` claim can produce
+      wrong results and replication drift.
+    concepts: [deterministic, binary-logging, function-cost]
+  - id: i6
+    question: "Your team must decide whether a 'maximum daily withdrawal' rule lives in a trigger, a stored procedure or the application. Walk through your decision."
+    answer: |
+      1. **Writers**: who inserts withdrawals? If several services, batch jobs or humans do, an application-only rule
+         is bypassable (the module's batch insert pushed a day to 2,800 against a 2,000 limit). Database enforcement (a
+         trigger, or a procedure made mandatory by revoking direct `INSERT`) reaches every writer; a single owning
+         service also works if the architecture truly guarantees one write path.
+      2. **Concurrency**: the rule reads other rows, so wherever it lives it must lock — e.g. `SELECT … FOR UPDATE` on
+         the account row before summing, or maintain a per-day summary row with optimistic versioning. Without that,
+         both a trigger and an app check let concurrent withdrawals through (2,300 in the module's race).
+      3. **Change frequency and testing**: a stable limit is fine in the database with SQL integration tests in CI;
+         per-customer, frequently changing limits favour the application or a configuration table.
+      4. **Performance**: a trigger adds a range sum per inserted row (measured on a bulk load); an application
+         transaction pays round trips while holding the lock.
+      5. **Observability and ownership**: signal a registered error number that services map to a 4xx response, log
+         rejections, and name an owning team.
+      A typical answer: a trigger or mandatory procedure with an account-row lock for the hard invariant, plus earlier
+      application validation for user-friendly messages — with tests for both the rule and the race.
+    concepts: [decision-framework, business-logic-placement]
+  - id: i7
+    question: "When would you use the MySQL Event Scheduler, and when an external scheduler such as cron, a Kubernetes CronJob or Airflow?"
+    answer: |
+      The Event Scheduler suits **simple, idempotent, database-local housekeeping**: purging expired rows in batches,
+      refreshing summary tables, rotating partitions. Strengths: no extra infrastructure, runs next to the data with the
+      definer's privileges, travels with the schema. Weaknesses: errors only reach the error log, no retries or
+      alerting or dependencies, overlapping runs are allowed (guard with `GET_LOCK`), events are disabled on replicas and
+      must be re-enabled after failover, and a server started with the scheduler off silently stops every job.
+
+      External schedulers suit jobs that touch other systems, need retries with backoff, dependency graphs, backfills,
+      SLAs and alerting (Airflow/Dagster), or that belong to a service team (Kubernetes CronJob with
+      `concurrencyPolicy: Forbid`). In both cases keep the SQL in a stored procedure (`DO CALL job()` or the scheduler
+      running `CALL job()`), log each run to a job table, make jobs idempotent, and batch large modifications.
+    concepts: [events, scheduled-jobs]

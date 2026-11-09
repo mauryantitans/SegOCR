@@ -10,7 +10,7 @@ references:
     url: https://dev.mysql.com/doc/refman/8.4/en/group-by-handling.html
   - title: "MySQL 8.4 Reference Manual — Aggregate Function Descriptions (COUNT(DISTINCT))"
     url: https://dev.mysql.com/doc/refman/8.4/en/aggregate-functions.html
-  - title: "W. W. Armstrong — Dependency Structures of Data Base Relationships (IFIP Congress 1974)"
+  - title: "Wikipedia — Armstrong's axioms (Armstrong, IFIP Congress 1974)"
     url: https://en.wikipedia.org/wiki/Armstrong%27s_axioms
 related: [m06-anomalies, m06-closure-keys, m03-group-by-having, m01-keys]
 ---

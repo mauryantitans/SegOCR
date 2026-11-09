@@ -1,0 +1,796 @@
+{
+ "doc": "m09-error-handling-cursors",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s2:e40a590291b1": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE add_branch_plain(IN p_id SMALLINT, IN p_name VARCHAR(60), IN p_city VARCHAR(60))\n  MODIFIES SQL DATA\nBEGIN\n  INSERT INTO branches (branch_id, name, city) VALUES (p_id, p_name, p_city);\n  SELECT 'inserted' AS outcome;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s3:5825a9a59772": {
+   "statements": [
+    {
+     "sql": "CALL add_branch_plain(1, 'Duplicate HQ', 'Nowhere')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1062,
+      "message": "Duplicate entry '1' for key 'branches.PRIMARY'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s4:bd4dafef7b8f": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE add_branch(IN p_id SMALLINT, IN p_name VARCHAR(60), IN p_city VARCHAR(60),\n                            OUT p_outcome VARCHAR(20))\n  MODIFIES SQL DATA\nBEGIN\n  DECLARE CONTINUE HANDLER FOR 1062 SET p_outcome = 'duplicate';\n  SET p_outcome = 'inserted';\n  INSERT INTO branches (branch_id, name, city) VALUES (p_id, p_name, p_city);\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL add_branch(1, 'Duplicate HQ', 'Nowhere', @o1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL add_branch(4, 'Riverside', 'Sacramento', @o2)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @o1 AS first_call, @o2 AS second_call, (SELECT COUNT(*) FROM branches) AS branches_now",
+     "status": "ok",
+     "columns": [
+      "first_call",
+      "second_call",
+      "branches_now"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "duplicate",
+       "inserted",
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:43b2a53b406d": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE withdraw(IN p_account INT, IN p_amount DECIMAL(14,2))\n  MODIFIES SQL DATA\nBEGIN\n  DECLARE v_balance DECIMAL(14,2);\n  DECLARE v_status  VARCHAR(10);\n  DECLARE EXIT HANDLER FOR SQLEXCEPTION\n  BEGIN\n    ROLLBACK;\n    RESIGNAL;\n  END;\n\n  START TRANSACTION;\n  SELECT balance, status INTO v_balance, v_status\n  FROM accounts WHERE account_id = p_account FOR UPDATE;\n\n  IF v_status IS NULL THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account not found', MYSQL_ERRNO = 5001;\n  ELSEIF v_status <> 'active' THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account is not active', MYSQL_ERRNO = 5002;\n  ELSEIF v_balance < p_amount THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient funds', MYSQL_ERRNO = 5003;\n  END IF;\n\n  UPDATE accounts SET balance = balance - p_amount, version = version + 1 WHERE account_id = p_account;\n  INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\n    SELECT account_id, 'withdrawal', p_amount, balance, 'ATM-DEMO', NOW()\n    FROM accounts WHERE account_id = p_account;\n  COMMIT;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s6:7af0553d7b3e": {
+   "statements": [
+    {
+     "sql": "CALL withdraw(1, 1000000.00)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 5003,
+      "message": "Insufficient funds"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:350f1a96f2bb": {
+   "statements": [
+    {
+     "sql": "CALL withdraw(7, 10.00)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 5002,
+      "message": "Account is not active"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s8:896038bb9597": {
+   "statements": [
+    {
+     "sql": "CALL withdraw(1, 20.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT balance FROM accounts WHERE account_id = 1",
+     "status": "ok",
+     "columns": [
+      "balance"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "472.57"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:bc3e43918095": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE error_log (\n  log_id     INT AUTO_INCREMENT PRIMARY KEY,\n  routine    VARCHAR(64) NOT NULL,\n  sql_state  CHAR(5),\n  errno      INT,\n  message    VARCHAR(255)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE PROCEDURE withdraw_logged(IN p_account INT, IN p_amount DECIMAL(14,2))\n  MODIFIES SQL DATA\nBEGIN\n  DECLARE EXIT HANDLER FOR SQLEXCEPTION\n  BEGIN\n    DECLARE v_state CHAR(5);\n    DECLARE v_errno INT;\n    DECLARE v_msg   VARCHAR(255);\n    GET STACKED DIAGNOSTICS CONDITION 1\n      v_state = RETURNED_SQLSTATE, v_errno = MYSQL_ERRNO, v_msg = MESSAGE_TEXT;\n    ROLLBACK;\n    INSERT INTO error_log (routine, sql_state, errno, message)\n      VALUES ('withdraw_logged', v_state, v_errno, v_msg);\n    RESIGNAL;\n  END;\n  CALL withdraw(p_account, p_amount);\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s10:f55e3551db75": {
+   "statements": [
+    {
+     "sql": "CALL withdraw_logged(10, 5000.00)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 5003,
+      "message": "Insufficient funds"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:8d8aeddeaf28": {
+   "statements": [
+    {
+     "sql": "SELECT routine, sql_state, errno, message FROM error_log ORDER BY log_id",
+     "status": "ok",
+     "columns": [
+      "routine",
+      "sql_state",
+      "errno",
+      "message"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "withdraw_logged",
+       "45000",
+       5003,
+       "Insufficient funds"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:be3423c40d8a": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE force_debit(IN p_account INT, IN p_amount DECIMAL(14,2))\n  MODIFIES SQL DATA\nBEGIN\n  DECLARE check_violation CONDITION FOR 3819;\n  DECLARE EXIT HANDLER FOR check_violation\n    RESIGNAL SQLSTATE '45000'\n      SET MESSAGE_TEXT = 'Debit rejected: balance would become negative', MYSQL_ERRNO = 5003;\n  UPDATE accounts SET balance = balance - p_amount WHERE account_id = p_account;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s13:c82f8ebccf90": {
+   "statements": [
+    {
+     "sql": "CALL force_debit(23, 1000.00)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 5003,
+      "message": "Debit rejected: balance would become negative"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:4560cf6d1db4": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE freeze_dormant(IN p_before DATE, OUT p_frozen INT, OUT p_warnings INT)\n  MODIFIES SQL DATA\nBEGIN\n  UPDATE accounts a\n  SET a.status = 'frozen'\n  WHERE a.status = 'active'\n    AND NOT EXISTS (SELECT 1 FROM transactions t\n                    WHERE t.account_id = a.account_id AND t.created_at >= p_before);\n  GET DIAGNOSTICS p_frozen = ROW_COUNT, p_warnings = NUMBER;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL freeze_dormant('2023-11-01', @frozen, @warn)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 7,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @frozen AS accounts_frozen, @warn AS warnings",
+     "status": "ok",
+     "columns": [
+      "accounts_frozen",
+      "warnings"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       7,
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s15:eeada43c0266": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE post_interest_cursor(IN p_rate DECIMAL(6,5), OUT p_posted INT)\n  MODIFIES SQL DATA\nBEGIN\n  DECLARE v_id INT;\n  DECLARE v_balance DECIMAL(14,2);\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE cur CURSOR FOR\n    SELECT account_id, balance FROM accounts\n    WHERE account_type = 'savings' AND status = 'active'\n    ORDER BY account_id;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n\n  SET p_posted = 0;\n  OPEN cur;\n  read_loop: LOOP\n    FETCH cur INTO v_id, v_balance;\n    IF done THEN\n      LEAVE read_loop;\n    END IF;\n    UPDATE accounts SET balance = balance + ROUND(v_balance * p_rate, 2) WHERE account_id = v_id;\n    INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\n      SELECT account_id, 'interest', ROUND(v_balance * p_rate, 2), balance, 'INT-CURSOR', NOW()\n      FROM accounts WHERE account_id = v_id AND ROUND(v_balance * p_rate, 2) > 0;\n    SET p_posted = p_posted + 1;\n  END LOOP;\n  CLOSE cur;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL post_interest_cursor(0.00100, @posted)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @posted AS accounts_processed,\n       (SELECT COUNT(*) FROM transactions WHERE reference = 'INT-CURSOR') AS ledger_rows",
+     "status": "ok",
+     "columns": [
+      "accounts_processed",
+      "ledger_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       8,
+       8
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:37fb10e0c722": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE trace (step INT AUTO_INCREMENT PRIMARY KEY, msg VARCHAR(60))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE PROCEDURE handler_demo()\nBEGIN\n  DECLARE CONTINUE HANDLER FOR 1062 INSERT INTO trace (msg) VALUES ('outer CONTINUE handler ran');\n  INSERT INTO trace (msg) VALUES ('outer: before duplicate');\n  INSERT INTO branches VALUES (1, 'dup', 'dup');\n  INSERT INTO trace (msg) VALUES ('outer: after duplicate (continued)');\n  inner_block: BEGIN\n    DECLARE EXIT HANDLER FOR 1062 INSERT INTO trace (msg) VALUES ('inner EXIT handler ran');\n    INSERT INTO trace (msg) VALUES ('inner: before duplicate');\n    INSERT INTO branches VALUES (2, 'dup', 'dup');\n    INSERT INTO trace (msg) VALUES ('inner: after duplicate (never reached)');\n  END inner_block;\n  INSERT INTO trace (msg) VALUES ('outer: after inner block');\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:7ef64d554666": {
+   "statements": [
+    {
+     "sql": "CALL handler_demo()",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:1e7c69442b6f": {
+   "statements": [
+    {
+     "sql": "SELECT step, msg FROM trace ORDER BY step",
+     "status": "ok",
+     "columns": [
+      "step",
+      "msg"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "outer: before duplicate"
+      ],
+      [
+       2,
+       "outer CONTINUE handler ran"
+      ],
+      [
+       3,
+       "outer: after duplicate (continued)"
+      ],
+      [
+       4,
+       "inner: before duplicate"
+      ],
+      [
+       5,
+       "inner EXIT handler ran"
+      ],
+      [
+       6,
+       "outer: after inner block"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:2424af59a293": {
+   "statements": [
+    {
+     "sql": "SELECT balance INTO @b FROM accounts WHERE account_id = 999",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1329,
+       "message": "No data - zero rows fetched, selected, or processed"
+      }
+     ]
+    },
+    {
+     "sql": "SHOW WARNINGS",
+     "status": "ok",
+     "columns": [
+      "Level",
+      "Code",
+      "Message"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Warning",
+       1329,
+       "No data - zero rows fetched, selected, or processed"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:3a577550a113": {
+   "statements": [
+    {
+     "sql": "CREATE TEMPORARY TABLE interest_run AS\nSELECT account_id, ROUND(balance * 0.00100, 2) AS amount\nFROM accounts\nWHERE account_type = 'savings' AND status = 'active'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 8,
+     "info": "Records: 8  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts a JOIN interest_run r ON r.account_id = a.account_id\nSET a.balance = a.balance + r.amount",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 8,
+     "info": "Rows matched: 8  Changed: 8  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\nSELECT a.account_id, 'interest', r.amount, a.balance, 'INT-SET2', NOW()\nFROM accounts a JOIN interest_run r ON r.account_id = a.account_id\nWHERE r.amount > 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 8,
+     "info": "Records: 8  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS ledger_rows, SUM(amount) AS interest_paid\nFROM transactions WHERE reference = 'INT-SET2'",
+     "status": "ok",
+     "columns": [
+      "ledger_rows",
+      "interest_paid"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       8,
+       "40.76"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:4c800ca9e671": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 100000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE acct_cursor (\n  account_id   INT PRIMARY KEY,\n  account_type ENUM('checking', 'savings') NOT NULL,\n  balance      DECIMAL(14,2) NOT NULL,\n  KEY idx_type (account_type)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO acct_cursor\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 50000)\nSELECT n, IF(n % 2 = 0, 'savings', 'checking'), (n * 7919) % 100000 / 10 FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Records: 50000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE acct_set LIKE acct_cursor",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO acct_set SELECT * FROM acct_cursor",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 50000,
+     "info": "Records: 50000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE acct_cursor, acct_set",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "acct_cursor",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "acct_set",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "CREATE PROCEDURE credit_cursor(IN p_rate DECIMAL(6,5))\n  MODIFIES SQL DATA\nBEGIN\n  DECLARE v_id INT;\n  DECLARE v_balance DECIMAL(14,2);\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE cur CURSOR FOR SELECT account_id, balance FROM acct_cursor WHERE account_type = 'savings';\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  OPEN cur;\n  l: LOOP\n    FETCH cur INTO v_id, v_balance;\n    IF done THEN\n      LEAVE l;\n    END IF;\n    UPDATE acct_cursor SET balance = balance + ROUND(v_balance * p_rate, 2) WHERE account_id = v_id;\n  END LOOP;\n  CLOSE cur;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s18:1d276b1576b2": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 0.65
+    },
+    {
+     "sql": "CALL credit_cursor(0.00100)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 347.42
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 21.54
+    }
+   ],
+   "measured": true
+  },
+  "s19:c9d29f89dc9e": {
+   "statements": [
+    {
+     "sql": "UPDATE acct_set SET balance = balance + ROUND(balance * 0.00100, 2) WHERE account_type = 'savings'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 24986,
+     "info": "Rows matched: 25000  Changed: 24986  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 108.61
+    }
+   ],
+   "measured": true
+  },
+  "s20:c8d31361f35b": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM acct_cursor WHERE account_type = 'savings') AS savings_rows,\n       (SELECT SUM(balance) FROM acct_cursor) AS total_after_cursor,\n       (SELECT SUM(balance) FROM acct_set)    AS total_after_set",
+     "status": "ok",
+     "columns": [
+      "savings_rows",
+      "total_after_cursor",
+      "total_after_set"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25000,
+       "250102480.00",
+       "250102480.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s21:d243c42f35c7": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nUPDATE acct_set SET balance = balance + ROUND(balance * 0.00100, 2) WHERE account_type = 'savings'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "UPDATE",
+       "acct_set",
+       null,
+       "index",
+       "idx_type",
+       "PRIMARY",
+       "4",
+       null,
+       49035,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "update `acct_set` set `acct_set`.`balance` = (`acct_set`.`balance` + round((`acct_set`.`balance` * 0.00100),2)) where (`acct_set`.`account_type` = 'savings')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s22:5d2f07cf665f": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE debit_silently(IN p_account INT, IN p_amount DECIMAL(14,2))\n  MODIFIES SQL DATA\nBEGIN\n  DECLARE CONTINUE HANDLER FOR SQLEXCEPTION BEGIN END;   -- \"ignore errors\"\n  UPDATE accounts SET balance = balance - p_amount WHERE account_id = p_account;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL debit_silently(23, 1000.00)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT balance FROM accounts WHERE account_id = 23",
+     "status": "ok",
+     "columns": [
+      "balance"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "144.47"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s23:fe30c41262c3": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE count_with_branch_city(OUT p_processed INT)\n  READS SQL DATA\nBEGIN\n  DECLARE v_id INT;\n  DECLARE v_branch SMALLINT;\n  DECLARE v_city VARCHAR(60);\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE cur CURSOR FOR SELECT account_id, IF(account_id = 3, 99, branch_id) FROM accounts ORDER BY account_id;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  SET p_processed = 0;\n  OPEN cur;\n  l: LOOP\n    FETCH cur INTO v_id, v_branch;\n    IF done THEN\n      LEAVE l;\n    END IF;\n    SELECT city INTO v_city FROM branches WHERE branch_id = v_branch;   -- branch 99 does not exist\n    SET p_processed = p_processed + 1;\n  END LOOP;\n  CLOSE cur;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL count_with_branch_city(@processed)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @processed AS processed, (SELECT COUNT(*) FROM accounts) AS should_be",
+     "status": "ok",
+     "columns": [
+      "processed",
+      "should_be"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3,
+       25
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s24:f1d709469423": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE bad_order()\nBEGIN\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  DECLARE cur CURSOR FOR SELECT account_id FROM accounts;\n  OPEN cur;\n  CLOSE cur;\nEND",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1338,
+      "message": "Cursor declaration after handler declaration"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s25:570fedd23dcb": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE soft_check(IN p_amount DECIMAL(14,2))\n  NO SQL\nBEGIN\n  IF p_amount > 10000 THEN\n    SIGNAL SQLSTATE '01000' SET MESSAGE_TEXT = 'Large amount - review required';\n  END IF;\n  SELECT 'continued after the warning' AS outcome;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL soft_check(50000)",
+     "status": "ok",
+     "columns": [
+      "outcome"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       "continued after the warning"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW WARNINGS",
+     "status": "ok",
+     "columns": [
+      "Level",
+      "Code",
+      "Message"
+     ],
+     "row_count": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  }
+ }
+}

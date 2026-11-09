@@ -1,0 +1,672 @@
+{
+ "doc": "m09-events",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:a3878a369d67": {
+   "statements": [
+    {
+     "sql": "SELECT @@event_scheduler AS event_scheduler",
+     "status": "ok",
+     "columns": [
+      "event_scheduler"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "OFF"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:3acbe396d433": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE job_runs (\n  run_id      INT AUTO_INCREMENT PRIMARY KEY,\n  job_name    VARCHAR(64) NOT NULL,\n  status      ENUM('running', 'ok', 'failed', 'skipped') NOT NULL,\n  rows_affected INT,\n  message     VARCHAR(255),\n  started_at  DATETIME(6) NOT NULL,\n  finished_at DATETIME(6)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE PROCEDURE job_monthly_interest(IN p_rate DECIMAL(6,5), IN p_ref VARCHAR(40))\n  MODIFIES SQL DATA\nBEGIN\n  DECLARE v_run INT;\n  DECLARE v_rows INT DEFAULT 0;\n  DECLARE EXIT HANDLER FOR SQLEXCEPTION\n  BEGIN\n    DECLARE v_msg VARCHAR(255);\n    GET STACKED DIAGNOSTICS CONDITION 1 v_msg = MESSAGE_TEXT;\n    ROLLBACK;\n    UPDATE job_runs SET status = 'failed', message = v_msg, finished_at = NOW(6) WHERE run_id = v_run;\n    RESIGNAL;\n  END;\n\n  INSERT INTO job_runs (job_name, status, started_at) VALUES ('monthly_interest', 'running', NOW(6));\n  SET v_run = LAST_INSERT_ID();\n\n  START TRANSACTION;\n  CREATE TEMPORARY TABLE IF NOT EXISTS tmp_interest (account_id INT PRIMARY KEY, amount DECIMAL(14,2));\n  DELETE FROM tmp_interest;\n  INSERT INTO tmp_interest\n    SELECT account_id, ROUND(balance * p_rate, 2) FROM accounts\n    WHERE account_type = 'savings' AND status = 'active' AND ROUND(balance * p_rate, 2) > 0;\n  UPDATE accounts a JOIN tmp_interest t ON t.account_id = a.account_id SET a.balance = a.balance + t.amount;\n  SET v_rows = ROW_COUNT();\n  INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\n    SELECT a.account_id, 'interest', t.amount, a.balance, p_ref, NOW()\n    FROM accounts a JOIN tmp_interest t ON t.account_id = a.account_id;\n  COMMIT;\n\n  UPDATE job_runs SET status = 'ok', rows_affected = v_rows, finished_at = NOW(6) WHERE run_id = v_run;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s4:1e85211c038e": {
+   "statements": [
+    {
+     "sql": "CREATE EVENT ev_monthly_interest\n  ON SCHEDULE EVERY 1 MONTH STARTS '2030-01-01 01:15:00'\n  ON COMPLETION PRESERVE\n  COMMENT 'Credit monthly interest to active savings accounts'\n  DO CALL job_monthly_interest(0.00100, 'INT-MONTHLY')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SHOW EVENTS",
+     "status": "ok",
+     "columns": [
+      "Db",
+      "Name",
+      "Definer",
+      "Time zone",
+      "Type",
+      "Execute at",
+      "Interval value",
+      "Interval field",
+      "Starts",
+      "Ends",
+      "Status",
+      "Originator",
+      "character_set_client",
+      "collation_connection",
+      "Database Collation"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "your_lab",
+       "ev_monthly_interest",
+       "your_lab@localhost",
+       "SYSTEM",
+       "RECURRING",
+       null,
+       "1",
+       "MONTH",
+       "2030-01-01 01:15:00",
+       null,
+       "ENABLED",
+       1,
+       "utf8mb4",
+       "utf8mb4_0900_ai_ci",
+       "utf8mb4_0900_ai_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:9ce0dcb1155c": {
+   "statements": [
+    {
+     "sql": "CALL job_monthly_interest(0.00100, 'INT-MONTHLY')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT job_name, status, rows_affected, message FROM job_runs ORDER BY run_id",
+     "status": "ok",
+     "columns": [
+      "job_name",
+      "status",
+      "rows_affected",
+      "message"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "monthly_interest",
+       "ok",
+       8,
+       null
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS interest_rows, SUM(amount) AS interest_total\nFROM transactions WHERE reference = 'INT-MONTHLY'",
+     "status": "ok",
+     "columns": [
+      "interest_rows",
+      "interest_total"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       8,
+       "40.75"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:98208b8af435": {
+   "statements": [
+    {
+     "sql": "CREATE EVENT ev_close_promo_once\n  ON SCHEDULE AT '2030-06-30 23:59:00'\n  COMMENT 'One-time: end of promotion'\n  DO UPDATE accounts SET version = version WHERE 1 = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT EVENT_NAME, EVENT_TYPE, EXECUTE_AT, INTERVAL_VALUE, INTERVAL_FIELD, ON_COMPLETION, STATUS\nFROM information_schema.EVENTS\nWHERE EVENT_SCHEMA = DATABASE()\nORDER BY EVENT_NAME",
+     "status": "ok",
+     "columns": [
+      "EVENT_NAME",
+      "EVENT_TYPE",
+      "EXECUTE_AT",
+      "INTERVAL_VALUE",
+      "INTERVAL_FIELD",
+      "ON_COMPLETION",
+      "STATUS"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "ev_close_promo_once",
+       "ONE TIME",
+       "2030-06-30 23:59:00",
+       null,
+       null,
+       "NOT PRESERVE",
+       "ENABLED"
+      ],
+      [
+       "ev_monthly_interest",
+       "RECURRING",
+       null,
+       "1",
+       "MONTH",
+       "PRESERVE",
+       "ENABLED"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:cabd2e8cbb45": {
+   "statements": [
+    {
+     "sql": "CREATE EVENT ev_already_late\n  ON SCHEDULE AT '2020-01-01 00:00:00'\n  DO DELETE FROM job_runs WHERE 1 = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1588,
+       "message": "Event execution time is in the past and ON COMPLETION NOT PRESERVE is set. The event was dropped immediately after creation."
+      }
+     ]
+    },
+    {
+     "sql": "SHOW WARNINGS",
+     "status": "ok",
+     "columns": [
+      "Level",
+      "Code",
+      "Message"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Note",
+       1588,
+       "Event execution time is in the past and ON COMPLETION NOT PRESERVE is set. The event was dropped immediately after creation."
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS still_defined FROM information_schema.EVENTS\nWHERE EVENT_SCHEMA = DATABASE() AND EVENT_NAME = 'ev_already_late'",
+     "status": "ok",
+     "columns": [
+      "still_defined"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:4a443444e6b0": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 100000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE session_log (\n  id         INT PRIMARY KEY,\n  account_id INT NOT NULL,\n  created_at DATETIME NOT NULL,\n  KEY idx_session_log_created (created_at)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO session_log\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 60000)\nSELECT n, 1 + n % 25, TIMESTAMP '2024-01-01 00:00:00' + INTERVAL n MINUTE FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 60000,
+     "info": "Records: 60000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE session_log",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "session_log",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_total, MIN(created_at) AS oldest, MAX(created_at) AS newest FROM session_log",
+     "status": "ok",
+     "columns": [
+      "rows_total",
+      "oldest",
+      "newest"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       60000,
+       "2024-01-01 00:01:00",
+       "2024-02-11 16:00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:9699dbb0b0de": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE job_purge_session_log(IN p_cutoff DATETIME, IN p_batch INT)\n  MODIFIES SQL DATA\nBEGIN\n  DECLARE v_deleted INT DEFAULT 0;\n  DECLARE v_batch_rows INT DEFAULT 1;\n  DECLARE v_run INT;\n  INSERT INTO job_runs (job_name, status, started_at) VALUES ('purge_session_log', 'running', NOW(6));\n  SET v_run = LAST_INSERT_ID();\n  WHILE v_batch_rows > 0 DO\n    DELETE FROM session_log WHERE created_at < p_cutoff ORDER BY created_at LIMIT p_batch;\n    SET v_batch_rows = ROW_COUNT();\n    SET v_deleted = v_deleted + v_batch_rows;\n  END WHILE;\n  UPDATE job_runs SET status = 'ok', rows_affected = v_deleted, finished_at = NOW(6) WHERE run_id = v_run;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE EVENT ev_purge_session_log\n  ON SCHEDULE EVERY 1 HOUR STARTS '2030-01-01 00:05:00'\n  DO CALL job_purge_session_log(NOW() - INTERVAL 30 DAY, 10000)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s10:fa6132a8ff62": {
+   "statements": [
+    {
+     "sql": "CALL job_purge_session_log('2024-01-29 00:00:00', 10000)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": [],
+     "elapsed_ms": 306.12
+    }
+   ],
+   "measured": true
+  },
+  "s11:57337a1d290d": {
+   "statements": [
+    {
+     "sql": "SELECT job_name, status, rows_affected FROM job_runs WHERE job_name = 'purge_session_log'",
+     "status": "ok",
+     "columns": [
+      "job_name",
+      "status",
+      "rows_affected"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "purge_session_log",
+       "ok",
+       40319
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_left, MIN(created_at) AS oldest_left FROM session_log",
+     "status": "ok",
+     "columns": [
+      "rows_left",
+      "oldest_left"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       19681,
+       "2024-01-29 00:00:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:222a2728198a": {
+   "statements": [
+    {
+     "sql": "EXPLAIN DELETE FROM session_log WHERE created_at < '2024-02-15 00:00:00' ORDER BY created_at LIMIT 10000",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "DELETE",
+       "session_log",
+       null,
+       "range",
+       "idx_session_log_created",
+       "idx_session_log_created",
+       "5",
+       "const",
+       9965,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "delete from `session_log` where (`session_log`.`created_at` < TIMESTAMP'2024-02-15 00:00:00') order by `session_log`.`created_at` limit 10000"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:44d491b6846f": {
+   "statements": [
+    {
+     "sql": "ALTER EVENT ev_purge_session_log DISABLE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ALTER EVENT ev_monthly_interest ON SCHEDULE EVERY 1 MONTH STARTS '2030-01-01 02:30:00'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT EVENT_NAME, STATUS, INTERVAL_VALUE, INTERVAL_FIELD, STARTS, LAST_EXECUTED\nFROM information_schema.EVENTS\nWHERE EVENT_SCHEMA = DATABASE()\nORDER BY EVENT_NAME",
+     "status": "ok",
+     "columns": [
+      "EVENT_NAME",
+      "STATUS",
+      "INTERVAL_VALUE",
+      "INTERVAL_FIELD",
+      "STARTS",
+      "LAST_EXECUTED"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "ev_close_promo_once",
+       "ENABLED",
+       null,
+       null,
+       null,
+       null
+      ],
+      [
+       "ev_monthly_interest",
+       "ENABLED",
+       "1",
+       "MONTH",
+       "2030-01-01 02:30:00",
+       null
+      ],
+      [
+       "ev_purge_session_log",
+       "DISABLED",
+       "1",
+       "HOUR",
+       "2030-01-01 00:05:00",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:bac5e0a7ce0b": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT GET_LOCK('job_guarded', 0) AS a_holds_lock",
+       "status": "ok",
+       "columns": [
+        "a_holds_lock"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "CALL job_guarded()",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "SELECT status, message FROM job_runs ORDER BY run_id",
+       "status": "ok",
+       "columns": [
+        "status",
+        "message"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "skipped",
+         "previous run still active"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT RELEASE_LOCK('job_guarded') AS released",
+       "status": "ok",
+       "columns": [
+        "released"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         1
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "CALL job_guarded()",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT status, message FROM job_runs ORDER BY run_id",
+       "status": "ok",
+       "columns": [
+        "status",
+        "message"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         "skipped",
+         "previous run still active"
+        ],
+        [
+         "ok",
+         "did the work"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s14:fd174921abc2": {
+   "statements": [
+    {
+     "sql": "SELECT EVENT_NAME, EVENT_TYPE, STATUS, ON_COMPLETION, LAST_EXECUTED, EVENT_COMMENT\nFROM information_schema.EVENTS\nWHERE EVENT_SCHEMA = DATABASE()\nORDER BY EVENT_NAME",
+     "status": "ok",
+     "columns": [
+      "EVENT_NAME",
+      "EVENT_TYPE",
+      "STATUS",
+      "ON_COMPLETION",
+      "LAST_EXECUTED",
+      "EVENT_COMMENT"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "ev_close_promo_once",
+       "ONE TIME",
+       "ENABLED",
+       "NOT PRESERVE",
+       null,
+       "One-time: end of promotion"
+      ],
+      [
+       "ev_monthly_interest",
+       "RECURRING",
+       "ENABLED",
+       "PRESERVE",
+       null,
+       "Credit monthly interest to active savings accounts"
+      ],
+      [
+       "ev_purge_session_log",
+       "RECURRING",
+       "DISABLED",
+       "NOT PRESERVE",
+       null,
+       ""
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:881b0039e38b": {
+   "statements": [
+    {
+     "sql": "SELECT run_id, job_name, status, rows_affected FROM job_runs ORDER BY run_id",
+     "status": "ok",
+     "columns": [
+      "run_id",
+      "job_name",
+      "status",
+      "rows_affected"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "monthly_interest",
+       "ok",
+       8
+      ],
+      [
+       2,
+       "purge_session_log",
+       "ok",
+       40319
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:320d8fb0098c": {
+   "statements": [
+    {
+     "sql": "CREATE EVENT ev_bad_schedule\n  ON SCHEDULE AT (SELECT MAX(created_at) FROM transactions) + INTERVAL 1 DAY\n  DO DELETE FROM job_runs WHERE 1 = 0",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1235,
+      "message": "This version of MySQL doesn't yet support 'Usage of subqueries or stored function calls as part of this statement'"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

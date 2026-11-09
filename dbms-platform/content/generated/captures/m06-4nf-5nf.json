@@ -1,0 +1,704 @@
+{
+ "doc": "m06-4nf-5nf",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:5d9977238f52": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE course_info (\n  course_id  VARCHAR(10) NOT NULL,\n  instructor VARCHAR(40) NOT NULL,\n  textbook   VARCHAR(40) NOT NULL,\n  PRIMARY KEY (course_id, instructor, textbook)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO course_info VALUES\n  ('CS-157A',  'Kim',    'Silberschatz'), ('CS-157A',  'Kim',    'Elmasri'),\n  ('CS-157A',  'Rossi',  'Silberschatz'), ('CS-157A',  'Rossi',  'Elmasri'),\n  ('DATA-225', 'Haddad', 'Kleppmann'),    ('DATA-225', 'Haddad', 'Petrov'),\n  ('DATA-225', 'Haddad', 'Karwin')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 7,
+     "info": "Records: 7  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT course_id, COUNT(DISTINCT instructor) AS instructors, COUNT(DISTINCT textbook) AS textbooks,\n       COUNT(*) AS rows_stored\nFROM course_info GROUP BY course_id ORDER BY course_id",
+     "status": "ok",
+     "columns": [
+      "course_id",
+      "instructors",
+      "textbooks",
+      "rows_stored"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "CS-157A",
+       2,
+       2,
+       4
+      ],
+      [
+       "DATA-225",
+       1,
+       3,
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:a17bd037bb5f": {
+   "statements": [
+    {
+     "sql": "SELECT course_id,\n       COUNT(*)                                               AS rows_stored,\n       COUNT(DISTINCT instructor) * COUNT(DISTINCT textbook)  AS rows_if_independent,\n       COUNT(*) = COUNT(DISTINCT instructor) * COUNT(DISTINCT textbook) AS mvd_holds\nFROM course_info GROUP BY course_id ORDER BY course_id",
+     "status": "ok",
+     "columns": [
+      "course_id",
+      "rows_stored",
+      "rows_if_independent",
+      "mvd_holds"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "CS-157A",
+       4,
+       4,
+       1
+      ],
+      [
+       "DATA-225",
+       3,
+       3,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:03d6caddf656": {
+   "statements": [
+    {
+     "sql": "WITH ci AS (SELECT DISTINCT course_id, instructor FROM course_info),\n     ct AS (SELECT DISTINCT course_id, textbook   FROM course_info),\n     rejoined AS (SELECT ci.course_id, ci.instructor, ct.textbook FROM ci JOIN ct ON ct.course_id = ci.course_id)\nSELECT (SELECT COUNT(*) FROM rejoined) AS rejoined_rows,\n       (SELECT COUNT(*) FROM (SELECT * FROM rejoined EXCEPT SELECT * FROM course_info) d) AS spurious,\n       (SELECT COUNT(*) FROM (SELECT * FROM course_info EXCEPT SELECT * FROM rejoined) d) AS lost",
+     "status": "ok",
+     "columns": [
+      "rejoined_rows",
+      "spurious",
+      "lost"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       7,
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:a73d2b33d986": {
+   "statements": [
+    {
+     "sql": "INSERT INTO course_info VALUES ('CS-157A', 'Kim', 'Date')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT course_id,\n       COUNT(*) AS rows_stored,\n       COUNT(DISTINCT instructor) * COUNT(DISTINCT textbook) AS rows_if_independent\nFROM course_info GROUP BY course_id\nHAVING COUNT(*) <> COUNT(DISTINCT instructor) * COUNT(DISTINCT textbook)",
+     "status": "ok",
+     "columns": [
+      "course_id",
+      "rows_stored",
+      "rows_if_independent"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "CS-157A",
+       5,
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:eb42ab06df08": {
+   "statements": [
+    {
+     "sql": "INSERT INTO course_info VALUES ('CS-157A', 'Rossi', 'Date')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s6:cf50a21d8ac9": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS data225_textbook_rows_that_would_disappear\nFROM course_info WHERE course_id = 'DATA-225' AND instructor = 'Haddad'",
+     "status": "ok",
+     "columns": [
+      "data225_textbook_rows_that_would_disappear"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:a96db740aaf2": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE course_instructor (\n  course_id  VARCHAR(10) NOT NULL,\n  instructor VARCHAR(40) NOT NULL,\n  PRIMARY KEY (course_id, instructor)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE course_textbook (\n  course_id VARCHAR(10) NOT NULL,\n  textbook  VARCHAR(40) NOT NULL,\n  PRIMARY KEY (course_id, textbook)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO course_instructor SELECT DISTINCT course_id, instructor FROM course_info",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO course_textbook   SELECT DISTINCT course_id, textbook   FROM course_info",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 6,
+     "info": "Records: 6  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM course_info)       AS combined_rows,\n       (SELECT COUNT(*) FROM course_instructor) AS instructor_rows,\n       (SELECT COUNT(*) FROM course_textbook)   AS textbook_rows",
+     "status": "ok",
+     "columns": [
+      "combined_rows",
+      "instructor_rows",
+      "textbook_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       9,
+       3,
+       6
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:c697c902b541": {
+   "statements": [
+    {
+     "sql": "INSERT INTO course_instructor VALUES ('DATA-225', 'Lin')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM course_instructor WHERE course_id = 'DATA-225' AND instructor = 'Haddad'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT 'textbooks still known for DATA-225' AS check_, COUNT(*) AS n FROM course_textbook WHERE course_id = 'DATA-225'",
+     "status": "ok",
+     "columns": [
+      "check_",
+      "n"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "textbooks still known for DATA-225",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:a8aee3d125f9": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE teaching_choice (\n  course_id  VARCHAR(10) NOT NULL,\n  instructor VARCHAR(40) NOT NULL,\n  textbook   VARCHAR(40) NOT NULL,\n  PRIMARY KEY (course_id, instructor, textbook)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO teaching_choice VALUES\n  ('CS-157A', 'Kim', 'Silberschatz'), ('CS-157A', 'Rossi', 'Elmasri')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "WITH ci AS (SELECT DISTINCT course_id, instructor FROM teaching_choice),\n     ct AS (SELECT DISTINCT course_id, textbook   FROM teaching_choice)\nSELECT ci.course_id, ci.instructor, ct.textbook,\n       EXISTS (SELECT 1 FROM teaching_choice t WHERE t.course_id = ci.course_id\n               AND t.instructor = ci.instructor AND t.textbook = ct.textbook) AS in_original\nFROM ci JOIN ct ON ct.course_id = ci.course_id\nORDER BY ci.instructor, ct.textbook",
+     "status": "ok",
+     "columns": [
+      "course_id",
+      "instructor",
+      "textbook",
+      "in_original"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "CS-157A",
+       "Kim",
+       "Elmasri",
+       0
+      ],
+      [
+       "CS-157A",
+       "Kim",
+       "Silberschatz",
+       1
+      ],
+      [
+       "CS-157A",
+       "Rossi",
+       "Elmasri",
+       1
+      ],
+      [
+       "CS-157A",
+       "Rossi",
+       "Silberschatz",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:4e42c0b50e22": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE supply (\n  supplier VARCHAR(20) NOT NULL, part VARCHAR(20) NOT NULL, project VARCHAR(20) NOT NULL,\n  PRIMARY KEY (supplier, part, project))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO supply VALUES\n  ('Smith', 'Bolt', 'ProjX'), ('Smith', 'Nut', 'ProjY'), ('Adamsky', 'Bolt', 'ProjY'),\n  ('Walton', 'Nut', 'ProjZ'), ('Adamsky', 'Nail', 'ProjX'), ('Adamsky', 'Bolt', 'ProjX'),\n  ('Smith', 'Bolt', 'ProjY')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 7,
+     "info": "Records: 7  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT supplier, part, project FROM supply ORDER BY supplier, part, project",
+     "status": "ok",
+     "columns": [
+      "supplier",
+      "part",
+      "project"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "Adamsky",
+       "Bolt",
+       "ProjX"
+      ],
+      [
+       "Adamsky",
+       "Bolt",
+       "ProjY"
+      ],
+      [
+       "Adamsky",
+       "Nail",
+       "ProjX"
+      ],
+      [
+       "Smith",
+       "Bolt",
+       "ProjX"
+      ],
+      [
+       "Smith",
+       "Bolt",
+       "ProjY"
+      ],
+      [
+       "Smith",
+       "Nut",
+       "ProjY"
+      ],
+      [
+       "Walton",
+       "Nut",
+       "ProjZ"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:f67bf70d0ae7": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM (SELECT DISTINCT supplier, part FROM supply) a)    AS supplier_part,\n       (SELECT COUNT(*) FROM (SELECT DISTINCT part, project FROM supply) b)     AS part_project,\n       (SELECT COUNT(*) FROM (SELECT DISTINCT supplier, project FROM supply) c) AS supplier_project",
+     "status": "ok",
+     "columns": [
+      "supplier_part",
+      "part_project",
+      "supplier_project"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       5,
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:5673d7362949": {
+   "statements": [
+    {
+     "sql": "WITH sp AS (SELECT DISTINCT supplier, part FROM supply),\n     pj AS (SELECT DISTINCT part, project FROM supply),\n     sj AS (SELECT DISTINCT supplier, project FROM supply)\nSELECT 'R1 ⋈ R2 (on part)' AS join_, COUNT(*) AS join_rows,\n       (SELECT COUNT(*) FROM (SELECT sp.supplier, sp.part, pj.project FROM sp JOIN pj USING (part)\n                              EXCEPT SELECT * FROM supply) d) AS spurious\nFROM sp JOIN pj USING (part)\nUNION ALL\nSELECT 'R1 ⋈ R3 (on supplier)', COUNT(*),\n       (SELECT COUNT(*) FROM (SELECT sp.supplier, sp.part, sj.project FROM sp JOIN sj USING (supplier)\n                              EXCEPT SELECT * FROM supply) d)\nFROM sp JOIN sj USING (supplier)\nUNION ALL\nSELECT 'R2 ⋈ R3 (on project)', COUNT(*),\n       (SELECT COUNT(*) FROM (SELECT sj.supplier, pj.part, pj.project FROM pj JOIN sj USING (project)\n                              EXCEPT SELECT * FROM supply) d)\nFROM pj JOIN sj USING (project)",
+     "status": "ok",
+     "columns": [
+      "join_",
+      "join_rows",
+      "spurious"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "R1 ⋈ R2 (on part)",
+       9,
+       2
+      ],
+      [
+       "R1 ⋈ R3 (on supplier)",
+       9,
+       2
+      ],
+      [
+       "R2 ⋈ R3 (on project)",
+       9,
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:770920fffbdb": {
+   "statements": [
+    {
+     "sql": "WITH sp AS (SELECT DISTINCT supplier, part FROM supply),\n     pj AS (SELECT DISTINCT part, project FROM supply)\nSELECT sp.supplier, sp.part, pj.project FROM sp JOIN pj USING (part)\nEXCEPT SELECT * FROM supply\nORDER BY 1, 2, 3",
+     "status": "ok",
+     "columns": [
+      "supplier",
+      "part",
+      "project"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Smith",
+       "Nut",
+       "ProjZ"
+      ],
+      [
+       "Walton",
+       "Nut",
+       "ProjY"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:5425ab046ed3": {
+   "statements": [
+    {
+     "sql": "WITH sp AS (SELECT DISTINCT supplier, part FROM supply),\n     pj AS (SELECT DISTINCT part, project FROM supply),\n     sj AS (SELECT DISTINCT supplier, project FROM supply),\n     j3 AS (SELECT sp.supplier, sp.part, pj.project\n            FROM sp JOIN pj USING (part)\n            JOIN sj ON sj.supplier = sp.supplier AND sj.project = pj.project)\nSELECT (SELECT COUNT(*) FROM j3) AS three_way_rows,\n       (SELECT COUNT(*) FROM (SELECT * FROM j3 EXCEPT SELECT * FROM supply) d) AS spurious,\n       (SELECT COUNT(*) FROM (SELECT * FROM supply EXCEPT SELECT * FROM j3) d) AS lost",
+     "status": "ok",
+     "columns": [
+      "three_way_rows",
+      "spurious",
+      "lost"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       7,
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:e54492c2fe3e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE supplier_part    (supplier VARCHAR(20) NOT NULL, part VARCHAR(20) NOT NULL, PRIMARY KEY (supplier, part))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE part_project     (part VARCHAR(20) NOT NULL, project VARCHAR(20) NOT NULL, PRIMARY KEY (part, project))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE supplier_project (supplier VARCHAR(20) NOT NULL, project VARCHAR(20) NOT NULL, PRIMARY KEY (supplier, project))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO supplier_part    SELECT DISTINCT supplier, part FROM supply",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO part_project     SELECT DISTINCT part, project FROM supply",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO supplier_project SELECT DISTINCT supplier, project FROM supply",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE VIEW supply_v AS\nSELECT sp.supplier, sp.part, pj.project\nFROM supplier_part sp\nJOIN part_project pj      ON pj.part = sp.part\nJOIN supplier_project sj  ON sj.supplier = sp.supplier AND sj.project = pj.project",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT supplier, part, project FROM supply_v ORDER BY supplier, part, project",
+     "status": "ok",
+     "columns": [
+      "supplier",
+      "part",
+      "project"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "Adamsky",
+       "Bolt",
+       "ProjX"
+      ],
+      [
+       "Adamsky",
+       "Bolt",
+       "ProjY"
+      ],
+      [
+       "Adamsky",
+       "Nail",
+       "ProjX"
+      ],
+      [
+       "Smith",
+       "Bolt",
+       "ProjX"
+      ],
+      [
+       "Smith",
+       "Bolt",
+       "ProjY"
+      ],
+      [
+       "Smith",
+       "Nut",
+       "ProjY"
+      ],
+      [
+       "Walton",
+       "Nut",
+       "ProjZ"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:8821145e31bd": {
+   "statements": [
+    {
+     "sql": "INSERT INTO supplier_project VALUES ('Walton', 'ProjX')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO part_project VALUES ('Nut', 'ProjX')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT supplier, part, project FROM supply_v WHERE supplier = 'Walton' ORDER BY part, project",
+     "status": "ok",
+     "columns": [
+      "supplier",
+      "part",
+      "project"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Walton",
+       "Nut",
+       "ProjX"
+      ],
+      [
+       "Walton",
+       "Nut",
+       "ProjZ"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:b592993cddd8": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE supplier_part, part_project, supplier_project",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "supplier_part",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "part_project",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "supplier_project",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT * FROM supply_v WHERE supplier = 'Smith'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=2.36 rows=2)\n    -> Inner hash join (pj.project = sj.project)  (cost=1.91 rows=2)\n        -> Index scan on pj using PRIMARY  (cost=0.175 rows=6)\n        -> Hash\n            -> Covering index lookup on sj using PRIMARY (supplier='Smith')  (cost=0.46 rows=2)\n    -> Single-row covering index lookup on sp using PRIMARY (supplier='Smith', part=pj.part)  (cost=0.175 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:06ea2712b44b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO course_info (course_id, instructor, textbook)\nSELECT DISTINCT course_id, instructor, 'Karwin' FROM course_info WHERE course_id = 'CS-157A'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT instructor, COUNT(*) AS textbooks FROM course_info WHERE course_id = 'CS-157A' GROUP BY instructor ORDER BY instructor",
+     "status": "ok",
+     "columns": [
+      "instructor",
+      "textbooks"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Kim",
+       4
+      ],
+      [
+       "Rossi",
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

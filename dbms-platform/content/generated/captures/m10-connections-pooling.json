@@ -1,0 +1,1091 @@
+{
+ "doc": "m10-connections-pooling",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:de8d4ea03d6d": {
+   "statements": [
+    {
+     "sql": "SELECT @@max_connections         AS max_connections,\n       @@max_user_connections    AS max_user_connections,\n       @@thread_cache_size       AS thread_cache_size,\n       @@thread_handling         AS thread_handling,\n       @@thread_stack            AS thread_stack_bytes,\n       @@max_allowed_packet      AS max_allowed_packet,\n       @@net_buffer_length       AS net_buffer_length",
+     "status": "ok",
+     "columns": [
+      "max_connections",
+      "max_user_connections",
+      "thread_cache_size",
+      "thread_handling",
+      "thread_stack_bytes",
+      "max_allowed_packet",
+      "net_buffer_length"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       151,
+       6,
+       9,
+       "one-thread-per-connection",
+       1048576,
+       67108864,
+       16384
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:018077177538": {
+   "statements": [
+    {
+     "sql": "SELECT @@wait_timeout          AS wait_timeout_s,\n       @@interactive_timeout   AS interactive_timeout_s,\n       @@connect_timeout       AS connect_timeout_s,\n       @@net_read_timeout      AS net_read_timeout_s,\n       @@net_write_timeout     AS net_write_timeout_s,\n       @@protocol_compression_algorithms AS compression",
+     "status": "ok",
+     "columns": [
+      "wait_timeout_s",
+      "interactive_timeout_s",
+      "connect_timeout_s",
+      "net_read_timeout_s",
+      "net_write_timeout_s",
+      "compression"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       28800,
+       28800,
+       10,
+       30,
+       60,
+       "zlib,zstd,uncompressed"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:bea1e6db4d5d": {
+   "statements": [
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN\n  ('Connections', 'Threads_connected', 'Threads_running', 'Threads_cached',\n   'Threads_created', 'Max_used_connections', 'Aborted_clients', 'Aborted_connects')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "Aborted_clients",
+       "8"
+      ],
+      [
+       "Aborted_connects",
+       "0"
+      ],
+      [
+       "Connections",
+       "657"
+      ],
+      [
+       "Max_used_connections",
+       "9"
+      ],
+      [
+       "Threads_cached",
+       "7"
+      ],
+      [
+       "Threads_connected",
+       "2"
+      ],
+      [
+       "Threads_created",
+       "9"
+      ],
+      [
+       "Threads_running",
+       "1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:1c46c5fc0d50": {
+   "volatile": true,
+   "statements": [
+    {
+     "sql": "SELECT CONNECTION_ID() AS my_thread_id",
+     "status": "ok"
+    }
+   ]
+  },
+  "s5:39a2548d4701": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Ssl_version', 'Ssl_cipher', 'Compression')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Compression",
+       "OFF"
+      ],
+      [
+       "Ssl_cipher",
+       "TLS_AES_256_GCM_SHA384"
+      ],
+      [
+       "Ssl_version",
+       "TLSv1.3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:ef17c1b1c0d0": {
+   "statements": [
+    {
+     "sql": "-- Request 1 borrows the connection\nSET @tenant_id = 42",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION sql_mode = 'ANSI_QUOTES'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TEMPORARY TABLE request_scratch (id INT)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO request_scratch VALUES (1), (2)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s8:64658ee9d5df": {
+   "statements": [
+    {
+     "sql": "-- Request 2 borrows the same pooled connection later\nSELECT @tenant_id AS tenant_id_seen_by_request_2,\n       @@SESSION.sql_mode AS sql_mode_seen_by_request_2,\n       (SELECT COUNT(*) FROM request_scratch) AS scratch_rows_seen",
+     "status": "ok",
+     "columns": [
+      "tenant_id_seen_by_request_2",
+      "sql_mode_seen_by_request_2",
+      "scratch_rows_seen"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       42,
+       "ANSI_QUOTES",
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:9812c6c969b6": {
+   "statements": [
+    {
+     "sql": "DROP TEMPORARY TABLE request_scratch",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @tenant_id = NULL",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION sql_mode = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @@SESSION.sql_mode = @@GLOBAL.sql_mode AS sql_mode_restored",
+     "status": "ok",
+     "columns": [
+      "sql_mode_restored"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:8e63da7f2bd7": {
+   "statements": [
+    {
+     "sql": "SET SESSION wait_timeout = 300",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @@SESSION.wait_timeout AS this_connection, @@GLOBAL.wait_timeout AS server_default",
+     "status": "ok",
+     "columns": [
+      "this_connection",
+      "server_default"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       300,
+       28800
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:c557485cdfed": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Bytes_sent'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Bytes_sent",
+       "2090"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT order_id FROM orders WHERE order_id = 1",
+     "status": "ok",
+     "columns": [
+      "order_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Bytes_sent'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Bytes_sent",
+       "2420"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT * FROM orders",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "order_date",
+      "status",
+      "shipped_at",
+      "discount_code"
+     ],
+     "row_count": 80,
+     "truncated": true,
+     "rows": [
+      [
+       1,
+       3,
+       "2024-10-31 09:09:00",
+       "cancelled",
+       null,
+       null
+      ],
+      [
+       2,
+       19,
+       "2024-10-16 16:55:00",
+       "delivered",
+       "2024-10-19 19:55:00",
+       "VIP20"
+      ],
+      [
+       3,
+       18,
+       "2024-04-19 16:38:00",
+       "delivered",
+       "2024-04-21 21:38:00",
+       null
+      ],
+      [
+       4,
+       10,
+       "2024-11-09 19:09:00",
+       "paid",
+       null,
+       null
+      ],
+      [
+       5,
+       11,
+       "2024-04-14 19:43:00",
+       "cancelled",
+       null,
+       null
+      ],
+      [
+       6,
+       6,
+       "2024-08-14 17:24:00",
+       "refunded",
+       "2024-08-19 01:24:00",
+       null
+      ],
+      [
+       7,
+       18,
+       "2024-03-16 15:20:00",
+       "delivered",
+       "2024-03-17 19:20:00",
+       null
+      ],
+      [
+       8,
+       4,
+       "2024-06-30 17:33:00",
+       "shipped",
+       "2024-07-02 20:33:00",
+       null
+      ],
+      [
+       9,
+       14,
+       "2024-12-08 12:14:00",
+       "delivered",
+       "2024-12-11 00:14:00",
+       "VIP20"
+      ],
+      [
+       10,
+       15,
+       "2024-06-28 13:12:00",
+       "delivered",
+       "2024-06-30 13:12:00",
+       "VIP20"
+      ],
+      [
+       11,
+       9,
+       "2024-06-28 18:56:00",
+       "paid",
+       null,
+       "WELCOME10"
+      ],
+      [
+       12,
+       14,
+       "2024-11-06 16:43:00",
+       "delivered",
+       "2024-11-11 01:43:00",
+       null
+      ],
+      [
+       13,
+       22,
+       "2024-04-10 14:12:00",
+       "shipped",
+       "2024-04-12 00:12:00",
+       null
+      ],
+      [
+       14,
+       18,
+       "2024-03-06 11:16:00",
+       "shipped",
+       "2024-03-10 21:16:00",
+       "VIP20"
+      ],
+      [
+       15,
+       10,
+       "2024-05-26 11:35:00",
+       "shipped",
+       "2024-05-29 18:35:00",
+       "WELCOME10"
+      ],
+      [
+       16,
+       22,
+       "2024-11-20 18:34:00",
+       "delivered",
+       "2024-11-22 06:34:00",
+       null
+      ],
+      [
+       17,
+       7,
+       "2024-12-22 14:33:00",
+       "shipped",
+       "2024-12-26 17:33:00",
+       null
+      ],
+      [
+       18,
+       5,
+       "2024-08-25 19:23:00",
+       "paid",
+       null,
+       "SPRING15"
+      ],
+      [
+       19,
+       16,
+       "2024-08-18 12:25:00",
+       "delivered",
+       "2024-08-22 00:25:00",
+       "SPRING15"
+      ],
+      [
+       20,
+       18,
+       "2024-02-11 10:21:00",
+       "delivered",
+       "2024-02-13 16:21:00",
+       "VIP20"
+      ],
+      [
+       21,
+       18,
+       "2024-08-26 15:05:00",
+       "delivered",
+       "2024-08-28 21:05:00",
+       "WELCOME10"
+      ],
+      [
+       22,
+       18,
+       "2024-11-04 11:45:00",
+       "shipped",
+       "2024-11-06 15:45:00",
+       "WELCOME10"
+      ],
+      [
+       23,
+       20,
+       "2024-09-30 08:27:00",
+       "shipped",
+       "2024-10-01 09:27:00",
+       "VIP20"
+      ],
+      [
+       24,
+       11,
+       "2024-06-21 14:28:00",
+       "delivered",
+       "2024-06-25 18:28:00",
+       null
+      ],
+      [
+       25,
+       21,
+       "2024-01-21 08:31:00",
+       "delivered",
+       "2024-01-23 08:31:00",
+       "SPRING15"
+      ],
+      [
+       26,
+       7,
+       "2024-08-26 19:56:00",
+       "delivered",
+       "2024-08-29 21:56:00",
+       "SPRING15"
+      ],
+      [
+       27,
+       7,
+       "2024-02-08 18:06:00",
+       "refunded",
+       "2024-02-10 19:06:00",
+       "VIP20"
+      ],
+      [
+       28,
+       14,
+       "2024-12-04 14:19:00",
+       "delivered",
+       "2024-12-07 14:19:00",
+       "WELCOME10"
+      ],
+      [
+       29,
+       17,
+       "2024-11-29 12:36:00",
+       "pending",
+       null,
+       "SPRING15"
+      ],
+      [
+       30,
+       3,
+       "2024-05-22 15:41:00",
+       "delivered",
+       "2024-05-27 00:41:00",
+       "SPRING15"
+      ],
+      [
+       31,
+       1,
+       "2024-09-21 11:15:00",
+       "delivered",
+       "2024-09-23 22:15:00",
+       "WELCOME10"
+      ],
+      [
+       32,
+       10,
+       "2024-04-23 14:54:00",
+       "refunded",
+       "2024-04-25 18:54:00",
+       "VIP20"
+      ],
+      [
+       33,
+       4,
+       "2024-04-08 13:23:00",
+       "delivered",
+       "2024-04-10 16:23:00",
+       null
+      ],
+      [
+       34,
+       5,
+       "2024-05-20 08:46:00",
+       "delivered",
+       "2024-05-23 19:46:00",
+       null
+      ],
+      [
+       35,
+       3,
+       "2024-07-24 16:23:00",
+       "delivered",
+       "2024-07-25 18:23:00",
+       null
+      ],
+      [
+       36,
+       15,
+       "2024-08-14 13:04:00",
+       "pending",
+       null,
+       "WELCOME10"
+      ],
+      [
+       37,
+       7,
+       "2024-11-16 11:36:00",
+       "delivered",
+       "2024-11-17 13:36:00",
+       null
+      ],
+      [
+       38,
+       20,
+       "2024-08-28 12:58:00",
+       "delivered",
+       "2024-08-30 16:58:00",
+       "VIP20"
+      ],
+      [
+       39,
+       22,
+       "2024-04-11 15:15:00",
+       "delivered",
+       "2024-04-14 01:15:00",
+       null
+      ],
+      [
+       40,
+       15,
+       "2024-03-04 15:59:00",
+       "refunded",
+       "2024-03-08 02:59:00",
+       "WELCOME10"
+      ],
+      [
+       41,
+       11,
+       "2024-11-05 12:16:00",
+       "delivered",
+       "2024-11-06 15:16:00",
+       "VIP20"
+      ],
+      [
+       42,
+       14,
+       "2024-11-21 16:23:00",
+       "delivered",
+       "2024-11-25 21:23:00",
+       "WELCOME10"
+      ],
+      [
+       43,
+       22,
+       "2024-07-24 17:23:00",
+       "delivered",
+       "2024-07-28 18:23:00",
+       null
+      ],
+      [
+       44,
+       14,
+       "2024-01-28 11:12:00",
+       "paid",
+       null,
+       null
+      ],
+      [
+       45,
+       16,
+       "2024-03-03 08:29:00",
+       "cancelled",
+       null,
+       "SPRING15"
+      ],
+      [
+       46,
+       8,
+       "2024-02-28 15:52:00",
+       "delivered",
+       "2024-03-01 22:52:00",
+       "VIP20"
+      ],
+      [
+       47,
+       18,
+       "2024-03-15 14:32:00",
+       "delivered",
+       "2024-03-17 15:32:00",
+       null
+      ],
+      [
+       48,
+       19,
+       "2024-12-03 16:21:00",
+       "delivered",
+       "2024-12-08 00:21:00",
+       "WELCOME10"
+      ],
+      [
+       49,
+       19,
+       "2024-07-15 11:59:00",
+       "shipped",
+       "2024-07-16 16:59:00",
+       "VIP20"
+      ],
+      [
+       50,
+       17,
+       "2024-10-29 13:39:00",
+       "delivered",
+       "2024-11-02 14:39:00",
+       "SPRING15"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Bytes_sent'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Bytes_sent",
+       "7954"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:b9052858daec": {
+   "statements": [
+    {
+     "sql": "PREPARE find_order FROM 'SELECT status FROM orders WHERE order_id = ?'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Statement prepared",
+     "rows": []
+    },
+    {
+     "sql": "SET @id = 7",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXECUTE find_order USING @id",
+     "status": "ok",
+     "columns": [
+      "status"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "delivered"
+      ]
+     ]
+    },
+    {
+     "sql": "SET @id = 8",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXECUTE find_order USING @id",
+     "status": "ok",
+     "columns": [
+      "status"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "shipped"
+      ]
+     ]
+    },
+    {
+     "sql": "DEALLOCATE PREPARE find_order",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Com_prepare_sql', 'Com_execute_sql', 'Com_stmt_prepare', 'Com_stmt_execute')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Com_execute_sql",
+       "2"
+      ],
+      [
+       "Com_prepare_sql",
+       "1"
+      ],
+      [
+       "Com_stmt_execute",
+       "2"
+      ],
+      [
+       "Com_stmt_prepare",
+       "2"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:0601bbcf4b1a": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE inventory SET on_hand = on_hand - 1 WHERE sku = 'A-100'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COMMAND, STATE, INFO FROM information_schema.PROCESSLIST WHERE DB = DATABASE() ORDER BY COMMAND, INFO",
+       "status": "ok",
+       "columns": [
+        "COMMAND",
+        "STATE",
+        "INFO"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         "Query",
+         "executing",
+         "SELECT COMMAND, STATE, INFO FROM information_schema.PROCESSLIST WHERE DB = DATABASE() ORDER BY COMMAND, INFO"
+        ],
+        [
+         "Sleep",
+         "",
+         null
+        ]
+       ],
+       "warnings": [
+        {
+         "level": "Warning",
+         "code": 1287,
+         "message": "'INFORMATION_SCHEMA.PROCESSLIST' is deprecated and will be removed in a future release. Please use performance_schema.processlist instead"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "C",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE inventory SET on_hand = on_hand - 1 WHERE sku = 'A-100'",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "B",
+        "trxId": "350901",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
+        "lockStructs": 2
+       },
+       {
+        "session": "C",
+        "trxId": "350912",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "B",
+        "table": "inventory",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "inventory",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "'A-100'"
+       },
+       {
+        "session": "C",
+        "table": "inventory",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "C",
+        "table": "inventory",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "'A-100'"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT sku, on_hand FROM inventory ORDER BY sku",
+       "status": "ok",
+       "columns": [
+        "sku",
+        "on_hand"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         "A-100",
+         9
+        ],
+        [
+         "B-200",
+         5
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s13:318dddcfde63": {
+   "statements": [
+    {
+     "sql": "SET GLOBAL max_connections = 1000",
+     "status": "rejected",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": null,
+      "message": "Global/persisted system variables are server-wide and cannot be changed from the sandbox. Use SET SESSION to change a variable for your own session."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:dd611639bcad": {
+   "statements": [
+    {
+     "sql": "SET SESSION sql_mode = 'ANSI_QUOTES'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s15:9fc443659735": {
+   "statements": [
+    {
+     "sql": "SELECT order_id FROM orders WHERE status = \"delivered\" LIMIT 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1054,
+      "message": "Unknown column 'delivered' in 'where clause'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s16:bc2417a35629": {
+   "statements": [
+    {
+     "sql": "SET SESSION sql_mode = DEFAULT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT order_id FROM orders WHERE status = \"delivered\" ORDER BY order_id LIMIT 1",
+     "status": "ok",
+     "columns": [
+      "order_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

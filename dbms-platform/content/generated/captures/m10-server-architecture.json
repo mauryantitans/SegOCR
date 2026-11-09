@@ -1,0 +1,944 @@
+{
+ "doc": "m10-server-architecture",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s2:4f9edc069236": {
+   "statements": [
+    {
+     "sql": "SELECT VERSION()          AS version,\n       @@version_comment  AS distribution,\n       @@port             AS classic_port,\n       @@mysqlx_port      AS x_protocol_port,\n       @@admin_port       AS admin_port,\n       @@thread_handling  AS thread_handling",
+     "status": "ok",
+     "columns": [
+      "version",
+      "distribution",
+      "classic_port",
+      "x_protocol_port",
+      "admin_port",
+      "thread_handling"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "8.0.46-0ubuntu0.24.04.4",
+       "(Ubuntu)",
+       3306,
+       33060,
+       33062,
+       "one-thread-per-connection"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:64db349a862a": {
+   "statements": [
+    {
+     "sql": "SELECT ENGINE, SUPPORT, TRANSACTIONS, XA, SAVEPOINTS\nFROM information_schema.ENGINES\nORDER BY SUPPORT = 'DEFAULT' DESC, ENGINE",
+     "status": "ok",
+     "columns": [
+      "ENGINE",
+      "SUPPORT",
+      "TRANSACTIONS",
+      "XA",
+      "SAVEPOINTS"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       "InnoDB",
+       "DEFAULT",
+       "YES",
+       "YES",
+       "YES"
+      ],
+      [
+       "ARCHIVE",
+       "YES",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "BLACKHOLE",
+       "YES",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "CSV",
+       "YES",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "FEDERATED",
+       "NO",
+       null,
+       null,
+       null
+      ],
+      [
+       "MEMORY",
+       "YES",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "MRG_MYISAM",
+       "YES",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "MyISAM",
+       "YES",
+       "NO",
+       "NO",
+       "NO"
+      ],
+      [
+       "PERFORMANCE_SCHEMA",
+       "YES",
+       "NO",
+       "NO",
+       "NO"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:6c77d577ebc3": {
+   "statements": [
+    {
+     "sql": "SELECT PLUGIN_TYPE, COUNT(*) AS plugins\nFROM information_schema.PLUGINS\nWHERE PLUGIN_STATUS = 'ACTIVE'\nGROUP BY PLUGIN_TYPE\nORDER BY plugins DESC, PLUGIN_TYPE",
+     "status": "ok",
+     "columns": [
+      "PLUGIN_TYPE",
+      "plugins"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "INFORMATION SCHEMA",
+       26
+      ],
+      [
+       "STORAGE ENGINE",
+       10
+      ],
+      [
+       "AUTHENTICATION",
+       4
+      ],
+      [
+       "AUDIT",
+       2
+      ],
+      [
+       "DAEMON",
+       2
+      ],
+      [
+       "FTPARSER",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:37b8030cc628": {
+   "statements": [
+    {
+     "sql": "SELECT PLUGIN_NAME, PLUGIN_TYPE, PLUGIN_DESCRIPTION\nFROM information_schema.PLUGINS\nWHERE PLUGIN_NAME IN ('binlog', 'InnoDB', 'MyISAM', 'caching_sha2_password', 'mysql_native_password')\nORDER BY PLUGIN_TYPE, PLUGIN_NAME",
+     "status": "ok",
+     "columns": [
+      "PLUGIN_NAME",
+      "PLUGIN_TYPE",
+      "PLUGIN_DESCRIPTION"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "caching_sha2_password",
+       "AUTHENTICATION",
+       "Caching sha2 authentication"
+      ],
+      [
+       "mysql_native_password",
+       "AUTHENTICATION",
+       "Native MySQL authentication"
+      ],
+      [
+       "binlog",
+       "STORAGE ENGINE",
+       "This is a pseudo storage engine to represent the binlog in a transaction"
+      ],
+      [
+       "InnoDB",
+       "STORAGE ENGINE",
+       "Supports transactions, row-level locking, and foreign keys"
+      ],
+      [
+       "MyISAM",
+       "STORAGE ENGINE",
+       "MyISAM storage engine"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:3ee983a75a17": {
+   "statements": [
+    {
+     "sql": "EXPLAIN\nSELECT TABLE_NAME FROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE()",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "cat",
+       null,
+       "index",
+       "PRIMARY",
+       "name",
+       "194",
+       null,
+       1,
+       100.0,
+       "Using index"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "sch",
+       null,
+       "eq_ref",
+       "PRIMARY,catalog_id",
+       "catalog_id",
+       "202",
+       "mysql.cat.id,const",
+       1,
+       100.0,
+       "Using index"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "tbl",
+       null,
+       "ref",
+       "schema_id",
+       "schema_id",
+       "8",
+       "mysql.sch.id",
+       191,
+       100.0,
+       "Using where"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "col",
+       null,
+       "eq_ref",
+       "PRIMARY",
+       "PRIMARY",
+       "8",
+       "mysql.tbl.collation_id",
+       1,
+       100.0,
+       "Using index"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "ts",
+       null,
+       "eq_ref",
+       "PRIMARY",
+       "PRIMARY",
+       "8",
+       "mysql.tbl.tablespace_id",
+       1,
+       100.0,
+       "Using index"
+      ],
+      [
+       1,
+       "SIMPLE",
+       "stat",
+       null,
+       "eq_ref",
+       "PRIMARY",
+       "PRIMARY",
+       "388",
+       "const,mysql.tbl.name",
+       1,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `mysql`.`tbl`.`name` AS `TABLE_NAME` from `mysql`.`tables` `tbl` join `mysql`.`schemata` `sch` join `mysql`.`catalogs` `cat` left join `mysql`.`collations` `col` on((`mysql`.`col`.`id` = `mysql`.`tbl`.`collation_id`)) left join `mysql`.`tablespaces` `ts` on((`mysql`.`ts`.`id` = `mysql`.`tbl`.`tablespace_id`)) left join `mysql`.`table_stats` `stat` on(((`mysql`.`stat`.`schema_name` = database()) and (`mysql`.`stat`.`table_name` = `mysql`.`tbl`.`name`))) where ((`mysql`.`tbl`.`schema_id` = `mysql`.`sch`.`id`) and (`mysql`.`sch`.`catalog_id` = `mysql`.`cat`.`id`) and (`mysql`.`sch`.`name` = database()) and (0 <> can_access_table(`mysql`.`sch`.`name`,`mysql`.`tbl`.`name`)) and (0 <> is_visible_dd_object(`mysql`.`tbl`.`hidden`)))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:146f59edad8f": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Handler_read%'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "Handler_read_first",
+       "2"
+      ],
+      [
+       "Handler_read_key",
+       "52"
+      ],
+      [
+       "Handler_read_last",
+       "0"
+      ],
+      [
+       "Handler_read_next",
+       "0"
+      ],
+      [
+       "Handler_read_prev",
+       "0"
+      ],
+      [
+       "Handler_read_rnd",
+       "5"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "111"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:34dc9dfa29e4": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS delivered FROM orders WHERE status = 'delivered'",
+     "status": "ok",
+     "columns": [
+      "delivered"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       45
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Handler_read%'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "Handler_read_first",
+       "3"
+      ],
+      [
+       "Handler_read_key",
+       "53"
+      ],
+      [
+       "Handler_read_last",
+       "0"
+      ],
+      [
+       "Handler_read_next",
+       "0"
+      ],
+      [
+       "Handler_read_prev",
+       "0"
+      ],
+      [
+       "Handler_read_rnd",
+       "5"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "192"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:88745f917e1a": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, status FROM orders WHERE order_id = 42",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       42,
+       "delivered"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Handler_read%'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "Handler_read_first",
+       "3"
+      ],
+      [
+       "Handler_read_key",
+       "54"
+      ],
+      [
+       "Handler_read_last",
+       "0"
+      ],
+      [
+       "Handler_read_next",
+       "0"
+      ],
+      [
+       "Handler_read_prev",
+       "0"
+      ],
+      [
+       "Handler_read_rnd",
+       "5"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "192"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:b05974af9cb9": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE arch_demo (id INT PRIMARY KEY, note VARCHAR(20))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name = 'Handler_prepare'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Handler_prepare",
+       "4"
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO arch_demo VALUES (1, 'write')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name = 'Handler_prepare'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Handler_prepare",
+       "6"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) FROM arch_demo",
+     "status": "ok",
+     "columns": [
+      "COUNT(*)"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name = 'Handler_prepare'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Handler_prepare",
+       "6"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:bf7ac8c2e4c8": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE ddl_keep (id INT PRIMARY KEY)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s13:3a2ace41fd15": {
+   "statements": [
+    {
+     "sql": "DROP TABLE ddl_keep, no_such_table",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1051,
+      "message": "Unknown table 'no_such_table'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:faa2176d07ac": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME FROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ddl_keep'",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "ddl_keep"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:ef71df60a3c3": {
+   "statements": [
+    {
+     "sql": "SELECT @@information_schema_stats_expiry AS cache_seconds",
+     "status": "ok",
+     "columns": [
+      "cache_seconds"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       86400
+      ]
+     ]
+    },
+    {
+     "sql": "-- first read: statistics are fetched from InnoDB and cached\nSELECT TABLE_ROWS FROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'arch_demo'",
+     "status": "ok",
+     "columns": [
+      "TABLE_ROWS"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO arch_demo VALUES (2, 'b'), (3, 'c'), (4, 'd')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- second read: served from the cache\nSELECT TABLE_ROWS FROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'arch_demo'",
+     "status": "ok",
+     "columns": [
+      "TABLE_ROWS"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:3fb5a69400cf": {
+   "statements": [
+    {
+     "sql": "SET SESSION information_schema_stats_expiry = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- always ask the engine\nSELECT TABLE_ROWS FROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'arch_demo'",
+     "status": "ok",
+     "columns": [
+      "TABLE_ROWS"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:4a2c61498727": {
+   "volatile": true,
+   "statements": [
+    {
+     "sql": "SELECT CONNECTION_ID()",
+     "status": "ok"
+    }
+   ]
+  },
+  "s18:fa63a0c196e3": {
+   "statements": [
+    {
+     "sql": "SELECT COMMAND, STATE, INFO\nFROM information_schema.PROCESSLIST\nWHERE ID = CONNECTION_ID()",
+     "status": "ok",
+     "columns": [
+      "COMMAND",
+      "STATE",
+      "INFO"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Query",
+       "executing",
+       "SELECT COMMAND, STATE, INFO\nFROM information_schema.PROCESSLIST\nWHERE ID = CONNECTION_ID()"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'INFORMATION_SCHEMA.PROCESSLIST' is deprecated and will be removed in a future release. Please use performance_schema.processlist instead"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:537d31a1f1ae": {
+   "statements": [
+    {
+     "sql": "SELECT COMMAND, STATE FROM information_schema.PROCESSLIST WHERE ID = CONNECTION_ID()",
+     "status": "ok",
+     "columns": [
+      "COMMAND",
+      "STATE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Query",
+       "executing"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'INFORMATION_SCHEMA.PROCESSLIST' is deprecated and will be removed in a future release. Please use performance_schema.processlist instead"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:ccd7581ecb35": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE\nFROM information_schema.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('customers', 'orders')\n  AND COLUMN_NAME IN ('customer_id', 'city', 'status')\nORDER BY TABLE_NAME, COLUMN_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "COLUMN_NAME",
+      "DATA_TYPE"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "customers",
+       "city",
+       "varchar"
+      ],
+      [
+       "customers",
+       "customer_id",
+       "int"
+      ],
+      [
+       "orders",
+       "customer_id",
+       "int"
+      ],
+      [
+       "orders",
+       "status",
+       "enum"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:1dcd9365d71b": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT c.city, COUNT(*) AS delivered\nFROM customers c JOIN orders o ON o.customer_id = c.customer_id\nWHERE o.status = 'delivered'\nGROUP BY c.city",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>\n    -> Aggregate using temporary table\n        -> Nested loop inner join  (cost=12.9 rows=13.3)\n            -> Filter: (o.`status` = 'delivered')  (cost=8.25 rows=13.3)\n                -> Table scan on o  (cost=8.25 rows=80)\n            -> Single-row index lookup on c using PRIMARY (customer_id=o.customer_id)  (cost=0.257 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:e2c09744a819": {
+   "statements": [
+    {
+     "sql": "SELECT c.city, COUNT(*) AS delivered\nFROM customers c JOIN orders o ON o.customer_id = c.customer_id\nWHERE o.status = 'delivered'\nGROUP BY c.city\nORDER BY delivered DESC, c.city\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "city",
+      "delivered"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       "San Francisco",
+       15
+      ],
+      [
+       "San Jose",
+       8
+      ],
+      [
+       "New York",
+       7
+      ],
+      [
+       "Austin",
+       6
+      ],
+      [
+       "Seattle",
+       5
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:60db9502dbee": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Bytes_sent', 'Handler_commit', 'Handler_read_key')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Bytes_sent",
+       "8672"
+      ],
+      [
+       "Handler_commit",
+       "49"
+      ],
+      [
+       "Handler_read_key",
+       "235"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:9fea1dd37536": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE arch_myisam (id INT PRIMARY KEY) ENGINE = MyISAM",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO arch_myisam VALUES (1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1196,
+       "message": "Some non-transactional changed tables couldn't be rolled back"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_after_rollback FROM arch_myisam",
+     "status": "ok",
+     "columns": [
+      "rows_after_rollback"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:135728456e60": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM mysql.tables LIMIT 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3554,
+      "message": "Access to data dictionary table 'mysql.tables' is rejected."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s21:303406c8c242": {
+   "statements": [
+    {
+     "sql": "SELECT @@query_cache_type",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1193,
+      "message": "Unknown system variable 'query_cache_type'"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

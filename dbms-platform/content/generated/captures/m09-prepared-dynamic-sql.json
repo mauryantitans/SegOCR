@@ -1,0 +1,1151 @@
+{
+ "doc": "m09-prepared-dynamic-sql",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s2:7e9cf42c7a22": {
+   "statements": [
+    {
+     "sql": "PREPARE orders_by_customer FROM\n  'SELECT order_id, order_date, status FROM orders\n   WHERE customer_id = ? AND status <> ? ORDER BY order_date, order_id'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Statement prepared",
+     "rows": []
+    },
+    {
+     "sql": "SET @cust = 14, @excluded = 'cancelled'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXECUTE orders_by_customer USING @cust, @excluded",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_date",
+      "status"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       44,
+       "2024-01-28 11:12:00",
+       "paid"
+      ],
+      [
+       71,
+       "2024-02-19 14:21:00",
+       "delivered"
+      ],
+      [
+       12,
+       "2024-11-06 16:43:00",
+       "delivered"
+      ],
+      [
+       42,
+       "2024-11-21 16:23:00",
+       "delivered"
+      ],
+      [
+       28,
+       "2024-12-04 14:19:00",
+       "delivered"
+      ],
+      [
+       9,
+       "2024-12-08 12:14:00",
+       "delivered"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:745cb5be2b35": {
+   "statements": [
+    {
+     "sql": "SET @cust = 4",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXECUTE orders_by_customer USING @cust, @excluded",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_date",
+      "status"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       33,
+       "2024-04-08 13:23:00",
+       "delivered"
+      ],
+      [
+       62,
+       "2024-04-30 17:10:00",
+       "delivered"
+      ],
+      [
+       8,
+       "2024-06-30 17:33:00",
+       "shipped"
+      ],
+      [
+       69,
+       "2024-12-01 19:06:00",
+       "paid"
+      ]
+     ]
+    },
+    {
+     "sql": "DEALLOCATE PREPARE orders_by_customer",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s4:457fe9f3a929": {
+   "statements": [
+    {
+     "sql": "PREPARE product_page FROM\n  'SELECT product_id, name, price FROM products ORDER BY product_id LIMIT ? OFFSET ?'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Statement prepared",
+     "rows": []
+    },
+    {
+     "sql": "SET @page_size = 5, @offset = 10",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXECUTE product_page USING @page_size, @offset",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       11,
+       "Bluetooth Speaker",
+       "79.99"
+      ],
+      [
+       12,
+       "Wireless Earbuds",
+       "129.99"
+      ],
+      [
+       13,
+       "Studio Microphone",
+       "149.00"
+      ],
+      [
+       14,
+       "Espresso Machine",
+       "499.00"
+      ],
+      [
+       15,
+       "Burr Coffee Grinder",
+       "129.00"
+      ]
+     ]
+    },
+    {
+     "sql": "DEALLOCATE PREPARE product_page",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s5:be181c2dd8b7": {
+   "statements": [
+    {
+     "sql": "SET @sql = CONCAT('SELECT COUNT(*) AS n FROM ', 'products', ' WHERE is_active = ?')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @active = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "PREPARE s FROM @sql",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Statement prepared",
+     "rows": []
+    },
+    {
+     "sql": "EXECUTE s USING @active",
+     "status": "ok",
+     "columns": [
+      "n"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       29
+      ]
+     ]
+    },
+    {
+     "sql": "DEALLOCATE PREPARE s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s6:dfcca27fb6f5": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Com_prepare_sql', 'Com_execute_sql', 'Com_dealloc_sql')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Com_dealloc_sql",
+       "3"
+      ],
+      [
+       "Com_execute_sql",
+       "4"
+      ],
+      [
+       "Com_prepare_sql",
+       "3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:39b6619bf233": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE find_customers_unsafe(IN p_city VARCHAR(200))\n  READS SQL DATA\nBEGIN\n  SET @q = CONCAT('SELECT customer_id, first_name, city FROM customers WHERE city = ''', p_city,\n                  ''' ORDER BY customer_id');\n  PREPARE q FROM @q;\n  EXECUTE q;\n  DEALLOCATE PREPARE q;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL find_customers_unsafe('Austin')",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "city"
+     ],
+     "row_count": 4,
+     "affected_rows": 0,
+     "rows": [
+      [
+       1,
+       "Amara",
+       "Austin"
+      ],
+      [
+       4,
+       "Diego",
+       "Austin"
+      ],
+      [
+       12,
+       "Nina",
+       "Austin"
+      ],
+      [
+       21,
+       "Aarav",
+       "Austin"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:f708ec7d2b5d": {
+   "statements": [
+    {
+     "sql": "CALL find_customers_unsafe('nowhere'' OR ''1''=''1')",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "city"
+     ],
+     "row_count": 25,
+     "affected_rows": 0,
+     "rows": [
+      [
+       1,
+       "Amara",
+       "Austin"
+      ],
+      [
+       2,
+       "Kwame",
+       "Boston"
+      ],
+      [
+       3,
+       "Diego",
+       "San Jose"
+      ],
+      [
+       4,
+       "Diego",
+       "Austin"
+      ],
+      [
+       5,
+       "Grace",
+       "Seattle"
+      ],
+      [
+       6,
+       "Sofia",
+       "San Francisco"
+      ],
+      [
+       7,
+       "Nina",
+       "San Francisco"
+      ],
+      [
+       8,
+       "Hiro",
+       "San Francisco"
+      ],
+      [
+       9,
+       "Diego",
+       "San Francisco"
+      ],
+      [
+       10,
+       "Lucas",
+       "New York"
+      ],
+      [
+       11,
+       "Grace",
+       "San Francisco"
+      ],
+      [
+       12,
+       "Nina",
+       "Austin"
+      ],
+      [
+       13,
+       "Diego",
+       "San Jose"
+      ],
+      [
+       14,
+       "Zara",
+       "New York"
+      ],
+      [
+       15,
+       "Fatima",
+       "Los Angeles"
+      ],
+      [
+       16,
+       "Sara",
+       "Boston"
+      ],
+      [
+       17,
+       "Chloe",
+       "San Jose"
+      ],
+      [
+       18,
+       "Leila",
+       "San Francisco"
+      ],
+      [
+       19,
+       "Lucia",
+       "San Jose"
+      ],
+      [
+       20,
+       "Amara",
+       "Boston"
+      ],
+      [
+       21,
+       "Aarav",
+       "Austin"
+      ],
+      [
+       22,
+       "Tomas",
+       "Seattle"
+      ],
+      [
+       23,
+       "Victor",
+       "Chicago"
+      ],
+      [
+       24,
+       "Hana",
+       "Seattle"
+      ],
+      [
+       25,
+       "Chloe",
+       "San Francisco"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:00ba950e4abb": {
+   "statements": [
+    {
+     "sql": "CALL find_customers_unsafe('nowhere'' UNION SELECT customer_id, email, phone FROM customers WHERE customer_id <= 3 -- ')",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "city"
+     ],
+     "row_count": 3,
+     "affected_rows": 0,
+     "rows": [
+      [
+       1,
+       "amara.sharma1@example.com",
+       "+1-450-555-4657"
+      ],
+      [
+       2,
+       "kwame.garcia2@example.com",
+       "+1-232-555-1488"
+      ],
+      [
+       3,
+       "diego.haddad3@example.com",
+       "+1-774-555-4257"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:b6d4d2ccfebb": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE find_customers(IN p_city VARCHAR(200))\n  READS SQL DATA\nBEGIN\n  SET @city = p_city;\n  PREPARE q FROM 'SELECT customer_id, first_name, city FROM customers WHERE city = ? ORDER BY customer_id';\n  EXECUTE q USING @city;\n  DEALLOCATE PREPARE q;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL find_customers('Austin')",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "city"
+     ],
+     "row_count": 4,
+     "affected_rows": 0,
+     "rows": [
+      [
+       1,
+       "Amara",
+       "Austin"
+      ],
+      [
+       4,
+       "Diego",
+       "Austin"
+      ],
+      [
+       12,
+       "Nina",
+       "Austin"
+      ],
+      [
+       21,
+       "Aarav",
+       "Austin"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:5aebfef91821": {
+   "statements": [
+    {
+     "sql": "CALL find_customers('nowhere'' OR ''1''=''1')",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "city"
+     ],
+     "row_count": 0,
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s12:3c5b94cfd244": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE product_report(IN p_sort VARCHAR(64), IN p_dir VARCHAR(4), IN p_limit INT)\n  READS SQL DATA\nBEGIN\n  DECLARE v_col VARCHAR(64);\n  DECLARE v_dir VARCHAR(4);\n  SET v_col = CASE LOWER(p_sort)\n                WHEN 'name'  THEN 'name'\n                WHEN 'price' THEN 'price'\n                WHEN 'stock' THEN 'stock_qty'\n                ELSE NULL END;\n  IF v_col IS NULL THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Unsupported sort column';\n  END IF;\n  SET v_dir = IF(UPPER(p_dir) = 'DESC', 'DESC', 'ASC');\n  SET @limit = p_limit;\n  SET @q = CONCAT('SELECT product_id, name, price, stock_qty FROM products ORDER BY ',\n                  CONCAT('`', REPLACE(v_col, '`', '``'), '`'), ' ', v_dir, ', product_id LIMIT ?');\n  PREPARE q FROM @q;\n  EXECUTE q USING @limit;\n  DEALLOCATE PREPARE q;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL product_report('price', 'desc', 3)",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price",
+      "stock_qty"
+     ],
+     "row_count": 3,
+     "affected_rows": 0,
+     "rows": [
+      [
+       3,
+       "Gaming Laptop 16",
+       "1799.00",
+       196
+      ],
+      [
+       1,
+       "Ultrabook 14 Pro",
+       "1299.00",
+       245
+      ],
+      [
+       2,
+       "Ultrabook 13 Air",
+       "999.00",
+       226
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:1cae69b19fa7": {
+   "statements": [
+    {
+     "sql": "CALL product_report('price; DROP TABLE products', 'asc', 3)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Unsupported sort column"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s14:b1b48b455738": {
+   "statements": [
+    {
+     "sql": "SELECT QUOTE('Austin') AS plain,\n       QUOTE('O''Brien') AS with_apostrophe,\n       QUOTE('nowhere'' OR ''1''=''1') AS attack_attempt,\n       QUOTE(NULL) AS null_value",
+     "status": "ok",
+     "columns": [
+      "plain",
+      "with_apostrophe",
+      "attack_attempt",
+      "null_value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "'Austin'",
+       "'O\\'Brien'",
+       "'nowhere\\' OR \\'1\\'=\\'1'",
+       "NULL"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:fe3287bbc437": {
+   "statements": [
+    {
+     "sql": "SET @city = 'nowhere'' OR ''1''=''1'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @q = CONCAT('SELECT COUNT(*) AS matches FROM customers WHERE city = ', QUOTE(@city))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @q AS generated_sql",
+     "status": "ok",
+     "columns": [
+      "generated_sql"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "SELECT COUNT(*) AS matches FROM customers WHERE city = 'nowhere\\' OR \\'1\\'=\\'1'"
+      ]
+     ]
+    },
+    {
+     "sql": "PREPARE q FROM @q",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Statement prepared",
+     "rows": []
+    },
+    {
+     "sql": "EXECUTE q",
+     "status": "ok",
+     "columns": [
+      "matches"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "DEALLOCATE PREPARE q",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s16:5f0d5f953d69": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE count_all_tables()\n  READS SQL DATA\nBEGIN\n  DECLARE v_table VARCHAR(64);\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE cur CURSOR FOR\n    SELECT TABLE_NAME FROM information_schema.TABLES\n    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'\n    ORDER BY TABLE_NAME;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  CREATE TEMPORARY TABLE IF NOT EXISTS table_counts (table_name VARCHAR(64) PRIMARY KEY, row_count BIGINT);\n  DELETE FROM table_counts;\n  OPEN cur;\n  l: LOOP\n    FETCH cur INTO v_table;\n    IF done THEN\n      LEAVE l;\n    END IF;\n    SET @q = CONCAT('INSERT INTO table_counts SELECT ', QUOTE(v_table), ', COUNT(*) FROM `',\n                    REPLACE(v_table, '`', '``'), '`');\n    PREPARE q FROM @q;\n    EXECUTE q;\n    DEALLOCATE PREPARE q;\n  END LOOP;\n  CLOSE cur;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL count_all_tables()",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT table_name, row_count FROM table_counts ORDER BY table_name",
+     "status": "ok",
+     "columns": [
+      "table_name",
+      "row_count"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "categories",
+       10
+      ],
+      [
+       "customers",
+       25
+      ],
+      [
+       "order_items",
+       182
+      ],
+      [
+       "orders",
+       80
+      ],
+      [
+       "payments",
+       76
+      ],
+      [
+       "products",
+       30
+      ],
+      [
+       "reviews",
+       45
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:30b0749995f0": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 100000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE tickets (id INT PRIMARY KEY, status VARCHAR(10) NOT NULL, minutes INT NOT NULL, KEY idx_status (status))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO tickets\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 100000)\nSELECT n, IF(n % 10000 = 0, 'escalated', 'closed'), n % 60 FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE tickets",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "tickets",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:731be8ad1a5d": {
+   "statements": [
+    {
+     "sql": "PREPARE plan_for FROM 'EXPLAIN SELECT COUNT(*), SUM(minutes) FROM tickets WHERE status = ?'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Statement prepared",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:5a74a530f049": {
+   "statements": [
+    {
+     "sql": "SET @st = 'escalated'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXECUTE plan_for USING @st",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "tickets",
+       null,
+       "ref",
+       "idx_status",
+       "idx_status",
+       "42",
+       "const",
+       10,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)`,sum(`tickets`.`minutes`) AS `SUM(minutes)` from `tickets` where (`tickets`.`status` = 'escalated')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:0b369938a544": {
+   "statements": [
+    {
+     "sql": "SET @st = 'closed'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXECUTE plan_for USING @st",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "tickets",
+       null,
+       "ref",
+       "idx_status",
+       "idx_status",
+       "42",
+       "const",
+       50056,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)`,sum(`tickets`.`minutes`) AS `SUM(minutes)` from `tickets` where (`tickets`.`status` = 'closed')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:03367df1cffb": {
+   "statements": [
+    {
+     "sql": "DEALLOCATE PREPARE plan_for",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s17:a35cfed51bf6": {
+   "statements": [
+    {
+     "sql": "EXECUTE plan_for USING @st",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1243,
+      "message": "Unknown prepared statement handler (plan_for) given to EXECUTE"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s18:0af4788624a6": {
+   "statements": [
+    {
+     "sql": "SET @sort = 'price'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id, name, price, stock_qty\nFROM products\nORDER BY CASE WHEN @sort = 'price' THEN price END DESC,\n         CASE WHEN @sort = 'name'  THEN name  END,\n         product_id\nLIMIT 3",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price",
+      "stock_qty"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       3,
+       "Gaming Laptop 16",
+       "1799.00",
+       196
+      ],
+      [
+       1,
+       "Ultrabook 14 Pro",
+       "1299.00",
+       245
+      ],
+      [
+       2,
+       "Ultrabook 13 Air",
+       "999.00",
+       226
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:8db5957a5b2c": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE lookup_loop(IN p_n INT)\n  READS SQL DATA\nBEGIN\n  DECLARE i INT DEFAULT 0;\n  PREPARE lk FROM 'SELECT price INTO @p FROM products WHERE product_id = ?';\n  WHILE i < p_n DO\n    SET @id = 1 + i % 30;\n    EXECUTE lk USING @id;\n    SET i = i + 1;\n  END WHILE;\n  DEALLOCATE PREPARE lk;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s20:ee54cee3455f": {
+   "statements": [
+    {
+     "sql": "CALL lookup_loop(2000)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 18.68
+    }
+   ],
+   "measured": true
+  },
+  "s21:32b972d8633b": {
+   "statements": [
+    {
+     "sql": "PREPARE bad_sort FROM 'SELECT product_id, name, price FROM products ORDER BY ? LIMIT 3'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Statement prepared",
+     "rows": []
+    },
+    {
+     "sql": "SET @col = 'price'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXECUTE bad_sort USING @col",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "Ultrabook 14 Pro",
+       "1299.00"
+      ],
+      [
+       2,
+       "Ultrabook 13 Air",
+       "999.00"
+      ],
+      [
+       3,
+       "Gaming Laptop 16",
+       "1799.00"
+      ]
+     ]
+    },
+    {
+     "sql": "DEALLOCATE PREPARE bad_sort",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s22:27573b9f2dc7": {
+   "statements": [
+    {
+     "sql": "PREPARE bad_table FROM 'SELECT COUNT(*) FROM ?'",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '?' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s23:ef96c340335e": {
+   "statements": [
+    {
+     "sql": "PREPARE cnt FROM 'SELECT COUNT(*) AS orders FROM orders WHERE customer_id = ?'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Statement prepared",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s24:54479fdd8734": {
+   "statements": [
+    {
+     "sql": "EXECUTE cnt USING 14",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '14' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s25:2ddd5688a64f": {
+   "statements": [
+    {
+     "sql": "SET @c = 14",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXECUTE cnt USING @c",
+     "status": "ok",
+     "columns": [
+      "orders"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       6
+      ]
+     ]
+    },
+    {
+     "sql": "DEALLOCATE PREPARE cnt",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s26:cc3e5b17abdc": {
+   "statements": [
+    {
+     "sql": "PREPARE two FROM 'SELECT 1; SELECT 2'",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SELECT 2' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

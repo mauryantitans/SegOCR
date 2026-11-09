@@ -2,7 +2,7 @@
  "doc": "m08-savepoints",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:a7235cfe3eba": {
@@ -871,7 +871,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "203118",
+        "trxId": "433985",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 3,
@@ -956,7 +956,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "203118",
+        "trxId": "433985",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 3,

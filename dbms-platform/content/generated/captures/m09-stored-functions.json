@@ -1,0 +1,820 @@
+{
+ "doc": "m09-stored-functions",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s3:2c6e30e31858": {
+   "statements": [
+    {
+     "sql": "CREATE FUNCTION net_price(p_price DECIMAL(10,2), p_discount_pct INT)\n  RETURNS DECIMAL(10,2)\n  DETERMINISTIC NO SQL\n  COMMENT 'Price after a percentage discount, rounded to cents'\nRETURN ROUND(p_price * (100 - p_discount_pct) / 100, 2)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id, name, price, net_price(price, 15) AS price_after_15pct\nFROM products\nORDER BY product_id\nLIMIT 5",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price",
+      "price_after_15pct"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "Ultrabook 14 Pro",
+       "1299.00",
+       "1104.15"
+      ],
+      [
+       2,
+       "Ultrabook 13 Air",
+       "999.00",
+       "849.15"
+      ],
+      [
+       3,
+       "Gaming Laptop 16",
+       "1799.00",
+       "1529.15"
+      ],
+      [
+       4,
+       "Chromebook 11",
+       "249.00",
+       "211.65"
+      ],
+      [
+       5,
+       "Wireless Mouse",
+       "29.99",
+       "25.49"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:60725feb8883": {
+   "statements": [
+    {
+     "sql": "CREATE FUNCTION customer_revenue(p_customer INT)\n  RETURNS DECIMAL(12,2)\n  READS SQL DATA\nBEGIN\n  DECLARE v_total DECIMAL(12,2);\n  SELECT COALESCE(SUM(oi.quantity * oi.unit_price), 0) INTO v_total\n  FROM orders o JOIN order_items oi ON oi.order_id = o.order_id\n  WHERE o.customer_id = p_customer\n    AND o.status NOT IN ('cancelled', 'refunded');\n  RETURN v_total;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT customer_revenue(18) AS cust_18, customer_revenue(2) AS cust_2_never_ordered",
+     "status": "ok",
+     "columns": [
+      "cust_18",
+      "cust_2_never_ordered"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "5713.27",
+       "0.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:6ae9726b4d07": {
+   "statements": [
+    {
+     "sql": "SELECT ROUTINE_NAME, DTD_IDENTIFIER AS returns, IS_DETERMINISTIC, SQL_DATA_ACCESS\nFROM information_schema.ROUTINES\nWHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_TYPE = 'FUNCTION'\nORDER BY ROUTINE_NAME",
+     "status": "ok",
+     "columns": [
+      "ROUTINE_NAME",
+      "returns",
+      "IS_DETERMINISTIC",
+      "SQL_DATA_ACCESS"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "customer_revenue",
+       "decimal(12,2)",
+       "NO",
+       "READS SQL DATA"
+      ],
+      [
+       "net_price",
+       "decimal(10,2)",
+       "YES",
+       "NO SQL"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:8ea4df42335f": {
+   "statements": [
+    {
+     "sql": "SELECT @@log_bin AS binary_logging, @@binlog_format AS format,\n       @@log_bin_trust_function_creators AS trust_function_creators",
+     "status": "ok",
+     "columns": [
+      "binary_logging",
+      "format",
+      "trust_function_creators"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "ROW",
+       1
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'@@binlog_format' is deprecated and will be removed in a future release."
+      },
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'@@log_bin_trust_function_creators' is deprecated and will be removed in a future release."
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:e64c2cb45dd7": {
+   "statements": [
+    {
+     "sql": "SELECT product_id, name, price, net_price(price, 15) AS discounted\nFROM products\nWHERE net_price(price, 15) < 50\nORDER BY discounted, product_id",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price",
+      "discounted"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       24,
+       "Fiction Bestseller",
+       "18.99",
+       "16.14"
+      ],
+      [
+       27,
+       "Resistance Bands Set",
+       "24.99",
+       "21.24"
+      ],
+      [
+       5,
+       "Wireless Mouse",
+       "29.99",
+       "25.49"
+      ],
+      [
+       17,
+       "Single-Origin Beans 1kg",
+       "34.50",
+       "29.33"
+      ],
+      [
+       25,
+       "Yoga Mat",
+       "35.00",
+       "29.75"
+      ],
+      [
+       9,
+       "Laptop Stand",
+       "39.99",
+       "33.99"
+      ],
+      [
+       23,
+       "SQL Antipatterns",
+       "39.99",
+       "33.99"
+      ],
+      [
+       19,
+       "Cast Iron Skillet",
+       "44.99",
+       "38.24"
+      ],
+      [
+       7,
+       "USB-C Hub 7-in-1",
+       "49.99",
+       "42.49"
+      ],
+      [
+       21,
+       "Designing Data-Intensive Applications",
+       "49.99",
+       "42.49"
+      ],
+      [
+       29,
+       "Gift Card $50",
+       "50.00",
+       "42.50"
+      ],
+      [
+       20,
+       "Database Internals (Book)",
+       "54.99",
+       "46.74"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:29875bac4775": {
+   "statements": [
+    {
+     "sql": "CREATE FUNCTION shipping_fee(p_order_value DECIMAL(10,2), p_state CHAR(2))\n  RETURNS DECIMAL(6,2)\n  DETERMINISTIC NO SQL\nBEGIN\n  DECLARE v_fee DECIMAL(6,2);\n  IF p_order_value >= 100 THEN\n    SET v_fee = 0;\n  ELSEIF p_state IN ('AK', 'HI') THEN\n    SET v_fee = 24.90;\n  ELSE\n    SET v_fee = 7.90;\n  END IF;\n  RETURN v_fee;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT shipping_fee(250, 'CA') AS big_order,\n       shipping_fee(40, 'HI')  AS small_to_hawaii,\n       shipping_fee(40, 'NY')  AS small_mainland",
+     "status": "ok",
+     "columns": [
+      "big_order",
+      "small_to_hawaii",
+      "small_mainland"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "0.00",
+       "24.90",
+       "7.90"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:8e8cdd9fa0c1": {
+   "statements": [
+    {
+     "sql": "SELECT customer_id, first_name, loyalty_tier, customer_revenue(customer_id) AS revenue\nFROM customers\nWHERE state = 'NY'\nORDER BY revenue DESC, customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "loyalty_tier",
+      "revenue"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       10,
+       "Lucas",
+       null,
+       "6893.02"
+      ],
+      [
+       14,
+       "Zara",
+       "gold",
+       "3874.58"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:19f2d934717e": {
+   "statements": [
+    {
+     "sql": "CREATE FUNCTION f_commit() RETURNS INT NO SQL\nBEGIN\n  COMMIT;\n  RETURN 1;\nEND",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1422,
+      "message": "Explicit or implicit commit is not allowed in stored function or trigger."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s12:13d4178cfa49": {
+   "statements": [
+    {
+     "sql": "CREATE FUNCTION f_result_set() RETURNS INT READS SQL DATA\nBEGIN\n  SELECT COUNT(*) FROM products;\n  RETURN 1;\nEND",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1415,
+      "message": "Not allowed to return a result set from a function"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s13:c92555004d64": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE price_check (\n  price DECIMAL(10,2),\n  discounted DECIMAL(10,2) AS (net_price(price, 15))\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3763,
+      "message": "Expression of generated column 'discounted' contains a disallowed function: `net_price`."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:10b70e6d4561": {
+   "statements": [
+    {
+     "sql": "CREATE FUNCTION last_order_nd() RETURNS INT READS SQL DATA\nBEGIN\n  SET @calls = @calls + 1;\n  RETURN (SELECT MAX(order_id) FROM orders);\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE FUNCTION last_order_d() RETURNS INT DETERMINISTIC READS SQL DATA\nBEGIN\n  SET @calls = @calls + 1;\n  RETURN (SELECT MAX(order_id) FROM orders);\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:5c97db0b1b61": {
+   "statements": [
+    {
+     "sql": "SET @calls = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT order_id FROM orders WHERE order_id = last_order_nd()",
+     "status": "ok",
+     "columns": [
+      "order_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       80
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT @calls AS calls_not_deterministic",
+     "status": "ok",
+     "columns": [
+      "calls_not_deterministic"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       80
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:2132dbed8536": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT order_id FROM orders WHERE order_id = last_order_nd()",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "index",
+       null,
+       "idx_orders_customer",
+       "4",
+       null,
+       80,
+       10.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `orders`.`order_id` AS `order_id` from `orders` where (`orders`.`order_id` = `last_order_nd`())"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:29865d251952": {
+   "statements": [
+    {
+     "sql": "SET @calls = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT order_id FROM orders WHERE order_id = last_order_d()",
+     "status": "ok",
+     "columns": [
+      "order_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       80
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT @calls AS calls_deterministic",
+     "status": "ok",
+     "columns": [
+      "calls_deterministic"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:a222534b512c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT order_id FROM orders WHERE order_id = last_order_d()",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "orders",
+       null,
+       "eq_ref",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "const",
+       1,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `orders`.`order_id` AS `order_id` from `orders` where (`orders`.`order_id` = <cache>(`last_order_d`()))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:8d6ae9371d81": {
+   "statements": [
+    {
+     "sql": "SELECT c.customer_id, c.first_name, c.loyalty_tier,\n       COALESCE(SUM(CASE WHEN o.status NOT IN ('cancelled', 'refunded')\n                         THEN oi.quantity * oi.unit_price END), 0) AS revenue\nFROM customers c\nLEFT JOIN orders o       ON o.customer_id = c.customer_id\nLEFT JOIN order_items oi ON oi.order_id = o.order_id\nWHERE c.state = 'NY'\nGROUP BY c.customer_id, c.first_name, c.loyalty_tier\nORDER BY revenue DESC, c.customer_id",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "first_name",
+      "loyalty_tier",
+      "revenue"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       10,
+       "Lucas",
+       null,
+       "6893.02"
+      ],
+      [
+       14,
+       "Zara",
+       "gold",
+       "3874.58"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:ed10ceced84e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE price_watch (\n  product_id INT PRIMARY KEY,\n  price      DECIMAL(10,2) NOT NULL,\n  discounted DECIMAL(10,2) AS (ROUND(price * 85 / 100, 2)) STORED,\n  KEY idx_discounted (discounted)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO price_watch (product_id, price) SELECT product_id, price FROM products",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 30,
+     "info": "Records: 30  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE price_watch",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "price_watch",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE SELECT product_id FROM price_watch WHERE discounted < 20",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Filter: (price_watch.discounted < 20.00)  (cost=0.46 rows=1)\n    -> Covering index range scan on price_watch using idx_discounted over (NULL < discounted < 20.00)  (cost=0.46 rows=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:af9c8af28304": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 200000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE cust_tier (customer_id INT PRIMARY KEY, tier VARCHAR(10) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO cust_tier\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 2000)\nSELECT n, ELT(1 + n % 4, 'bronze', 'silver', 'gold', 'platinum') FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2000,
+     "info": "Records: 2000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE big_orders (\n  order_id    INT PRIMARY KEY,\n  customer_id INT NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  KEY idx_big_orders_customer (customer_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO big_orders\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 100000)\nSELECT n, 1 + (n * 7919) % 2000, ((n * 31) % 50000) / 100 FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE cust_tier, big_orders",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "cust_tier",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "big_orders",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "CREATE FUNCTION tier_of(p_customer INT) RETURNS VARCHAR(10)\n  DETERMINISTIC READS SQL DATA\nRETURN (SELECT tier FROM cust_tier WHERE customer_id = p_customer)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s17:647312876a48": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT COUNT(*) AS gold_orders, SUM(amount) AS gold_amount\nFROM big_orders\nWHERE tier_of(customer_id) = 'gold'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), sum(big_orders.amount)  (cost=20107 rows=1) (actual time=579..579 rows=1 loops=1)\n    -> Filter: (tier_of(big_orders.customer_id) = 'gold')  (cost=10082 rows=100256) (actual time=1.02..575 rows=25000 loops=1)\n        -> Table scan on big_orders  (cost=10082 rows=100256) (actual time=0.901..16.8 rows=100000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 581.26
+    }
+   ],
+   "measured": true
+  },
+  "s18:cfbcae119730": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE\nSELECT COUNT(*) AS gold_orders, SUM(o.amount) AS gold_amount\nFROM big_orders o\nJOIN cust_tier t ON t.customer_id = o.customer_id\nWHERE t.tier = 'gold'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0), sum(o.amount)  (cost=4749 rows=1) (actual time=51.1..51.1 rows=1 loops=1)\n    -> Nested loop inner join  (cost=3739 rows=10106) (actual time=0.208..49.1 rows=25000 loops=1)\n        -> Filter: (t.tier = 'gold')  (cost=202 rows=200) (actual time=0.0398..0.667 rows=500 loops=1)\n            -> Table scan on t  (cost=202 rows=2000) (actual time=0.0374..0.445 rows=2000 loops=1)\n        -> Index lookup on o using idx_big_orders_customer (customer_id=t.customer_id)  (cost=12.7 rows=50.5) (actual time=0.0842..0.0905 rows=50 loops=500)\n"
+      ]
+     ],
+     "elapsed_ms": 52.63
+    }
+   ],
+   "measured": true
+  },
+  "s19:4336358ffc94": {
+   "statements": [
+    {
+     "sql": "CREATE FUNCTION grade_label(p_rating INT) RETURNS VARCHAR(10)\n  DETERMINISTIC NO SQL\nBEGIN\n  IF p_rating >= 4 THEN\n    RETURN 'good';\n  ELSEIF p_rating >= 2 THEN\n    RETURN 'ok';\n  END IF;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT grade_label(5) AS five, grade_label(3) AS three",
+     "status": "ok",
+     "columns": [
+      "five",
+      "three"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "good",
+       "ok"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s20:b7a1b1502062": {
+   "statements": [
+    {
+     "sql": "SELECT grade_label(1) AS one",
+     "status": "error",
+     "columns": [
+      "one"
+     ],
+     "rows": [],
+     "error": {
+      "code": 1321,
+      "message": "FUNCTION grade_label ended without RETURN"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s21:6481add721f9": {
+   "statements": [
+    {
+     "sql": "CREATE FUNCTION initials(p_first VARCHAR(50), p_last VARCHAR(50)) RETURNS CHAR(2)\n  DETERMINISTIC NO SQL\nRETURN CONCAT(LEFT(p_first, 1), LEFT(p_last, 1), '.')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s22:9a9bc5d54043": {
+   "statements": [
+    {
+     "sql": "SELECT initials(first_name, last_name) FROM customers WHERE customer_id = 1",
+     "status": "error",
+     "columns": [
+      "initials(first_name, last_name)"
+     ],
+     "rows": [],
+     "error": {
+      "code": 1406,
+      "message": "Data too long for column 'initials(first_name, last_name)' at row 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s23:059a132adbf5": {
+   "statements": [
+    {
+     "sql": "CREATE INDEX idx_net ON products ((net_price(price, 15)))",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3758,
+      "message": "Expression of functional index 'idx_net' contains a disallowed function."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

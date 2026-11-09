@@ -519,7 +519,7 @@ prompt: |
   Change the setting **for your session only** so that the full list fits. The check query (run in the same
   session) returns the length of the concatenation and whether your global value is unchanged.
 hints:
-  - "Each tag is 14 characters plus a 1-character separator: about 4,500 characters in total."
+  - "Each tag is 15 characters (tag-number-0001), plus a 1-character separator between tags: about 4,800 characters in total."
   - "SET SESSION group_concat_max_len = 10000; (any value of at least the full length works)"
 solution: |
   SET SESSION group_concat_max_len = 1000000;

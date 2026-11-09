@@ -1,0 +1,637 @@
+{
+ "doc": "m09-db-vs-app-logic",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:521ae8677761": {
+   "statements": [
+    {
+     "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\nVALUES (6, 'withdrawal', 1500.00, 14336.16, 'DAY-1', '2024-06-03 09:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COALESCE(SUM(amount), 0) AS withdrawn_today\nFROM transactions\nWHERE account_id = 6 AND txn_type = 'withdrawal'\n  AND created_at >= '2024-06-03' AND created_at < '2024-06-04'",
+     "status": "ok",
+     "columns": [
+      "withdrawn_today"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "1500.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:3dfc4a20030b": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id FROM accounts WHERE account_id = 6 FOR UPDATE",
+     "status": "ok",
+     "columns": [
+      "account_id"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       6
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COALESCE(SUM(amount), 0) INTO @used\nFROM transactions\nWHERE account_id = 6 AND txn_type = 'withdrawal'\n  AND created_at >= '2024-06-03' AND created_at < '2024-06-04'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SET @amount = 400.00",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @used AS used, @amount AS requested,\n       IF(@used + @amount > 2000, 'reject', 'accept') AS application_decision",
+     "status": "ok",
+     "columns": [
+      "used",
+      "requested",
+      "application_decision"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "1500.00",
+       "400.00",
+       "accept"
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\nSELECT 6, 'withdrawal', @amount, 14336.16 - @amount, 'APP-1', '2024-06-03 10:00:00'\nFROM DUAL WHERE @used + @amount <= 2000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s4:5576278d58c2": {
+   "statements": [
+    {
+     "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\nVALUES (6, 'withdrawal', 900.00, 13036.16, 'BATCH-1', '2024-06-03 11:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT SUM(amount) AS withdrawn_today\nFROM transactions\nWHERE account_id = 6 AND txn_type = 'withdrawal'\n  AND created_at >= '2024-06-03' AND created_at < '2024-06-04'",
+     "status": "ok",
+     "columns": [
+      "withdrawn_today"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2800.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:60911b54d300": {
+   "statements": [
+    {
+     "sql": "DELETE FROM transactions WHERE reference = 'BATCH-1'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER trg_daily_withdrawal_limit\nBEFORE INSERT ON transactions\nFOR EACH ROW\nBEGIN\n  DECLARE v_used DECIMAL(14,2);\n  DECLARE v_lock INT;\n  IF NEW.txn_type = 'withdrawal' THEN\n    -- serialize all withdrawals of this account: every writer locks the same account row\n    SELECT account_id INTO v_lock FROM accounts WHERE account_id = NEW.account_id FOR UPDATE;\n    SELECT COALESCE(SUM(amount), 0) INTO v_used\n    FROM transactions\n    WHERE account_id = NEW.account_id AND txn_type = 'withdrawal'\n      AND created_at >= DATE(NEW.created_at)\n      AND created_at <  DATE(NEW.created_at) + INTERVAL 1 DAY;\n    IF v_used + NEW.amount > 2000 THEN\n      SIGNAL SQLSTATE '45000'\n        SET MESSAGE_TEXT = 'Daily withdrawal limit exceeded', MYSQL_ERRNO = 5201;\n    END IF;\n  END IF;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s6:96c433aa7697": {
+   "statements": [
+    {
+     "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\nVALUES (6, 'withdrawal', 900.00, 13036.16, 'BATCH-2', '2024-06-03 11:00:00')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 5201,
+      "message": "Daily withdrawal limit exceeded"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:c0a2d03a2bfa": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE assert_true(IN p_condition BOOLEAN, IN p_message VARCHAR(100))\n  NO SQL\nBEGIN\n  IF p_condition IS NULL OR NOT p_condition THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = p_message;\n  END IF;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE test_results (test_name VARCHAR(80) PRIMARY KEY, outcome VARCHAR(10) NOT NULL, detail VARCHAR(255))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s8:03733b1c18b6": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE test_daily_limit_rejects_excess()\nBEGIN\n  DECLARE v_msg VARCHAR(255) DEFAULT NULL;\n  DECLARE CONTINUE HANDLER FOR SQLEXCEPTION\n    GET DIAGNOSTICS CONDITION 1 v_msg = MESSAGE_TEXT;\n  START TRANSACTION;\n  -- arrange: 1,950 already withdrawn on a fresh day for account 8\n  INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\n  VALUES (8, 'withdrawal', 1950.00, 1, 'TEST', '2024-07-01 09:00:00');\n  -- act: 100 more must be rejected\n  INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at)\n  VALUES (8, 'withdrawal', 100.00, 1, 'TEST', '2024-07-01 10:00:00');\n  ROLLBACK;\n  INSERT INTO test_results VALUES ('daily_limit_rejects_excess',\n    IF(v_msg = 'Daily withdrawal limit exceeded', 'PASS', 'FAIL'), v_msg);\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL test_daily_limit_rejects_excess()",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT test_name, outcome, detail FROM test_results",
+     "status": "ok",
+     "columns": [
+      "test_name",
+      "outcome",
+      "detail"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "daily_limit_rejects_excess",
+       "PASS",
+       "Daily withdrawal limit exceeded"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS test_rows_left FROM transactions WHERE reference = 'TEST'",
+     "status": "ok",
+     "columns": [
+      "test_rows_left"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:8252661f4e22": {
+   "statements": [
+    {
+     "sql": "SELECT 'ROUTINE' AS object_type, ROUTINE_NAME AS name,\n       LEFT(SHA2(ROUTINE_DEFINITION, 256), 16) AS body_fingerprint\nFROM information_schema.ROUTINES\nWHERE ROUTINE_SCHEMA = DATABASE()\nUNION ALL\nSELECT 'TRIGGER', TRIGGER_NAME, LEFT(SHA2(ACTION_STATEMENT, 256), 16)\nFROM information_schema.TRIGGERS\nWHERE TRIGGER_SCHEMA = DATABASE()\nORDER BY object_type, name",
+     "status": "ok",
+     "columns": [
+      "object_type",
+      "name",
+      "body_fingerprint"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "ROUTINE",
+       "assert_true",
+       "282ca7b804f3e994"
+      ],
+      [
+       "ROUTINE",
+       "test_daily_limit_rejects_excess",
+       "680c4978b45d99dc"
+      ],
+      [
+       "TRIGGER",
+       "trg_daily_withdrawal_limit",
+       "7c7f0301b5a3a8b9"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:5c68b44654b4": {
+   "statements": [
+    {
+     "sql": "SELECT 'view' AS kind, TABLE_NAME AS name, NULL AS detail\nFROM information_schema.VIEWS WHERE TABLE_SCHEMA = DATABASE()\nUNION ALL\nSELECT LOWER(ROUTINE_TYPE), ROUTINE_NAME, SQL_DATA_ACCESS\nFROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE()\nUNION ALL\nSELECT 'trigger', TRIGGER_NAME, CONCAT(ACTION_TIMING, ' ', EVENT_MANIPULATION, ' ON ', EVENT_OBJECT_TABLE)\nFROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE()\nUNION ALL\nSELECT 'event', EVENT_NAME, STATUS\nFROM information_schema.EVENTS WHERE EVENT_SCHEMA = DATABASE()\nORDER BY kind, name",
+     "status": "ok",
+     "columns": [
+      "kind",
+      "name",
+      "detail"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "procedure",
+       "assert_true",
+       "NO SQL"
+      ],
+      [
+       "procedure",
+       "test_daily_limit_rejects_excess",
+       "CONTAINS SQL"
+      ],
+      [
+       "trigger",
+       "trg_daily_withdrawal_limit",
+       "BEFORE INSERT ON transactions"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:d4e175127e89": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at) VALUES (6, 'withdrawal', 400.00, 13936.16, 'RACE-A', '2024-06-03 10:00:00')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at) VALUES (6, 'withdrawal', 400.00, 13936.16, 'RACE-B', '2024-06-03 10:01:00')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT SUM(amount) AS withdrawn_today FROM transactions WHERE account_id = 6 AND txn_type = 'withdrawal' AND created_at >= '2024-06-03' AND created_at < '2024-06-04'",
+       "status": "ok",
+       "columns": [
+        "withdrawn_today"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "2300.00"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:606d399dca61": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at) VALUES (6, 'withdrawal', 400.00, 13936.16, 'RACE-A', '2024-06-03 10:00:00')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "INSERT INTO transactions (account_id, txn_type, amount, balance_after, reference, created_at) VALUES (6, 'withdrawal', 400.00, 13936.16, 'RACE-B', '2024-06-03 10:01:00')",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1644,
+        "message": "Daily withdrawal limit exceeded"
+       }
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "error"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "B",
+        "trxId": "443638",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "A",
+        "trxId": "443633",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 1,
+        "lockStructs": 3
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "6"
+       },
+       {
+        "session": "A",
+        "table": "transactions",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "accounts",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "6"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT SUM(amount) AS withdrawn_today FROM transactions WHERE account_id = 6 AND txn_type = 'withdrawal' AND created_at >= '2024-06-03' AND created_at < '2024-06-04'",
+       "status": "ok",
+       "columns": [
+        "withdrawn_today"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "1900.00"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s11:1a8fb2bd03d0": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE ledger_copy LIKE transactions",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE ledger_copy_trg LIKE transactions",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER trg_copy_limit BEFORE INSERT ON ledger_copy_trg FOR EACH ROW\nBEGIN\n  DECLARE v_used DECIMAL(14,2);\n  IF NEW.txn_type = 'withdrawal' THEN\n    SELECT COALESCE(SUM(amount), 0) INTO v_used FROM ledger_copy_trg\n    WHERE account_id = NEW.account_id AND txn_type = 'withdrawal'\n      AND created_at >= DATE(NEW.created_at) AND created_at < DATE(NEW.created_at) + INTERVAL 1 DAY;\n    IF v_used + NEW.amount > 2000 THEN\n      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Daily withdrawal limit exceeded';\n    END IF;\n  END IF;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 10000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s12:3af09bd07cd0": {
+   "statements": [
+    {
+     "sql": "INSERT INTO ledger_copy (account_id, txn_type, amount, balance_after, reference, created_at)\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 5000)\nSELECT 1 + n % 25, 'withdrawal', 10.00, 100.00, 'BULK', TIMESTAMP '2024-01-01 00:00:00' + INTERVAL n HOUR FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5000,
+     "info": "Records: 5000  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 49.49
+    }
+   ],
+   "measured": true
+  },
+  "s13:53371a434b6b": {
+   "statements": [
+    {
+     "sql": "INSERT INTO ledger_copy_trg (account_id, txn_type, amount, balance_after, reference, created_at)\nWITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 5000)\nSELECT 1 + n % 25, 'withdrawal', 10.00, 100.00, 'BULK', TIMESTAMP '2024-01-01 00:00:00' + INTERVAL n HOUR FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5000,
+     "info": "Records: 5000  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 241.75
+    }
+   ],
+   "measured": true
+  },
+  "s14:0770dd626364": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM ledger_copy) AS rows_plain, (SELECT COUNT(*) FROM ledger_copy_trg) AS rows_with_trigger",
+     "status": "ok",
+     "columns": [
+      "rows_plain",
+      "rows_with_trigger"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5000,
+       5000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

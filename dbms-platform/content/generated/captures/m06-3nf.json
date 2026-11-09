@@ -1,0 +1,762 @@
+{
+ "doc": "m06-3nf",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:4ee1bea7da8d": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE section_report (\n  section_id      INT UNSIGNED     NOT NULL PRIMARY KEY,\n  course_id       VARCHAR(10)      NOT NULL,\n  term            VARCHAR(6)       NOT NULL,\n  year            SMALLINT         NOT NULL,\n  room            VARCHAR(20)      NULL,\n  course_title    VARCHAR(100)     NOT NULL,\n  credits         TINYINT UNSIGNED NOT NULL,\n  instructor_id   INT UNSIGNED     NULL,\n  instructor_name VARCHAR(80)      NULL,\n  dept_id         SMALLINT UNSIGNED NULL,\n  dept_name       VARCHAR(60)      NULL,\n  building        VARCHAR(60)      NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO section_report\nSELECT s.section_id, s.course_id, s.term, s.year, s.room, c.title, c.credits,\n       s.instructor_id, i.name, d.dept_id, d.name, d.building\nFROM sections s\nJOIN courses c          ON c.course_id = s.course_id\nLEFT JOIN instructors i ON i.instructor_id = s.instructor_id\nLEFT JOIN departments d ON d.dept_id = i.dept_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 24,
+     "info": "Records: 24  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT section_id, course_id, course_title, instructor_name, dept_name, building\nFROM section_report ORDER BY section_id LIMIT 6",
+     "status": "ok",
+     "columns": [
+      "section_id",
+      "course_id",
+      "course_title",
+      "instructor_name",
+      "dept_name",
+      "building"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "DATA-245",
+       "Machine Learning",
+       "Elena Haddad",
+       "Data Science",
+       "MacQuarrie Hall"
+      ],
+      [
+       2,
+       "CS-149",
+       "Operating Systems",
+       "Isabella Wang",
+       "Computer Science",
+       "Duncan Hall"
+      ],
+      [
+       3,
+       "MATH-161A",
+       "Applied Probability and Statistics",
+       "Fatima Kim",
+       "Mathematics",
+       "MacQuarrie Hall"
+      ],
+      [
+       4,
+       "BUS-170",
+       "Business Analytics",
+       "Samuel Lopez",
+       "Business",
+       "Boccardo Hall"
+      ],
+      [
+       5,
+       "CS-157A",
+       "Introduction to Database Management Systems",
+       "Omar Kim",
+       "Computer Science",
+       "Duncan Hall"
+      ],
+      [
+       6,
+       "CS-157B",
+       "Database Management Systems II",
+       "Arjun Rossi",
+       "Computer Science",
+       "Duncan Hall"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:c581c775f007": {
+   "statements": [
+    {
+     "sql": "SELECT 'course_id -> course_title, credits' AS fd,\n       (SELECT COUNT(*) FROM (SELECT 1 FROM section_report GROUP BY course_id\n          HAVING COUNT(DISTINCT course_title, credits) > 1) v) AS violations,\n       (SELECT COUNT(*) - COUNT(DISTINCT course_id) FROM section_report) AS redundant_copies\nUNION ALL\nSELECT 'instructor_id -> instructor_name, dept_id',\n       (SELECT COUNT(*) FROM (SELECT 1 FROM section_report WHERE instructor_id IS NOT NULL GROUP BY instructor_id\n          HAVING COUNT(DISTINCT instructor_name, dept_id) > 1) v),\n       (SELECT COUNT(instructor_id) - COUNT(DISTINCT instructor_id) FROM section_report)\nUNION ALL\nSELECT 'dept_id -> dept_name, building',\n       (SELECT COUNT(*) FROM (SELECT 1 FROM section_report WHERE dept_id IS NOT NULL GROUP BY dept_id\n          HAVING COUNT(DISTINCT dept_name, building) > 1) v),\n       (SELECT COUNT(dept_id) - COUNT(DISTINCT dept_id) FROM section_report)",
+     "status": "ok",
+     "columns": [
+      "fd",
+      "violations",
+      "redundant_copies"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "course_id -> course_title, credits",
+       0,
+       11
+      ],
+      [
+       "instructor_id -> instructor_name, dept_id",
+       0,
+       12
+      ],
+      [
+       "dept_id -> dept_name, building",
+       0,
+       18
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:58fea98a9bb5": {
+   "statements": [
+    {
+     "sql": "UPDATE section_report SET building = 'Engineering Building'\nWHERE dept_id = 1 AND year = 2024 AND term = 'Fall'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Rows matched: 3  Changed: 3  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT dept_id, building, COUNT(*) AS sections\nFROM section_report WHERE dept_id = 1\nGROUP BY dept_id, building ORDER BY building",
+     "status": "ok",
+     "columns": [
+      "dept_id",
+      "building",
+      "sections"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "Duncan Hall",
+       6
+      ],
+      [
+       1,
+       "Engineering Building",
+       3
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:993092dd982a": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM instructors) AS instructors_employed,\n       (SELECT COUNT(DISTINCT instructor_id) FROM section_report) AS instructors_in_report",
+     "status": "ok",
+     "columns": [
+      "instructors_employed",
+      "instructors_in_report"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       12,
+       11
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:b0cc3be8b1f4": {
+   "statements": [
+    {
+     "sql": "DELETE FROM section_report WHERE section_id = 20",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_that_know_chloe_lin FROM section_report WHERE instructor_id = 1004",
+     "status": "ok",
+     "columns": [
+      "rows_that_know_chloe_lin"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:10e375811831": {
+   "statements": [
+    {
+     "sql": "TRUNCATE TABLE section_report",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO section_report\nSELECT s.section_id, s.course_id, s.term, s.year, s.room, c.title, c.credits,\n       s.instructor_id, i.name, d.dept_id, d.name, d.building\nFROM sections s\nJOIN courses c          ON c.course_id = s.course_id\nLEFT JOIN instructors i ON i.instructor_id = s.instructor_id\nLEFT JOIN departments d ON d.dept_id = i.dept_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 24,
+     "info": "Records: 24  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS sections FROM section_report",
+     "status": "ok",
+     "columns": [
+      "sections"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       24
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:3769212d283e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE department_3nf (\n  dept_id   SMALLINT UNSIGNED NOT NULL PRIMARY KEY,\n  dept_name VARCHAR(60) NOT NULL,\n  building  VARCHAR(60) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE instructor_3nf (\n  instructor_id   INT UNSIGNED NOT NULL PRIMARY KEY,\n  instructor_name VARCHAR(80)  NOT NULL,\n  dept_id         SMALLINT UNSIGNED NOT NULL,\n  CONSTRAINT fk_instr3_dept FOREIGN KEY (dept_id) REFERENCES department_3nf (dept_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE course_3nf (\n  course_id    VARCHAR(10) NOT NULL PRIMARY KEY,\n  course_title VARCHAR(100) NOT NULL,\n  credits      TINYINT UNSIGNED NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE section_3nf (\n  section_id    INT UNSIGNED NOT NULL PRIMARY KEY,\n  course_id     VARCHAR(10)  NOT NULL,\n  term          VARCHAR(6)   NOT NULL,\n  year          SMALLINT     NOT NULL,\n  room          VARCHAR(20)  NULL,\n  instructor_id INT UNSIGNED NULL,\n  CONSTRAINT fk_sec3_course FOREIGN KEY (course_id)     REFERENCES course_3nf (course_id),\n  CONSTRAINT fk_sec3_instr  FOREIGN KEY (instructor_id) REFERENCES instructor_3nf (instructor_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO department_3nf SELECT DISTINCT dept_id, dept_name, building FROM section_report WHERE dept_id IS NOT NULL",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO instructor_3nf SELECT DISTINCT instructor_id, instructor_name, dept_id FROM section_report WHERE instructor_id IS NOT NULL",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 11,
+     "info": "Records: 11  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO course_3nf     SELECT DISTINCT course_id, course_title, credits FROM section_report",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 13,
+     "info": "Records: 13  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO section_3nf    SELECT section_id, course_id, term, year, room, instructor_id FROM section_report",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 24,
+     "info": "Records: 24  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM department_3nf) AS departments,\n       (SELECT COUNT(*) FROM instructor_3nf) AS instructors,\n       (SELECT COUNT(*) FROM course_3nf)     AS courses,\n       (SELECT COUNT(*) FROM section_3nf)    AS sections",
+     "status": "ok",
+     "columns": [
+      "departments",
+      "instructors",
+      "courses",
+      "sections"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       5,
+       11,
+       13,
+       24
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:99ca6139db64": {
+   "statements": [
+    {
+     "sql": "INSERT INTO instructor_3nf VALUES (1012, 'Elena Lin', 1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "-- hire without a section\nUPDATE department_3nf SET building = 'Engineering Building' WHERE dept_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- one row, cannot be partial\nDELETE FROM section_3nf WHERE section_id = 20",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "-- Chloe Lin survives\nSELECT i.instructor_id, i.instructor_name, d.dept_name, d.building\nFROM instructor_3nf i JOIN department_3nf d ON d.dept_id = i.dept_id\nWHERE i.instructor_id IN (1004, 1012) ORDER BY i.instructor_id",
+     "status": "ok",
+     "columns": [
+      "instructor_id",
+      "instructor_name",
+      "dept_name",
+      "building"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1004,
+       "Chloe Lin",
+       "Data Science",
+       "MacQuarrie Hall"
+      ],
+      [
+       1012,
+       "Elena Lin",
+       "Computer Science",
+       "Engineering Building"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:4454b3b1b4d5": {
+   "statements": [
+    {
+     "sql": "DELETE FROM department_3nf WHERE dept_id = 1",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1451,
+      "message": "Cannot delete or update a parent row: a foreign key constraint fails (`instructor_3nf`, CONSTRAINT `fk_instr3_dept` FOREIGN KEY (`dept_id`) REFERENCES `department_3nf` (`dept_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:7f966aa290de": {
+   "statements": [
+    {
+     "sql": "DELETE FROM section_3nf",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 23,
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM course_3nf",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 13,
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM instructor_3nf",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 12,
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM department_3nf",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO department_3nf SELECT DISTINCT dept_id, dept_name, building FROM section_report WHERE dept_id IS NOT NULL",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 5,
+     "info": "Records: 5  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO instructor_3nf SELECT DISTINCT instructor_id, instructor_name, dept_id FROM section_report WHERE instructor_id IS NOT NULL",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 11,
+     "info": "Records: 11  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO course_3nf SELECT DISTINCT course_id, course_title, credits FROM section_report",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 13,
+     "info": "Records: 13  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO section_3nf SELECT section_id, course_id, term, year, room, instructor_id FROM section_report",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 24,
+     "info": "Records: 24  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS sections FROM section_3nf",
+     "status": "ok",
+     "columns": [
+      "sections"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       24
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:baa30a913501": {
+   "statements": [
+    {
+     "sql": "WITH rebuilt AS (\n  SELECT s.section_id, s.course_id, s.term, s.year, s.room, c.course_title, c.credits,\n         s.instructor_id, i.instructor_name, d.dept_id, d.dept_name, d.building\n  FROM section_3nf s\n  JOIN course_3nf c          ON c.course_id = s.course_id\n  LEFT JOIN instructor_3nf i ON i.instructor_id = s.instructor_id\n  LEFT JOIN department_3nf d ON d.dept_id = i.dept_id)\nSELECT (SELECT COUNT(*) FROM rebuilt) AS rebuilt_rows,\n       (SELECT COUNT(*) FROM (SELECT * FROM section_report EXCEPT SELECT * FROM rebuilt) a) AS lost,\n       (SELECT COUNT(*) FROM (SELECT * FROM rebuilt EXCEPT SELECT * FROM section_report) b) AS spurious",
+     "status": "ok",
+     "columns": [
+      "rebuilt_rows",
+      "lost",
+      "spurious"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       24,
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.6:3e1d8c8b860d": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS rows_with_inner_joins\nFROM section_3nf s\nJOIN course_3nf c     ON c.course_id = s.course_id\nJOIN instructor_3nf i ON i.instructor_id = s.instructor_id\nJOIN department_3nf d ON d.dept_id = i.dept_id",
+     "status": "ok",
+     "columns": [
+      "rows_with_inner_joins"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       23
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:f268107c73b1": {
+   "statements": [
+    {
+     "sql": "CREATE VIEW section_report_v AS\nSELECT s.section_id, s.course_id, s.term, s.year, s.room, c.course_title, c.credits,\n       s.instructor_id, i.instructor_name, d.dept_id, d.dept_name, d.building\nFROM section_3nf s\nJOIN course_3nf c          ON c.course_id = s.course_id\nLEFT JOIN instructor_3nf i ON i.instructor_id = s.instructor_id\nLEFT JOIN department_3nf d ON d.dept_id = i.dept_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT section_id, course_id, course_title, instructor_name, dept_name, building\nFROM section_report_v ORDER BY section_id LIMIT 6",
+     "status": "ok",
+     "columns": [
+      "section_id",
+      "course_id",
+      "course_title",
+      "instructor_name",
+      "dept_name",
+      "building"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       1,
+       "DATA-245",
+       "Machine Learning",
+       "Elena Haddad",
+       "Data Science",
+       "MacQuarrie Hall"
+      ],
+      [
+       2,
+       "CS-149",
+       "Operating Systems",
+       "Isabella Wang",
+       "Computer Science",
+       "Duncan Hall"
+      ],
+      [
+       3,
+       "MATH-161A",
+       "Applied Probability and Statistics",
+       "Fatima Kim",
+       "Mathematics",
+       "MacQuarrie Hall"
+      ],
+      [
+       4,
+       "BUS-170",
+       "Business Analytics",
+       "Samuel Lopez",
+       "Business",
+       "Boccardo Hall"
+      ],
+      [
+       5,
+       "CS-157A",
+       "Introduction to Database Management Systems",
+       "Omar Kim",
+       "Computer Science",
+       "Duncan Hall"
+      ],
+      [
+       6,
+       "CS-157B",
+       "Database Management Systems II",
+       "Arjun Rossi",
+       "Computer Science",
+       "Duncan Hall"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:3e32b440b4df": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE r_flat (student_id INT, student_name VARCHAR(40), course_id VARCHAR(10), course_title VARCHAR(60))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO r_flat VALUES (1, 'Ana', 'CS-146', 'Data Structures'), (1, 'Ana', 'CS-157A', 'Databases'),\n                          (2, 'Ben', 'CS-157A', 'Databases')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- Without the key relation: student ⋈ course has no common attribute → a Cartesian product\nSELECT COUNT(*) AS rows_without_key_relation\nFROM (SELECT DISTINCT student_id, student_name FROM r_flat) s\nCROSS JOIN (SELECT DISTINCT course_id, course_title FROM r_flat) c",
+     "status": "ok",
+     "columns": [
+      "rows_without_key_relation"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:690233a35045": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE section_3nf, course_3nf, instructor_3nf, department_3nf",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "section_3nf",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "course_3nf",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "instructor_3nf",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "department_3nf",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT section_id, course_title, instructor_name, building FROM section_report_v WHERE section_id = 9",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "s",
+       null,
+       "const",
+       "PRIMARY,fk_sec3_course",
+       "PRIMARY",
+       "4",
+       "const",
+       1,
+       100.0,
+       null
+      ],
+      [
+       1,
+       "SIMPLE",
+       "c",
+       null,
+       "const",
+       "PRIMARY",
+       "PRIMARY",
+       "42",
+       "const",
+       1,
+       100.0,
+       null
+      ],
+      [
+       1,
+       "SIMPLE",
+       "i",
+       null,
+       "const",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "const",
+       1,
+       100.0,
+       null
+      ],
+      [
+       1,
+       "SIMPLE",
+       "d",
+       null,
+       "const",
+       "PRIMARY",
+       "PRIMARY",
+       "2",
+       "const",
+       1,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select '9' AS `section_id`,'Data Structures and Algorithms' AS `course_title`,'Isabella Wang' AS `instructor_name`,'Duncan Hall' AS `building` from `section_3nf` `s` join `course_3nf` `c` left join `instructor_3nf` `i` on(multiple equal('1002', '1002')) left join `department_3nf` `d` on(multiple equal('1', '1')) where true"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:711ac34dce94": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE instructor_bad (instructor_id INT UNSIGNED NOT NULL PRIMARY KEY, instructor_name VARCHAR(80))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO instructor_bad SELECT DISTINCT instructor_id, instructor_name FROM section_report",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1048,
+      "message": "Column 'instructor_id' cannot be null"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

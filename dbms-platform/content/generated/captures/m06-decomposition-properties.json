@@ -1,0 +1,669 @@
+{
+ "doc": "m06-decomposition-properties",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:3c5f232e2b54": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE line_flat AS\nSELECT oi.order_id, o.customer_id, o.order_date, oi.product_id, oi.quantity\nFROM order_items oi JOIN orders o ON o.order_id = oi.order_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 182,
+     "info": "Records: 182  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE line_flat ADD PRIMARY KEY (order_id, product_id)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS line_items FROM line_flat",
+     "status": "ok",
+     "columns": [
+      "line_items"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       182
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:252212fe7baf": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE order_header_bad AS SELECT DISTINCT order_id, customer_id, order_date FROM line_flat",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 80,
+     "info": "Records: 80  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE customer_purchase_bad AS SELECT DISTINCT customer_id, product_id, quantity FROM line_flat",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 176,
+     "info": "Records: 176  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM order_header_bad)      AS header_rows,\n       (SELECT COUNT(*) FROM customer_purchase_bad) AS purchase_rows",
+     "status": "ok",
+     "columns": [
+      "header_rows",
+      "purchase_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       80,
+       176
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:f4817e42a629": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS rows_after_join\nFROM order_header_bad h JOIN customer_purchase_bad p ON p.customer_id = h.customer_id",
+     "status": "ok",
+     "columns": [
+      "rows_after_join"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       845
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:5cd79a947c9c": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS spurious_tuples\nFROM (SELECT h.order_id, h.customer_id, h.order_date, p.product_id, p.quantity\n      FROM order_header_bad h JOIN customer_purchase_bad p ON p.customer_id = h.customer_id\n      EXCEPT\n      SELECT order_id, customer_id, order_date, product_id, quantity FROM line_flat) AS d",
+     "status": "ok",
+     "columns": [
+      "spurious_tuples"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       663
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:30f79c65be32": {
+   "statements": [
+    {
+     "sql": "SELECT h.order_id, h.customer_id, p.product_id, p.quantity\nFROM order_header_bad h JOIN customer_purchase_bad p ON p.customer_id = h.customer_id\nWHERE h.customer_id = 19\n  AND NOT EXISTS (SELECT 1 FROM line_flat f WHERE f.order_id = h.order_id AND f.product_id = p.product_id\n                  AND f.quantity = p.quantity)\nORDER BY h.order_id, p.product_id\nLIMIT 6",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "product_id",
+      "quantity"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       2,
+       19,
+       1,
+       1
+      ],
+      [
+       2,
+       19,
+       1,
+       3
+      ],
+      [
+       2,
+       19,
+       5,
+       1
+      ],
+      [
+       2,
+       19,
+       9,
+       2
+      ],
+      [
+       2,
+       19,
+       12,
+       3
+      ],
+      [
+       2,
+       19,
+       15,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:8ba0e292958a": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE order_header AS SELECT DISTINCT order_id, customer_id, order_date FROM line_flat",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 80,
+     "info": "Records: 80  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE order_header ADD PRIMARY KEY (order_id)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE order_line AS SELECT order_id, product_id, quantity FROM line_flat",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 182,
+     "info": "Records: 182  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE order_line ADD PRIMARY KEY (order_id, product_id)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM order_header h JOIN order_line l ON l.order_id = h.order_id) AS rows_after_join,\n       (SELECT COUNT(*) FROM (SELECT h.order_id, h.customer_id, h.order_date, l.product_id, l.quantity\n                              FROM order_header h JOIN order_line l ON l.order_id = h.order_id\n                              EXCEPT SELECT * FROM line_flat) d) AS spurious,\n       (SELECT COUNT(*) FROM (SELECT * FROM line_flat\n                              EXCEPT SELECT h.order_id, h.customer_id, h.order_date, l.product_id, l.quantity\n                              FROM order_header h JOIN order_line l ON l.order_id = h.order_id) d) AS lost",
+     "status": "ok",
+     "columns": [
+      "rows_after_join",
+      "spurious",
+      "lost"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       182,
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:e6fd7238f290": {
+   "statements": [
+    {
+     "sql": "SELECT 'order_id -> customer_id, order_date in order_header' AS shared_attrs_are_key,\n       (SELECT COUNT(*) FROM (SELECT order_id FROM order_header_bad GROUP BY order_id\n          HAVING COUNT(DISTINCT customer_id, order_date) > 1) v) AS violations\nUNION ALL\nSELECT 'customer_id -> order_id, order_date in order_header_bad',\n       (SELECT COUNT(*) FROM (SELECT customer_id FROM order_header_bad GROUP BY customer_id\n          HAVING COUNT(DISTINCT order_id, order_date) > 1) v)\nUNION ALL\nSELECT 'customer_id -> product_id, quantity in customer_purchase_bad',\n       (SELECT COUNT(*) FROM (SELECT customer_id FROM customer_purchase_bad GROUP BY customer_id\n          HAVING COUNT(DISTINCT product_id, quantity) > 1) v)",
+     "status": "ok",
+     "columns": [
+      "shared_attrs_are_key",
+      "violations"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "order_id -> customer_id, order_date in order_header",
+       0
+      ],
+      [
+       "customer_id -> order_id, order_date in order_header_bad",
+       19
+      ],
+      [
+       "customer_id -> product_id, quantity in customer_purchase_bad",
+       20
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:2bbc7729a032": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE prod_cat AS\nSELECT p.product_id, p.category_id FROM products p WHERE p.category_id IS NOT NULL",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 29,
+     "info": "Records: 29  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE prod_cat ADD PRIMARY KEY (product_id)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE prod_catname AS\nSELECT p.product_id, c.name AS category_name FROM products p JOIN categories c ON c.category_id = p.category_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 29,
+     "info": "Records: 29  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE prod_catname ADD PRIMARY KEY (product_id)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- A new tea product is filed under category 7 (Coffee) but its category name is typed as 'Tea'\nINSERT INTO prod_cat VALUES (31, 7)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO prod_catname VALUES (31, 'Tea')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT pc.category_id, COUNT(DISTINCT pn.category_name) AS names,\n       GROUP_CONCAT(DISTINCT pn.category_name ORDER BY pn.category_name) AS names_seen\nFROM prod_cat pc JOIN prod_catname pn ON pn.product_id = pc.product_id\nGROUP BY pc.category_id\nHAVING COUNT(DISTINCT pn.category_name) > 1",
+     "status": "ok",
+     "columns": [
+      "category_id",
+      "names",
+      "names_seen"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       7,
+       2,
+       "Coffee,Tea"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:f9378e71bbe4": {
+   "statements": [
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM products)                                                   AS products,\n       (SELECT COUNT(*) FROM products p JOIN categories c ON c.category_id = p.category_id)      AS inner_join_rows,\n       (SELECT COUNT(*) FROM products p LEFT JOIN categories c ON c.category_id = p.category_id) AS left_join_rows",
+     "status": "ok",
+     "columns": [
+      "products",
+      "inner_join_rows",
+      "left_join_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       30,
+       29,
+       30
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:bbec059d0ebc": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE tableau (row_id INT PRIMARY KEY, o VARCHAR(4), c VARCHAR(4), e VARCHAR(4), p VARCHAR(4), q VARCHAR(4))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO tableau VALUES\n  (1, 'a',   'a',   'b13', 'b14', 'b15'),\n  (2, 'b21', 'a',   'a',   'b24', 'b25'),\n  (3, 'a',   'b32', 'b33', 'a',   'a')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM tableau ORDER BY row_id",
+     "status": "ok",
+     "columns": [
+      "row_id",
+      "o",
+      "c",
+      "e",
+      "p",
+      "q"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "a",
+       "a",
+       "b13",
+       "b14",
+       "b15"
+      ],
+      [
+       2,
+       "b21",
+       "a",
+       "a",
+       "b24",
+       "b25"
+      ],
+      [
+       3,
+       "a",
+       "b32",
+       "b33",
+       "a",
+       "a"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:91ffde07ac5e": {
+   "statements": [
+    {
+     "sql": "UPDATE tableau t JOIN (SELECT o, MIN(c) AS sym FROM tableau GROUP BY o) g ON g.o = t.o\nSET t.c = g.sym WHERE t.c > g.sym",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM tableau ORDER BY row_id",
+     "status": "ok",
+     "columns": [
+      "row_id",
+      "o",
+      "c",
+      "e",
+      "p",
+      "q"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "a",
+       "a",
+       "b13",
+       "b14",
+       "b15"
+      ],
+      [
+       2,
+       "b21",
+       "a",
+       "a",
+       "b24",
+       "b25"
+      ],
+      [
+       3,
+       "a",
+       "a",
+       "b33",
+       "a",
+       "a"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:fec0db40a482": {
+   "statements": [
+    {
+     "sql": "UPDATE tableau t JOIN (SELECT c, MIN(e) AS sym FROM tableau GROUP BY c) g ON g.c = t.c\nSET t.e = g.sym WHERE t.e > g.sym",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Rows matched: 2  Changed: 2  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM tableau ORDER BY row_id",
+     "status": "ok",
+     "columns": [
+      "row_id",
+      "o",
+      "c",
+      "e",
+      "p",
+      "q"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "a",
+       "a",
+       "a",
+       "b14",
+       "b15"
+      ],
+      [
+       2,
+       "b21",
+       "a",
+       "a",
+       "b24",
+       "b25"
+      ],
+      [
+       3,
+       "a",
+       "a",
+       "a",
+       "a",
+       "a"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:c22464bb6304": {
+   "statements": [
+    {
+     "sql": "UPDATE tableau t JOIN (SELECT o, p, MIN(q) AS sym FROM tableau GROUP BY o, p) g ON g.o = t.o AND g.p = t.p\nSET t.q = g.sym WHERE t.q > g.sym",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT row_id, o, c, e, p, q, (o = 'a' AND c = 'a' AND e = 'a' AND p = 'a' AND q = 'a') AS all_distinguished\nFROM tableau ORDER BY row_id",
+     "status": "ok",
+     "columns": [
+      "row_id",
+      "o",
+      "c",
+      "e",
+      "p",
+      "q",
+      "all_distinguished"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "a",
+       "a",
+       "a",
+       "b14",
+       "b15",
+       0
+      ],
+      [
+       2,
+       "b21",
+       "a",
+       "a",
+       "b24",
+       "b25",
+       0
+      ],
+      [
+       3,
+       "a",
+       "a",
+       "a",
+       "a",
+       "a",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:e288a7131dca": {
+   "statements": [
+    {
+     "sql": "SELECT 'split on customer_id' AS decomposition,\n       (SELECT COUNT(*) FROM line_flat) AS original_rows,\n       (SELECT COUNT(*) FROM order_header_bad h JOIN customer_purchase_bad p ON p.customer_id = h.customer_id) AS joined_rows,\n       'lossy' AS verdict\nUNION ALL\nSELECT 'split on order_id',\n       (SELECT COUNT(*) FROM line_flat),\n       (SELECT COUNT(*) FROM order_header h JOIN order_line l ON l.order_id = h.order_id),\n       'lossless'",
+     "status": "ok",
+     "columns": [
+      "decomposition",
+      "original_rows",
+      "joined_rows",
+      "verdict"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "split on customer_id",
+       182,
+       845,
+       "lossy"
+      ],
+      [
+       "split on order_id",
+       182,
+       182,
+       "lossless"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:1f9d9611d1fe": {
+   "statements": [
+    {
+     "sql": "ANALYZE TABLE order_header, order_line",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "order_header",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "order_line",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT h.order_id, h.customer_id, l.product_id, l.quantity\nFROM order_line l JOIN order_header h ON h.order_id = l.order_id",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Nested loop inner join  (cost=66.5 rows=182)\n    -> Table scan on h  (cost=8.25 rows=80)\n    -> Index lookup on l using PRIMARY (order_id=h.order_id)  (cost=0.503 rows=2.28)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:5ee653085749": {
+   "statements": [
+    {
+     "sql": "EXPLAIN FORMAT=TREE\nSELECT h.order_id, h.customer_id, p.product_id, p.quantity\nFROM order_header_bad h JOIN customer_purchase_bad p ON p.customer_id = h.customer_id",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Inner hash join (p.customer_id = h.customer_id)  (cost=1417 rows=1408)\n    -> Table scan on p  (cost=0.0251 rows=176)\n    -> Hash\n        -> Table scan on h  (cost=8.25 rows=80)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:c2121059faf5": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS original_rows_missing_from_bad_join\nFROM (SELECT * FROM line_flat\n      EXCEPT\n      SELECT h.order_id, h.customer_id, h.order_date, p.product_id, p.quantity\n      FROM order_header_bad h JOIN customer_purchase_bad p ON p.customer_id = h.customer_id) AS d",
+     "status": "ok",
+     "columns": [
+      "original_rows_missing_from_bad_join"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

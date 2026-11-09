@@ -49,6 +49,8 @@ def trim_statement(st: dict, measured: bool) -> dict:
         out["truncated"] = True
     if st.get("warnings"):
         out["warnings"] = st["warnings"]
+    if st.get("more_results"):
+        out["more_results"] = [dict(r, rows=r["rows"][:DISPLAY_ROWS]) for r in st["more_results"]]
     if st.get("error"):
         out["error"] = {"code": st["error"].get("code"), "message": st["error"].get("message")}
     if measured:

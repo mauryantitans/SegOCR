@@ -23,6 +23,8 @@ _ROUTINE_HEAD = re.compile(
     re.IGNORECASE,
 )
 _BLOCK_OPENERS = {"BEGIN", "CASE", "LOOP", "REPEAT", "WHILE", "IF"}
+# Tokens after which a new statement starts inside a compound statement.
+_STATEMENT_START = {";", "BEGIN", "THEN", "ELSE", "DO", "LOOP", "REPEAT"}
 
 
 @dataclass
@@ -152,7 +154,8 @@ def split_sql(script: str) -> list[Statement]:
             if in_routine and depth > 0:
                 buf.append(c)
                 i += 1
-                prev_word = ""
+                prev_word = ";"
+                skip_next_opener = False  # "END; IF ..." starts a new IF statement, it is not "END IF"
                 continue
             flush()
             i += 1
@@ -177,11 +180,11 @@ def split_sql(script: str) -> list[Statement]:
                     elif up in _BLOCK_OPENERS:
                         skip_next_opener = False
                         if up == "BEGIN" or depth > 0:
-                            if up == "IF":
-                                rest = script[i:].lstrip()
-                                if rest.startswith("(") or re.match(r"(NOT\s+)?EXISTS\b", rest, re.IGNORECASE):
-                                    prev_word = up
-                                    continue
+                            # IF opens a block only as a statement (IF cond THEN ... END IF), i.e. at the start of a
+                            # statement. Elsewhere it is the IF() function or part of DROP/CREATE ... IF [NOT] EXISTS.
+                            if up == "IF" and prev_word not in _STATEMENT_START:
+                                prev_word = up
+                                continue
                             if up == "BEGIN" and re.match(r"\s*(WORK\b|;)", script[i:], re.IGNORECASE) and depth == 0:
                                 prev_word = up
                                 continue

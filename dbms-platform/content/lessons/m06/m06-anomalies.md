@@ -12,7 +12,7 @@ references:
     url: https://dev.mysql.com/doc/refman/8.4/en/except.html
   - title: "MySQL 8.4 Reference Manual — Locks Set by Different SQL Statements in InnoDB"
     url: https://dev.mysql.com/doc/refman/8.4/en/innodb-locks-set.html
-  - title: "E. F. Codd — Further Normalization of the Data Base Relational Model (1972)"
+  - title: "Wikipedia — Third normal form (history of Codd's 1971–72 normalization papers)"
     url: https://en.wikipedia.org/wiki/Third_normal_form
 related: [m06-functional-dependencies, m06-decomposition-properties, m06-denormalization, m01-keys]
 ---

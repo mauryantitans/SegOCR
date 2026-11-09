@@ -2,7 +2,7 @@
  "doc": "m01-acid-transactions",
  "meta": {
   "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
-  "capturedAt": "2026-11-08"
+  "capturedAt": "2026-11-09"
  },
  "blocks": {
   "s1:12a8222c56f0": {
@@ -699,7 +699,7 @@
       "transactions": [
        {
         "session": "A",
-        "trxId": "214220",
+        "trxId": "428154",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -708,7 +708,7 @@
        },
        {
         "session": "B",
-        "trxId": "214227",
+        "trxId": "428161",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
