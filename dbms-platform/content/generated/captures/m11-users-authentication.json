@@ -1,0 +1,537 @@
+{
+ "doc": "m11-users-authentication",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:0747e81b1a20": {
+   "statements": [
+    {
+     "sql": "SELECT USER()         AS claimed_identity,\n       CURRENT_USER() AS matched_account,\n       DATABASE()     AS default_schema",
+     "status": "ok",
+     "columns": [
+      "claimed_identity",
+      "matched_account",
+      "default_schema"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "your_lab@localhost",
+       "your_lab@localhost",
+       "your_lab"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:9ae6f9a81326": {
+   "statements": [
+    {
+     "sql": "SHOW GRANTS",
+     "status": "ok",
+     "columns": [
+      "Grants for lab_1654385f41b518c9f8a4@localhost"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "GRANT USAGE ON *.* TO `your_lab`@`localhost`"
+      ],
+      [
+       "GRANT ALL PRIVILEGES ON `your_lab`.* TO `your_lab`@`localhost`"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:d0aadaac4d1d": {
+   "statements": [
+    {
+     "sql": "CREATE USER 'report_reader'@'10.0.2.%' IDENTIFIED BY 'S3cure-but-example'",
+     "status": "rejected",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": null,
+      "message": "CREATE USER is disabled in the sandbox. Your lab already has its own private schema; use the Reset button for a fresh copy."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s4:2b7ec819859e": {
+   "statements": [
+    {
+     "sql": "SELECT user, host, plugin FROM mysql.user",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1142,
+      "message": "SELECT command denied to user 'your_lab'@'localhost' for table 'user'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s5:cdee30d2b1fd": {
+   "statements": [
+    {
+     "sql": "SELECT * FROM information_schema.USER_ATTRIBUTES",
+     "status": "ok",
+     "columns": [
+      "USER",
+      "HOST",
+      "ATTRIBUTE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "your_lab",
+       "localhost",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:ecdcf47853a8": {
+   "statements": [
+    {
+     "sql": "SELECT PLUGIN_NAME, PLUGIN_STATUS, PLUGIN_TYPE\nFROM information_schema.PLUGINS\nWHERE PLUGIN_TYPE = 'AUTHENTICATION'\nORDER BY PLUGIN_NAME",
+     "status": "ok",
+     "columns": [
+      "PLUGIN_NAME",
+      "PLUGIN_STATUS",
+      "PLUGIN_TYPE"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "auth_socket",
+       "ACTIVE",
+       "AUTHENTICATION"
+      ],
+      [
+       "caching_sha2_password",
+       "ACTIVE",
+       "AUTHENTICATION"
+      ],
+      [
+       "mysql_native_password",
+       "ACTIVE",
+       "AUTHENTICATION"
+      ],
+      [
+       "sha256_password",
+       "ACTIVE",
+       "AUTHENTICATION"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:175ffab7a603": {
+   "statements": [
+    {
+     "sql": "SHOW VARIABLES LIKE 'authentication_policy'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "authentication_policy",
+       "*,,"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:65c3e7e00f1c": {
+   "statements": [
+    {
+     "sql": "SELECT @@default_authentication_plugin AS deprecated_variable",
+     "status": "ok",
+     "columns": [
+      "deprecated_variable"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "caching_sha2_password"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'@@default_authentication_plugin' is deprecated and will be removed in a future release. Please use authentication_policy instead."
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:fffa8783f94c": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE account_names (\n  user VARCHAR(32)  NOT NULL,\n  host VARCHAR(255) NOT NULL,\n  PRIMARY KEY (user, host)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO account_names VALUES\n  ('app',   '%'),\n  ('app',   '10.0.1.%'),\n  ('app',   '10.0.1.7'),\n  ('',      'localhost'),\n  ('admin', 'localhost'),\n  ('admin', '%'),\n  ('',      '%')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 7,
+     "info": "Records: 7  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM account_names ORDER BY user, host",
+     "status": "ok",
+     "columns": [
+      "user",
+      "host"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "",
+       "%"
+      ],
+      [
+       "",
+       "localhost"
+      ],
+      [
+       "admin",
+       "%"
+      ],
+      [
+       "admin",
+       "localhost"
+      ],
+      [
+       "app",
+       "%"
+      ],
+      [
+       "app",
+       "10.0.1.%"
+      ],
+      [
+       "app",
+       "10.0.1.7"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:e4eab3112bb6": {
+   "statements": [
+    {
+     "sql": "SET @client_user = 'app', @client_host = '10.0.1.9'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT user, host,\n       CASE WHEN host = '%' THEN 2\n            WHEN host LIKE '%\\%%' OR host LIKE '%\\_%' THEN 1\n            ELSE 0 END AS host_specificity,\n       user = '' AS is_anonymous\nFROM account_names\nWHERE @client_host LIKE host\n  AND (user = @client_user OR user = '')\nORDER BY host_specificity, is_anonymous, CHAR_LENGTH(host) DESC\nLIMIT 1",
+     "status": "ok",
+     "columns": [
+      "user",
+      "host",
+      "host_specificity",
+      "is_anonymous"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "app",
+       "10.0.1.%",
+       1,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:117c828a5ad4": {
+   "statements": [
+    {
+     "sql": "SET @client_user = 'admin', @client_host = 'localhost'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT user, host\nFROM account_names\nWHERE @client_host LIKE host\n  AND (user = @client_user OR user = '')\nORDER BY CASE WHEN host = '%' THEN 2\n              WHEN host LIKE '%\\%%' OR host LIKE '%\\_%' THEN 1\n              ELSE 0 END,\n         user = '',\n         CHAR_LENGTH(host) DESC",
+     "status": "ok",
+     "columns": [
+      "user",
+      "host"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "admin",
+       "localhost"
+      ],
+      [
+       "",
+       "localhost"
+      ],
+      [
+       "admin",
+       "%"
+      ],
+      [
+       "",
+       "%"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:fd9063da8769": {
+   "statements": [
+    {
+     "sql": "SET @client_user = 'app', @client_host = 'localhost'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT user, host\nFROM account_names\nWHERE @client_host LIKE host\n  AND (user = @client_user OR user = '')\nORDER BY CASE WHEN host = '%' THEN 2\n              WHEN host LIKE '%\\%%' OR host LIKE '%\\_%' THEN 1\n              ELSE 0 END,\n         user = '',\n         CHAR_LENGTH(host) DESC\nLIMIT 1",
+     "status": "ok",
+     "columns": [
+      "user",
+      "host"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "",
+       "localhost"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:c7d704909878": {
+   "statements": [
+    {
+     "sql": "SELECT SHA2('Summer2024!', 256)                     AS alice_unsalted,\n       SHA2('Summer2024!', 256)                     AS bob_unsalted,\n       SHA2(CONCAT('k3P9xQ', 'Summer2024!'), 256)   AS alice_salted,\n       SHA2(CONCAT('Zr71aL', 'Summer2024!'), 256)   AS bob_salted",
+     "status": "ok",
+     "columns": [
+      "alice_unsalted",
+      "bob_unsalted",
+      "alice_salted",
+      "bob_salted"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "323725e8eff4df0a4974d6ea8c73017aa6467d94e09382745b7a988cec0fba0a",
+       "323725e8eff4df0a4974d6ea8c73017aa6467d94e09382745b7a988cec0fba0a",
+       "b195aec0e3a89b401c0d9119c58e7fff7d0cd989406e94dc981aecc1337f1747",
+       "43e8b4a2f66ea51eedd1a1eb4e5fd6f27dfcb660cfee1c34fda3799db77c1ba7"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:8de2755c461b": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE account_audit (\n  user                  VARCHAR(32)  NOT NULL,\n  host                  VARCHAR(255) NOT NULL,\n  plugin                VARCHAR(64)  NOT NULL,\n  password_last_changed DATETIME     NULL,\n  password_lifetime     SMALLINT     NULL,   -- NULL = use global default\n  account_locked        ENUM('Y','N') NOT NULL,\n  failed_login_attempts INT          NOT NULL DEFAULT 0,\n  require_ssl           ENUM('Y','N') NOT NULL,\n  PRIMARY KEY (user, host)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO account_audit VALUES\n  ('app_orders',   '10.0.1.%',  'caching_sha2_password', '2026-09-01 10:00:00', 90,   'N', 5, 'Y'),\n  ('app_legacy',   '%',         'mysql_native_password', '2019-03-14 08:30:00', NULL, 'N', 0, 'N'),\n  ('analyst_kim',  '10.0.9.%',  'caching_sha2_password', '2026-06-20 16:45:00', 180,  'N', 3, 'Y'),\n  ('migrator',     '10.0.5.10', 'caching_sha2_password', '2026-10-02 09:00:00', NULL, 'N', 0, 'Y'),\n  ('backup',       'localhost', 'auth_socket',           NULL,                  NULL, 'N', 0, 'N'),\n  ('r_read_only',  '%',         'caching_sha2_password', NULL,                  NULL, 'Y', 0, 'N'),\n  ('',             'localhost', 'caching_sha2_password', NULL,                  NULL, 'N', 0, 'N'),\n  ('old_contractor','%',        'caching_sha2_password', '2022-01-10 12:00:00', NULL, 'N', 0, 'N')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 8,
+     "info": "Records: 8  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT user, host, plugin,\n       CONCAT_WS('; ',\n         IF(user = '', 'anonymous account', NULL),\n         IF(plugin = 'mysql_native_password', 'native password: fails on 8.4 by default', NULL),\n         IF(host = '%' AND account_locked = 'N', 'any-host login', NULL),\n         IF(require_ssl = 'N' AND host <> 'localhost' AND account_locked = 'N', 'no TLS requirement', NULL),\n         IF(password_last_changed < '2025-11-09' AND account_locked = 'N', 'password older than 1 year', NULL)\n       ) AS findings\nFROM account_audit\nHAVING findings <> ''\nORDER BY user, host",
+     "status": "ok",
+     "columns": [
+      "user",
+      "host",
+      "plugin",
+      "findings"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "",
+       "localhost",
+       "caching_sha2_password",
+       "anonymous account"
+      ],
+      [
+       "app_legacy",
+       "%",
+       "mysql_native_password",
+       "native password: fails on 8.4 by default; any-host login; no TLS requirement; password older than 1 year"
+      ],
+      [
+       "old_contractor",
+       "%",
+       "caching_sha2_password",
+       "any-host login; no TLS requirement; password older than 1 year"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:70b6928709e5": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE credential_state (step INT, slot VARCHAR(10), secret_label VARCHAR(10))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO credential_state VALUES (1, 'primary', 'P1')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT slot, secret_label FROM credential_state WHERE step = 1",
+     "status": "ok",
+     "columns": [
+      "slot",
+      "secret_label"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "primary",
+       "P1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:06c9d03e36f1": {
+   "statements": [
+    {
+     "sql": "INSERT INTO credential_state VALUES (2, 'primary', 'P2'), (2, 'secondary', 'P1')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT slot, secret_label FROM credential_state WHERE step = 2 ORDER BY slot",
+     "status": "ok",
+     "columns": [
+      "slot",
+      "secret_label"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "primary",
+       "P2"
+      ],
+      [
+       "secondary",
+       "P1"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:9300d474bd59": {
+   "statements": [
+    {
+     "sql": "INSERT INTO credential_state VALUES (4, 'primary', 'P2')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT slot, secret_label FROM credential_state WHERE step = 4",
+     "status": "ok",
+     "columns": [
+      "slot",
+      "secret_label"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "primary",
+       "P2"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:81a6665c8b4b": {
+   "statements": [
+    {
+     "sql": "CREATE SQL SECURITY DEFINER VIEW whoami AS\nSELECT USER() AS session_user_value, CURRENT_USER() AS privilege_account",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM whoami",
+     "status": "ok",
+     "columns": [
+      "session_user_value",
+      "privilege_account"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "your_lab@localhost",
+       "your_lab@localhost"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

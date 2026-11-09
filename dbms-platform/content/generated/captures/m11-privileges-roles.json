@@ -1,0 +1,632 @@
+{
+ "doc": "m11-privileges-roles",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:9ae6f9a81326": {
+   "statements": [
+    {
+     "sql": "SHOW GRANTS",
+     "status": "ok",
+     "columns": [
+      "Grants for lab_06aee83aa0f5e5001141@localhost"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "GRANT USAGE ON *.* TO `your_lab`@`localhost`"
+      ],
+      [
+       "GRANT ALL PRIVILEGES ON `your_lab`.* TO `your_lab`@`localhost`"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:4b2c7421b8ba": {
+   "statements": [
+    {
+     "sql": "SELECT GRANTEE, TABLE_SCHEMA, PRIVILEGE_TYPE, IS_GRANTABLE\nFROM information_schema.SCHEMA_PRIVILEGES\nORDER BY PRIVILEGE_TYPE",
+     "status": "ok",
+     "columns": [
+      "GRANTEE",
+      "TABLE_SCHEMA",
+      "PRIVILEGE_TYPE",
+      "IS_GRANTABLE"
+     ],
+     "row_count": 18,
+     "rows": [
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "ALTER",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "ALTER ROUTINE",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "CREATE",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "CREATE ROUTINE",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "CREATE TEMPORARY TABLES",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "CREATE VIEW",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "DELETE",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "DROP",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "EVENT",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "EXECUTE",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "INDEX",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "INSERT",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "LOCK TABLES",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "REFERENCES",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "SELECT",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "SHOW VIEW",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "TRIGGER",
+       "NO"
+      ],
+      [
+       "'your_lab'@'localhost'",
+       "your_lab",
+       "UPDATE",
+       "NO"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:e5edb45abf08": {
+   "statements": [
+    {
+     "sql": "SELECT 'global' AS level, PRIVILEGE_TYPE, IS_GRANTABLE\nFROM information_schema.USER_PRIVILEGES\nUNION ALL\nSELECT 'table', CONCAT(TABLE_NAME, '.', PRIVILEGE_TYPE), IS_GRANTABLE\nFROM information_schema.TABLE_PRIVILEGES",
+     "status": "ok",
+     "columns": [
+      "level",
+      "PRIVILEGE_TYPE",
+      "IS_GRANTABLE"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "global",
+       "USAGE",
+       "NO"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:6075067d9700": {
+   "statements": [
+    {
+     "sql": "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA ORDER BY SCHEMA_NAME",
+     "status": "ok",
+     "columns": [
+      "SCHEMA_NAME"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "information_schema"
+      ],
+      [
+       "your_lab"
+      ],
+      [
+       "performance_schema"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:f206df92669d": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) FROM t_shop.customers",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1142,
+      "message": "SELECT command denied to user 'your_lab'@'localhost' for table 'customers'"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:0e6b22fc1393": {
+   "statements": [
+    {
+     "sql": "GRANT SELECT ON customers TO 'report_reader'@'10.0.2.%'",
+     "status": "rejected",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": null,
+      "message": "Account privileges cannot be changed from the sandbox. The security lessons show GRANT/REVOKE as read-only examples."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:d5417872de50": {
+   "statements": [
+    {
+     "sql": "SELECT CURRENT_ROLE() AS active_roles,\n       @@activate_all_roles_on_login AS activate_all_roles_on_login,\n       @@mandatory_roles AS mandatory_roles,\n       @@partial_revokes AS partial_revokes",
+     "status": "ok",
+     "columns": [
+      "active_roles",
+      "activate_all_roles_on_login",
+      "mandatory_roles",
+      "partial_revokes"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "NONE",
+       0,
+       "",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:3718e558beea": {
+   "statements": [
+    {
+     "sql": "CREATE SQL SECURITY DEFINER VIEW v_customer_directory AS\nSELECT customer_id, first_name, last_name, city, state\nFROM customers",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME, SECURITY_TYPE, DEFINER\nFROM information_schema.VIEWS\nWHERE TABLE_SCHEMA = DATABASE()",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "SECURITY_TYPE",
+      "DEFINER"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "v_customer_directory",
+       "DEFINER",
+       "your_lab@localhost"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:cc5bd1bc7348": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE refund_delivered_order(IN p_order_id INT UNSIGNED)\nSQL SECURITY DEFINER\nMODIFIES SQL DATA\nBEGIN\n  UPDATE orders\n  SET status = 'refunded'\n  WHERE order_id = p_order_id AND status = 'delivered';\n  SELECT ROW_COUNT() AS orders_refunded;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL refund_delivered_order(2)",
+     "status": "ok",
+     "columns": [
+      "orders_refunded"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "CALL refund_delivered_order(1)",
+     "status": "ok",
+     "columns": [
+      "orders_refunded"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:835776476da6": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE role_privileges (\n  role_name  VARCHAR(32) NOT NULL,\n  object     VARCHAR(64) NOT NULL,   -- 'shop.*' or 'shop.orders'\n  privilege  VARCHAR(32) NOT NULL,\n  PRIMARY KEY (role_name, object, privilege)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE account_roles (\n  account    VARCHAR(64) NOT NULL,\n  role_name  VARCHAR(32) NOT NULL,\n  is_default BOOLEAN NOT NULL,\n  PRIMARY KEY (account, role_name)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE direct_privileges (\n  account    VARCHAR(64) NOT NULL,\n  object     VARCHAR(64) NOT NULL,\n  privilege  VARCHAR(32) NOT NULL,\n  PRIMARY KEY (account, object, privilege)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO role_privileges VALUES\n  ('r_read_only', 'shop.*', 'SELECT'),\n  ('r_app_rw',    'shop.*', 'SELECT'), ('r_app_rw', 'shop.*', 'INSERT'),\n  ('r_app_rw',    'shop.*', 'UPDATE'), ('r_app_rw', 'shop.*', 'DELETE'),\n  ('r_migrator',  'shop.*', 'ALTER'),  ('r_migrator', 'shop.*', 'CREATE'),\n  ('r_migrator',  'shop.*', 'DROP'),   ('r_migrator', 'shop.*', 'INDEX'),\n  ('r_migrator',  'shop.*', 'REFERENCES'), ('r_migrator', 'shop.*', 'SELECT')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 11,
+     "info": "Records: 11  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO account_roles VALUES\n  ('orders_app@10.0.1.%',   'r_app_rw',    TRUE),\n  ('analyst_kim@10.0.9.%',  'r_read_only', TRUE),\n  ('ci_migrator@10.0.5.10', 'r_migrator',  TRUE),\n  ('ci_migrator@10.0.5.10', 'r_app_rw',    FALSE)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO direct_privileges VALUES\n  ('analyst_kim@10.0.9.%', 'shop.orders', 'UPDATE')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT ar.account, rp.object, rp.privilege, CONCAT('role ', ar.role_name) AS via\nFROM account_roles ar\nJOIN role_privileges rp ON rp.role_name = ar.role_name\nWHERE ar.is_default\nUNION ALL\nSELECT account, object, privilege, 'direct grant'\nFROM direct_privileges\nORDER BY account, object, privilege",
+     "status": "ok",
+     "columns": [
+      "account",
+      "object",
+      "privilege",
+      "via"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       "analyst_kim@10.0.9.%",
+       "shop.*",
+       "SELECT",
+       "role r_read_only"
+      ],
+      [
+       "analyst_kim@10.0.9.%",
+       "shop.orders",
+       "UPDATE",
+       "direct grant"
+      ],
+      [
+       "ci_migrator@10.0.5.10",
+       "shop.*",
+       "ALTER",
+       "role r_migrator"
+      ],
+      [
+       "ci_migrator@10.0.5.10",
+       "shop.*",
+       "CREATE",
+       "role r_migrator"
+      ],
+      [
+       "ci_migrator@10.0.5.10",
+       "shop.*",
+       "DROP",
+       "role r_migrator"
+      ],
+      [
+       "ci_migrator@10.0.5.10",
+       "shop.*",
+       "INDEX",
+       "role r_migrator"
+      ],
+      [
+       "ci_migrator@10.0.5.10",
+       "shop.*",
+       "REFERENCES",
+       "role r_migrator"
+      ],
+      [
+       "ci_migrator@10.0.5.10",
+       "shop.*",
+       "SELECT",
+       "role r_migrator"
+      ],
+      [
+       "orders_app@10.0.1.%",
+       "shop.*",
+       "DELETE",
+       "role r_app_rw"
+      ],
+      [
+       "orders_app@10.0.1.%",
+       "shop.*",
+       "INSERT",
+       "role r_app_rw"
+      ],
+      [
+       "orders_app@10.0.1.%",
+       "shop.*",
+       "SELECT",
+       "role r_app_rw"
+      ],
+      [
+       "orders_app@10.0.1.%",
+       "shop.*",
+       "UPDATE",
+       "role r_app_rw"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:5f1e109571b7": {
+   "statements": [
+    {
+     "sql": "SELECT a.account, p.privilege,\n       EXISTS (\n         SELECT 1 FROM account_roles ar\n         JOIN role_privileges rp ON rp.role_name = ar.role_name\n         WHERE ar.account = a.account AND ar.is_default\n           AND rp.privilege = p.privilege AND rp.object IN ('shop.*', 'shop.orders')\n         UNION ALL\n         SELECT 1 FROM direct_privileges d\n         WHERE d.account = a.account AND d.privilege = p.privilege\n           AND d.object IN ('shop.*', 'shop.orders')\n       ) AS allowed_on_orders\nFROM (SELECT DISTINCT account FROM account_roles) a\nCROSS JOIN (SELECT 'SELECT' AS privilege UNION ALL SELECT 'UPDATE' UNION ALL SELECT 'DROP') p\nORDER BY a.account, p.privilege",
+     "status": "ok",
+     "columns": [
+      "account",
+      "privilege",
+      "allowed_on_orders"
+     ],
+     "row_count": 9,
+     "rows": [
+      [
+       "analyst_kim@10.0.9.%",
+       "DROP",
+       0
+      ],
+      [
+       "analyst_kim@10.0.9.%",
+       "SELECT",
+       1
+      ],
+      [
+       "analyst_kim@10.0.9.%",
+       "UPDATE",
+       1
+      ],
+      [
+       "ci_migrator@10.0.5.10",
+       "DROP",
+       1
+      ],
+      [
+       "ci_migrator@10.0.5.10",
+       "SELECT",
+       1
+      ],
+      [
+       "ci_migrator@10.0.5.10",
+       "UPDATE",
+       0
+      ],
+      [
+       "orders_app@10.0.1.%",
+       "DROP",
+       0
+      ],
+      [
+       "orders_app@10.0.1.%",
+       "SELECT",
+       1
+      ],
+      [
+       "orders_app@10.0.1.%",
+       "UPDATE",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:66008f7c0d71": {
+   "statements": [
+    {
+     "sql": "SELECT role_name, is_default FROM account_roles WHERE account = 'orders_app@10.0.1.%'",
+     "status": "ok",
+     "columns": [
+      "role_name",
+      "is_default"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "r_app_rw",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:f0d2efe3b1e6": {
+   "statements": [
+    {
+     "sql": "SELECT rp.object, rp.privilege\nFROM account_roles ar JOIN role_privileges rp ON rp.role_name = ar.role_name\nWHERE ar.account = 'orders_app@10.0.1.%' AND ar.is_default\n  AND rp.privilege IN ('SELECT', 'UPDATE')\nORDER BY rp.privilege",
+     "status": "ok",
+     "columns": [
+      "object",
+      "privilege"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "shop.*",
+       "SELECT"
+      ],
+      [
+       "shop.*",
+       "UPDATE"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:08ba5a4a5074": {
+   "statements": [
+    {
+     "sql": "UPDATE orders SET status = 'shipped' WHERE order_id = 11",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT order_id, status FROM orders WHERE order_id = 11",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       11,
+       "shipped"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:827b5d2677e1": {
+   "statements": [
+    {
+     "sql": "CREATE DEFINER = 'root'@'localhost' SQL SECURITY DEFINER VIEW v_escalate AS\nSELECT customer_id, email FROM customers",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1227,
+      "message": "Access denied; you need (at least one of) the SUPER or SET_USER_ID privilege(s) for this operation"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s16:f69759b0895d": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_SCHEMA = DATABASE()  AS names_equal,\n       CHAR_LENGTH(TABLE_SCHEMA)  AS grant_name_length,\n       CHAR_LENGTH(DATABASE())    AS schema_name_length,\n       LOCATE('\\\\', TABLE_SCHEMA) AS backslash_position\nFROM information_schema.SCHEMA_PRIVILEGES\nLIMIT 1",
+     "status": "ok",
+     "columns": [
+      "names_equal",
+      "grant_name_length",
+      "schema_name_length",
+      "backslash_position"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       25,
+       24,
+       4
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

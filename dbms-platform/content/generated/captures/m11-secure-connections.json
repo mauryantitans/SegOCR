@@ -1,0 +1,349 @@
+{
+ "doc": "m11-secure-connections",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:7fed2060f295": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Ssl_version', 'Ssl_cipher')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Ssl_cipher",
+       "TLS_AES_256_GCM_SHA384"
+      ],
+      [
+       "Ssl_version",
+       "TLSv1.3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:0f5b4fdd9997": {
+   "statements": [
+    {
+     "sql": "SELECT @@tls_version              AS tls_versions_enabled,\n       @@require_secure_transport AS require_secure_transport,\n       @@ssl_ca                   AS ca_file,\n       @@ssl_cert                 AS cert_file,\n       @@ssl_key                  AS key_file",
+     "status": "ok",
+     "columns": [
+      "tls_versions_enabled",
+      "require_secure_transport",
+      "ca_file",
+      "cert_file",
+      "key_file"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "TLSv1.2,TLSv1.3",
+       0,
+       "ca.pem",
+       "server-cert.pem",
+       "server-key.pem"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:b7bd3e2d6cfe": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Ssl_server_not_before', 'Ssl_server_not_after')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Ssl_server_not_after",
+       "Nov  4 20:19:23 2036 GMT"
+      ],
+      [
+       "Ssl_server_not_before",
+       "Nov  7 20:19:23 2026 GMT"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:7a9e85ccaa3f": {
+   "statements": [
+    {
+     "sql": "SELECT @@have_ssl AS have_ssl",
+     "status": "ok",
+     "columns": [
+      "have_ssl"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "YES"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'@@have_ssl' is deprecated and will be removed in a future release. Please use performance_schema.tls_channel_status table instead."
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:fd24e144fa58": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE card_vault (card_id INT PRIMARY KEY, pan VARBINARY(64)) ENCRYPTION = 'Y'",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3185,
+      "message": "Can't find master key from keyring, please check in the server log if a keyring is loaded and initialized successfully."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:3abfbf4073eb": {
+   "statements": [
+    {
+     "sql": "SELECT @@default_table_encryption AS default_table_encryption,\n       @@innodb_redo_log_encrypt  AS redo_log_encrypt,\n       @@innodb_undo_log_encrypt  AS undo_log_encrypt,\n       @@binlog_encryption        AS binlog_encryption",
+     "status": "ok",
+     "columns": [
+      "default_table_encryption",
+      "redo_log_encrypt",
+      "undo_log_encrypt",
+      "binlog_encryption"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       0,
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:9e77ff2fda98": {
+   "statements": [
+    {
+     "sql": "SET SESSION block_encryption_mode = 'aes-256-cbc'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @key = UNHEX(SHA2('demo key - never hard-code a real key', 256))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @iv  = UNHEX('000102030405060708090a0b0c0d0e0f')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- fixed only to make the capture reproducible\nSELECT HEX(AES_ENCRYPT('4111111111111111', @key, @iv))                         AS ciphertext_hex,\n       CAST(AES_DECRYPT(AES_ENCRYPT('4111111111111111', @key, @iv), @key, @iv) AS CHAR) AS decrypted,\n       AES_DECRYPT(AES_ENCRYPT('4111111111111111', @key, @iv),\n                   UNHEX(SHA2('wrong key', 256)), @iv)                         AS with_wrong_key",
+     "status": "ok",
+     "columns": [
+      "ciphertext_hex",
+      "decrypted",
+      "with_wrong_key"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "75355007B3797BCAF65572EAD5B7ADC411AF599E33A99407137A0590D852763D",
+       "4111111111111111",
+       null
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:d0e77c94fa55": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE customer_tax_ids (\n  customer_id    INT UNSIGNED PRIMARY KEY,\n  tax_id_iv      VARBINARY(16) NOT NULL,\n  tax_id_ct      VARBINARY(64) NOT NULL,\n  tax_id_index   BINARY(32)    NOT NULL,\n  KEY idx_tax_blind (tax_id_index)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @index_secret = 'separate-blind-index-secret'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SET @iv1 = UNHEX('1f1e1d1c1b1a19181716151413121110'), @iv2 = UNHEX('aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbb')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO customer_tax_ids VALUES\n  (1, @iv1, AES_ENCRYPT('123-45-6789', @key, @iv1), UNHEX(SHA2(CONCAT(@index_secret, '123-45-6789'), 256))),\n  (2, @iv2, AES_ENCRYPT('987-65-4321', @key, @iv2), UNHEX(SHA2(CONCAT(@index_secret, '987-65-4321'), 256)))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT customer_id,\n       HEX(tax_id_ct) AS stored_ciphertext,\n       CAST(AES_DECRYPT(tax_id_ct, @key, tax_id_iv) AS CHAR) AS decrypted_by_key_holder\nFROM customer_tax_ids\nWHERE tax_id_index = UNHEX(SHA2(CONCAT(@index_secret, '987-65-4321'), 256))",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "stored_ciphertext",
+      "decrypted_by_key_holder"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2,
+       "22583CBBE056750DF9F925615CA4995B",
+       "987-65-4321"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:386f17c7c17b": {
+   "statements": [
+    {
+     "sql": "CREATE SQL SECURITY DEFINER VIEW v_customers_masked AS\nSELECT customer_id,\n       CONCAT(LEFT(email, 1), '***@', SUBSTRING_INDEX(email, '@', -1)) AS email_masked,\n       CASE WHEN phone IS NULL THEN NULL ELSE CONCAT('***-***-', RIGHT(phone, 4)) END AS phone_masked,\n       city\nFROM customers",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM v_customers_masked ORDER BY customer_id LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "email_masked",
+      "phone_masked",
+      "city"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       1,
+       "a***@example.com",
+       "***-***-4657",
+       "Austin"
+      ],
+      [
+       2,
+       "k***@example.com",
+       "***-***-1488",
+       "Boston"
+      ],
+      [
+       3,
+       "d***@example.com",
+       "***-***-4257",
+       "San Jose"
+      ],
+      [
+       4,
+       "d***@example.com",
+       "***-***-3615",
+       "Austin"
+      ],
+      [
+       5,
+       "g***@example.com",
+       null,
+       "Seattle"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:7fed2060f295": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Ssl_version', 'Ssl_cipher')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Ssl_cipher",
+       "TLS_AES_256_GCM_SHA384"
+      ],
+      [
+       "Ssl_version",
+       "TLSv1.3"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:333173b6a037": {
+   "statements": [
+    {
+     "sql": "SET SESSION block_encryption_mode = 'aes-128-ecb'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT HEX(AES_ENCRYPT('same value', 'k')) AS row_1,\n       HEX(AES_ENCRYPT('same value', 'k')) AS row_2,\n       @@session.block_encryption_mode     AS mode",
+     "status": "ok",
+     "columns": [
+      "row_1",
+      "row_2",
+      "mode"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "800DF372D79FABE052399CB90D09CE94",
+       "800DF372D79FABE052399CB90D09CE94",
+       "aes-128-ecb"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

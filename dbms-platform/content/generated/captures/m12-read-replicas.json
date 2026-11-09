@@ -1,0 +1,579 @@
+{
+ "doc": "m12-read-replicas",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:df5886adf263": {
+   "statements": [
+    {
+     "sql": "-- The primary's table\nCREATE TABLE p_profiles (\n  user_id      INT PRIMARY KEY,\n  display_name VARCHAR(40) NOT NULL,\n  updated_at   DATETIME(3) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- The binary log: one ordered event per committed change (seq plays the role of the GTID transaction number)\nCREATE TABLE binlog_events (\n  seq          BIGINT AUTO_INCREMENT PRIMARY KEY,\n  user_id      INT NOT NULL,\n  display_name VARCHAR(40) NOT NULL,\n  committed_at DATETIME(3) NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER p_profiles_ai AFTER INSERT ON p_profiles FOR EACH ROW\n  INSERT INTO binlog_events (user_id, display_name, committed_at) VALUES (NEW.user_id, NEW.display_name, NEW.updated_at)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER p_profiles_au AFTER UPDATE ON p_profiles FOR EACH ROW\n  INSERT INTO binlog_events (user_id, display_name, committed_at) VALUES (NEW.user_id, NEW.display_name, NEW.updated_at)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- Two replicas' copies of the table, and each replica's \"replicated up to\" watermark\nCREATE TABLE r_profiles (\n  replica      VARCHAR(10) NOT NULL,\n  user_id      INT NOT NULL,\n  display_name VARCHAR(40) NOT NULL,\n  updated_at   DATETIME(3) NOT NULL,\n  PRIMARY KEY (replica, user_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE replica_state (\n  replica      VARCHAR(10) PRIMARY KEY,\n  applied_seq  BIGINT NOT NULL,          -- replicated up to this event (like gtid_executed)\n  applied_commit_ts DATETIME(3) NULL     -- primary commit time of the last applied event\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO replica_state VALUES ('r1', 0, NULL), ('r2', 0, NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CREATE PROCEDURE apply_events(IN r VARCHAR(10), IN upto BIGINT)\nBEGIN\n  DECLARE done_seq BIGINT;\n  START TRANSACTION;\n  SELECT applied_seq INTO done_seq FROM replica_state WHERE replica = r FOR UPDATE;\n  REPLACE INTO r_profiles (replica, user_id, display_name, updated_at)\n    SELECT r, user_id, display_name, committed_at FROM binlog_events\n    WHERE seq > done_seq AND seq <= upto ORDER BY seq;\n  UPDATE replica_state\n     SET applied_seq = GREATEST(applied_seq, LEAST(upto, (SELECT COALESCE(MAX(seq), 0) FROM binlog_events))),\n         applied_commit_ts = (SELECT committed_at FROM binlog_events WHERE seq = LEAST(upto, (SELECT MAX(seq) FROM binlog_events)))\n   WHERE replica = r;\n  COMMIT;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s2:1f1f3a7c19d4": {
+   "statements": [
+    {
+     "sql": "INSERT INTO p_profiles VALUES\n  (1, 'ada',    '2024-12-01 09:00:00.000'),\n  (2, 'grace',  '2024-12-01 09:00:01.000'),\n  (3, 'edsger', '2024-12-01 09:00:02.000')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 3,
+     "info": "Records: 3  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CALL apply_events('r1', 3)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CALL apply_events('r2', 3)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM replica_state ORDER BY replica",
+     "status": "ok",
+     "columns": [
+      "replica",
+      "applied_seq",
+      "applied_commit_ts"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "r1",
+       3,
+       "2024-12-01 09:00:02.000"
+      ],
+      [
+       "r2",
+       3,
+       "2024-12-01 09:00:02.000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:70f9cc9940aa": {
+   "statements": [
+    {
+     "sql": "UPDATE p_profiles SET display_name = 'Grace Hopper', updated_at = '2024-12-01 10:15:00.250' WHERE user_id = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "CALL apply_events('r1', 4)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT 'primary' AS source, display_name FROM p_profiles WHERE user_id = 2\nUNION ALL\nSELECT CONCAT('replica ', replica), display_name FROM r_profiles WHERE user_id = 2\nORDER BY source",
+     "status": "ok",
+     "columns": [
+      "source",
+      "display_name"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "primary",
+       "Grace Hopper"
+      ],
+      [
+       "replica r1",
+       "Grace Hopper"
+      ],
+      [
+       "replica r2",
+       "grace"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:a63d9233a0b5": {
+   "statements": [
+    {
+     "sql": "SET @now = '2024-12-01 10:15:03.000'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT s.replica,\n       s.applied_seq,\n       (SELECT MAX(seq) FROM binlog_events) - s.applied_seq AS transactions_behind,\n       COALESCE(TIMESTAMPDIFF(MICROSECOND,\n                  (SELECT MIN(e.committed_at) FROM binlog_events e WHERE e.seq > s.applied_seq),\n                  @now) / 1e6, 0) AS seconds_behind\nFROM replica_state s\nORDER BY s.replica",
+     "status": "ok",
+     "columns": [
+      "replica",
+      "applied_seq",
+      "transactions_behind",
+      "seconds_behind"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "r1",
+       4,
+       0,
+       0.0
+      ],
+      [
+       "r2",
+       3,
+       1,
+       2.75
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:d0cf3d434259": {
+   "statements": [
+    {
+     "sql": "CREATE FUNCTION route_read(last_write_at DATETIME(3), now_ts DATETIME(3), sticky_seconds INT)\nRETURNS VARCHAR(10) DETERMINISTIC\nRETURN IF(last_write_at IS NOT NULL\n          AND now_ts < last_write_at + INTERVAL sticky_seconds SECOND, 'primary', 'replica')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT route_read('2024-12-01 10:15:00.250', '2024-12-01 10:15:03.000', 5) AS just_renamed,\n       route_read('2024-12-01 10:15:00.250', '2024-12-01 10:15:09.000', 5) AS ten_seconds_later,\n       route_read(NULL,                      '2024-12-01 10:15:03.000', 5) AS never_wrote",
+     "status": "ok",
+     "columns": [
+      "just_renamed",
+      "ten_seconds_later",
+      "never_wrote"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "primary",
+       "replica",
+       "replica"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:93923de1c64b": {
+   "statements": [
+    {
+     "sql": "SET @token = (SELECT MAX(seq) FROM binlog_events WHERE user_id = 2)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- what the app stored after the rename\nSELECT s.replica, s.applied_seq, @token AS token,\n       IF(s.applied_seq >= @token, 'may serve the read', 'too stale: wait or use primary') AS decision\nFROM replica_state s ORDER BY s.replica",
+     "status": "ok",
+     "columns": [
+      "replica",
+      "applied_seq",
+      "token",
+      "decision"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "r1",
+       4,
+       4,
+       "may serve the read"
+      ],
+      [
+       "r2",
+       3,
+       4,
+       "too stale: wait or use primary"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:10ea46d4d050": {
+   "statements": [
+    {
+     "sql": "SET @now = '2024-12-01 10:15:03.000'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "WITH replica_lag AS (\n  SELECT s.replica,\n         COALESCE(TIMESTAMPDIFF(MICROSECOND,\n                    (SELECT MIN(e.committed_at) FROM binlog_events e WHERE e.seq > s.applied_seq),\n                    @now) / 1e6, 0) AS seconds_behind\n  FROM replica_state s\n)\nSELECT replica, seconds_behind, IF(seconds_behind <= 2, 'in pool', 'out of pool') AS state\nFROM replica_lag ORDER BY replica",
+     "status": "ok",
+     "columns": [
+      "replica",
+      "seconds_behind",
+      "state"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "r1",
+       0.0,
+       "in pool"
+      ],
+      [
+       "r2",
+       2.75,
+       "out of pool"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:9bc4b0e9f0f1": {
+   "statements": [
+    {
+     "sql": "CALL apply_events('r2', 4)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT replica, display_name FROM r_profiles WHERE user_id = 2 ORDER BY replica",
+     "status": "ok",
+     "columns": [
+      "replica",
+      "display_name"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "r1",
+       "Grace Hopper"
+      ],
+      [
+       "r2",
+       "Grace Hopper"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT * FROM replica_state ORDER BY replica",
+     "status": "ok",
+     "columns": [
+      "replica",
+      "applied_seq",
+      "applied_commit_ts"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "r1",
+       4,
+       "2024-12-01 10:15:00.250"
+      ],
+      [
+       "r2",
+       4,
+       "2024-12-01 10:15:00.250"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:a3fb957a1c67": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO replica_orders VALUES (101, 80.00)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT o.order_id, o.total, p.amount FROM replica_orders o LEFT JOIN replica_payments p ON p.order_id = o.order_id ORDER BY o.order_id",
+       "status": "ok",
+       "columns": [
+        "order_id",
+        "total",
+        "amount"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         100,
+         "25.00",
+         "25.00"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "INSERT INTO replica_payments VALUES (101, 80.00)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT o.order_id, o.total, p.amount FROM replica_orders o LEFT JOIN replica_payments p ON p.order_id = o.order_id ORDER BY o.order_id",
+       "status": "ok",
+       "columns": [
+        "order_id",
+        "total",
+        "amount"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         100,
+         "25.00",
+         "25.00"
+        ],
+        [
+         101,
+         "80.00",
+         "80.00"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "w1.0:197609451d22": {
+   "statements": [
+    {
+     "sql": "SELECT seq, user_id, display_name, committed_at FROM binlog_events ORDER BY seq",
+     "status": "ok",
+     "columns": [
+      "seq",
+      "user_id",
+      "display_name",
+      "committed_at"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       1,
+       "ada",
+       "2024-12-01 09:00:00.000"
+      ],
+      [
+       2,
+       2,
+       "grace",
+       "2024-12-01 09:00:01.000"
+      ],
+      [
+       3,
+       3,
+       "edsger",
+       "2024-12-01 09:00:02.000"
+      ],
+      [
+       4,
+       2,
+       "Grace Hopper",
+       "2024-12-01 10:15:00.250"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:a45377c32869": {
+   "statements": [
+    {
+     "sql": "SELECT replica, applied_seq, applied_seq >= 4 AS may_serve_token_4 FROM replica_state ORDER BY replica",
+     "status": "ok",
+     "columns": [
+      "replica",
+      "applied_seq",
+      "may_serve_token_4"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "r1",
+       4,
+       1
+      ],
+      [
+       "r2",
+       4,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:aa1e49558de7": {
+   "statements": [
+    {
+     "sql": "SELECT replica, display_name FROM r_profiles WHERE user_id = 2 ORDER BY replica",
+     "status": "ok",
+     "columns": [
+      "replica",
+      "display_name"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "r1",
+       "Grace Hopper"
+      ],
+      [
+       "r2",
+       "Grace Hopper"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:aa79196722b7": {
+   "statements": [
+    {
+     "sql": "SET @now = '2024-12-01 10:20:00.000'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT replica,\n       TIMESTAMPDIFF(SECOND, applied_commit_ts, @now) AS naive_seconds_since_last_applied,\n       COALESCE(TIMESTAMPDIFF(SECOND,\n                  (SELECT MIN(e.committed_at) FROM binlog_events e WHERE e.seq > s.applied_seq), @now), 0) AS true_lag_seconds\nFROM replica_state s ORDER BY replica",
+     "status": "ok",
+     "columns": [
+      "replica",
+      "naive_seconds_since_last_applied",
+      "true_lag_seconds"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "r1",
+       299,
+       0
+      ],
+      [
+       "r2",
+       299,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

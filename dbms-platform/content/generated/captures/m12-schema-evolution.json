@@ -1,0 +1,819 @@
+{
+ "doc": "m12-schema-evolution",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:40151ce971ed": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 200000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE accounts (\n  account_id INT UNSIGNED NOT NULL PRIMARY KEY,\n  email      VARCHAR(50)  NOT NULL,\n  phone      VARCHAR(20)  NOT NULL,\n  country    CHAR(2)      NOT NULL,\n  status     ENUM('active', 'closed') NOT NULL,\n  created_at DATETIME     NOT NULL\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO accounts\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 200000)\nSELECT n,\n       CONCAT('user', n, '@example.com'),\n       CONCAT('(', 200 + n % 800, ') 555-', LPAD(n % 10000, 4, '0')),\n       ELT(1 + n % 3, 'US', 'CA', 'US'),\n       IF(n % 17 = 0, 'closed', 'active'),\n       '2020-01-01' + INTERVAL (n * 7) MINUTE\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE accounts",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "accounts",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS accounts_rows FROM accounts",
+     "status": "ok",
+     "columns": [
+      "accounts_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       200000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:1328fa4cc09f": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE accounts ADD COLUMN marketing_opt_in TINYINT NOT NULL DEFAULT 0, ALGORITHM=INSTANT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 16.34
+    }
+   ],
+   "measured": true
+  },
+  "s3:4da253e04f41": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, marketing_opt_in FROM accounts WHERE account_id IN (1, 200000) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "marketing_opt_in"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       0
+      ],
+      [
+       200000,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:45f717ae92f1": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE accounts ADD INDEX idx_accounts_created (created_at), ALGORITHM=INPLACE, LOCK=NONE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 214.61
+    }
+   ],
+   "measured": true
+  },
+  "s5:71ca8453f1c4": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE accounts MODIFY country VARCHAR(3) NOT NULL, ALGORITHM=INPLACE",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1846,
+      "message": "ALGORITHM=INPLACE is not supported. Reason: Cannot change column type INPLACE. Try ALGORITHM=COPY."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s6:21798fcf843e": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE accounts MODIFY country VARCHAR(3) NOT NULL, ALGORITHM=COPY, LOCK=NONE",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1846,
+      "message": "LOCK=NONE is not supported. Reason: COPY algorithm requires a lock. Try LOCK=SHARED."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s7:2efe3acadc2f": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE accounts MODIFY country VARCHAR(3) NOT NULL, ALGORITHM=COPY",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 630.45
+    }
+   ],
+   "measured": true
+  },
+  "s8:a729dbf3e895": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE accounts MODIFY email VARCHAR(60) NOT NULL, ALGORITHM=INPLACE, LOCK=NONE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s9:5804f6faeb89": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE accounts MODIFY email VARCHAR(100) NOT NULL, ALGORITHM=INPLACE, LOCK=NONE",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1846,
+      "message": "ALGORITHM=INPLACE is not supported. Reason: Cannot change column type INPLACE. Try ALGORITHM=COPY."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s10:925fcebe1607": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE accounts ADD COLUMN phone_e164 VARCHAR(16) NULL, ALGORITHM=INSTANT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s11:ecd33ff7b7b6": {
+   "statements": [
+    {
+     "sql": "CREATE TRIGGER accounts_phone_bi BEFORE INSERT ON accounts FOR EACH ROW\n  SET NEW.phone_e164 = COALESCE(NEW.phone_e164, CONCAT('+1', REPLACE(REPLACE(REPLACE(REPLACE(NEW.phone, '(', ''), ')', ''), ' ', ''), '-', '')))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER accounts_phone_bu BEFORE UPDATE ON accounts FOR EACH ROW\n  SET NEW.phone_e164 = IF(NEW.phone <> OLD.phone,\n                          CONCAT('+1', REPLACE(REPLACE(REPLACE(REPLACE(NEW.phone, '(', ''), ')', ''), ' ', ''), '-', '')),\n                          NEW.phone_e164)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO accounts (account_id, email, phone, country, status, created_at)\nVALUES (200001, 'late@example.com', '(415) 555-0101', 'US', 'active', '2024-12-30 10:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, phone, phone_e164 FROM accounts WHERE account_id IN (1, 200001) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "phone",
+      "phone_e164"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "(201) 555-0001",
+       null
+      ],
+      [
+       200001,
+       "(415) 555-0101",
+       "+14155550101"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:5d7be519066f": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE backfill_phone_e164(IN batch_size INT)\nBEGIN\n  DECLARE lo INT UNSIGNED DEFAULT 0;\n  DECLARE max_id INT UNSIGNED;\n  SELECT MAX(account_id) INTO max_id FROM accounts;\n  WHILE lo < max_id DO\n    UPDATE accounts\n       SET phone_e164 = CONCAT('+1', REPLACE(REPLACE(REPLACE(REPLACE(phone, '(', ''), ')', ''), ' ', ''), '-', ''))\n     WHERE account_id > lo AND account_id <= lo + batch_size\n       AND phone_e164 IS NULL;\n    SET lo = lo + batch_size;\n    -- production: pause here (DO SLEEP(0.05)) or check replica lag before the next chunk\n  END WHILE;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s13:c330da28588d": {
+   "statements": [
+    {
+     "sql": "CALL backfill_phone_e164(20000)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 3928.0
+    }
+   ],
+   "measured": true
+  },
+  "s14:b4892fae69e3": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS rows_checked,\n       SUM(phone_e164 IS NULL) AS rows_missing,\n       SUM(phone_e164 <> CONCAT('+1', REPLACE(REPLACE(REPLACE(REPLACE(phone, '(', ''), ')', ''), ' ', ''), '-', ''))) AS rows_wrong\nFROM accounts",
+     "status": "ok",
+     "columns": [
+      "rows_checked",
+      "rows_missing",
+      "rows_wrong"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       200001,
+       "0",
+       "0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s15:d52bc6583f74": {
+   "statements": [
+    {
+     "sql": "DROP TRIGGER accounts_phone_bi",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "DROP TRIGGER accounts_phone_bu",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE accounts MODIFY phone_e164 VARCHAR(16) NOT NULL, ALGORITHM=INPLACE, LOCK=NONE",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE accounts DROP COLUMN phone, ALGORITHM=INSTANT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, phone_e164 FROM accounts ORDER BY account_id LIMIT 3",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "phone_e164"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       1,
+       "+12015550001"
+      ],
+      [
+       2,
+       "+12025550002"
+      ],
+      [
+       3,
+       "+12035550003"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:3d74601a2949": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE orders_osc (order_id INT PRIMARY KEY, status VARCHAR(10) NOT NULL, amount INT NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders_osc VALUES (1, 'paid', 100), (2, 'paid', 250), (3, 'new', 80), (4, 'new', 40)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 4,
+     "info": "Records: 4  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- 1. Create the shadow table with the NEW definition (amount becomes DECIMAL)\nCREATE TABLE _orders_osc_new (order_id INT PRIMARY KEY, status VARCHAR(10) NOT NULL, amount DECIMAL(10,2) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- 2. Triggers mirror every change on the original into the shadow table\nCREATE TRIGGER osc_ai AFTER INSERT ON orders_osc FOR EACH ROW\n  REPLACE INTO _orders_osc_new VALUES (NEW.order_id, NEW.status, NEW.amount)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER osc_au AFTER UPDATE ON orders_osc FOR EACH ROW\n  REPLACE INTO _orders_osc_new VALUES (NEW.order_id, NEW.status, NEW.amount)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TRIGGER osc_ad AFTER DELETE ON orders_osc FOR EACH ROW\n  DELETE FROM _orders_osc_new WHERE order_id = OLD.order_id",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "-- 3. Copy existing rows in primary-key chunks (INSERT IGNORE: rows already copied by a trigger win)\nINSERT IGNORE INTO _orders_osc_new SELECT order_id, status, amount FROM orders_osc WHERE order_id BETWEEN 1 AND 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- ... meanwhile the application keeps writing to the original table:\nUPDATE orders_osc SET status = 'shipped' WHERE order_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders_osc VALUES (5, 'new', 999)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM orders_osc WHERE order_id = 4",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT IGNORE INTO _orders_osc_new SELECT order_id, status, amount FROM orders_osc WHERE order_id BETWEEN 3 AND 4",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "-- 4. Verify, then cut over with one atomic RENAME\nSELECT (SELECT COUNT(*) FROM orders_osc) AS original_rows, (SELECT COUNT(*) FROM _orders_osc_new) AS shadow_rows",
+     "status": "ok",
+     "columns": [
+      "original_rows",
+      "shadow_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       4,
+       4
+      ]
+     ]
+    },
+    {
+     "sql": "RENAME TABLE orders_osc TO _orders_osc_old, _orders_osc_new TO orders_osc",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "DROP TABLE _orders_osc_old",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM orders_osc ORDER BY order_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "amount"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       "shipped",
+       "100.00"
+      ],
+      [
+       2,
+       "paid",
+       "250.00"
+      ],
+      [
+       3,
+       "new",
+       "80.00"
+      ],
+      [
+       5,
+       "new",
+       "999.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:ed9e6cda6e56": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT name FROM profiles WHERE id = 1",
+       "status": "ok",
+       "columns": [
+        "name"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "Ada"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "ALTER TABLE profiles ADD COLUMN bio VARCHAR(200) NULL, ALGORITHM=INSTANT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Records: 0  Duplicates: 0  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 2,
+     "session": "C",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT name FROM profiles WHERE id = 2",
+       "status": "ok",
+       "columns": [
+        "name"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "Grace"
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT ID IS NOT NULL AS conn, COMMAND, STATE, INFO FROM information_schema.PROCESSLIST WHERE DB = DATABASE() AND INFO IS NOT NULL AND INFO NOT LIKE '%PROCESSLIST%' ORDER BY INFO",
+       "status": "ok",
+       "columns": [
+        "conn",
+        "COMMAND",
+        "STATE",
+        "INFO"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         1,
+         "Query",
+         "Waiting for table metadata lock",
+         "ALTER TABLE profiles ADD COLUMN bio VARCHAR(200) NULL, ALGORITHM=INSTANT"
+        ],
+        [
+         1,
+         "Query",
+         "Waiting for table metadata lock",
+         "SELECT name FROM profiles WHERE id = 2"
+        ]
+       ],
+       "warnings": [
+        {
+         "level": "Warning",
+         "code": 1287,
+         "message": "'INFORMATION_SCHEMA.PROCESSLIST' is deprecated and will be removed in a future release. Please use performance_schema.processlist instead"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT * FROM profiles ORDER BY id",
+       "status": "ok",
+       "columns": [
+        "id",
+        "name",
+        "bio"
+       ],
+       "row_count": 3,
+       "rows": [
+        [
+         1,
+         "Ada",
+         null
+        ],
+        [
+         2,
+         "Grace",
+         null
+        ],
+        [
+         3,
+         "Edsger",
+         null
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:5b899b8ab65c": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT name FROM profiles WHERE id = 1",
+       "status": "ok",
+       "columns": [
+        "name"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "Ada"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION lock_wait_timeout = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "ALTER TABLE profiles ADD COLUMN bio VARCHAR(200) NULL, ALGORITHM=INSTANT",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1205,
+        "message": "Lock wait timeout exceeded; try restarting transaction"
+       }
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "error"
+    },
+    {
+     "step": 3,
+     "session": "C",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT name FROM profiles WHERE id = 2",
+       "status": "ok",
+       "columns": [
+        "name"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         "Grace"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "s19:6f91c8a8bdc1": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE accounts MODIFY status VARCHAR(10) NOT NULL, ALGORITHM=INPLACE, LOCK=NONE",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1846,
+      "message": "ALGORITHM=INPLACE is not supported. Reason: Cannot change column type INPLACE. Try ALGORITHM=COPY."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s20:9d7515c9b6d8": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE accounts ADD COLUMN referral_code VARCHAR(12) NULL, ALGORITHM=INSTANT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET referral_code = 'R1' WHERE account_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE accounts MODIFY referral_code VARCHAR(12) NOT NULL, ALGORITHM=INPLACE, LOCK=NONE",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1138,
+      "message": "Invalid use of NULL value"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s21:f4524d0894be": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE accounts DROP COLUMN referral_code, ALGORITHM=INSTANT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  }
+ }
+}

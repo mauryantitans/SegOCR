@@ -1,0 +1,719 @@
+{
+ "doc": "m10-redo-undo",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:8d56a8cde12c": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_redo_log_capacity                   AS redo_capacity_bytes,\n       @@innodb_redo_log_capacity / 1024 / 1024     AS redo_capacity_mb,\n       @@innodb_log_buffer_size / 1024 / 1024       AS log_buffer_mb,\n       @@innodb_flush_log_at_trx_commit             AS flush_log_at_trx_commit,\n       @@innodb_flush_log_at_timeout                AS flush_timeout_s,\n       @@innodb_log_writer_threads                  AS dedicated_log_threads",
+     "status": "ok",
+     "columns": [
+      "redo_capacity_bytes",
+      "redo_capacity_mb",
+      "log_buffer_mb",
+      "flush_log_at_trx_commit",
+      "flush_timeout_s",
+      "dedicated_log_threads"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       104857600,
+       "100.00000000",
+       "16.00000000",
+       1,
+       1,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:a9a40abcc500": {
+   "statements": [
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN\n  ('Innodb_redo_log_current_lsn', 'Innodb_redo_log_flushed_to_disk_lsn', 'Innodb_redo_log_checkpoint_lsn',\n   'Innodb_redo_log_logical_size', 'Innodb_redo_log_physical_size', 'Innodb_redo_log_capacity_resized',\n   'Innodb_redo_log_resize_status', 'Innodb_redo_log_enabled')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "Innodb_redo_log_capacity_resized",
+       "104857600"
+      ],
+      [
+       "Innodb_redo_log_checkpoint_lsn",
+       "8989857676"
+      ],
+      [
+       "Innodb_redo_log_current_lsn",
+       "9047225588"
+      ],
+      [
+       "Innodb_redo_log_enabled",
+       "ON"
+      ],
+      [
+       "Innodb_redo_log_flushed_to_disk_lsn",
+       "9047225588"
+      ],
+      [
+       "Innodb_redo_log_logical_size",
+       "57368576"
+      ],
+      [
+       "Innodb_redo_log_physical_size",
+       "58982400"
+      ],
+      [
+       "Innodb_redo_log_resize_status",
+       "OK"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:8e2bbeded8a0": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_rollback_segments    AS rollback_segments_per_undo_ts,\n       @@innodb_max_undo_log_size / 1024 / 1024 AS undo_truncate_threshold_mb,\n       @@innodb_undo_log_truncate    AS undo_truncate,\n       @@innodb_purge_threads        AS purge_threads,\n       @@innodb_purge_batch_size     AS purge_batch_size,\n       @@innodb_max_purge_lag        AS max_purge_lag",
+     "status": "ok",
+     "columns": [
+      "rollback_segments_per_undo_ts",
+      "undo_truncate_threshold_mb",
+      "undo_truncate",
+      "purge_threads",
+      "purge_batch_size",
+      "max_purge_lag"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       128,
+       "1024.00000000",
+       1,
+       4,
+       300,
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW GLOBAL STATUS LIKE 'Innodb_undo_tablespaces%'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Innodb_undo_tablespaces_total",
+       "2"
+      ],
+      [
+       "Innodb_undo_tablespaces_implicit",
+       "2"
+      ],
+      [
+       "Innodb_undo_tablespaces_explicit",
+       "0"
+      ],
+      [
+       "Innodb_undo_tablespaces_active",
+       "2"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:c477afa27db0": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 300000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE ledger (id INT PRIMARY KEY, account INT NOT NULL, amount DECIMAL(12,2) NOT NULL, memo CHAR(100) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO ledger\n  WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 200000)\n  SELECT n, n % 1000, 10.00, 'opening balance' FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s6:0b0931413802": {
+   "statements": [
+    {
+     "sql": "CREATE PROCEDURE small_updates(IN n INT)\nBEGIN\n  DECLARE i INT DEFAULT 0;\n  WHILE i < n DO\n    UPDATE ledger SET amount = amount + 1 WHERE id = 1 + (i * 37) % 200000;\n    SET i = i + 1;\n  END WHILE;\nEND",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s7:551f26ad12f6": {
+   "statements": [
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN ('Innodb_redo_log_current_lsn', 'Innodb_os_log_fsyncs')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Innodb_os_log_fsyncs",
+       "433572"
+      ],
+      [
+       "Innodb_redo_log_current_lsn",
+       "9082825408"
+      ]
+     ],
+     "elapsed_ms": 1.17
+    },
+    {
+     "sql": "CALL small_updates(1000)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": [],
+     "elapsed_ms": 857.01
+    },
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN ('Innodb_redo_log_current_lsn', 'Innodb_os_log_fsyncs')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Innodb_os_log_fsyncs",
+       "434708"
+      ],
+      [
+       "Innodb_redo_log_current_lsn",
+       "9083312582"
+      ]
+     ],
+     "elapsed_ms": 1.63
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 0.58
+    },
+    {
+     "sql": "CALL small_updates(1000)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": [],
+     "elapsed_ms": 15.55
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 2.34
+    },
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN ('Innodb_redo_log_current_lsn', 'Innodb_os_log_fsyncs')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Innodb_os_log_fsyncs",
+       "434727"
+      ],
+      [
+       "Innodb_redo_log_current_lsn",
+       "9083406671"
+      ]
+     ],
+     "elapsed_ms": 1.02
+    }
+   ],
+   "measured": true
+  },
+  "s8:82f02da07d7e": {
+   "statements": [
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN ('Innodb_redo_log_current_lsn', 'Innodb_os_log_written')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Innodb_os_log_written",
+       "5021365248"
+      ],
+      [
+       "Innodb_redo_log_current_lsn",
+       "9083406671"
+      ]
+     ]
+    },
+    {
+     "sql": "UPDATE ledger SET memo = 'restated balance'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Rows matched: 200000  Changed: 200000  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN ('Innodb_redo_log_current_lsn', 'Innodb_os_log_written')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Innodb_os_log_written",
+       "5080295936"
+      ],
+      [
+       "Innodb_redo_log_current_lsn",
+       "9141606973"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:3db5cfc98ba9": {
+   "statements": [
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN\n  ('Innodb_redo_log_current_lsn', 'Innodb_redo_log_checkpoint_lsn', 'Innodb_redo_log_logical_size')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Innodb_redo_log_checkpoint_lsn",
+       "9058539401"
+      ],
+      [
+       "Innodb_redo_log_current_lsn",
+       "9141606973"
+      ],
+      [
+       "Innodb_redo_log_logical_size",
+       "83068416"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:40c93367810f": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 0.38
+    },
+    {
+     "sql": "UPDATE ledger SET amount = amount + 5",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Rows matched: 200000  Changed: 200000  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 1002.3
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 761.49
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 0.46
+    },
+    {
+     "sql": "UPDATE ledger SET amount = amount + 5",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Rows matched: 200000  Changed: 200000  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 879.51
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 30.77
+    }
+   ],
+   "measured": true
+  },
+  "s11:3f6d6a116a5c": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE ledger SET amount = 0 WHERE id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SAVEPOINT after_first",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE ledger SET amount = 0 WHERE id = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ROLLBACK TO SAVEPOINT after_first",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT id, amount FROM ledger WHERE id IN (1, 2) ORDER BY id",
+     "status": "ok",
+     "columns": [
+      "id",
+      "amount"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "0.00"
+      ],
+      [
+       2,
+       "15.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:f663cc5b3add": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION WITH CONSISTENT SNAPSHOT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT balance FROM wallet WHERE id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         100
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE wallet SET balance = 90 WHERE id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE wallet SET balance = 80 WHERE id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE wallet SET balance = 70 WHERE id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM wallet WHERE id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         100
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM wallet WHERE id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         70
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 7,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT balance FROM wallet WHERE id = 1",
+       "status": "ok",
+       "columns": [
+        "balance"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         70
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s12:16b6058b2f59": {
+   "statements": [
+    {
+     "sql": "SET SESSION information_schema_stats_expiry = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE ledger",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "ledger",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT 'before' AS moment, TABLE_ROWS, DATA_LENGTH DIV 16384 AS pages\nFROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ledger'",
+     "status": "ok",
+     "columns": [
+      "moment",
+      "TABLE_ROWS",
+      "pages"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "before",
+       198315,
+       1763
+      ]
+     ]
+    },
+    {
+     "sql": "DELETE FROM ledger WHERE id > 100000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE ledger",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "ledger",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT 'after' AS moment, TABLE_ROWS, DATA_LENGTH DIV 16384 AS pages\nFROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ledger'",
+     "status": "ok",
+     "columns": [
+      "moment",
+      "TABLE_ROWS",
+      "pages"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "after",
+       99157,
+       1763
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

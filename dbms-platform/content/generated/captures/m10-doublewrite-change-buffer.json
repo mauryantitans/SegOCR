@@ -1,0 +1,411 @@
+{
+ "doc": "m10-doublewrite-change-buffer",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:4e224ad2076c": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_doublewrite        AS doublewrite,\n       @@innodb_doublewrite_files  AS dblwr_files,\n       @@innodb_doublewrite_pages  AS dblwr_pages_per_batch,\n       @@innodb_doublewrite_dir    AS dblwr_dir,\n       @@innodb_checksum_algorithm AS checksum,\n       @@innodb_flush_method       AS flush_method",
+     "status": "ok",
+     "columns": [
+      "doublewrite",
+      "dblwr_files",
+      "dblwr_pages_per_batch",
+      "dblwr_dir",
+      "checksum",
+      "flush_method"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "ON",
+       2,
+       4,
+       null,
+       "crc32",
+       "fsync"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:4da0c5af4a8d": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_change_buffering         AS change_buffering,\n       @@innodb_change_buffer_max_size   AS change_buffer_max_pct,\n       @@innodb_adaptive_hash_index      AS adaptive_hash_index,\n       @@innodb_adaptive_hash_index_parts AS ahi_partitions",
+     "status": "ok",
+     "columns": [
+      "change_buffering",
+      "change_buffer_max_pct",
+      "adaptive_hash_index",
+      "ahi_partitions"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "all",
+       25,
+       1,
+       8
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:9ed6ef6cab89": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 300000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE dw_demo (id INT PRIMARY KEY, a INT NOT NULL, pad CHAR(200) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN\n  ('Innodb_buffer_pool_pages_flushed', 'Innodb_dblwr_pages_written', 'Innodb_dblwr_writes')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Innodb_buffer_pool_pages_flushed",
+       "253037"
+      ],
+      [
+       "Innodb_dblwr_pages_written",
+       "249145"
+      ],
+      [
+       "Innodb_dblwr_writes",
+       "62791"
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO dw_demo\n  WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 100000)\n  SELECT n, n, 'x' FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT SLEEP(3) AS seconds_for_page_cleaners",
+     "status": "ok",
+     "columns": [
+      "seconds_for_page_cleaners"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN\n  ('Innodb_buffer_pool_pages_flushed', 'Innodb_dblwr_pages_written', 'Innodb_dblwr_writes')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Innodb_buffer_pool_pages_flushed",
+       "254233"
+      ],
+      [
+       "Innodb_dblwr_pages_written",
+       "250333"
+      ],
+      [
+       "Innodb_dblwr_writes",
+       "63088"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:f398747d858d": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE cb_orders (\n  order_id    BIGINT PRIMARY KEY,\n  order_ref   CHAR(12) NOT NULL,\n  customer_id INT NOT NULL,\n  status      VARCHAR(10) NOT NULL,\n  created_at  DATETIME NOT NULL,\n  notes       TEXT,\n  UNIQUE KEY uq_order_ref (order_ref),\n  KEY idx_customer (customer_id),\n  KEY idx_status_created (status, created_at),\n  KEY idx_created_desc (created_at DESC),\n  FULLTEXT KEY ft_notes (notes)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT INDEX_NAME,\n       MAX(NON_UNIQUE) AS non_unique,\n       MAX(INDEX_TYPE) AS index_type,\n       GROUP_CONCAT(CONCAT(COLUMN_NAME, IF(COLLATION = 'D', ' DESC', '')) ORDER BY SEQ_IN_INDEX) AS columns_in_index,\n       CASE\n         WHEN INDEX_NAME = 'PRIMARY' THEN 'no: clustered index'\n         WHEN MAX(NON_UNIQUE) = 0 THEN 'no: unique (needs the page for the duplicate check)'\n         WHEN MAX(INDEX_TYPE) <> 'BTREE' THEN 'no: full-text/spatial'\n         WHEN SUM(COLLATION = 'D') > 0 THEN 'no: descending key part'\n         ELSE 'yes'\n       END AS change_buffer_eligible\nFROM information_schema.STATISTICS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'cb_orders'\nGROUP BY INDEX_NAME\nORDER BY INDEX_NAME",
+     "status": "ok",
+     "columns": [
+      "INDEX_NAME",
+      "non_unique",
+      "index_type",
+      "columns_in_index",
+      "change_buffer_eligible"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "ft_notes",
+       1,
+       "FULLTEXT",
+       "notes",
+       "no: full-text/spatial"
+      ],
+      [
+       "idx_created_desc",
+       1,
+       "BTREE",
+       "created_at DESC",
+       "no: descending key part"
+      ],
+      [
+       "idx_customer",
+       1,
+       "BTREE",
+       "customer_id",
+       "yes"
+      ],
+      [
+       "idx_status_created",
+       1,
+       "BTREE",
+       "status,created_at",
+       "yes"
+      ],
+      [
+       "PRIMARY",
+       0,
+       "BTREE",
+       "order_id",
+       "no: clustered index"
+      ],
+      [
+       "uq_order_ref",
+       0,
+       "BTREE",
+       "order_ref",
+       "no: unique (needs the page for the duplicate check)"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:4be15589f60a": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 300000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 0.55
+    },
+    {
+     "sql": "CREATE TABLE ins_no_sec   (id INT PRIMARY KEY, a INT, b INT, c INT, pad CHAR(50))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 7.52
+    },
+    {
+     "sql": "CREATE TABLE ins_3_nonuniq (id INT PRIMARY KEY, a INT, b INT, c INT, pad CHAR(50), KEY ka (a), KEY kb (b), KEY kc (c))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 11.49
+    },
+    {
+     "sql": "CREATE TABLE ins_3_unique  (id INT PRIMARY KEY, a INT, b INT, c INT, pad CHAR(50), UNIQUE KEY ka (a), UNIQUE KEY kb (b), UNIQUE KEY kc (c))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 9.93
+    },
+    {
+     "sql": "INSERT INTO ins_no_sec WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 150000)\n  SELECT n, (n * 7919) % 1000003, (n * 104729) % 1000033, (n * 15485863) % 1000037, 'x' FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 150000,
+     "info": "Records: 150000  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 539.28
+    },
+    {
+     "sql": "INSERT INTO ins_3_nonuniq WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 150000)\n  SELECT n, (n * 7919) % 1000003, (n * 104729) % 1000033, (n * 15485863) % 1000037, 'x' FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 150000,
+     "info": "Records: 150000  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 1670.73
+    },
+    {
+     "sql": "INSERT INTO ins_3_unique WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 150000)\n  SELECT n, (n * 7919) % 1000003, (n * 104729) % 1000033, (n * 15485863) % 1000037, 'x' FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 150000,
+     "info": "Records: 150000  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 1718.91
+    }
+   ],
+   "measured": true
+  },
+  "s7:82f0061a22bf": {
+   "statements": [
+    {
+     "sql": "SET SESSION information_schema_stats_expiry = 0",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE ins_no_sec, ins_3_nonuniq, ins_3_unique",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "ins_no_sec",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "ins_3_nonuniq",
+       "analyze",
+       "status",
+       "OK"
+      ],
+      [
+       "ins_3_unique",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT TABLE_NAME, DATA_LENGTH DIV 16384 AS clustered_pages, INDEX_LENGTH DIV 16384 AS secondary_pages\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'ins_%'\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "clustered_pages",
+      "secondary_pages"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "ins_3_nonuniq",
+       865,
+       995
+      ],
+      [
+       "ins_3_unique",
+       865,
+       995
+      ],
+      [
+       "ins_no_sec",
+       865,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:aa8cfde03a2a": {
+   "statements": [
+    {
+     "sql": "UPDATE dw_demo SET a = a + 1 WHERE id = 50000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:77ee45d028d2": {
+   "statements": [
+    {
+     "sql": "INSERT INTO cb_orders (order_id, order_ref, customer_id, status, created_at)\nVALUES (1, 'REF-000001', 42, 'new', '2026-11-09 10:00:00')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.5:47d4f03442ca": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, customer_id, status FROM cb_orders WHERE customer_id = 42",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "status"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       42,
+       "new"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:bfb667e1ca36": {
+   "statements": [
+    {
+     "sql": "SET GLOBAL innodb_adaptive_hash_index = OFF",
+     "status": "rejected",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": null,
+      "message": "Global/persisted system variables are server-wide and cannot be changed from the sandbox. Use SET SESSION to change a variable for your own session."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

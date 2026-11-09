@@ -1,0 +1,1258 @@
+{
+ "doc": "m12-web-app-architecture",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:6add306f11df": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT product_id, price, stock_qty\nFROM products\nWHERE product_id IN (5, 9)\nORDER BY product_id\nFOR UPDATE",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "price",
+      "stock_qty"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       5,
+       "29.99",
+       118
+      ],
+      [
+       9,
+       "39.99",
+       11
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO orders (customer_id, order_date, status) VALUES (3, '2024-12-30 10:00:00', 'pending')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SET @order_id = LAST_INSERT_ID()",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO order_items (order_id, product_id, quantity, unit_price)\nSELECT @order_id, product_id, CASE product_id WHEN 5 THEN 2 ELSE 1 END, price\nFROM products WHERE product_id IN (5, 9)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 2  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE products SET stock_qty = stock_qty - 2 WHERE product_id = 5",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE products SET stock_qty = stock_qty - 1 WHERE product_id = 9",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT o.order_id, o.status, oi.product_id, oi.quantity, oi.unit_price, p.stock_qty AS stock_after\nFROM orders o JOIN order_items oi ON oi.order_id = o.order_id JOIN products p ON p.product_id = oi.product_id\nWHERE o.order_id = @order_id\nORDER BY oi.product_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "status",
+      "product_id",
+      "quantity",
+      "unit_price",
+      "stock_after"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       81,
+       "pending",
+       5,
+       2,
+       "29.99",
+       116
+      ],
+      [
+       81,
+       "pending",
+       9,
+       1,
+       "39.99",
+       10
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:62c7f08332ab": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION READ ONLY",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS orders_of_customer_14, MAX(order_date) AS last_order\nFROM orders WHERE customer_id = 14",
+     "status": "ok",
+     "columns": [
+      "orders_of_customer_14",
+      "last_order"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       6,
+       "2024-12-08 12:14:00"
+      ]
+     ]
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s3:f77475126b0a": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION READ ONLY",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE products SET stock_qty = stock_qty + 1 WHERE product_id = 5",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1792,
+      "message": "Cannot execute statement in a READ ONLY transaction."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s4:52a82569bff7": {
+   "statements": [
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s5:a52ef83723f1": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN\n  ('Questions', 'Com_select', 'Handler_read_key', 'Handler_read_next', 'Handler_read_rnd_next', 'Bytes_sent')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "Bytes_sent",
+       "1419"
+      ],
+      [
+       "Com_select",
+       "3"
+      ],
+      [
+       "Handler_read_key",
+       "11"
+      ],
+      [
+       "Handler_read_next",
+       "8"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "0"
+      ],
+      [
+       "Questions",
+       "18"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:20d49d0393ad": {
+   "statements": [
+    {
+     "sql": "SELECT order_id, customer_id, order_date, status FROM orders ORDER BY order_date DESC LIMIT 10",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "customer_id",
+      "order_date",
+      "status"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       81,
+       3,
+       "2024-12-30 10:00:00",
+       "pending"
+      ],
+      [
+       61,
+       15,
+       "2024-12-24 13:09:00",
+       "cancelled"
+      ],
+      [
+       17,
+       7,
+       "2024-12-22 14:33:00",
+       "shipped"
+      ],
+      [
+       53,
+       6,
+       "2024-12-21 13:06:00",
+       "delivered"
+      ],
+      [
+       51,
+       20,
+       "2024-12-20 14:47:00",
+       "cancelled"
+      ],
+      [
+       9,
+       14,
+       "2024-12-08 12:14:00",
+       "delivered"
+      ],
+      [
+       28,
+       14,
+       "2024-12-04 14:19:00",
+       "delivered"
+      ],
+      [
+       48,
+       19,
+       "2024-12-03 16:21:00",
+       "delivered"
+      ],
+      [
+       69,
+       4,
+       "2024-12-01 19:06:00",
+       "paid"
+      ],
+      [
+       29,
+       17,
+       "2024-11-29 12:36:00",
+       "pending"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT product_id, quantity, unit_price FROM order_items WHERE order_id = 81",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "quantity",
+      "unit_price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       5,
+       2,
+       "29.99"
+      ],
+      [
+       9,
+       1,
+       "39.99"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT product_id, quantity, unit_price FROM order_items WHERE order_id = 61",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "quantity",
+      "unit_price"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       6,
+       1,
+       "89.99"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT product_id, quantity, unit_price FROM order_items WHERE order_id = 17",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "quantity",
+      "unit_price"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       1,
+       1,
+       "1299.00"
+      ],
+      [
+       24,
+       1,
+       "18.99"
+      ],
+      [
+       26,
+       3,
+       "299.00"
+      ],
+      [
+       30,
+       3,
+       "69.99"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT product_id, quantity, unit_price FROM order_items WHERE order_id = 53",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "quantity",
+      "unit_price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       13,
+       1,
+       "149.00"
+      ],
+      [
+       15,
+       2,
+       "129.00"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT product_id, quantity, unit_price FROM order_items WHERE order_id = 51",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "quantity",
+      "unit_price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       23,
+       1,
+       "39.99"
+      ],
+      [
+       29,
+       3,
+       "50.00"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT product_id, quantity, unit_price FROM order_items WHERE order_id = 9",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "quantity",
+      "unit_price"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       14,
+       1,
+       "499.00"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT product_id, quantity, unit_price FROM order_items WHERE order_id = 28",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "quantity",
+      "unit_price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       5,
+       1,
+       "29.99"
+      ],
+      [
+       15,
+       2,
+       "129.00"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT product_id, quantity, unit_price FROM order_items WHERE order_id = 48",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "quantity",
+      "unit_price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       12,
+       3,
+       "129.99"
+      ],
+      [
+       19,
+       1,
+       "44.99"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT product_id, quantity, unit_price FROM order_items WHERE order_id = 69",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "quantity",
+      "unit_price"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       15,
+       2,
+       "129.00"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT product_id, quantity, unit_price FROM order_items WHERE order_id = 29",
+     "status": "ok",
+     "columns": [
+      "product_id",
+      "quantity",
+      "unit_price"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       15,
+       1,
+       "129.00"
+      ],
+      [
+       16,
+       3,
+       "59.00"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN\n  ('Questions', 'Com_select', 'Handler_read_key', 'Handler_read_next', 'Handler_read_rnd_next', 'Bytes_sent')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "Bytes_sent",
+       "5717"
+      ],
+      [
+       "Com_select",
+       "14"
+      ],
+      [
+       "Handler_read_key",
+       "22"
+      ],
+      [
+       "Handler_read_next",
+       "27"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "82"
+      ],
+      [
+       "Questions",
+       "30"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:fb957c3b7b9e": {
+   "statements": [
+    {
+     "sql": "SELECT o.order_id, o.order_date, o.status, oi.product_id, oi.quantity, oi.unit_price\nFROM (SELECT order_id, order_date, status FROM orders ORDER BY order_date DESC LIMIT 10) AS o\nJOIN order_items oi ON oi.order_id = o.order_id\nORDER BY o.order_date DESC, oi.product_id",
+     "status": "ok",
+     "columns": [
+      "order_id",
+      "order_date",
+      "status",
+      "product_id",
+      "quantity",
+      "unit_price"
+     ],
+     "row_count": 19,
+     "rows": [
+      [
+       81,
+       "2024-12-30 10:00:00",
+       "pending",
+       5,
+       2,
+       "29.99"
+      ],
+      [
+       81,
+       "2024-12-30 10:00:00",
+       "pending",
+       9,
+       1,
+       "39.99"
+      ],
+      [
+       61,
+       "2024-12-24 13:09:00",
+       "cancelled",
+       6,
+       1,
+       "89.99"
+      ],
+      [
+       17,
+       "2024-12-22 14:33:00",
+       "shipped",
+       1,
+       1,
+       "1299.00"
+      ],
+      [
+       17,
+       "2024-12-22 14:33:00",
+       "shipped",
+       24,
+       1,
+       "18.99"
+      ],
+      [
+       17,
+       "2024-12-22 14:33:00",
+       "shipped",
+       26,
+       3,
+       "299.00"
+      ],
+      [
+       17,
+       "2024-12-22 14:33:00",
+       "shipped",
+       30,
+       3,
+       "69.99"
+      ],
+      [
+       53,
+       "2024-12-21 13:06:00",
+       "delivered",
+       13,
+       1,
+       "149.00"
+      ],
+      [
+       53,
+       "2024-12-21 13:06:00",
+       "delivered",
+       15,
+       2,
+       "129.00"
+      ],
+      [
+       51,
+       "2024-12-20 14:47:00",
+       "cancelled",
+       23,
+       1,
+       "39.99"
+      ],
+      [
+       51,
+       "2024-12-20 14:47:00",
+       "cancelled",
+       29,
+       3,
+       "50.00"
+      ],
+      [
+       9,
+       "2024-12-08 12:14:00",
+       "delivered",
+       14,
+       1,
+       "499.00"
+      ],
+      [
+       28,
+       "2024-12-04 14:19:00",
+       "delivered",
+       5,
+       1,
+       "29.99"
+      ],
+      [
+       28,
+       "2024-12-04 14:19:00",
+       "delivered",
+       15,
+       2,
+       "129.00"
+      ],
+      [
+       48,
+       "2024-12-03 16:21:00",
+       "delivered",
+       12,
+       3,
+       "129.99"
+      ],
+      [
+       48,
+       "2024-12-03 16:21:00",
+       "delivered",
+       19,
+       1,
+       "44.99"
+      ],
+      [
+       69,
+       "2024-12-01 19:06:00",
+       "paid",
+       15,
+       2,
+       "129.00"
+      ],
+      [
+       29,
+       "2024-11-29 12:36:00",
+       "pending",
+       15,
+       1,
+       "129.00"
+      ],
+      [
+       29,
+       "2024-11-29 12:36:00",
+       "pending",
+       16,
+       3,
+       "59.00"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN\n  ('Questions', 'Com_select', 'Handler_read_key', 'Handler_read_next', 'Handler_read_rnd_next', 'Bytes_sent')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "Bytes_sent",
+       "7435"
+      ],
+      [
+       "Com_select",
+       "15"
+      ],
+      [
+       "Handler_read_key",
+       "33"
+      ],
+      [
+       "Handler_read_next",
+       "46"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "175"
+      ],
+      [
+       "Questions",
+       "32"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:dfe44918dfea": {
+   "statements": [
+    {
+     "sql": "UPDATE products SET stock_qty = stock_qty - 1 WHERE product_id = 13 AND stock_qty >= 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS rows_changed",
+     "status": "ok",
+     "columns": [
+      "rows_changed"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "UPDATE products SET stock_qty = stock_qty - 1 WHERE product_id = 9 AND stock_qty >= 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT ROW_COUNT() AS rows_changed",
+     "status": "ok",
+     "columns": [
+      "rows_changed"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:44dc4ec65f56": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE cart_lines (\n  customer_id INT UNSIGNED NOT NULL,\n  product_id  INT UNSIGNED NOT NULL,\n  quantity    INT UNSIGNED NOT NULL,\n  updated_at  DATETIME NOT NULL,\n  PRIMARY KEY (customer_id, product_id)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO cart_lines VALUES (7, 5, 1, '2024-12-30 09:00:00') AS new\n  ON DUPLICATE KEY UPDATE quantity = cart_lines.quantity + new.quantity, updated_at = new.updated_at",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO cart_lines VALUES (7, 5, 2, '2024-12-30 09:05:00') AS new\n  ON DUPLICATE KEY UPDATE quantity = cart_lines.quantity + new.quantity, updated_at = new.updated_at",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM cart_lines",
+     "status": "ok",
+     "columns": [
+      "customer_id",
+      "product_id",
+      "quantity",
+      "updated_at"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       7,
+       5,
+       3,
+       "2024-12-30 09:05:00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:56511714086b": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT product_id, stock_qty FROM products WHERE product_id = 9 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "product_id",
+        "stock_qty"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         9,
+         1
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "SELECT product_id, stock_qty FROM products WHERE product_id = 9 FOR UPDATE",
+       "status": "ok",
+       "columns": [
+        "product_id",
+        "stock_qty"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         9,
+         0
+        ]
+       ]
+      }
+     ],
+     "completedAfterStep": 4,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "B",
+        "trxId": "447923",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       },
+       {
+        "session": "A",
+        "trxId": "447920",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "products",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "products",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "GRANTED",
+        "lockData": "9"
+       },
+       {
+        "session": "B",
+        "table": "products",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "products",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "9"
+       }
+      ]
+     }
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE products SET stock_qty = stock_qty - 1 WHERE product_id = 9",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO orders (customer_id, order_date, status) VALUES (5, '2024-12-30 12:00:00', 'pending')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT stock_qty FROM products WHERE product_id = 9",
+       "status": "ok",
+       "columns": [
+        "stock_qty"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         0
+        ]
+       ]
+      },
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    }
+   ]
+  },
+  "c2:a3838bead2dd": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE products SET stock_qty = stock_qty - 1 WHERE product_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE products SET stock_qty = stock_qty - 1 WHERE product_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE products SET stock_qty = stock_qty - 1 WHERE product_id = 2",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "error",
+     "statements": [
+      {
+       "sql": "UPDATE products SET stock_qty = stock_qty - 1 WHERE product_id = 1",
+       "status": "error",
+       "columns": [],
+       "rows": [],
+       "error": {
+        "code": 1213,
+        "message": "Deadlock found when trying to get lock; try restarting transaction"
+       }
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT product_id, stock_qty FROM products WHERE product_id IN (1, 2) ORDER BY product_id",
+       "status": "ok",
+       "columns": [
+        "product_id",
+        "stock_qty"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         1,
+         244
+        ],
+        [
+         2,
+         225
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s10:d934c76e4ed9": {
+   "statements": [
+    {
+     "sql": "INSERT INTO orders (customer_id, order_date, status) VALUES (999, '2024-12-30 12:00:00', 'pending')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1452,
+      "message": "Cannot add or update a child row: a foreign key constraint fails (`orders`, CONSTRAINT `fk_orders_customer` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`customer_id`))"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s11:16abaab8cbd2": {
+   "statements": [
+    {
+     "sql": "-- Request reads stock (no lock), decides \"there is enough\", then writes unconditionally\nSELECT stock_qty FROM products WHERE product_id = 13",
+     "status": "ok",
+     "columns": [
+      "stock_qty"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "UPDATE products SET stock_qty = stock_qty - 1 WHERE product_id = 13",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT stock_qty FROM products WHERE product_id = 13",
+     "status": "ok",
+     "columns": [
+      "stock_qty"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       -1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:3f2e29c3d410": {
+   "statements": [
+    {
+     "sql": "UPDATE products SET stock_qty = 0 WHERE product_id = 13",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE products ADD CONSTRAINT chk_products_stock CHECK (stock_qty >= 0)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 30,
+     "info": "Records: 30  Duplicates: 0  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s13:704b6600fdd8": {
+   "statements": [
+    {
+     "sql": "UPDATE products SET stock_qty = stock_qty - 1 WHERE product_id = 13",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 3819,
+      "message": "Check constraint 'chk_products_stock' is violated."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

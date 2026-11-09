@@ -1,0 +1,466 @@
+{
+ "doc": "m10-buffer-pool",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:6be103f2bd4c": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_buffer_pool_size                         AS pool_bytes,\n       @@innodb_buffer_pool_size / 1024 / 1024           AS pool_mb,\n       @@innodb_buffer_pool_size DIV @@innodb_page_size  AS pool_pages,\n       @@innodb_buffer_pool_chunk_size / 1024 / 1024     AS chunk_mb,\n       @@innodb_buffer_pool_instances                    AS instances,\n       @@innodb_old_blocks_pct                           AS old_pct,\n       @@innodb_old_blocks_time                          AS old_blocks_time_ms",
+     "status": "ok",
+     "columns": [
+      "pool_bytes",
+      "pool_mb",
+      "pool_pages",
+      "chunk_mb",
+      "instances",
+      "old_pct",
+      "old_blocks_time_ms"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       134217728,
+       "128.00000000",
+       8192,
+       "128.00000000",
+       1,
+       37,
+       1000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:4d38cd423020": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_page_cleaners           AS page_cleaners,\n       @@innodb_lru_scan_depth          AS lru_scan_depth,\n       @@innodb_io_capacity             AS io_capacity,\n       @@innodb_io_capacity_max         AS io_capacity_max,\n       @@innodb_max_dirty_pages_pct     AS max_dirty_pct,\n       @@innodb_max_dirty_pages_pct_lwm AS dirty_lwm_pct,\n       @@innodb_flush_neighbors         AS flush_neighbors,\n       @@innodb_flush_method            AS flush_method",
+     "status": "ok",
+     "columns": [
+      "page_cleaners",
+      "lru_scan_depth",
+      "io_capacity",
+      "io_capacity_max",
+      "max_dirty_pct",
+      "dirty_lwm_pct",
+      "flush_neighbors",
+      "flush_method"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1024,
+       200,
+       2000,
+       90.0,
+       10.0,
+       0,
+       "fsync"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:d40246147a5e": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_buffer_pool_dump_at_shutdown AS dump_at_shutdown,\n       @@innodb_buffer_pool_load_at_startup  AS load_at_startup,\n       @@innodb_buffer_pool_dump_pct         AS dump_pct,\n       @@innodb_read_ahead_threshold         AS linear_read_ahead_threshold,\n       @@innodb_random_read_ahead            AS random_read_ahead",
+     "status": "ok",
+     "columns": [
+      "dump_at_shutdown",
+      "load_at_startup",
+      "dump_pct",
+      "linear_read_ahead_threshold",
+      "random_read_ahead"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1,
+       25,
+       56,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:ed59f9917316": {
+   "statements": [
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN\n  ('Innodb_buffer_pool_pages_total', 'Innodb_buffer_pool_pages_data', 'Innodb_buffer_pool_pages_free',\n   'Innodb_buffer_pool_pages_misc', 'Innodb_buffer_pool_pages_dirty', 'Innodb_buffer_pool_load_status')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "Innodb_buffer_pool_load_status",
+       "Buffer pool(s) load completed at 261109 17:23:28"
+      ],
+      [
+       "Innodb_buffer_pool_pages_data",
+       "4570"
+      ],
+      [
+       "Innodb_buffer_pool_pages_dirty",
+       "21"
+      ],
+      [
+       "Innodb_buffer_pool_pages_free",
+       "3605"
+      ],
+      [
+       "Innodb_buffer_pool_pages_misc",
+       "17"
+      ],
+      [
+       "Innodb_buffer_pool_pages_total",
+       "8192"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:58fb20f7db48": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 300000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE bp_demo (id INT PRIMARY KEY, grp INT NOT NULL, pad CHAR(100) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN ('Innodb_pages_created', 'Innodb_buffer_pool_pages_dirty')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Innodb_buffer_pool_pages_dirty",
+       "71"
+      ],
+      [
+       "Innodb_pages_created",
+       "209194"
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO bp_demo\n  WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 200000)\n  SELECT n, n % 100, 'x' FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN ('Innodb_pages_created', 'Innodb_buffer_pool_pages_dirty')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Innodb_buffer_pool_pages_dirty",
+       "1763"
+      ],
+      [
+       "Innodb_pages_created",
+       "210944"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:7c03fdcc325f": {
+   "statements": [
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN\n  ('Innodb_buffer_pool_read_requests', 'Innodb_buffer_pool_reads', 'Innodb_rows_read')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Innodb_buffer_pool_read_requests",
+       "179730453"
+      ],
+      [
+       "Innodb_buffer_pool_reads",
+       "15011"
+      ],
+      [
+       "Innodb_rows_read",
+       "58131527"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT SUM(LENGTH(pad)) AS scanned_bytes FROM bp_demo",
+     "status": "ok",
+     "columns": [
+      "scanned_bytes"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "200000"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN\n  ('Innodb_buffer_pool_read_requests', 'Innodb_buffer_pool_reads', 'Innodb_rows_read')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Innodb_buffer_pool_read_requests",
+       "179732762"
+      ],
+      [
+       "Innodb_buffer_pool_reads",
+       "15011"
+      ],
+      [
+       "Innodb_rows_read",
+       "58331527"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT pad FROM bp_demo WHERE id = 777",
+     "status": "ok",
+     "columns": [
+      "pad"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "x"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN\n  ('Innodb_buffer_pool_read_requests', 'Innodb_buffer_pool_reads', 'Innodb_rows_read')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "Innodb_buffer_pool_read_requests",
+       "179732766"
+      ],
+      [
+       "Innodb_buffer_pool_reads",
+       "15011"
+      ],
+      [
+       "Innodb_rows_read",
+       "58331528"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:a68e54f6bf33": {
+   "statements": [
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN ('Innodb_buffer_pool_pages_dirty', 'Innodb_buffer_pool_pages_flushed')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Innodb_buffer_pool_pages_dirty",
+       "1764"
+      ],
+      [
+       "Innodb_buffer_pool_pages_flushed",
+       "263551"
+      ]
+     ]
+    },
+    {
+     "sql": "UPDATE bp_demo SET grp = grp + 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Rows matched: 200000  Changed: 200000  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN ('Innodb_buffer_pool_pages_dirty', 'Innodb_buffer_pool_pages_flushed')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Innodb_buffer_pool_pages_dirty",
+       "2861"
+      ],
+      [
+       "Innodb_buffer_pool_pages_flushed",
+       "263551"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT SLEEP(2) AS waited_seconds",
+     "status": "ok",
+     "columns": [
+      "waited_seconds"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN ('Innodb_buffer_pool_pages_dirty', 'Innodb_buffer_pool_pages_flushed')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Innodb_buffer_pool_pages_dirty",
+       "1895"
+      ],
+      [
+       "Innodb_buffer_pool_pages_flushed",
+       "264517"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:93dab24a74a3": {
+   "statements": [
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN ('Innodb_buffer_pool_read_requests', 'Innodb_buffer_pool_reads')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Innodb_buffer_pool_read_requests",
+       "180337861"
+      ],
+      [
+       "Innodb_buffer_pool_reads",
+       "15011"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:6af2bb557525": {
+   "statements": [
+    {
+     "sql": "SELECT pad FROM bp_demo WHERE id = 777",
+     "status": "ok",
+     "columns": [
+      "pad"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "x"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:93dab24a74a3": {
+   "statements": [
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN ('Innodb_buffer_pool_read_requests', 'Innodb_buffer_pool_reads')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Innodb_buffer_pool_read_requests",
+       "180337868"
+      ],
+      [
+       "Innodb_buffer_pool_reads",
+       "15011"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:79b49752aa58": {
+   "statements": [
+    {
+     "sql": "SET GLOBAL innodb_buffer_pool_dump_now = ON",
+     "status": "rejected",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": null,
+      "message": "Global/persisted system variables are server-wide and cannot be changed from the sandbox. Use SET SESSION to change a variable for your own session."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

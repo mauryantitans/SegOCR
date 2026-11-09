@@ -1,0 +1,411 @@
+{
+ "doc": "m10-crash-recovery",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:4476324f1df7": {
+   "statements": [
+    {
+     "sql": "SELECT @@innodb_flush_log_at_trx_commit AS flush_log_at_trx_commit,\n       @@sync_binlog                    AS sync_binlog,\n       @@log_bin                        AS binlog_enabled,\n       @@innodb_doublewrite             AS doublewrite,\n       @@innodb_flush_method            AS flush_method,\n       @@innodb_fast_shutdown           AS fast_shutdown,\n       @@innodb_force_recovery          AS force_recovery,\n       @@innodb_redo_log_capacity / 1024 / 1024 AS redo_capacity_mb",
+     "status": "ok",
+     "columns": [
+      "flush_log_at_trx_commit",
+      "sync_binlog",
+      "binlog_enabled",
+      "doublewrite",
+      "flush_method",
+      "fast_shutdown",
+      "force_recovery",
+      "redo_capacity_mb"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1,
+       1,
+       "ON",
+       "fsync",
+       1,
+       0,
+       "100.00000000"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:f0aaa057d2d0": {
+   "statements": [
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN\n  ('Innodb_redo_log_current_lsn', 'Innodb_redo_log_checkpoint_lsn', 'Innodb_redo_log_logical_size',\n   'Innodb_buffer_pool_pages_dirty')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Innodb_buffer_pool_pages_dirty",
+       "1852"
+      ],
+      [
+       "Innodb_redo_log_checkpoint_lsn",
+       "8862773708"
+      ],
+      [
+       "Innodb_redo_log_current_lsn",
+       "8913863041"
+      ],
+      [
+       "Innodb_redo_log_logical_size",
+       "51089920"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:1b22b03be042": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 200000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE ckpt_demo (id INT PRIMARY KEY, v INT NOT NULL, pad CHAR(150) NOT NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO ckpt_demo\n  WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 150000)\n  SELECT n, 0, 'x' FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 150000,
+     "info": "Records: 150000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN\n  ('Innodb_redo_log_logical_size', 'Innodb_buffer_pool_pages_dirty')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Innodb_buffer_pool_pages_dirty",
+       "3460"
+      ],
+      [
+       "Innodb_redo_log_logical_size",
+       "84260352"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT SLEEP(3) AS seconds_waited",
+     "status": "ok",
+     "columns": [
+      "seconds_waited"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN\n  ('Innodb_redo_log_logical_size', 'Innodb_buffer_pool_pages_dirty')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Innodb_buffer_pool_pages_dirty",
+       "1176"
+      ],
+      [
+       "Innodb_redo_log_logical_size",
+       "25944576"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:28ac9dc65ee6": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "UPDATE accounts SET balance = balance - 100.00 WHERE account_id = 3",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (3, 4) ORDER BY account_id",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "balance"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         3,
+         "10232.88"
+        ],
+        [
+         4,
+         "7946.37"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "ROLLBACK",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (3, 4) ORDER BY account_id",
+       "status": "ok",
+       "columns": [
+        "account_id",
+        "balance"
+       ],
+       "row_count": 2,
+       "rows": [
+        [
+         3,
+         "10232.88"
+        ],
+        [
+         4,
+         "7946.37"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s5:7a2d56a95920": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 0.54
+    },
+    {
+     "sql": "UPDATE ckpt_demo SET v = v + 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 150000,
+     "info": "Rows matched: 150000  Changed: 150000  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 587.68
+    },
+    {
+     "sql": "ROLLBACK",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 408.46
+    },
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 0.55
+    },
+    {
+     "sql": "UPDATE ckpt_demo SET v = v + 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 150000,
+     "info": "Rows matched: 150000  Changed: 150000  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 417.71
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": [],
+     "elapsed_ms": 9.51
+    }
+   ],
+   "measured": true
+  },
+  "s6:d0c11acf579f": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance - 50.00 WHERE account_id = 3",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance + 50.00 WHERE account_id = 4",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (3, 4) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       3,
+       "10182.88"
+      ],
+      [
+       4,
+       "7996.37"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:afb94c9d4892": {
+   "statements": [
+    {
+     "sql": "SHOW GLOBAL STATUS WHERE Variable_name IN ('Innodb_redo_log_checkpoint_lsn', 'Innodb_redo_log_current_lsn')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Innodb_redo_log_checkpoint_lsn",
+       "8921189523"
+      ],
+      [
+       "Innodb_redo_log_current_lsn",
+       "8984114141"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.4:14a97d998221": {
+   "statements": [
+    {
+     "sql": "SELECT COUNT(*) AS accounts, SUM(balance) AS total_balance FROM accounts",
+     "status": "ok",
+     "columns": [
+      "accounts",
+      "total_balance"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       25,
+       "112705.43"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:2ad707ab58af": {
+   "statements": [
+    {
+     "sql": "SET GLOBAL innodb_flush_log_at_trx_commit = 2",
+     "status": "rejected",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": null,
+      "message": "Global/persisted system variables are server-wide and cannot be changed from the sandbox. Use SET SESSION to change a variable for your own session."
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}

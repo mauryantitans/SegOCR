@@ -1,0 +1,711 @@
+{
+ "doc": "m11-backups",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:bcad47609537": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE orders_snap_ctas AS SELECT * FROM orders",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 80,
+     "info": "Records: 80  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SHOW CREATE TABLE orders_snap_ctas",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Create Table"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "orders_snap_ctas",
+       "CREATE TABLE `orders_snap_ctas` (\n  `order_id` int unsigned NOT NULL DEFAULT '0',\n  `customer_id` int unsigned NOT NULL,\n  `order_date` datetime NOT NULL,\n  `status` enum('pending','paid','shipped','delivered','cancelled','refunded') NOT NULL,\n  `shipped_at` datetime DEFAULT NULL,\n  `discount_code` varchar(20) DEFAULT NULL\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:0b34ea23ba29": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE orders_snap LIKE orders",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO orders_snap SELECT * FROM orders",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 80,
+     "info": "Records: 80  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT TABLE_NAME, TABLE_ROWS, INDEX_LENGTH\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'orders%'\nORDER BY TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "TABLE_ROWS",
+      "INDEX_LENGTH"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "orders",
+       80,
+       32768
+      ],
+      [
+       "orders_snap",
+       80,
+       32768
+      ],
+      [
+       "orders_snap_ctas",
+       80,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:bd4ce7efdb76": {
+   "statements": [
+    {
+     "sql": "CHECKSUM TABLE orders, orders_snap, orders_snap_ctas",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Checksum"
+     ],
+     "row_count": 3,
+     "rows": [
+      [
+       "orders",
+       1087249114
+      ],
+      [
+       "orders_snap",
+       1087249114
+      ],
+      [
+       "orders_snap_ctas",
+       1087249114
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:d08ca4b64286": {
+   "statements": [
+    {
+     "sql": "SELECT 'orders' AS tbl, COUNT(*) AS row_count,\n       BIT_XOR(CRC32(CONCAT_WS('|', order_id, customer_id, order_date, status,\n                               COALESCE(shipped_at, '\\\\N'), COALESCE(discount_code, '\\\\N')))) AS content_hash\nFROM orders\nUNION ALL\nSELECT 'orders_snap', COUNT(*),\n       BIT_XOR(CRC32(CONCAT_WS('|', order_id, customer_id, order_date, status,\n                               COALESCE(shipped_at, '\\\\N'), COALESCE(discount_code, '\\\\N'))))\nFROM orders_snap",
+     "status": "ok",
+     "columns": [
+      "tbl",
+      "row_count",
+      "content_hash"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "orders",
+       80,
+       221911267
+      ],
+      [
+       "orders_snap",
+       80,
+       221911267
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:713ba1a9e07e": {
+   "statements": [
+    {
+     "sql": "SELECT CONCAT('INSERT INTO `categories` VALUES (', category_id, ',', QUOTE(name), ',',\n              COALESCE(parent_id, 'NULL'), ');') AS dump_line\nFROM categories\nORDER BY category_id",
+     "status": "ok",
+     "columns": [
+      "dump_line"
+     ],
+     "row_count": 10,
+     "rows": [
+      [
+       "INSERT INTO `categories` VALUES (1,'Electronics',NULL);"
+      ],
+      [
+       "INSERT INTO `categories` VALUES (2,'Computers',1);"
+      ],
+      [
+       "INSERT INTO `categories` VALUES (3,'Laptops',2);"
+      ],
+      [
+       "INSERT INTO `categories` VALUES (4,'Accessories',2);"
+      ],
+      [
+       "INSERT INTO `categories` VALUES (5,'Audio',1);"
+      ],
+      [
+       "INSERT INTO `categories` VALUES (6,'Home & Kitchen',NULL);"
+      ],
+      [
+       "INSERT INTO `categories` VALUES (7,'Coffee',6);"
+      ],
+      [
+       "INSERT INTO `categories` VALUES (8,'Books',NULL);"
+      ],
+      [
+       "INSERT INTO `categories` VALUES (9,'Databases',8);"
+      ],
+      [
+       "INSERT INTO `categories` VALUES (10,'Fitness',NULL);"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:a8177b87064f": {
+   "statements": [
+    {
+     "sql": "UPDATE orders_snap SET status = 'paid' WHERE order_id = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "DELETE FROM orders_snap WHERE order_id = 40",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "CHECKSUM TABLE orders, orders_snap",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Checksum"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "orders",
+       1087249114
+      ],
+      [
+       "orders_snap",
+       3089612657
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:9af46a44b281": {
+   "statements": [
+    {
+     "sql": "WITH src AS (\n  SELECT FLOOR((order_id - 1) / 20) AS chunk, COUNT(*) AS n,\n         BIT_XOR(CRC32(CONCAT_WS('|', order_id, customer_id, order_date, status,\n                                 COALESCE(shipped_at, '\\\\N'), COALESCE(discount_code, '\\\\N')))) AS h\n  FROM orders GROUP BY chunk\n), bak AS (\n  SELECT FLOOR((order_id - 1) / 20) AS chunk, COUNT(*) AS n,\n         BIT_XOR(CRC32(CONCAT_WS('|', order_id, customer_id, order_date, status,\n                                 COALESCE(shipped_at, '\\\\N'), COALESCE(discount_code, '\\\\N')))) AS h\n  FROM orders_snap GROUP BY chunk\n)\nSELECT src.chunk, src.chunk * 20 + 1 AS first_id, src.chunk * 20 + 20 AS last_id,\n       src.n AS source_rows, bak.n AS backup_rows, src.h = bak.h AS hashes_match\nFROM src LEFT JOIN bak ON bak.chunk = src.chunk\nORDER BY src.chunk",
+     "status": "ok",
+     "columns": [
+      "chunk",
+      "first_id",
+      "last_id",
+      "source_rows",
+      "backup_rows",
+      "hashes_match"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       0,
+       1,
+       20,
+       20,
+       20,
+       0
+      ],
+      [
+       1,
+       21,
+       40,
+       20,
+       19,
+       0
+      ],
+      [
+       2,
+       41,
+       60,
+       20,
+       20,
+       1
+      ],
+      [
+       3,
+       61,
+       80,
+       20,
+       20,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:874fc62f7e97": {
+   "statements": [
+    {
+     "sql": "SELECT 'missing or changed in backup' AS problem, o.order_id, o.status\nFROM orders o\nLEFT JOIN orders_snap s\n  ON s.order_id = o.order_id AND s.status = o.status\nWHERE o.order_id BETWEEN 1 AND 40 AND s.order_id IS NULL\nORDER BY o.order_id",
+     "status": "ok",
+     "columns": [
+      "problem",
+      "order_id",
+      "status"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "missing or changed in backup",
+       2,
+       "delivered"
+      ],
+      [
+       "missing or changed in backup",
+       40,
+       "refunded"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s10:10454bcd1712": {
+   "statements": [
+    {
+     "sql": "SELECT TABLE_NAME,\n       DATA_LENGTH  AS data_bytes,\n       INDEX_LENGTH AS index_bytes,\n       ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024, 0) AS total_kib\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME NOT LIKE 'orders_snap%'\nORDER BY DATA_LENGTH + INDEX_LENGTH DESC, TABLE_NAME",
+     "status": "ok",
+     "columns": [
+      "TABLE_NAME",
+      "data_bytes",
+      "index_bytes",
+      "total_kib"
+     ],
+     "row_count": 7,
+     "rows": [
+      [
+       "categories",
+       16384,
+       32768,
+       "48"
+      ],
+      [
+       "orders",
+       16384,
+       32768,
+       "48"
+      ],
+      [
+       "products",
+       16384,
+       32768,
+       "48"
+      ],
+      [
+       "reviews",
+       16384,
+       32768,
+       "48"
+      ],
+      [
+       "customers",
+       16384,
+       16384,
+       "32"
+      ],
+      [
+       "order_items",
+       16384,
+       16384,
+       "32"
+      ],
+      [
+       "payments",
+       16384,
+       16384,
+       "32"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:2c558bbc01fc": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION WITH CONSISTENT SNAPSHOT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS orders_in_dump FROM orders",
+       "status": "ok",
+       "columns": [
+        "orders_in_dump"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         80
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO orders (customer_id, order_date, status) VALUES (3, '2024-12-31 23:00:00', 'paid')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO payments (order_id, amount, method, status, paid_at) VALUES (LAST_INSERT_ID(), 50.00, 'card', 'succeeded', '2024-12-31 23:00:05')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS orders_now FROM orders",
+       "status": "ok",
+       "columns": [
+        "orders_now"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         81
+        ]
+       ]
+      },
+      {
+       "sql": "SELECT COUNT(*) AS payments_now, SUM(amount) AS paid_total FROM payments",
+       "status": "ok",
+       "columns": [
+        "payments_now",
+        "paid_total"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         77,
+         "67977.95"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS payments_in_dump, SUM(amount) AS paid_total_in_dump FROM payments",
+       "status": "ok",
+       "columns": [
+        "payments_in_dump",
+        "paid_total_in_dump"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         76,
+         "67927.95"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT COUNT(*) AS orders_after_dump FROM orders",
+       "status": "ok",
+       "columns": [
+        "orders_after_dump"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         81
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c2:e240875e514b": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS orders_in_copy FROM orders",
+       "status": "ok",
+       "columns": [
+        "orders_in_copy"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         80
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO orders (customer_id, order_date, status) VALUES (3, '2024-12-31 23:00:00', 'paid')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO payments (order_id, amount, method, status, paid_at) VALUES (LAST_INSERT_ID(), 50.00, 'card', 'succeeded', '2024-12-31 23:00:05')",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "rows": []
+      },
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS payments_in_copy, SUM(amount) AS paid_total_in_copy FROM payments",
+       "status": "ok",
+       "columns": [
+        "payments_in_copy",
+        "paid_total_in_copy"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         77,
+         "67977.95"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "c3:c21f32f29723": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION WITH CONSISTENT SNAPSHOT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT COUNT(*) FROM orders",
+       "status": "ok",
+       "columns": [
+        "COUNT(*)"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         80
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "ALTER TABLE orders ADD COLUMN gift_note VARCHAR(50)",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "info": "Records: 0  Duplicates: 0  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 2,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 2,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 3,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SELECT COUNT(*) AS columns_now FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders'",
+       "status": "ok",
+       "columns": [
+        "columns_now"
+       ],
+       "row_count": 1,
+       "rows": [
+        [
+         7
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "s11:6716df91e680": {
+   "statements": [
+    {
+     "sql": "SELECT CONCAT_WS('|', 'a', NULL, 'b') AS row_1_text,\n       CONCAT_WS('|', 'a', 'b', NULL) AS row_2_text,\n       CRC32(CONCAT_WS('|', 'a', NULL, 'b')) = CRC32(CONCAT_WS('|', 'a', 'b', NULL)) AS same_hash",
+     "status": "ok",
+     "columns": [
+      "row_1_text",
+      "row_2_text",
+      "same_hash"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "a|b",
+       "a|b",
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

@@ -1,0 +1,1005 @@
+{
+ "doc": "m12-oltp-olap",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:02fb1c274563": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 200000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE sales (\n  sale_id     INT UNSIGNED  NOT NULL PRIMARY KEY,\n  customer_id INT UNSIGNED  NOT NULL,\n  product_id  INT UNSIGNED  NOT NULL,\n  region      VARCHAR(8)    NOT NULL,\n  sold_at     DATETIME      NOT NULL,\n  qty         SMALLINT UNSIGNED NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  note        VARCHAR(100)  NULL,   -- a wide column OLTP screens show and analytics never reads\n  KEY idx_sales_customer_time (customer_id, sold_at)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sales\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 200000)\nSELECT n,\n       (n * 7919) % 5000 + 1,\n       (n * 31) % 300 + 1,\n       ELT(1 + (n * 13) % 4, 'NA', 'EU', 'APAC', 'LATAM'),\n       '2024-01-01' + INTERVAL ((n * 2654435761) % 525600) MINUTE,\n       1 + n % 5,\n       ROUND(5 + ((n * 37) % 20000) / 100, 2),\n       RPAD(CONCAT('delivery instructions for order ', n, ': '), 100, '.')\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 200000,
+     "info": "Records: 200000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE sales",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "sales",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS sales_rows, MIN(sold_at) AS first_sale, MAX(sold_at) AS last_sale,\n       COUNT(DISTINCT customer_id) AS customers\nFROM sales",
+     "status": "ok",
+     "columns": [
+      "sales_rows",
+      "first_sale",
+      "last_sale",
+      "customers"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       200000,
+       "2024-01-01 00:02:00",
+       "2024-12-30 23:57:00",
+       5000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:7fc79f2a8ce8": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT sale_id, sold_at, product_id, amount\nFROM sales WHERE customer_id = 4217 ORDER BY sold_at DESC LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "sales",
+       null,
+       "ref",
+       "idx_sales_customer_time",
+       "idx_sales_customer_time",
+       "4",
+       "const",
+       40,
+       100.0,
+       "Backward index scan"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `sales`.`sale_id` AS `sale_id`,`sales`.`sold_at` AS `sold_at`,`sales`.`product_id` AS `product_id`,`sales`.`amount` AS `amount` from `sales` where (`sales`.`customer_id` = 4217) order by `sales`.`sold_at` desc limit 5"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:3dfc3c9b614d": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT region, DATE_FORMAT(sold_at, '%Y-%m') AS month, SUM(amount) AS revenue\nFROM sales GROUP BY region, month",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "sales",
+       null,
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       198162,
+       100.0,
+       "Using temporary"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `sales`.`region` AS `region`,date_format(`sales`.`sold_at`,'%Y-%m') AS `month`,sum(`sales`.`amount`) AS `revenue` from `sales` group by `sales`.`region`,`month`"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:57ae88272033": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Handler_read_key', 'Handler_read_next', 'Handler_read_prev', 'Handler_read_rnd_next')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Handler_read_key",
+       "59"
+      ],
+      [
+       "Handler_read_next",
+       "200025"
+      ],
+      [
+       "Handler_read_prev",
+       "0"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "400001"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT sale_id, sold_at, product_id, amount\nFROM sales WHERE customer_id = 4217 ORDER BY sold_at DESC LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "sale_id",
+      "sold_at",
+      "product_id",
+      "amount"
+     ],
+     "row_count": 5,
+     "rows": [
+      [
+       184664,
+       "2024-12-23 13:44:00",
+       285,
+       "130.68"
+      ],
+      [
+       9664,
+       "2024-11-30 09:04:00",
+       185,
+       "180.68"
+      ],
+      [
+       29664,
+       "2024-11-22 14:24:00",
+       85,
+       "180.68"
+      ],
+      [
+       49664,
+       "2024-11-14 19:44:00",
+       285,
+       "180.68"
+      ],
+      [
+       69664,
+       "2024-11-07 01:04:00",
+       185,
+       "180.68"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Handler_read_key', 'Handler_read_next', 'Handler_read_prev', 'Handler_read_rnd_next')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Handler_read_key",
+       "60"
+      ],
+      [
+       "Handler_read_next",
+       "200025"
+      ],
+      [
+       "Handler_read_prev",
+       "4"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "400001"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:ef7beb0468de": {
+   "statements": [
+    {
+     "sql": "SELECT region, DATE_FORMAT(sold_at, '%Y-%m') AS month, SUM(amount) AS revenue\nFROM sales GROUP BY region, month ORDER BY region, month LIMIT 6",
+     "status": "ok",
+     "columns": [
+      "region",
+      "month",
+      "revenue"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "APAC",
+       "2024-01",
+       "444953.72"
+      ],
+      [
+       "APAC",
+       "2024-02",
+       "417231.64"
+      ],
+      [
+       "APAC",
+       "2024-03",
+       "446221.46"
+      ],
+      [
+       "APAC",
+       "2024-04",
+       "430926.06"
+      ],
+      [
+       "APAC",
+       "2024-05",
+       "445177.12"
+      ],
+      [
+       "APAC",
+       "2024-06",
+       "432177.30"
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name IN ('Handler_read_key', 'Handler_read_next', 'Handler_read_prev', 'Handler_read_rnd_next')",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "Handler_read_key",
+       "200061"
+      ],
+      [
+       "Handler_read_next",
+       "200025"
+      ],
+      [
+       "Handler_read_prev",
+       "4"
+      ],
+      [
+       "Handler_read_rnd_next",
+       "600051"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:8e6e22cc3be3": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT sale_id, sold_at, product_id, amount\nFROM sales WHERE customer_id = 4217 ORDER BY sold_at DESC LIMIT 5",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Limit: 5 row(s)  (cost=14 rows=5) (actual time=0.129..0.131 rows=5 loops=1)\n    -> Index lookup on sales using idx_sales_customer_time (customer_id=4217) (reverse)  (cost=14 rows=40) (actual time=0.128..0.13 rows=5 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 1.15
+    }
+   ],
+   "measured": true
+  },
+  "s7:bc3902ccebeb": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT region, DATE_FORMAT(sold_at, '%Y-%m') AS month, SUM(amount) AS revenue\nFROM sales GROUP BY region, month",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (actual time=131..131 rows=48 loops=1)\n    -> Aggregate using temporary table  (actual time=131..131 rows=48 loops=1)\n        -> Table scan on sales  (cost=20321 rows=198162) (actual time=0.278..32.3 rows=200000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 131.79
+    }
+   ],
+   "measured": true
+  },
+  "s8:d2125958548f": {
+   "statements": [
+    {
+     "sql": "SELECT ROUND(DATA_LENGTH / 1048576, 1)  AS clustered_index_mb,\n       ROUND(INDEX_LENGTH / 1048576, 1) AS secondary_indexes_mb\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sales'",
+     "status": "ok",
+     "columns": [
+      "clustered_index_mb",
+      "secondary_indexes_mb"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "31.6",
+       "5.5"
+      ]
+     ]
+    },
+    {
+     "sql": "ALTER TABLE sales ADD INDEX idx_sales_region_time_amount (region, sold_at, amount)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE sales",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "sales",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT region, DATE_FORMAT(sold_at, '%Y-%m') AS month, SUM(amount) AS revenue\nFROM sales GROUP BY region, month",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "sales",
+       null,
+       "index",
+       "idx_sales_region_time_amount",
+       "idx_sales_region_time_amount",
+       "44",
+       null,
+       198162,
+       100.0,
+       "Using index; Using temporary"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `sales`.`region` AS `region`,date_format(`sales`.`sold_at`,'%Y-%m') AS `month`,sum(`sales`.`amount`) AS `revenue` from `sales` group by `sales`.`region`,`month`"
+      }
+     ]
+    },
+    {
+     "sql": "SELECT ROUND(DATA_LENGTH / 1048576, 1)  AS clustered_index_mb,\n       ROUND(INDEX_LENGTH / 1048576, 1) AS secondary_indexes_mb\nFROM information_schema.TABLES\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sales'",
+     "status": "ok",
+     "columns": [
+      "clustered_index_mb",
+      "secondary_indexes_mb"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "31.6",
+       "11.0"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:bc3902ccebeb": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT region, DATE_FORMAT(sold_at, '%Y-%m') AS month, SUM(amount) AS revenue\nFROM sales GROUP BY region, month",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Table scan on <temporary>  (actual time=179..179 rows=48 loops=1)\n    -> Aggregate using temporary table  (actual time=179..179 rows=48 loops=1)\n        -> Covering index scan on sales using idx_sales_region_time_amount  (cost=20321 rows=198162) (actual time=0.307..34.3 rows=200000 loops=1)\n"
+      ]
+     ],
+     "elapsed_ms": 180.13
+    }
+   ],
+   "measured": true
+  },
+  "s10:daee6bf96edc": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE sales_daily (\n  region    VARCHAR(8)    NOT NULL,\n  sale_date DATE          NOT NULL,\n  orders    INT UNSIGNED  NOT NULL,\n  units     INT UNSIGNED  NOT NULL,\n  revenue   DECIMAL(14,2) NOT NULL,\n  PRIMARY KEY (sale_date, region)\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sales_daily (region, sale_date, orders, units, revenue)\nSELECT region, DATE(sold_at), COUNT(*), SUM(qty), SUM(amount)\nFROM sales\nGROUP BY region, DATE(sold_at)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1460,
+     "info": "Records: 1460  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS summary_rows FROM sales_daily",
+     "status": "ok",
+     "columns": [
+      "summary_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1460
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT region, DATE_FORMAT(sale_date, '%Y-%m') AS month, SUM(revenue) AS revenue\nFROM sales_daily GROUP BY region, month ORDER BY region, month LIMIT 6",
+     "status": "ok",
+     "columns": [
+      "region",
+      "month",
+      "revenue"
+     ],
+     "row_count": 6,
+     "rows": [
+      [
+       "APAC",
+       "2024-01",
+       "444953.72"
+      ],
+      [
+       "APAC",
+       "2024-02",
+       "417231.64"
+      ],
+      [
+       "APAC",
+       "2024-03",
+       "446221.46"
+      ],
+      [
+       "APAC",
+       "2024-04",
+       "430926.06"
+      ],
+      [
+       "APAC",
+       "2024-05",
+       "445177.12"
+      ],
+      [
+       "APAC",
+       "2024-06",
+       "432177.30"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s11:f0a14c10ccc3": {
+   "statements": [
+    {
+     "sql": "INSERT INTO sales VALUES (200001, 4217, 12, 'EU', '2024-12-31 23:00:00', 2, 99.90, NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sales_daily (region, sale_date, orders, units, revenue)\nSELECT * FROM (\n  SELECT region, DATE(sold_at) AS d, COUNT(*) AS n, SUM(qty) AS u, SUM(amount) AS r\n  FROM sales\n  WHERE sold_at >= '2024-12-31' AND sold_at < '2025-01-01'\n  GROUP BY region, DATE(sold_at)\n) AS fresh\nON DUPLICATE KEY UPDATE orders = fresh.n, units = fresh.u, revenue = fresh.r",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Records: 1  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sales VALUES (200002, 17, 40, 'EU', '2024-12-31 23:30:00', 1, 10.10, NULL)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO sales_daily (region, sale_date, orders, units, revenue)\nSELECT * FROM (\n  SELECT region, DATE(sold_at) AS d, COUNT(*) AS n, SUM(qty) AS u, SUM(amount) AS r\n  FROM sales\n  WHERE sold_at >= '2024-12-31' AND sold_at < '2025-01-01'\n  GROUP BY region, DATE(sold_at)\n) AS fresh\nON DUPLICATE KEY UPDATE orders = fresh.n, units = fresh.u, revenue = fresh.r",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2,
+     "info": "Records: 1  Duplicates: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT * FROM sales_daily WHERE sale_date = '2024-12-31' ORDER BY region",
+     "status": "ok",
+     "columns": [
+      "region",
+      "sale_date",
+      "orders",
+      "units",
+      "revenue"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "EU",
+       "2024-12-31",
+       2,
+       3,
+       "110.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "c1:ded113a6c0c9": {
+   "steps": [
+    {
+     "step": 0,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO region_totals SELECT region, SUM(amount) FROM sales GROUP BY region",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 3,
+       "info": "Records: 3  Duplicates: 0  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 1,
+     "session": "B",
+     "status": "blocked",
+     "statements": [
+      {
+       "sql": "UPDATE sales SET amount = amount + 1 WHERE sale_id = 3",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ],
+     "completedAfterStep": 3,
+     "finalStatus": "ok"
+    },
+    {
+     "step": 2,
+     "observe": "locks",
+     "status": "ok",
+     "snapshot": {
+      "transactions": [
+       {
+        "session": "A",
+        "trxId": "450910",
+        "state": "RUNNING",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 5,
+        "rowsModified": 3,
+        "lockStructs": 3
+       },
+       {
+        "session": "B",
+        "trxId": "450913",
+        "state": "LOCK WAIT",
+        "isolation": "REPEATABLE READ",
+        "rowsLocked": 1,
+        "rowsModified": 0,
+        "lockStructs": 2
+       }
+      ],
+      "locks": [
+       {
+        "session": "A",
+        "table": "region_totals",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "sales",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IS",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "A",
+        "table": "sales",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S",
+        "status": "GRANTED",
+        "lockData": "1"
+       },
+       {
+        "session": "A",
+        "table": "sales",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S",
+        "status": "GRANTED",
+        "lockData": "2"
+       },
+       {
+        "session": "A",
+        "table": "sales",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S",
+        "status": "GRANTED",
+        "lockData": "3"
+       },
+       {
+        "session": "A",
+        "table": "sales",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S",
+        "status": "GRANTED",
+        "lockData": "4"
+       },
+       {
+        "session": "A",
+        "table": "sales",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "S",
+        "status": "GRANTED",
+        "lockData": "supremum pseudo-record"
+       },
+       {
+        "session": "B",
+        "table": "sales",
+        "index": null,
+        "lockType": "TABLE",
+        "lockMode": "IX",
+        "status": "GRANTED",
+        "lockData": null
+       },
+       {
+        "session": "B",
+        "table": "sales",
+        "index": "PRIMARY",
+        "lockType": "RECORD",
+        "lockMode": "X,REC_NOT_GAP",
+        "status": "WAITING",
+        "lockData": "3"
+       }
+      ]
+     }
+    },
+    {
+     "step": 3,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 4,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "START TRANSACTION",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "DELETE FROM region_totals",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 3,
+       "rows": []
+      },
+      {
+       "sql": "INSERT INTO region_totals SELECT region, SUM(amount) FROM sales GROUP BY region",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 3,
+       "info": "Records: 3  Duplicates: 0  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 5,
+     "session": "B",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "UPDATE sales SET amount = amount + 1 WHERE sale_id = 1",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 1,
+       "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+       "rows": []
+      }
+     ]
+    },
+    {
+     "step": 6,
+     "session": "A",
+     "status": "ok",
+     "statements": [
+      {
+       "sql": "COMMIT",
+       "status": "ok",
+       "columns": [],
+       "affected_rows": 0,
+       "rows": []
+      },
+      {
+       "sql": "SELECT * FROM region_totals ORDER BY region",
+       "status": "ok",
+       "columns": [
+        "region",
+        "revenue"
+       ],
+       "row_count": 3,
+       "rows": [
+        [
+         "APAC",
+         "40.00"
+        ],
+        [
+         "EU",
+         "41.00"
+        ],
+        [
+         "NA",
+         "20.00"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "w1.0:2b5ce93aa764": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION READ ONLY, WITH CONSISTENT SNAPSHOT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:078d745d572b": {
+   "statements": [
+    {
+     "sql": "SELECT SUM(amount) AS total_revenue FROM sales",
+     "status": "ok",
+     "columns": [
+      "total_revenue"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "20999110.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:0771bf16c83f": {
+   "statements": [
+    {
+     "sql": "SELECT region, SUM(amount) AS revenue FROM sales GROUP BY region ORDER BY region",
+     "status": "ok",
+     "columns": [
+      "region",
+      "revenue"
+     ],
+     "row_count": 4,
+     "rows": [
+      [
+       "APAC",
+       "5250000.00"
+      ],
+      [
+       "EU",
+       "5249610.00"
+      ],
+      [
+       "LATAM",
+       "5250500.00"
+      ],
+      [
+       "NA",
+       "5249000.00"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:5be9cfb9ef50": {
+   "statements": [
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "s12:9f61119de997": {
+   "statements": [
+    {
+     "sql": "-- Wrong: average of daily averages\nSELECT region, ROUND(AVG(revenue / orders), 4) AS avg_of_daily_avgs\nFROM sales_daily WHERE sale_date >= '2024-12-01' AND sale_date < '2025-01-01' AND region = 'EU'\nGROUP BY region",
+     "status": "ok",
+     "columns": [
+      "region",
+      "avg_of_daily_avgs"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "EU",
+       "103.4153"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:e956ad962cd1": {
+   "statements": [
+    {
+     "sql": "-- Right: total revenue / total orders, from the additive columns\nSELECT region, ROUND(SUM(revenue) / SUM(orders), 4) AS true_avg_order_value\nFROM sales_daily WHERE sale_date >= '2024-12-01' AND sale_date < '2025-01-01' AND region = 'EU'\nGROUP BY region",
+     "status": "ok",
+     "columns": [
+      "region",
+      "true_avg_order_value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "EU",
+       "105.0050"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

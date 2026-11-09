@@ -1,0 +1,532 @@
+id: m10-assessment
+module: m10
+title: "Module 10 Assessment — MySQL Architecture & Internals"
+passMark: 70
+description: >-
+  Covers the whole module: the layered server architecture (connection layer, SQL layer, storage engines, data
+  dictionary, plugins and components), the client/server protocol, connection lifecycle and pooling, the lifecycle of a
+  query from parsing to result delivery, InnoDB versus MyISAM, tablespaces, pages, extents and row formats, the buffer
+  pool and its midpoint-insertion LRU, redo and undo logs, the binary log and its two-phase commit with InnoDB, the
+  doublewrite buffer, change buffer and adaptive hash index (including their 8.4 defaults), and checkpoints, crash
+  recovery and durability settings.
+questions:
+  - id: q1
+    question: "Which component of mysqld writes the binary log, and which writes the redo log?"
+    options:
+      - "Both are written by InnoDB"
+      - "The binary log by the SQL layer (server), the redo log by InnoDB"
+      - "The binary log by InnoDB, the redo log by the SQL layer"
+      - "Both are written by the connection layer"
+    answer: 1
+    explanation: "The binary log is the server's engine-independent logical log; the redo log is InnoDB's physical log. Because they belong to different layers, MySQL needs an internal two-phase commit to keep them consistent. The connection layer only handles protocol and sessions."
+    concepts: [server-architecture, binary-log, redo-log]
+  - id: q2
+    question: "Why does `DROP TABLE a, missing_table` leave table a in place in MySQL 8.0+?"
+    options:
+      - "Because DROP TABLE only drops the first table in the list"
+      - "Because DDL on InnoDB tables is atomic thanks to the transactional data dictionary: the failing statement is rolled back entirely"
+      - "Because a requires IF EXISTS"
+      - "Because the query cache still holds a"
+    answer: 1
+    explanation: "Since 8.0 the dictionary is stored in InnoDB tables, so a multi-table DROP is all-or-nothing. In 5.7 a would have been dropped before the error. IF EXISTS only suppresses the error for the missing table; the query cache was removed in 8.0."
+    concepts: [data-dictionary, atomic-ddl]
+  - id: q3
+    question: "`Connections` = 120,000 and `Threads_created` = 118,500. Which conclusion is best supported?"
+    options:
+      - "max_connections is too low"
+      - "Clients connect and disconnect very frequently and the thread cache is not absorbing it; connection pooling (and possibly a larger thread_cache_size) would help"
+      - "The server uses a thread pool"
+      - "Most connection attempts failed authentication"
+    answer: 1
+    explanation: "Threads_created counts threads made because the cache was empty; a ratio near 1 means churn without reuse. Failed authentications appear in Aborted_connects; a thread pool would not create one thread per connection."
+    concepts: [thread-cache, connection-pooling]
+  - id: q4
+    question: "A pooled connection is returned to the pool after `SET @tenant_id = 7` and an open transaction that updated one row. What is the main risk if the pool does not reset connections?"
+    options:
+      - "None — each borrower starts a fresh session"
+      - "The next borrower sees @tenant_id = 7, and the open transaction keeps its row lock, blocking other sessions until the connection is reset or the transaction ends"
+      - "The update is committed automatically by the pool"
+      - "The connection is closed by the server immediately"
+    answer: 1
+    explanation: "Session state lives on the connection: user variables, session variables, temporary tables, prepared statements and an open transaction with its locks all survive between borrowers. COM_RESET_CONNECTION (or a ROLLBACK on check-in) clears them. The server only closes idle connections after wait_timeout."
+    concepts: [session-state, connection-pooling]
+  - id: q5
+    question: "In which phase of the query lifecycle is `SELECT order_idd FROM orders` rejected?"
+    options: ["Lexing/parsing", "Resolution (binding names against the data dictionary)", "Cost-based optimization", "Execution"]
+    answer: 1
+    explanation: "order_idd is a valid identifier, so the parser accepts it; binding it to a column fails in resolution with error 1054. No data is read. A keyword typo would fail earlier, in the parser (1064)."
+    concepts: [query-lifecycle, name-resolution]
+  - id: q6
+    question: "The optimizer trace of a query lists `outer_join_to_inner_join` under transformations_to_nested_joins. What does that mean for the result?"
+    options:
+      - "The result may contain wrong rows"
+      - "Nothing changes in the result: a WHERE predicate on the inner table already rejected the NULL-extended rows, so the LEFT JOIN was equivalent to an inner join"
+      - "The query is now executed with a hash join"
+      - "The query used the query cache"
+    answer: 1
+    explanation: "Transformations are equivalence-preserving rewrites. If the intent was to keep outer rows, the predicate belongs in ON — the rewrite reveals a query-writing mistake, not an optimizer bug. Join algorithms are a separate, cost-based decision."
+    concepts: [query-transformations, optimizer-trace]
+  - id: q7
+    question: "Which statement about MySQL 8.0's iterator executor is correct?"
+    options:
+      - "Every operator materialises its full result before the parent starts"
+      - "The root iterator pulls rows from its children on demand, so a LIMIT can stop the pipeline early unless a blocking operator such as a sort sits below it"
+      - "Iterators run only for queries with joins"
+      - "Result rows are sent to the client only after the whole query finishes"
+    answer: 1
+    explanation: "The Volcano-style executor is demand-driven; sorts, hash-join builds and deduplication must consume their input first. Rows stream to the client as they are produced, which is why EXPLAIN ANALYZE (which discards rows) excludes delivery cost."
+    concepts: [iterator-executor, result-delivery]
+  - id: q8
+    question: "A multi-row INSERT of 1,000 rows fails on row 400 with a duplicate key. How many of its rows remain in an InnoDB table and in a MyISAM table?"
+    options: ["0 and 0", "0 and 399", "399 and 399", "399 and 0"]
+    answer: 1
+    explanation: "InnoDB rolls the failed statement back to its start using undo (statement atomicity), even under autocommit. MyISAM has no undo, so the 399 rows written before the error stay."
+    concepts: [statement-atomicity, myisam]
+  - id: q9
+    question: "In InnoDB, why can `SELECT id FROM t WHERE b = 5` (id is the primary key, b has a secondary index) be answered from the secondary index alone?"
+    options:
+      - "Because InnoDB secondary index entries contain the primary-key value"
+      - "Because InnoDB stores a copy of every row in each index"
+      - "Because of the adaptive hash index"
+      - "Because MyISAM-style row pointers include the id"
+    answer: 0
+    explanation: "A secondary entry is (indexed columns, primary key), so the index covers the query (EXPLAIN shows 'Using index'). MyISAM secondary entries hold a file offset instead and must read the row. The AHI is a lookup shortcut and is off by default in 8.4."
+    concepts: [clustered-index, innodb-architecture]
+  - id: q10
+    question: "A table's DATA_LENGTH stays at 512 KB while rows are added, then jumps to about 1.5 MB. Why?"
+    options:
+      - "The buffer pool flushed the table"
+      - "The clustered index used its 32 individually allocated fragment pages and then received a whole 64-page (1 MB) extent"
+      - "The table switched to ROW_FORMAT=COMPRESSED"
+      - "Statistics were reset to zero"
+    answer: 1
+    explanation: "Each segment gets up to 32 fragment pages one at a time, then whole extents (64 × 16 KB). 32 × 16 KB = 512 KB; the next allocation adds 1 MB. Flushing and row format do not cause this step."
+    concepts: [extents, segments]
+  - id: q11
+    question: "`CREATE TABLE … (twelve TEXT columns) ROW_FORMAT=COMPACT` fails with 'Row size too large (> 8126)', but the same table with ROW_FORMAT=DYNAMIC is created. Why?"
+    options:
+      - "COMPACT does not support TEXT"
+      - "COMPACT keeps up to 768 bytes of each long column inline, so twelve columns can exceed the half-page record limit; DYNAMIC can move a long value entirely off-page, keeping only a 20-byte pointer"
+      - "DYNAMIC uses 32 KB pages"
+      - "DYNAMIC compresses the columns"
+    answer: 1
+    explanation: "The 8,126-byte limit (half of a 16 KB page) applies to the inline part of the record. With strict mode, InnoDB checks the worst case at CREATE time. DYNAMIC does not change the page size or compress data (that is COMPRESSED)."
+    concepts: [row-formats, off-page-storage]
+  - id: q12
+    question: "Why does a full table scan normally not evict the hot working set from the InnoDB buffer pool?"
+    options:
+      - "Scans bypass the buffer pool"
+      - "Pages read from disk enter at the midpoint (head of the old sublist) and are promoted to the young sublist only if accessed again after innodb_old_blocks_time; a scan's repeated touches happen within that window"
+      - "The buffer pool reserves 63 % of pages for primary keys"
+      - "InnoDB uses a separate scan buffer like PostgreSQL's ring buffers"
+    answer: 1
+    explanation: "Midpoint insertion plus the promotion delay gives scan resistance: scan pages age out of the old sublist without disturbing young pages. Scans do use the buffer pool, and InnoDB has no separate ring buffer."
+    concepts: [midpoint-insertion, young-old-sublists]
+  - id: q13
+    type: multi
+    question: "Which statements about InnoDB dirty pages and flushing are correct? (Select all that apply.)"
+    options:
+      - "A page modified by a committed transaction may stay dirty in memory long after COMMIT"
+      - "Page cleaners flush pages from the flush list, oldest modification first, which lets the checkpoint advance"
+      - "A dirty page may be written only after the redo describing its changes is durable"
+      - "COMMIT writes all of the transaction's dirty pages to the tablespace files"
+    answer: [0, 1, 2]
+    explanation: "InnoDB is no-force: commit durability comes from the redo log, and pages are flushed later by page cleaners under the WAL rule. Flushing oldest-first advances the checkpoint LSN."
+    concepts: [dirty-pages, page-cleaners, write-ahead-logging]
+  - id: q14
+    question: "Two readings of Innodb_redo_log_current_lsn taken around one statement differ by 58,000,000. What does the difference represent?"
+    options:
+      - "58 million row changes"
+      - "About 58 MB of redo generated server-wide between the readings"
+      - "58 million milliseconds of redo time"
+      - "The number of pages flushed"
+    answer: 1
+    explanation: "The LSN is a byte position in the redo stream, so deltas measure redo volume. The counter is global, so other activity is included; rows, time and flushed pages are measured by other counters."
+    concepts: [lsn, redo-log]
+  - id: q15
+    question: "An idle session has had a REPEATABLE READ transaction open for 10 hours. Which is the most likely consequence?"
+    options:
+      - "No consequence while it is idle"
+      - "Purge cannot discard update undo newer than its read view: the history list and undo tablespaces grow, and reads of frequently updated rows walk longer version chains"
+      - "The redo log cannot checkpoint"
+      - "All writes on the server are blocked"
+    answer: 1
+    explanation: "The oldest read view pins old versions. Checkpointing depends on dirty pages, not read views, and the transaction blocks other writers only on rows it has locked."
+    concepts: [history-list, purge, undo-log]
+  - id: q16
+    question: "After a crash, a transaction is PREPARED in InnoDB but its XID is not in the last binary log file. What does recovery do?"
+    options:
+      - "Commits it, because it reached the prepare phase"
+      - "Rolls it back, because the binlog — the coordinator — never recorded the commit decision, so no client got OK and no replica has it"
+      - "Leaves it prepared for an administrator"
+      - "Writes it to the binlog and commits it"
+    answer: 1
+    explanation: "The durable Xid event in the binlog is the commit point. Without it, rolling back keeps InnoDB and the binlog consistent. Only external XA transactions (XA PREPARE by an application) are left in doubt."
+    concepts: [two-phase-commit, crash-recovery]
+  - id: q17
+    question: "Which configuration can leave the binary log missing transactions that InnoDB committed and acknowledged, after a power failure?"
+    options:
+      - "innodb_flush_log_at_trx_commit = 1, sync_binlog = 1"
+      - "innodb_flush_log_at_trx_commit = 1, sync_binlog = 0"
+      - "innodb_flush_log_at_trx_commit = 0, sync_binlog = 1, but only after a mysqld crash"
+      - "Any configuration with GTIDs enabled"
+    answer: 1
+    explanation: "With sync_binlog = 0 the binlog tail lives in the OS cache and can be lost on power failure, while InnoDB's redo was fsynced, so the primary keeps transactions its replicas never receive. GTIDs do not change durability."
+    concepts: [sync-binlog, durability-settings]
+  - id: q18
+    question: "What problem does the doublewrite buffer solve?"
+    options:
+      - "Lost commits when the redo log is not flushed"
+      - "Torn pages: a page only partly written during a crash, which redo cannot repair because it needs a consistent base page"
+      - "Slow secondary-index inserts"
+      - "Replication lag"
+    answer: 1
+    explanation: "Pages are written to the doublewrite files first; recovery restores an intact copy of a torn page before applying redo. Redo flushing addresses lost commits, the change buffer addresses secondary-index I/O, and replication lag is unrelated."
+    concepts: [doublewrite-buffer, torn-pages]
+  - id: q19
+    type: multi
+    question: "Which defaults changed in MySQL 8.4 compared with 8.0? (Select all that apply.)"
+    options:
+      - "innodb_change_buffering: all → none"
+      - "innodb_adaptive_hash_index: ON → OFF"
+      - "innodb_page_size: 16 KB → 32 KB"
+      - "innodb_io_capacity: 200 → 10000"
+      - "innodb_doublewrite: ON → OFF"
+    answer: [0, 1, 3]
+    explanation: "8.4 disables change buffering and the AHI by default and raises innodb_io_capacity for SSD-era storage. The page size is still 16 KB and doublewrite is still ON (its batch size innodb_doublewrite_pages grew to 128)."
+    concepts: [innodb-defaults-8-4]
+  - id: q20
+    question: "A server crashed while a 2-hour batch UPDATE of 40 million rows was running. What should you expect on restart?"
+    options:
+      - "The server refuses connections until the UPDATE is rolled back"
+      - "After redo application and XA recovery the server accepts connections; the incomplete UPDATE is rolled back in the background, which can take as long as it ran or longer, and its rows stay locked until then"
+      - "The UPDATE is completed automatically from the redo log"
+      - "The changes made by the UPDATE are kept because they were already flushed"
+    answer: 1
+    explanation: "Incomplete transactions are always rolled back (atomicity), even if pages were flushed (steal). Large rollbacks run after startup in the background; their cost is proportional to the undo to apply."
+    concepts: [crash-recovery, undo-rollback]
+challenges:
+  - id: c1
+    title: Connection budget audit
+    dataset: empty
+    difficulty: hard
+    kind: query
+    concepts: [connection-pooling, max-connections]
+    setup: |
+      CREATE TABLE service_pools (
+        service      VARCHAR(30) PRIMARY KEY,
+        db_account   VARCHAR(30) NOT NULL,
+        instances    INT NOT NULL,
+        pool_max     INT NOT NULL
+      );
+      CREATE TABLE account_limits (
+        db_account            VARCHAR(30) PRIMARY KEY,
+        max_user_connections  INT NOT NULL
+      );
+      INSERT INTO service_pools VALUES
+        ('checkout-api', 'svc_checkout', 12, 8),
+        ('checkout-worker', 'svc_checkout', 4, 10),
+        ('catalog-api', 'svc_catalog', 10, 6),
+        ('reports', 'svc_reports', 2, 20),
+        ('admin-ui', 'svc_admin', 1, 5);
+      INSERT INTO account_limits VALUES
+        ('svc_checkout', 120),
+        ('svc_catalog', 80),
+        ('svc_reports', 25),
+        ('svc_admin', 10);
+    prompt: |
+      Each service instance opens up to `pool_max` connections using its database account, and each account has a
+      per-account limit (`MAX_USER_CONNECTIONS`). Return one row per **account** with:
+
+      1. `db_account`
+      2. `potential` — Σ(instances × pool_max) over all services using that account
+      3. `limit_` — the account's `max_user_connections` (column name with a trailing underscore)
+      4. `over_limit` — `'yes'` if potential > limit, otherwise `'no'`
+      5. `share_of_server_pct` — potential as a percentage of the server's `@@max_connections`, rounded to 1 decimal
+
+      Order by `potential` descending.
+    hints:
+      - "Aggregate service_pools by db_account, then join account_limits."
+      - "SUM(instances * pool_max) gives the potential per account."
+      - "ROUND(100 * SUM(instances * pool_max) / @@max_connections, 1)"
+    solution: |
+      SELECT p.db_account,
+             SUM(p.instances * p.pool_max) AS potential,
+             l.max_user_connections AS limit_,
+             IF(SUM(p.instances * p.pool_max) > l.max_user_connections, 'yes', 'no') AS over_limit,
+             ROUND(100 * SUM(p.instances * p.pool_max) / @@max_connections, 1) AS share_of_server_pct
+      FROM service_pools p
+      JOIN account_limits l ON l.db_account = p.db_account
+      GROUP BY p.db_account, l.max_user_connections
+      ORDER BY potential DESC;
+    orderMatters: true
+    explanation: |
+      svc_checkout can open 136 connections against a limit of 120 (and 90 % of a default 151-connection server), so
+      at peak some checkout requests will fail with ER_TOO_MANY_USER_CONNECTIONS; svc_reports (40 vs 25) is also over
+      its limit. Fixes: size pools from Little's law rather than guesses, put a multiplexing proxy in front, or raise
+      the limits only after checking the server's capacity. Per-account limits are what keep one service from
+      exhausting max_connections for everyone.
+  - id: c2
+    title: Buffer pool and redo health dashboard
+    dataset: empty
+    difficulty: hard
+    kind: query
+    concepts: [buffer-pool, checkpoint-age, lsn]
+    setup: |
+      CREATE TABLE innodb_samples (
+        sampled_at      DATETIME PRIMARY KEY,
+        read_requests   BIGINT NOT NULL,
+        disk_reads      BIGINT NOT NULL,
+        current_lsn     BIGINT NOT NULL,
+        checkpoint_lsn  BIGINT NOT NULL
+      );
+      INSERT INTO innodb_samples VALUES
+        ('2026-08-10 12:00:00', 900000000, 1200000, 40000000000, 39900000000),
+        ('2026-08-10 12:01:00', 906000000, 1203000, 40600000000, 40100000000),
+        ('2026-08-10 12:02:00', 912000000, 1290000, 41500000000, 40200000000),
+        ('2026-08-10 12:03:00', 918000000, 1293000, 41700000000, 41600000000);
+    prompt: |
+      One-minute samples of cumulative buffer-pool counters and redo LSNs from a server with a **2 GB** redo capacity
+      (2,147,483,648 bytes). For every sample **except the first**, return:
+
+      - `sampled_at`
+      - `hit_ratio_pct` — 100 × (1 − Δdisk_reads ÷ Δread_requests), rounded to 3 decimals
+      - `redo_mb_per_s` — Δcurrent_lsn in MB ÷ 60, rounded to 1 decimal
+      - `checkpoint_pct` — (current_lsn − checkpoint_lsn) as a percentage of the capacity, rounded to 1 decimal
+      - `alert` — `'checkpoint'` if checkpoint_pct ≥ 50, else `'misses'` if hit_ratio_pct < 99, else `'ok'`
+
+      Order by `sampled_at`.
+    hints:
+      - "Use LAG() OVER (ORDER BY sampled_at) for the previous sample's cumulative values."
+      - "Compute deltas in a CTE and filter out the first row, where LAG is NULL."
+      - "Checkpoint age is not a delta: it is current_lsn − checkpoint_lsn of the same sample."
+    solution: |
+      WITH d AS (
+        SELECT sampled_at,
+               read_requests - LAG(read_requests) OVER (ORDER BY sampled_at) AS d_req,
+               disk_reads    - LAG(disk_reads)    OVER (ORDER BY sampled_at) AS d_reads,
+               current_lsn   - LAG(current_lsn)   OVER (ORDER BY sampled_at) AS d_lsn,
+               100 * (current_lsn - checkpoint_lsn) / 2147483648 AS ckpt_pct
+        FROM innodb_samples
+      )
+      SELECT sampled_at,
+             ROUND(100 * (1 - d_reads / d_req), 3) AS hit_ratio_pct,
+             ROUND(d_lsn / 1024 / 1024 / 60, 1) AS redo_mb_per_s,
+             ROUND(ckpt_pct, 1) AS checkpoint_pct,
+             CASE WHEN ckpt_pct >= 50 THEN 'checkpoint'
+                  WHEN 100 * (1 - d_reads / d_req) < 99 THEN 'misses'
+                  ELSE 'ok' END AS alert
+      FROM d
+      WHERE d_req IS NOT NULL
+      ORDER BY sampled_at;
+    explanation: |
+      At 12:02 the redo rate jumps to about 14 MB/s and the checkpoint age reaches about 60 % of capacity while the
+      hit ratio drops to 98.55 % (87,000 misses in a minute) — a write burst that also pulled cold pages in. At 12:03 the
+      checkpoint has caught up. Cumulative counters must always be differenced (LAG), whereas checkpoint age is a
+      point-in-time difference of two LSNs in the same sample. Ordering the alert conditions matters: the more urgent
+      checkpoint condition is tested first.
+  - id: c3
+    title: Make a legacy schema 8.4-ready
+    dataset: empty
+    difficulty: hard
+    kind: dml
+    concepts: [storage-engines, row-formats, myisam]
+    setup: |
+      CREATE TABLE sessions_legacy (
+        session_id CHAR(32) PRIMARY KEY,
+        user_id INT NOT NULL,
+        payload TEXT
+      ) ENGINE = MyISAM;
+      CREATE TABLE profiles_old (
+        user_id INT PRIMARY KEY,
+        bio TEXT, interests TEXT, address TEXT
+      ) ENGINE = InnoDB ROW_FORMAT = COMPACT;
+      CREATE TABLE audit_old (
+        id INT PRIMARY KEY,
+        msg VARCHAR(200)
+      ) ENGINE = InnoDB ROW_FORMAT = REDUNDANT;
+      CREATE TABLE orders_ok (
+        order_id INT PRIMARY KEY,
+        total DECIMAL(10,2)
+      ) ENGINE = InnoDB;
+      INSERT INTO sessions_legacy VALUES (MD5('a'), 1, 'x'), (MD5('b'), 2, 'y');
+      INSERT INTO profiles_old VALUES (1, 'b', 'i', 'a');
+      INSERT INTO audit_old VALUES (1, 'created');
+      INSERT INTO orders_ok VALUES (1, 9.99);
+    prompt: |
+      Before upgrading to 8.4, the team wants every table in the schema to use **InnoDB** with the **DYNAMIC** row
+      format, keeping all data. Write the statements that convert the tables that need it (and only those). The checker
+      lists every table's engine, row format and row count.
+    hints:
+      - "Find the tables first: information_schema.TABLES WHERE ENGINE <> 'InnoDB' OR ROW_FORMAT <> 'Dynamic'."
+      - "One ALTER TABLE can change both: ALTER TABLE t ENGINE = InnoDB, ROW_FORMAT = DYNAMIC;"
+    solution: |
+      ALTER TABLE sessions_legacy ENGINE = InnoDB, ROW_FORMAT = DYNAMIC;
+      ALTER TABLE profiles_old ROW_FORMAT = DYNAMIC;
+      ALTER TABLE audit_old ROW_FORMAT = DYNAMIC;
+    check: |
+      SELECT t.TABLE_NAME, t.ENGINE, t.ROW_FORMAT,
+             CASE t.TABLE_NAME
+               WHEN 'sessions_legacy' THEN (SELECT COUNT(*) FROM sessions_legacy)
+               WHEN 'profiles_old'    THEN (SELECT COUNT(*) FROM profiles_old)
+               WHEN 'audit_old'       THEN (SELECT COUNT(*) FROM audit_old)
+               WHEN 'orders_ok'       THEN (SELECT COUNT(*) FROM orders_ok)
+             END AS row_count
+      FROM information_schema.TABLES t
+      WHERE t.TABLE_SCHEMA = DATABASE()
+      ORDER BY t.TABLE_NAME;
+    explanation: |
+      sessions_legacy needs both an engine and a row-format change (converting MyISAM to InnoDB without ROW_FORMAT
+      would also pick the default DYNAMIC, but stating it explicitly documents the intent); profiles_old (COMPACT) and
+      audit_old (REDUNDANT) need only the row format; orders_ok is already InnoDB/DYNAMIC and should not be rebuilt
+      needlessly. Each ALTER rebuilds the table — on large production tables use online DDL or an online schema-change
+      tool, and check disk space for the temporary copy. After the change, COMPACT's 768-byte inline prefixes are gone,
+      so wide rows fit and scans of narrow columns read fewer pages.
+  - id: c4
+    title: Read the rewrite from the optimizer trace
+    dataset: shop
+    difficulty: challenge
+    kind: query
+    concepts: [optimizer-trace, query-transformations]
+    prompt: |
+      A report query is
+
+      ~~~sql
+      SELECT c.customer_id, o.order_id
+      FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id
+      WHERE o.status = 'cancelled';
+      ~~~
+
+      Trace it with the optimizer trace and return **one row** with two columns:
+
+      1. `transformations` — the JSON array of transformation names that join preparation applied
+         (the `transformations` member of `transformations_to_nested_joins`), exactly as stored in the trace
+      2. `kept_outer_join` — `'yes'` if the array does **not** contain `outer_join_to_inner_join`, otherwise `'no'`
+    hints:
+      - "SET SESSION optimizer_trace = 'enabled=on'; then run the query, then read information_schema.OPTIMIZER_TRACE."
+      - "JSON_EXTRACT(TRACE, '$**.transformations_to_nested_joins.transformations') returns an array of arrays; take element $[0]."
+      - "JSON_CONTAINS(array, '\"outer_join_to_inner_join\"') tests membership."
+    solution: |
+      SET SESSION optimizer_trace = 'enabled=on';
+      SELECT c.customer_id, o.order_id
+      FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id
+      WHERE o.status = 'cancelled';
+      SELECT JSON_EXTRACT(JSON_EXTRACT(TRACE, '$**.transformations_to_nested_joins.transformations'), '$[0]') AS transformations,
+             IF(JSON_CONTAINS(JSON_EXTRACT(JSON_EXTRACT(TRACE, '$**.transformations_to_nested_joins.transformations'), '$[0]'),
+                              '"outer_join_to_inner_join"'), 'no', 'yes') AS kept_outer_join
+      FROM information_schema.OPTIMIZER_TRACE;
+    explanation: |
+      The WHERE condition on o.status cannot be true for NULL-extended rows, so the optimizer converted the LEFT JOIN to
+      an inner join (`outer_join_to_inner_join`), moved the ON condition into WHERE and removed parentheses —
+      `kept_outer_join` is 'no'. Customers without cancelled orders are therefore not in the result; if the report
+      should list all customers, the predicate must move into the ON clause. Wildcard paths always return arrays of
+      matches, which is why the extraction needs `$[0]`.
+interview:
+  - id: i1
+    question: "Walk me through everything that happens inside MySQL between a client sending `UPDATE accounts SET balance = balance - 25 WHERE id = 7` (autocommit) and receiving OK."
+    answer: |
+      **Connection layer:** the session's dedicated thread reads a `COM_QUERY` packet. **SQL layer:** the parser builds a
+      tree; the resolver opens `accounts` via the dictionary and table caches, takes a metadata lock, binds columns and
+      checks the UPDATE privilege; the optimizer chooses a primary-key lookup. **Executor → InnoDB:** the handler asks
+      InnoDB for the row with an exclusive lock; InnoDB descends the clustered B+ tree in the buffer pool (reading the
+      page from disk on a miss), takes an X record lock, writes an undo record with the old balance, modifies the row in
+      the page (now dirty), and generates redo records via a mini-transaction into the log buffer. The server appends an
+      `Update_rows` event to the session's binlog cache.
+
+      **Commit (internal 2PC):** InnoDB prepares (redo flushed with `innodb_flush_log_at_trx_commit = 1`); the group-commit
+      leader writes the events and an `Xid` event to the binlog and fsyncs it (`sync_binlog = 1`) — the commit point;
+      InnoDB commits (locks released, undo to the history list); the client receives OK with affected rows.
+
+      **Later:** a page cleaner writes the dirty page through the doublewrite buffer to the `.ibd` file, the checkpoint
+      advances, and purge eventually discards the undo record once no read view needs it.
+    concepts: [query-lifecycle, two-phase-commit, write-ahead-logging]
+  - id: i2
+    question: "Why does MySQL need both a redo log and a binary log, and how does it keep them consistent?"
+    answer: |
+      They solve different problems at different layers. The **redo log** is InnoDB's physical, circular write-ahead log
+      for crash recovery of pages; it contains uncommitted work and is useless outside the instance. The **binary log**
+      is the server's logical, engine-independent log of committed transactions, kept as files for days for
+      replication, point-in-time recovery and CDC.
+
+      Because a transaction must be in the binlog if and only if it is committed in InnoDB, MySQL uses an **internal
+      two-phase commit** with the binlog as coordinator: InnoDB prepares (durable but undecided), the binlog writes and
+      fsyncs the transaction's events plus an Xid event (the commit point), then InnoDB commits. Group commit batches
+      these steps for many sessions so fsyncs are amortised. After a crash, prepared transactions are committed if
+      their XID is in the last binlog file and rolled back otherwise. This only holds with `sync_binlog = 1` and
+      `innodb_flush_log_at_trx_commit = 1`; relaxing either can make the logs disagree after an OS crash.
+    concepts: [binary-log, redo-log, two-phase-commit]
+  - id: i3
+    question: "Explain the InnoDB buffer pool's replacement policy. Why not plain LRU, and what would you check if the cache seems to be thrashing?"
+    answer: |
+      InnoDB uses an LRU list split into a **young** (≈ 5/8) and an **old** (≈ 3/8, `innodb_old_blocks_pct = 37`) sublist.
+      Pages read from disk are inserted at the **midpoint** (head of the old sublist) and promoted to the young head only
+      if accessed again after `innodb_old_blocks_time` (1 s). Eviction takes the tail; dirty victims must be flushed
+      first, which page cleaners try to do ahead of time (`innodb_lru_scan_depth`).
+
+      Plain LRU suffers from **sequential flooding**: one scan larger than the pool evicts the whole hot set. With
+      midpoint insertion, scan pages live and die in the old sublist.
+
+      If thrashing is suspected: compute misses per second over intervals (`Innodb_buffer_pool_reads` deltas) rather than
+      the since-startup hit ratio; check "pages made young / not young" in `INNODB_BUFFER_POOL_STATS` or the status
+      output; `Innodb_buffer_pool_wait_free`; whether the working set exceeds the pool (size of hot tables and indexes);
+      whether a periodic scan or backup coincides with the misses; and storage latency. Remedies: a bigger pool, a
+      smaller working set (better keys, covering indexes, archiving), moving scans to replicas, or tuning
+      `innodb_old_blocks_time`.
+    concepts: [buffer-pool, midpoint-insertion]
+  - id: i4
+    question: "What happens, phase by phase, when InnoDB restarts after a power failure? What determines how long it takes?"
+    answer: |
+      1. **Tablespace discovery** — identify the files redo refers to.
+      2. **Doublewrite repair** — restore torn pages from intact copies in the doublewrite files.
+      3. **Redo application** — scan from the checkpoint LSN to the end of the redo log and apply records to pages whose
+         page LSN is older (repeating history, idempotent, whole mini-transactions).
+      4. **Transaction resolution** — read undo log headers to find active and prepared transactions; the server checks
+         prepared transactions' XIDs against the last binlog file (commit if present, roll back if not); incomplete DDL is
+         completed or rolled back via the DDL log.
+      5. **Open for connections**, then **background rollback** of remaining incomplete transactions (their rows stay
+         locked until done), plus change-buffer merge and purge as normal background work.
+
+      **Duration:** the redo phase is bounded by the checkpoint age (redo capacity is the maximum) and by how many
+      distinct pages must be read (storage random-read speed). The undo phase depends on the size of incomplete
+      transactions — a huge batch job can take as long or longer to roll back as it ran. Keep checkpoint age moderate
+      with adequate flushing, keep transactions short, and fail over to a replica when the RTO cannot wait.
+    concepts: [crash-recovery, checkpoint-age]
+  - id: i5
+    question: "MySQL 8.4 turned off the change buffer and the adaptive hash index by default. Explain what each does, why the defaults changed, and how you would decide whether to re-enable them."
+    answer: |
+      The **change buffer** defers changes (inserts, delete-marks, purges) to **non-unique secondary index** pages that are
+      not in the buffer pool, recording them in a B+ tree in the system tablespace and merging them when the page is read
+      later. It saves random reads for write-heavy tables with several secondary indexes much larger than memory.
+      The **adaptive hash index** builds in-memory hash entries over hot B+ tree pages so repeated equality lookups skip
+      tree descents.
+
+      Why off: SSDs made random reads cheap and buffer pools grew, so the change buffer's benefit shrank while its costs
+      remained (merge work at unpredictable times, buffer-pool space, slow shutdowns, complex failure modes). The AHI
+      helps only hot equality lookups and causes latch contention and CPU overhead under concurrent writes on many-core
+      servers.
+
+      **Decide by measurement**: on a production-like replica under realistic load, compare throughput, p99 latency and
+      I/O with each feature on and off (both are dynamic). For the change buffer, look at insert latency and
+      `Innodb_buffer_pool_reads` on write-heavy tables with large secondary indexes on slow storage; for the AHI, compare
+      hash vs non-hash searches and `btr_search` latch waits. Pin the chosen value explicitly in `my.cnf`.
+    concepts: [change-buffer, adaptive-hash-index, innodb-defaults-8-4]
+  - id: i6
+    question: "Why do production systems use connection pools in front of MySQL, and what are the trade-offs between an application pool, ProxySQL and MySQL Router?"
+    answer: |
+      Opening a MySQL connection costs several network round trips (TCP, TLS, handshake, authentication), CPU for
+      cryptography, and a server thread with its memory; MySQL's community server dedicates one thread per connection and
+      caps them with `max_connections`. Pools pay that cost once, reuse sessions and — crucially — **bound concurrency**:
+      by Little's law a service needs only throughput × hold time busy connections.
+
+      **Application pools** (HikariCP, SQLAlchemy, Go database/sql) are simple and add no hop, but total connections grow
+      with the number of instances and they cannot multiplex across services. **ProxySQL** maintains backend pools and
+      **multiplexes** many client sessions onto few server connections, routes queries by rules (read/write split),
+      caches, and enforces limits — at the cost of another component, and multiplexing is disabled for sessions with
+      state (open transactions, user variables, temporary tables). **MySQL Router** is the official, topology-aware
+      router for InnoDB Cluster/ReplicaSet: it follows primary changes automatically; newer releases add pooling and
+      read/write splitting, but it has fewer query-level features than ProxySQL.
+
+      Whatever the choice: reset or roll back connections on return (session-state and open-transaction leaks), keep
+      pool lifetimes below `wait_timeout`, and budget Σ(instances × pool size) against `max_connections` and per-account
+      limits.
+    concepts: [connection-pooling, proxysql, mysql-router]

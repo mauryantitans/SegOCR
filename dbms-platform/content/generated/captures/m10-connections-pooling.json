@@ -76,7 +76,7 @@
      "rows": [
       [
        "Aborted_clients",
-       "8"
+       "36"
       ],
       [
        "Aborted_connects",
@@ -84,7 +84,7 @@
       ],
       [
        "Connections",
-       "657"
+       "2235"
       ],
       [
        "Max_used_connections",
@@ -283,7 +283,7 @@
      "rows": [
       [
        "Bytes_sent",
-       "2090"
+       "2093"
       ]
      ]
     },
@@ -311,7 +311,7 @@
      "rows": [
       [
        "Bytes_sent",
-       "2420"
+       "2423"
       ]
      ]
     },
@@ -742,7 +742,7 @@
      "rows": [
       [
        "Bytes_sent",
-       "7954"
+       "7957"
       ]
      ]
     }
@@ -921,7 +921,7 @@
       "transactions": [
        {
         "session": "B",
-        "trxId": "350901",
+        "trxId": "463272",
         "state": "RUNNING",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,
@@ -930,7 +930,7 @@
        },
        {
         "session": "C",
-        "trxId": "350912",
+        "trxId": "463283",
         "state": "LOCK WAIT",
         "isolation": "REPEATABLE READ",
         "rowsLocked": 1,

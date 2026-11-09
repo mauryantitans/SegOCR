@@ -1,0 +1,1204 @@
+{
+ "doc": "m12-partitioning",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s1:5ec8e8db7fea": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 240000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE events (\n  event_id    INT UNSIGNED NOT NULL,\n  created_at  DATETIME     NOT NULL,\n  customer_id INT UNSIGNED NOT NULL,\n  event_type  VARCHAR(16)  NOT NULL,\n  amount      DECIMAL(10,2) NOT NULL,\n  PRIMARY KEY (event_id, created_at),\n  KEY idx_events_customer (customer_id)\n)\nPARTITION BY RANGE (TO_DAYS(created_at)) (\n  PARTITION p2024_01 VALUES LESS THAN (TO_DAYS('2024-02-01')),\n  PARTITION p2024_02 VALUES LESS THAN (TO_DAYS('2024-03-01')),\n  PARTITION p2024_03 VALUES LESS THAN (TO_DAYS('2024-04-01')),\n  PARTITION p2024_04 VALUES LESS THAN (TO_DAYS('2024-05-01')),\n  PARTITION p2024_05 VALUES LESS THAN (TO_DAYS('2024-06-01')),\n  PARTITION p2024_06 VALUES LESS THAN (TO_DAYS('2024-07-01')),\n  PARTITION p2024_07 VALUES LESS THAN (TO_DAYS('2024-08-01')),\n  PARTITION p2024_08 VALUES LESS THAN (TO_DAYS('2024-09-01')),\n  PARTITION p2024_09 VALUES LESS THAN (TO_DAYS('2024-10-01')),\n  PARTITION p2024_10 VALUES LESS THAN (TO_DAYS('2024-11-01')),\n  PARTITION p2024_11 VALUES LESS THAN (TO_DAYS('2024-12-01')),\n  PARTITION p2024_12 VALUES LESS THAN (TO_DAYS('2025-01-01')),\n  PARTITION pmax     VALUES LESS THAN MAXVALUE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO events\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 240000)\nSELECT n,\n       '2024-01-01' + INTERVAL ((n - 1) * 131) SECOND,\n       (n * 7919) % 20000 + 1,\n       ELT(1 + n % 4, 'view', 'click', 'cart', 'purchase'),\n       ROUND(((n * 37) % 10000) / 100, 2)\nFROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 240000,
+     "info": "Records: 240000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE events",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "events",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT MIN(created_at) AS first_event, MAX(created_at) AS last_event, COUNT(*) AS events_rows FROM events",
+     "status": "ok",
+     "columns": [
+      "first_event",
+      "last_event",
+      "events_rows"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "2024-01-01 00:00:00",
+       "2024-12-29 21:17:49",
+       240000
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s2:d025fe647e60": {
+   "statements": [
+    {
+     "sql": "SELECT PARTITION_NAME, PARTITION_ORDINAL_POSITION AS pos, PARTITION_DESCRIPTION AS less_than_to_days, TABLE_ROWS\nFROM information_schema.PARTITIONS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'events'\nORDER BY PARTITION_ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "PARTITION_NAME",
+      "pos",
+      "less_than_to_days",
+      "TABLE_ROWS"
+     ],
+     "row_count": 13,
+     "rows": [
+      [
+       "p2024_01",
+       1,
+       "739282",
+       20004
+      ],
+      [
+       "p2024_02",
+       2,
+       "739311",
+       19035
+      ],
+      [
+       "p2024_03",
+       3,
+       "739342",
+       20590
+      ],
+      [
+       "p2024_04",
+       4,
+       "739372",
+       19300
+      ],
+      [
+       "p2024_05",
+       5,
+       "739403",
+       20590
+      ],
+      [
+       "p2024_06",
+       6,
+       "739433",
+       19300
+      ],
+      [
+       "p2024_07",
+       7,
+       "739464",
+       20004
+      ],
+      [
+       "p2024_08",
+       8,
+       "739495",
+       20590
+      ],
+      [
+       "p2024_09",
+       9,
+       "739525",
+       20235
+      ],
+      [
+       "p2024_10",
+       10,
+       "739556",
+       20590
+      ],
+      [
+       "p2024_11",
+       11,
+       "739586",
+       20235
+      ],
+      [
+       "p2024_12",
+       12,
+       "739617",
+       18565
+      ],
+      [
+       "pmax",
+       13,
+       "MAXVALUE",
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:5241c268049c": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*), SUM(amount) FROM events\nWHERE created_at >= '2024-03-01' AND created_at < '2024-04-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events",
+       "p2024_01,p2024_03",
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       40594,
+       11.11,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)`,sum(`events`.`amount`) AS `SUM(amount)` from `events` where ((`events`.`created_at` >= TIMESTAMP'2024-03-01 00:00:00') and (`events`.`created_at` < TIMESTAMP'2024-04-01 00:00:00'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:9a821cce3bb1": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM events\nWHERE created_at BETWEEN '2024-06-25' AND '2024-07-05 23:59:59'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events",
+       "p2024_01,p2024_06,p2024_07",
+       "index",
+       "PRIMARY,idx_events_customer",
+       "idx_events_customer",
+       "4",
+       null,
+       59308,
+       11.11,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `events` where (`events`.`created_at` between '2024-06-25' and '2024-07-05 23:59:59')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:08e7b2e543a2": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM events WHERE customer_id = 4217",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events",
+       "p2024_01,p2024_02,p2024_03,p2024_04,p2024_05,p2024_06,p2024_07,p2024_08,p2024_09,p2024_10,p2024_11,p2024_12,pmax",
+       "ref",
+       "idx_events_customer",
+       "idx_events_customer",
+       "4",
+       "const",
+       12,
+       100.0,
+       "Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `events` where (`events`.`customer_id` = 4217)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:bb679347d915": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE events REORGANIZE PARTITION pmax INTO (\n  PARTITION p2025_01 VALUES LESS THAN (TO_DAYS('2025-02-01')),\n  PARTITION pmax     VALUES LESS THAN MAXVALUE\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO events VALUES (240001, '2025-01-15 08:00:00', 42, 'purchase', 19.99)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM events WHERE created_at >= '2025-01-01' AND created_at < '2025-02-01'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events",
+       "p2024_01,p2025_01",
+       "ALL",
+       null,
+       null,
+       null,
+       null,
+       20005,
+       11.11,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `events`.`event_id` AS `event_id`,`events`.`created_at` AS `created_at`,`events`.`customer_id` AS `customer_id`,`events`.`event_type` AS `event_type`,`events`.`amount` AS `amount` from `events` where ((`events`.`created_at` >= TIMESTAMP'2025-01-01 00:00:00') and (`events`.`created_at` < TIMESTAMP'2025-02-01 00:00:00'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:e0ed85f9c393": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE events_feb_copy LIKE events",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE events_feb_copy REMOVE PARTITIONING",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO events_feb_copy SELECT * FROM events PARTITION (p2024_02)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 19127,
+     "info": "Records: 19127  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SELECT COUNT(*) AS rows_to_delete FROM events_feb_copy",
+     "status": "ok",
+     "columns": [
+      "rows_to_delete"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       19127
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s9:f4c68135fe58": {
+   "statements": [
+    {
+     "sql": "DELETE FROM events_feb_copy WHERE created_at >= '2024-02-01' AND created_at < '2024-03-01'",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 19127,
+     "rows": [],
+     "elapsed_ms": 80.3
+    }
+   ],
+   "measured": true
+  },
+  "s10:9e1f57ad9f7f": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE events DROP PARTITION p2024_01",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": [],
+     "elapsed_ms": 26.94
+    }
+   ],
+   "measured": true
+  },
+  "s11:3eab57368b2e": {
+   "statements": [
+    {
+     "sql": "ALTER TABLE events TRUNCATE PARTITION p2024_02",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT PARTITION_NAME, TABLE_ROWS FROM information_schema.PARTITIONS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'events' AND PARTITION_NAME IN ('p2024_02', 'p2024_03')\nORDER BY PARTITION_NAME",
+     "status": "ok",
+     "columns": [
+      "PARTITION_NAME",
+      "TABLE_ROWS"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "p2024_02",
+       0
+      ],
+      [
+       "p2024_03",
+       20590
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) AS feb_rows_left FROM events PARTITION (p2024_02)",
+     "status": "ok",
+     "columns": [
+      "feb_rows_left"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s12:c5bb79747ae6": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE events_archive_2024_03 LIKE events",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE events_archive_2024_03 REMOVE PARTITIONING",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Records: 0  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ALTER TABLE events EXCHANGE PARTITION p2024_03 WITH TABLE events_archive_2024_03",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SELECT (SELECT COUNT(*) FROM events PARTITION (p2024_03)) AS left_in_partition,\n       (SELECT COUNT(*) FROM events_archive_2024_03)      AS now_in_archive_table",
+     "status": "ok",
+     "columns": [
+      "left_in_partition",
+      "now_in_archive_table"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       20446
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s13:0fcbba0a3663": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE customers_by_region (\n  customer_id INT UNSIGNED NOT NULL,\n  region      VARCHAR(8)   NOT NULL,\n  name        VARCHAR(40)  NOT NULL,\n  PRIMARY KEY (customer_id, region)\n)\nPARTITION BY LIST COLUMNS (region) (\n  PARTITION p_americas VALUES IN ('NA', 'LATAM'),\n  PARTITION p_europe   VALUES IN ('EU', 'UK'),\n  PARTITION p_asia     VALUES IN ('APAC', 'IN')\n)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO customers_by_region\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 100000)\nSELECT n, ELT(1 + n % 6, 'NA', 'LATAM', 'EU', 'UK', 'APAC', 'IN'), CONCAT('customer ', n) FROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE customers_by_region",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "customers_by_region",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM customers_by_region WHERE region IN ('EU', 'UK')",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "customers_by_region",
+       "p_europe",
+       "index",
+       null,
+       "PRIMARY",
+       "38",
+       null,
+       32502,
+       20.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `customers_by_region` where (`customers_by_region`.`region` in ('EU','UK'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s14:a20a17ab491a": {
+   "statements": [
+    {
+     "sql": "INSERT INTO customers_by_region VALUES (100001, 'MEA', 'new market customer')",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1526,
+      "message": "Table has no partition for value from column_list"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s15:559a56c0d244": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE carts (\n  customer_id INT UNSIGNED NOT NULL,\n  product_id  INT UNSIGNED NOT NULL,\n  qty         INT UNSIGNED NOT NULL,\n  PRIMARY KEY (customer_id, product_id)\n)\nPARTITION BY HASH (customer_id) PARTITIONS 8",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO carts\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 100000)\nSELECT n DIV 5 + 1, n % 5 + 1, 1 + n % 3 FROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 100000,
+     "info": "Records: 100000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE carts",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "carts",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT PARTITION_NAME, TABLE_ROWS FROM information_schema.PARTITIONS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'carts' ORDER BY PARTITION_ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "PARTITION_NAME",
+      "TABLE_ROWS"
+     ],
+     "row_count": 8,
+     "rows": [
+      [
+       "p0",
+       12500
+      ],
+      [
+       "p1",
+       12500
+      ],
+      [
+       "p2",
+       12500
+      ],
+      [
+       "p3",
+       12500
+      ],
+      [
+       "p4",
+       12500
+      ],
+      [
+       "p5",
+       12500
+      ],
+      [
+       "p6",
+       12500
+      ],
+      [
+       "p7",
+       12500
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM carts WHERE customer_id = 4242",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "carts",
+       "p2",
+       "ref",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       "const",
+       5,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `carts`.`customer_id` AS `customer_id`,`carts`.`product_id` AS `product_id`,`carts`.`qty` AS `qty` from `carts` where (`carts`.`customer_id` = 4242)"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM carts WHERE customer_id BETWEEN 4242 AND 4243",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "carts",
+       "p2,p3",
+       "range",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       null,
+       10,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `carts`.`customer_id` AS `customer_id`,`carts`.`product_id` AS `product_id`,`carts`.`qty` AS `qty` from `carts` where (`carts`.`customer_id` between 4242 and 4243)"
+      }
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT * FROM carts WHERE customer_id BETWEEN 1000 AND 9000",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "carts",
+       "p0,p1,p2,p3,p4,p5,p6,p7",
+       "range",
+       "PRIMARY",
+       "PRIMARY",
+       "4",
+       null,
+       50000,
+       100.0,
+       "Using where"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select `carts`.`customer_id` AS `customer_id`,`carts`.`product_id` AS `product_id`,`carts`.`qty` AS `qty` from `carts` where (`carts`.`customer_id` between 1000 and 9000)"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s16:f863c01cb653": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE api_tokens (\n  token_hash CHAR(32)     NOT NULL PRIMARY KEY,\n  user_id    INT UNSIGNED NOT NULL,\n  expires_at DATETIME     NOT NULL\n)\nPARTITION BY KEY (token_hash) PARTITIONS 4",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "INSERT INTO api_tokens\nWITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 20000)\nSELECT MD5(n), n, '2025-01-01' + INTERVAL n MINUTE FROM seq",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 20000,
+     "info": "Records: 20000  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "ANALYZE TABLE api_tokens",
+     "status": "ok",
+     "columns": [
+      "Table",
+      "Op",
+      "Msg_type",
+      "Msg_text"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "api_tokens",
+       "analyze",
+       "status",
+       "OK"
+      ]
+     ]
+    },
+    {
+     "sql": "EXPLAIN SELECT user_id FROM api_tokens WHERE token_hash = MD5(777)",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "api_tokens",
+       "p1",
+       "const",
+       "PRIMARY",
+       "PRIMARY",
+       "128",
+       "const",
+       1,
+       100.0,
+       null
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select '777' AS `user_id` from `api_tokens` where true"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:45de8688ccea": {
+   "statements": [
+    {
+     "sql": "SELECT PARTITION_NAME, PARTITION_DESCRIPTION AS less_than_to_days,\n       FROM_DAYS(PARTITION_DESCRIPTION) AS less_than_date\nFROM information_schema.PARTITIONS\nWHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'events' AND PARTITION_DESCRIPTION <> 'MAXVALUE'\nORDER BY PARTITION_ORDINAL_POSITION",
+     "status": "ok",
+     "columns": [
+      "PARTITION_NAME",
+      "less_than_to_days",
+      "less_than_date"
+     ],
+     "row_count": 12,
+     "rows": [
+      [
+       "p2024_02",
+       "739311",
+       "2024-03-01"
+      ],
+      [
+       "p2024_03",
+       "739342",
+       "2024-04-01"
+      ],
+      [
+       "p2024_04",
+       "739372",
+       "2024-05-01"
+      ],
+      [
+       "p2024_05",
+       "739403",
+       "2024-06-01"
+      ],
+      [
+       "p2024_06",
+       "739433",
+       "2024-07-01"
+      ],
+      [
+       "p2024_07",
+       "739464",
+       "2024-08-01"
+      ],
+      [
+       "p2024_08",
+       "739495",
+       "2024-09-01"
+      ],
+      [
+       "p2024_09",
+       "739525",
+       "2024-10-01"
+      ],
+      [
+       "p2024_10",
+       "739556",
+       "2024-11-01"
+      ],
+      [
+       "p2024_11",
+       "739586",
+       "2024-12-01"
+      ],
+      [
+       "p2024_12",
+       "739617",
+       "2025-01-01"
+      ],
+      [
+       "p2025_01",
+       "739648",
+       "2025-02-01"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:50a41ff3bf1d": {
+   "statements": [
+    {
+     "sql": "SELECT TO_DAYS('2024-05-10') AS low, TO_DAYS('2024-05-20') AS high",
+     "status": "ok",
+     "columns": [
+      "low",
+      "high"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       739381,
+       739391
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:dc510b654507": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM events WHERE created_at >= '2024-05-10' AND created_at < '2024-05-20'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events",
+       "p2024_05",
+       "index",
+       "PRIMARY,idx_events_customer",
+       "idx_events_customer",
+       "4",
+       null,
+       20590,
+       11.11,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `events` where ((`events`.`created_at` >= TIMESTAMP'2024-05-10 00:00:00') and (`events`.`created_at` < TIMESTAMP'2024-05-20 00:00:00'))"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:8be9dfe27bc6": {
+   "statements": [
+    {
+     "sql": "EXPLAIN ANALYZE SELECT COUNT(*) FROM events WHERE created_at >= '2024-05-10' AND created_at < '2024-05-20'",
+     "status": "ok",
+     "columns": [
+      "EXPLAIN"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "-> Aggregate: count(0)  (cost=2312 rows=1) (actual time=4.67..4.67 rows=1 loops=1)\n    -> Filter: ((`events`.created_at >= TIMESTAMP'2024-05-10 00:00:00') and (`events`.created_at < TIMESTAMP'2024-05-20 00:00:00'))  (cost=2083 rows=2287) (actual time=0.273..4.38 rows=6595 loops=1)\n        -> Covering index scan on events using idx_events_customer  (cost=2083 rows=20590) (actual time=0.268..2.59 rows=20446 loops=1)\n"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s17:4dbed8f48613": {
+   "statements": [
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Handler_read_key'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Handler_read_key",
+       "2623"
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT COUNT(*) FROM events WHERE customer_id = 4217",
+     "status": "ok",
+     "columns": [
+      "COUNT(*)"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       9
+      ]
+     ]
+    },
+    {
+     "sql": "SHOW SESSION STATUS LIKE 'Handler_read_key'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Handler_read_key",
+       "2636"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s18:30c42e89b903": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE orders_p (\n  order_id   INT UNSIGNED NOT NULL PRIMARY KEY,\n  order_date DATE NOT NULL\n)\nPARTITION BY RANGE COLUMNS (order_date) (\n  PARTITION p2024 VALUES LESS THAN ('2025-01-01'),\n  PARTITION pmax  VALUES LESS THAN (MAXVALUE)\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1503,
+      "message": "A PRIMARY KEY must include all columns in the table's partitioning function (prefixed columns are not considered)."
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s19:a4c95029c57b": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE customers_fk (customer_id INT UNSIGNED PRIMARY KEY)",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE orders_fk (\n  order_id    INT UNSIGNED NOT NULL,\n  order_date  DATE NOT NULL,\n  customer_id INT UNSIGNED NOT NULL,\n  PRIMARY KEY (order_id, order_date),\n  FOREIGN KEY (customer_id) REFERENCES customers_fk (customer_id)\n)\nPARTITION BY RANGE COLUMNS (order_date) (\n  PARTITION p2024 VALUES LESS THAN ('2025-01-01'),\n  PARTITION pmax  VALUES LESS THAN (MAXVALUE)\n)",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1506,
+      "message": "Foreign keys are not yet supported in conjunction with partitioning"
+     }
+    }
+   ],
+   "measured": null
+  },
+  "s20:f663a2ca9bca": {
+   "statements": [
+    {
+     "sql": "EXPLAIN SELECT COUNT(*) FROM events WHERE DATE_FORMAT(created_at, '%Y-%m') = '2024-05'",
+     "status": "ok",
+     "columns": [
+      "id",
+      "select_type",
+      "table",
+      "partitions",
+      "type",
+      "possible_keys",
+      "key",
+      "key_len",
+      "ref",
+      "rows",
+      "filtered",
+      "Extra"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "SIMPLE",
+       "events",
+       "p2024_02,p2024_03,p2024_04,p2024_05,p2024_06,p2024_07,p2024_08,p2024_09,p2024_10,p2024_11,p2024_12,p2025_01,pmax",
+       "index",
+       null,
+       "idx_events_customer",
+       "4",
+       null,
+       179371,
+       100.0,
+       "Using where; Using index"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Note",
+       "code": 1003,
+       "message": "/* select#1 */ select count(0) AS `COUNT(*)` from `events` where (date_format(`events`.`created_at`,'%Y-%m') = '2024-05')"
+      }
+     ]
+    }
+   ],
+   "measured": null
+  }
+ }
+}

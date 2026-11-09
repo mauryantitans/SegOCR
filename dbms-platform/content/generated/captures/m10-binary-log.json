@@ -1,0 +1,417 @@
+{
+ "doc": "m10-binary-log",
+ "meta": {
+  "mysqlVersion": "8.0.46-0ubuntu0.24.04.4",
+  "capturedAt": "2026-11-09"
+ },
+ "blocks": {
+  "s2:041032a34dbb": {
+   "statements": [
+    {
+     "sql": "SELECT @@log_bin                      AS binlog_enabled,\n       @@log_bin_basename             AS file_base_name,\n       @@binlog_format                AS binlog_format,\n       @@binlog_row_image             AS row_image,\n       @@sync_binlog                  AS sync_binlog,\n       @@max_binlog_size / 1024 / 1024 AS max_file_mb",
+     "status": "ok",
+     "columns": [
+      "binlog_enabled",
+      "file_base_name",
+      "binlog_format",
+      "row_image",
+      "sync_binlog",
+      "max_file_mb"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       "/var/lib/mysql/binlog",
+       "ROW",
+       "FULL",
+       1,
+       "100.00000000"
+      ]
+     ],
+     "warnings": [
+      {
+       "level": "Warning",
+       "code": 1287,
+       "message": "'@@binlog_format' is deprecated and will be removed in a future release."
+      }
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s3:844c733d2910": {
+   "statements": [
+    {
+     "sql": "SELECT @@binlog_expire_logs_seconds          AS retention_seconds,\n       @@binlog_expire_logs_seconds / 86400  AS retention_days,\n       @@binlog_expire_logs_auto_purge       AS auto_purge,\n       @@binlog_cache_size                   AS binlog_cache_bytes,\n       @@binlog_checksum                     AS checksum,\n       @@binlog_rows_query_log_events        AS log_sql_text_with_rows,\n       @@binlog_transaction_compression      AS compression",
+     "status": "ok",
+     "columns": [
+      "retention_seconds",
+      "retention_days",
+      "auto_purge",
+      "binlog_cache_bytes",
+      "checksum",
+      "log_sql_text_with_rows",
+      "compression"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       2592000,
+       "30.0000",
+       1,
+       32768,
+       "CRC32",
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s4:edd56d2374ed": {
+   "statements": [
+    {
+     "sql": "SELECT @@server_id                AS server_id,\n       @@server_uuid IS NOT NULL  AS has_server_uuid,\n       @@gtid_mode                AS gtid_mode,\n       @@enforce_gtid_consistency AS enforce_gtid_consistency,\n       @@gtid_next                AS gtid_next,\n       @@log_replica_updates      AS log_replica_updates,\n       @@binlog_order_commits     AS order_commits,\n       @@binlog_group_commit_sync_delay AS group_commit_delay_us",
+     "status": "ok",
+     "columns": [
+      "server_id",
+      "has_server_uuid",
+      "gtid_mode",
+      "enforce_gtid_consistency",
+      "gtid_next",
+      "log_replica_updates",
+      "order_commits",
+      "group_commit_delay_us"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       1,
+       1,
+       "OFF",
+       "OFF",
+       "AUTOMATIC",
+       1,
+       1,
+       0
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s5:ffbf85d2597e": {
+   "statements": [
+    {
+     "sql": "CREATE TABLE audit_note (id INT PRIMARY KEY, note VARCHAR(40)) ENGINE = InnoDB",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TABLE audit_note_myisam (id INT PRIMARY KEY, note VARCHAR(40)) ENGINE = MyISAM",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "CREATE TEMPORARY TABLE scratch_note (id INT PRIMARY KEY, note VARCHAR(40))",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name = 'Handler_prepare'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Handler_prepare",
+       "4"
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO audit_note VALUES (1, 'innodb')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name = 'Handler_prepare'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Handler_prepare",
+       "6"
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO audit_note_myisam VALUES (1, 'myisam')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name = 'Handler_prepare'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Handler_prepare",
+       "6"
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO scratch_note VALUES (1, 'temporary')",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "rows": []
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name = 'Handler_prepare'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Handler_prepare",
+       "6"
+      ]
+     ]
+    },
+    {
+     "sql": "UPDATE audit_note SET note = 'nothing' WHERE id = 999",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "info": "Rows matched: 0  Changed: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SHOW SESSION STATUS WHERE Variable_name = 'Handler_prepare'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       "Handler_prepare",
+       "6"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s6:ccf4ea2e6698": {
+   "statements": [
+    {
+     "sql": "SET SESSION cte_max_recursion_depth = 10000",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "SHOW GLOBAL STATUS LIKE 'Binlog_cache%'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Binlog_cache_disk_use",
+       "333"
+      ],
+      [
+       "Binlog_cache_use",
+       "51775"
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO audit_note\n  WITH RECURSIVE s(n) AS (SELECT 10 UNION ALL SELECT n + 1 FROM s WHERE n < 3000)\n  SELECT n, REPEAT('z', 40) FROM s",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 2991,
+     "info": "Records: 2991  Duplicates: 0  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "SHOW GLOBAL STATUS LIKE 'Binlog_cache%'",
+     "status": "ok",
+     "columns": [
+      "Variable_name",
+      "Value"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       "Binlog_cache_disk_use",
+       "334"
+      ],
+      [
+       "Binlog_cache_use",
+       "51776"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s7:0a9174373b58": {
+   "statements": [
+    {
+     "sql": "SELECT UUID() = UUID() AS uuid_repeats,\n       NOW() = NOW() AS now_is_statement_constant",
+     "status": "ok",
+     "columns": [
+      "uuid_repeats",
+      "now_is_statement_constant"
+     ],
+     "row_count": 1,
+     "rows": [
+      [
+       0,
+       1
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.0:8223e31efc86": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "492.57"
+      ],
+      [
+       2,
+       "4428.20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "w1.1:acc0cb6a9919": {
+   "statements": [
+    {
+     "sql": "START TRANSACTION",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance - 25.00 WHERE account_id = 1",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    },
+    {
+     "sql": "UPDATE accounts SET balance = balance + 25.00 WHERE account_id = 2",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 1,
+     "info": "Rows matched: 1  Changed: 1  Warnings: 0",
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.2:5be9cfb9ef50": {
+   "statements": [
+    {
+     "sql": "COMMIT",
+     "status": "ok",
+     "columns": [],
+     "affected_rows": 0,
+     "rows": []
+    }
+   ],
+   "measured": null
+  },
+  "w1.3:8223e31efc86": {
+   "statements": [
+    {
+     "sql": "SELECT account_id, balance FROM accounts WHERE account_id IN (1, 2) ORDER BY account_id",
+     "status": "ok",
+     "columns": [
+      "account_id",
+      "balance"
+     ],
+     "row_count": 2,
+     "rows": [
+      [
+       1,
+       "467.57"
+      ],
+      [
+       2,
+       "4453.20"
+      ]
+     ]
+    }
+   ],
+   "measured": null
+  },
+  "s8:0e361afda490": {
+   "statements": [
+    {
+     "sql": "SET SESSION binlog_format = 'STATEMENT'",
+     "status": "error",
+     "columns": [],
+     "rows": [],
+     "error": {
+      "code": 1227,
+      "message": "Access denied; you need (at least one of) the SUPER, SYSTEM_VARIABLES_ADMIN or SESSION_VARIABLES_ADMIN privilege(s) for this operation"
+     }
+    }
+   ],
+   "measured": null
+  }
+ }
+}
